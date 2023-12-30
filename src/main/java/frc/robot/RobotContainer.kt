@@ -1,63 +1,119 @@
 // Copyright (c) FIRST and other WPILib contributors.
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
+package frc.robot
 
-package frc.robot;
+import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.units.degrees
+import com.batterystaple.kmeasure.units.inches
+import edu.wpi.first.hal.AllianceStationID
+import edu.wpi.first.math.system.plant.DCMotor
+import edu.wpi.first.wpilibj.RobotBase.isReal
+import edu.wpi.first.wpilibj.simulation.DriverStationSim
+import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.InstantCommand
+import frc.chargers.commands.InstantCommand
+import frc.chargers.commands.commandbuilder.buildCommand
+import frc.chargers.constants.drivetrain.SwerveControlData
+import frc.chargers.constants.drivetrain.SwerveHardwareData
+import frc.chargers.constants.tuning.DashboardTuner
+import frc.chargers.controls.feedforward.AngularMotorFFConstants
+import frc.chargers.controls.pid.PIDConstants
+import frc.chargers.framework.ChargerRobotContainer
+import frc.chargers.hardware.sensors.imu.ChargerNavX
+import frc.chargers.hardware.sensors.imu.configureIMUSimulation
+import frc.chargers.hardware.subsystems.drivetrain.EncoderHolonomicDrivetrain
+import frc.chargers.hardware.subsystemutils.swervedrive.sparkMaxSwerveMotors
+import frc.chargers.hardware.subsystemutils.swervedrive.swerveCANcoders
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.chargers.wpilibextensions.kinematics.ChassisPowers
+import frc.robot.hardware.inputdevices.DriverController
 
-import frc.robot.Constants.OperatorConstants;
-import frc.robot.commands.Autos;
-import frc.robot.commands.ExampleCommand;
-import frc.robot.subsystems.ExampleSubsystem;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
+class RobotContainer: ChargerRobotContainer() {
 
-/**
- * This class is where the bulk of the robot should be declared. Since Command-based is a
- * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
- * periodic methods (other than the scheduler calls). Instead, the structure of the robot (including
- * subsystems, commands, and trigger mappings) should be declared here.
- */
-public class RobotContainer {
-  // The robot's subsystems and commands are defined here...
-  private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
+    val gyroIO = ChargerNavX(useFusedHeading = false)
 
-  // Replace with CommandPS4Controller or CommandJoystick if needed
-  private final CommandXboxController m_driverController =
-      new CommandXboxController(OperatorConstants.kDriverControllerPort);
+    val drivetrain = EncoderHolonomicDrivetrain(
+        turnMotors = sparkMaxSwerveMotors(0,1,2,3),
+        turnEncoders = swerveCANcoders(0,1,2,3, useAbsoluteSensor = true),
+        driveMotors = sparkMaxSwerveMotors(4,5,6,7),
+        turnGearbox = DCMotor.getNEO(1),
+        driveGearbox = DCMotor.getNEO(1),
+        controlData = SwerveControlData(
+            anglePID = PIDConstants(10.0,0.0,0.0),
+            velocityPID = PIDConstants.None,
+            velocityFF = AngularMotorFFConstants.fromSI(0.0,0.0,0.0),
+            openLoopDiscretizationRate = 2.3
+        ),
+        hardwareData = SwerveHardwareData.mk4iL2(
+            trackWidth = 32.inches,
+            wheelBase = 32.inches
+        ),
+        gyro = if (isReal()) gyroIO else null,
+    ).apply{
+        defaultCommand = buildCommand{
+            addRequirements(this@apply)
 
-  /** The container for the robot. Contains subsystems, OI devices, and commands. */
-  public RobotContainer() {
-    // Configure the trigger bindings
-    configureBindings();
-  }
+            var swerveOutput: ChassisPowers
 
-  /**
-   * Use this method to define your trigger->command mappings. Triggers can be created via the
-   * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with an arbitrary
-   * predicate, or via the named factories in {@link
-   * edu.wpi.first.wpilibj2.command.button.CommandGenericHID}'s subclasses for {@link
-   * CommandXboxController Xbox}/{@link edu.wpi.first.wpilibj2.command.button.CommandPS4Controller
-   * PS4} controllers or {@link edu.wpi.first.wpilibj2.command.button.CommandJoystick Flight
-   * joysticks}.
-   */
-  private void configureBindings() {
-    // Schedule `ExampleCommand` when `exampleCondition` changes to `true`
-    new Trigger(m_exampleSubsystem::exampleCondition)
-        .onTrue(new ExampleCommand(m_exampleSubsystem));
+            loopForever{
+                swerveOutput = DriverController.swerveOutput(gyroIO.heading)
+                swerveDrive(swerveOutput)
+            }
 
-    // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
-    // cancelling on release.
-    m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
-  }
+            onEnd{
+                stop()
+            }
+        }
+    }
 
-  /**
-   * Use this to pass the autonomous command to the main {@link Robot} class.
-   *
-   * @return the command to run in autonomous
-   */
-  public Command getAutonomousCommand() {
-    // An example command will be run in autonomous
-    return Autos.exampleAuto(m_exampleSubsystem);
-  }
+
+
+    init{
+        if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
+            DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
+        }
+
+        println("tuning mode: " + DashboardTuner.tuningMode)
+        configureBindings()
+        configureIMUSimulation(
+            headingSupplier = { drivetrain.heading },
+            chassisSpeedsSupplier = { drivetrain.currentSpeeds }
+        )
+    }
+
+    private fun configureBindings(){
+        val resetAimToAngle = InstantCommand{ DriverController.targetHeading = null}
+
+        fun targetAngle(heading: Angle) = InstantCommand{ DriverController.targetHeading = heading}
+
+        DriverController.apply{
+            if (isReal()) {
+                headingZeroButton.onTrue(InstantCommand(gyroIO::zeroHeading))
+                poseZeroButton.onTrue(
+                    InstantCommand{
+                        drivetrain.poseEstimator.resetPose(UnitPose2d())
+                        println("Pose has been reset.")
+                    }
+                )
+            }
+
+            pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle)
+            pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle)
+            pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle)
+            pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle)
+        }
+
+    }
+
+
+
+
+    override val autonomousCommand: Command
+        get() = buildCommand {
+            runOnce{
+                println("hi")
+            }
+        }
+
 }
