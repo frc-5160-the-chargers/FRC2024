@@ -8,13 +8,14 @@ import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.RobotBase.isReal
+import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.InstantCommand
 import frc.chargers.commands.InstantCommand
 import frc.chargers.commands.commandbuilder.buildCommand
+import frc.chargers.commands.drivetrainCommands.drive.driveStraightAction
 import frc.chargers.constants.drivetrain.SwerveControlData
 import frc.chargers.constants.drivetrain.SwerveHardwareData
 import frc.chargers.constants.tuning.DashboardTuner
@@ -86,6 +87,12 @@ class RobotContainer: ChargerRobotContainer() {
         defaultCommand = buildCommand{
             addRequirements(this@apply) // requires the drivetrain(the "this" of the apply function)
 
+            if (isSimulation()){
+                runOnce{
+                    poseEstimator.resetPose(UnitPose2d())
+                }
+            }
+
             var swerveOutput: ChassisPowers
 
             loopForever{
@@ -145,6 +152,10 @@ class RobotContainer: ChargerRobotContainer() {
 
 
     override val autonomousCommand: Command
-        get() = Commands.idle()
+        get() = buildCommand(name = "Taxi Auto") {
+            addRequirements(drivetrain)
+
+            drivetrain.driveStraightAction(10.seconds, power = -0.2)
+        }
 
 }
