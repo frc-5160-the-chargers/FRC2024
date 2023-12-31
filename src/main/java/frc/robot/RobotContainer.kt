@@ -4,13 +4,14 @@
 package frc.robot
 
 import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.units.degrees
-import com.batterystaple.kmeasure.units.inches
+import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.RobotBase.isReal
+import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.InstantCommand
 import frc.chargers.commands.InstantCommand
 import frc.chargers.commands.commandbuilder.buildCommand
@@ -20,6 +21,8 @@ import frc.chargers.constants.tuning.DashboardTuner
 import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
+import frc.chargers.hardware.motorcontrol.rev.SmartCurrentLimit
+import frc.chargers.hardware.motorcontrol.rev.neoSparkMax
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.configureIMUSimulation
 import frc.chargers.hardware.subsystems.drivetrain.EncoderHolonomicDrivetrain
@@ -28,15 +31,44 @@ import frc.chargers.hardware.subsystemutils.swervedrive.swerveCANcoders
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.robot.hardware.inputdevices.DriverController
+import org.littletonrobotics.junction.Logger.recordOutput
 
 class RobotContainer: ChargerRobotContainer() {
+
 
     val gyroIO = ChargerNavX(useFusedHeading = false)
 
     val drivetrain = EncoderHolonomicDrivetrain(
-        turnMotors = sparkMaxSwerveMotors(0,1,2,3),
-        turnEncoders = swerveCANcoders(0,1,2,3, useAbsoluteSensor = true),
-        driveMotors = sparkMaxSwerveMotors(4,5,6,7),
+        turnMotors = sparkMaxSwerveMotors(
+            topLeftId = 29,
+            topRightId = 31,
+            bottomLeftId = 22,
+            bottomRightId = 4
+        ){
+            smartCurrentLimit = SmartCurrentLimit(30.amps)
+            voltageCompensationNominalVoltage = 12.volts
+        },
+        turnEncoders = swerveCANcoders(
+            topLeftId = 44,
+            topRightId = 42,
+            bottomLeftId = 43,
+            bottomRightId = 45,
+            useAbsoluteSensor = true
+        ).withOffsets(
+            topLeftZero = 0.602.radians,
+            topRightZero = 1.81.radians,
+            bottomLeftZero = 1.48.radians,
+            bottomRightZero = 2.936.radians
+        ),
+        driveMotors = sparkMaxSwerveMotors(
+            topLeft = neoSparkMax(10){inverted = false},
+            topRight = neoSparkMax(16){inverted = true},
+            bottomLeft = neoSparkMax(30){inverted = false},
+            bottomRight = neoSparkMax(3){inverted = false}
+        ){
+            smartCurrentLimit = SmartCurrentLimit(60.amps)
+            voltageCompensationNominalVoltage = 12.volts
+        },
         turnGearbox = DCMotor.getNEO(1),
         driveGearbox = DCMotor.getNEO(1),
         controlData = SwerveControlData(
@@ -49,10 +81,10 @@ class RobotContainer: ChargerRobotContainer() {
             trackWidth = 32.inches,
             wheelBase = 32.inches
         ),
-        gyro = if (isReal()) gyroIO else null,
-    ).apply{
+        gyro = gyroIO,
+    ).apply {
         defaultCommand = buildCommand{
-            addRequirements(this@apply)
+            addRequirements(this@apply) // requires the drivetrain(the "this" of the apply function)
 
             var swerveOutput: ChassisPowers
 
@@ -74,12 +106,16 @@ class RobotContainer: ChargerRobotContainer() {
             DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
         }
 
-        println("tuning mode: " + DashboardTuner.tuningMode)
+        recordOutput("Tuning Mode", DashboardTuner.tuningMode)
+
         configureBindings()
+
         configureIMUSimulation(
             headingSupplier = { drivetrain.heading },
             chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
+
+        LiveWindow.disableAllTelemetry()
     }
 
     private fun configureBindings(){
@@ -108,12 +144,7 @@ class RobotContainer: ChargerRobotContainer() {
 
 
 
-
     override val autonomousCommand: Command
-        get() = buildCommand {
-            runOnce{
-                println("hi")
-            }
-        }
+        get() = Commands.idle()
 
 }

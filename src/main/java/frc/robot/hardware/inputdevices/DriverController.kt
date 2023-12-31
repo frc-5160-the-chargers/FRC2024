@@ -63,8 +63,8 @@ object DriverController: ChargerController(port = 0, deadband = 0.1){
     val pointSouthButton: Trigger = a()
     val pointEastButton: Trigger = x()
     val pointWestButton: Trigger = b()
-    val headingZeroButton: Trigger = back()
-    val poseZeroButton: Trigger = start()
+    val headingZeroButton: Trigger = if (isReal()) back() else Trigger{false}
+    val poseZeroButton: Trigger = if (isReal()) start() else Trigger{false}
 
     fun swerveOutput(robotHeading: Angle? = null): ChassisPowers{
         var forward = driveMultiplierFunction( leftY.withScaledDeadband() )

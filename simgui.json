@@ -1,0 +1,74 @@
+{
+  "HALProvider": {
+    "Other Devices": {
+      "SPARK MAX [1]": {
+        "header": {
+          "open": true
+        }
+      }
+    }
+  },
+  "NTProvider": {
+    "types": {
+      "/FMSInfo": "FMSInfo",
+      "/SmartDashboard/Field": "Field2d"
+    },
+    "windows": {
+      "/SmartDashboard/Field": {
+        "window": {
+          "visible": true
+        }
+      }
+    }
+  },
+  "NetworkTables": {
+    "transitory": {
+      "AdvantageKit": {
+        "Drivetrain(Swerve)": {
+          "BottomLeftModule": {
+            "open": true
+          },
+          "BottomRightModule": {
+            "open": true
+          },
+          "TopLeftModule": {
+            "open": true
+          },
+          "TopRightModule": {
+            "open": true
+          }
+        },
+        "IMU": {
+          "open": true
+        },
+        "RealOutputs": {
+          "ActiveCommands": {
+            "open": true
+          },
+          "Drivetrain(Swerve)": {
+            "BottomLeftModule": {
+              "open": true
+            },
+            "BottomRightModule": {
+              "open": true
+            },
+            "TopLeftModule": {
+              "open": true
+            },
+            "TopRightModule": {
+              "open": true
+            }
+          },
+          "LoggedRobot": {
+            "open": true
+          },
+          "Logger": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true
+      }
+    }
+  }
+}
