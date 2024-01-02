@@ -36,7 +36,8 @@
           },
           "TopRightModule": {
             "open": true
-          }
+          },
+          "open": true
         },
         "IMU": {
           "open": true

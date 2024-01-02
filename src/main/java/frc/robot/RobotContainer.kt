@@ -8,14 +8,15 @@ import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.RobotBase.isReal
+
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
-import frc.chargers.commands.InstantCommand
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.drivetrainCommands.drive.driveStraightAction
+import frc.chargers.commands.runOnceCommand
 import frc.chargers.constants.drivetrain.SwerveControlData
 import frc.chargers.constants.drivetrain.SwerveHardwareData
 import frc.chargers.constants.tuning.DashboardTuner
@@ -26,10 +27,9 @@ import frc.chargers.hardware.motorcontrol.rev.SmartCurrentLimit
 import frc.chargers.hardware.motorcontrol.rev.neoSparkMax
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.configureIMUSimulation
-import frc.chargers.hardware.subsystems.drivetrain.EncoderHolonomicDrivetrain
-import frc.chargers.hardware.subsystemutils.swervedrive.sparkMaxSwerveMotors
-import frc.chargers.hardware.subsystemutils.swervedrive.swerveCANcoders
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
+import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.robot.hardware.inputdevices.DriverController
 import org.littletonrobotics.junction.Logger.recordOutput
@@ -84,12 +84,13 @@ class RobotContainer: ChargerRobotContainer() {
         ),
         gyro = gyroIO,
     ).apply {
+
         defaultCommand = buildCommand{
             addRequirements(this@apply) // requires the drivetrain(the "this" of the apply function)
 
             if (isSimulation()){
                 runOnce{
-                    poseEstimator.resetPose(UnitPose2d())
+                    poseEstimator.zeroPose()
                 }
             }
 
@@ -108,7 +109,34 @@ class RobotContainer: ChargerRobotContainer() {
 
 
 
+    //val testio = IntakeIOSim("Intake1")
+
+    /*
+    val moduleTest = RioPIDSwerveModule(
+        ModuleIOSim(
+            LoggableInputsProvider("ModTest"),
+            DCMotor.getNEO(1),
+            DCMotor.getNEO(1),
+            1.0,
+            1.0
+        ),
+        SwerveControlData(
+            anglePID = PIDConstants(10.0,0.0,0.0),
+            velocityPID = PIDConstants.None,
+            velocityFF = AngularMotorFFConstants.fromSI(0.0,0.0,0.0),
+            openLoopDiscretizationRate = 2.3
+        )
+    )
+
+     */
+
+
+
+
+
     init{
+
+
         if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
             DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
         }
@@ -117,29 +145,39 @@ class RobotContainer: ChargerRobotContainer() {
 
         configureBindings()
 
+
+
         configureIMUSimulation(
             headingSupplier = { drivetrain.heading },
             chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
 
+
+
+
         LiveWindow.disableAllTelemetry()
     }
 
     private fun configureBindings(){
-        val resetAimToAngle = InstantCommand{ DriverController.targetHeading = null}
 
-        fun targetAngle(heading: Angle) = InstantCommand{ DriverController.targetHeading = heading}
+
+        val resetAimToAngle = runOnceCommand{ DriverController.targetHeading = null}
+
+        fun targetAngle(heading: Angle) = runOnceCommand(){ DriverController.targetHeading = heading}
 
         DriverController.apply{
+
             if (isReal()) {
                 headingZeroButton.onTrue(InstantCommand(gyroIO::zeroHeading))
                 poseZeroButton.onTrue(
-                    InstantCommand{
-                        drivetrain.poseEstimator.resetPose(UnitPose2d())
+                    runOnceCommand{
+                        drivetrain.poseEstimator.zeroPose()
                         println("Pose has been reset.")
                     }
                 )
             }
+
+
 
             pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle)
             pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle)
@@ -147,15 +185,21 @@ class RobotContainer: ChargerRobotContainer() {
             pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle)
         }
 
+
+
     }
 
 
 
     override val autonomousCommand: Command
         get() = buildCommand(name = "Taxi Auto") {
+
+
             addRequirements(drivetrain)
 
             drivetrain.driveStraightAction(10.seconds, power = -0.2)
+
+
         }
 
 }

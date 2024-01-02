@@ -4,10 +4,11 @@ import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Scalar
 import com.batterystaple.kmeasure.units.degrees
 import edu.wpi.first.wpilibj.RobotBase.isReal
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.controls.pid.SuperPIDController
-import frc.chargers.hardware.inputdevices.ChargerController
+import frc.chargers.hardware.inputdevices.InputAxis
 import frc.chargers.utils.math.equations.Polynomial
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
@@ -18,21 +19,14 @@ import kotlin.math.abs
 import kotlin.math.hypot
 
 
-object DriverController: ChargerController(port = 0, deadband = 0.1){
+object DriverController: CommandXboxController(0){
 
     /* Top-Level constants */
-    private val aimToTargetPIDConstants = if (isReal()) PIDConstants(-0.2,0.0,0.0) else PIDConstants(0.8,0.0,0.0)
-
-    // 0.2x^3 + 0.5x
-    private val driveMultiplierFunction = Polynomial(0.2,0.0,0.5,0.0)
-    // 0.3x^3 + 0.3x
-    private val rotationMultiplierFunction = Polynomial(0.3,0.0,0.3,0.0)
-
+    private val aimToTargetPIDConstants =
+        if (isReal()) PIDConstants(-0.2,0.0,0.0) else PIDConstants(0.8,0.0,0.0)
     private val translationLimiter: ScalarRateLimiter? = null
     private val rotationLimiter: ScalarRateLimiter? = null
 
-    private val turboModeMultiplier = 1.0..2.0
-    private val precisionModeDivider = 1.0..4.0
 
 
 
@@ -40,7 +34,7 @@ object DriverController: ChargerController(port = 0, deadband = 0.1){
 
     /* Private implementation variables  */
     private var currentHeading: Angle = 0.0.degrees
-    private var aimToAngleController = SuperPIDController(
+    private val aimToAngleController = SuperPIDController(
         aimToTargetPIDConstants,
         getInput = {currentHeading.inputModulus(0.0.degrees..360.degrees)},
         outputRange = Scalar(-0.7)..Scalar(0.7),
@@ -54,9 +48,6 @@ object DriverController: ChargerController(port = 0, deadband = 0.1){
 
 
 
-
-
-
     /* Public API */
     var targetHeading: Angle? = null
     val pointNorthButton: Trigger = y()
@@ -66,17 +57,48 @@ object DriverController: ChargerController(port = 0, deadband = 0.1){
     val headingZeroButton: Trigger = if (isReal()) back() else Trigger{false}
     val poseZeroButton: Trigger = if (isReal()) start() else Trigger{false}
 
+
+    private val forwardAxis =
+        InputAxis{ leftY }
+            .applyDeadband(0.1)
+            .square()
+            .applyMultiplier(0.7)
+
+    private val strafeAxis =
+        InputAxis{ leftX }
+            .applyDeadband(0.1)
+            .square()
+            .applyMultiplier(0.7)
+
+    private val rotationAxis =
+        InputAxis{ rightX }
+            .applyDeadband(0.1)
+            .square()
+            .applyEquation( Polynomial(0.3,0.0,0.3,0.0) )
+
+    private val turboAxis =
+        InputAxis{ leftTriggerAxis }
+            .applyDeadband(0.1)
+            .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
+            .mapToRange(1.0..2.0)
+
+    private val precisionAxis =
+        InputAxis{ leftTriggerAxis }
+            .applyDeadband(0.1)
+            .mapToRange(1.0..4.0)
+            .withModifier{ 1.0 / it }
+            .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
+
+
+
+
     fun swerveOutput(robotHeading: Angle? = null): ChassisPowers{
-        var forward = driveMultiplierFunction( leftY.withScaledDeadband() )
-        var strafe = driveMultiplierFunction( leftX.withScaledDeadband() )
-        var rotation = rotationMultiplierFunction( rightX.withScaledDeadband() )
+        var forward = forwardAxis()
+        var strafe = strafeAxis()
+        var rotation = rotationAxis()
 
-
-        var turbo = abs(leftTriggerAxis).mapTriggerValue(turboModeMultiplier)
-        var precision = 1 / abs(rightTriggerAxis).mapTriggerValue(precisionModeDivider)
-
-        if (turbo < 1.0 || precision.isInfinite() || precision.isNaN()) turbo = 1.0
-        if (precision.isInfinite() || precision.isNaN() || precision > 1.0 || precision == 0.0) precision = 1.0
+        val turbo = turboAxis()
+        val precision = precisionAxis()
 
         if (AIM_TO_TARGET_ENABLED){
             if (robotHeading != null){
@@ -86,8 +108,9 @@ object DriverController: ChargerController(port = 0, deadband = 0.1){
             targetHeading?.let{
                 aimToAngleController.target = it
                 rotation = aimToAngleController.calculateOutput().siValue
-                println("Aiming!")
             }
+
+            recordOutput("Drivetrain(Swerve)/Controller/isAiming", targetHeading != null)
         }
 
 
