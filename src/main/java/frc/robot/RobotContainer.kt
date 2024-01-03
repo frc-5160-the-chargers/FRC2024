@@ -84,7 +84,6 @@ class RobotContainer: ChargerRobotContainer() {
         ),
         gyro = gyroIO,
     ).apply {
-
         defaultCommand = buildCommand{
             addRequirements(this@apply) // requires the drivetrain(the "this" of the apply function)
 
