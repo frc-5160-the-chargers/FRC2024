@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "java",
+      "type": "kotlin",
       "name": "Main",
       "request": "launch",
       "mainClass": "frc.robot.Main",

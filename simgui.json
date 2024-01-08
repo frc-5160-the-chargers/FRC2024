@@ -40,6 +40,12 @@
           "open": true
         },
         "IMU": {
+          "accelerometer": {
+            "open": true
+          },
+          "altitude(SI value)": {
+            "open": true
+          },
           "open": true
         },
         "RealOutputs": {
@@ -58,7 +64,8 @@
             },
             "TopRightModule": {
               "open": true
-            }
+            },
+            "open": true
           },
           "LoggedRobot": {
             "open": true

@@ -14,8 +14,8 @@ import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
+import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.commands.drivetrainCommands.drive.driveStraightAction
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.constants.drivetrain.SwerveControlData
 import frc.chargers.constants.drivetrain.SwerveHardwareData
@@ -23,23 +23,41 @@ import frc.chargers.constants.tuning.DashboardTuner
 import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
-import frc.chargers.hardware.motorcontrol.rev.SmartCurrentLimit
 import frc.chargers.hardware.motorcontrol.rev.neoSparkMax
+import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.configureIMUSimulation
+import frc.chargers.hardware.sensors.vision.VisionPipeline
+import frc.chargers.hardware.sensors.vision.VisionTarget
+import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
+import frc.robot.commands.aimToApriltag
 import frc.robot.hardware.inputdevices.DriverController
+import frc.robot.hardware.inputdevices.OperatorController
 import org.littletonrobotics.junction.Logger.recordOutput
 
 class RobotContainer: ChargerRobotContainer() {
 
 
-    val gyroIO = ChargerNavX(useFusedHeading = false)
+    private val gyroIO = ChargerNavX(useFusedHeading = false)
 
-    val drivetrain = EncoderHolonomicDrivetrain(
+    private val limelight = ChargerLimelight(
+        useJsonDump = false,
+        lensHeight = LIMELIGHT_LENS_HEIGHT,
+        mountAngle = LIMELIGHT_MOUNT_ANGLE
+    )
+
+    private val apriltagIO: VisionPipeline<VisionTarget.AprilTag> =
+        limelight.ApriltagPipeline(
+            index = 0,
+            logInputs = LoggableInputsProvider("LimelightApriltagVision")
+        )
+
+
+    private val drivetrain = EncoderHolonomicDrivetrain(
         turnMotors = sparkMaxSwerveMotors(
             topLeftId = 29,
             topRightId = 31,
@@ -75,15 +93,17 @@ class RobotContainer: ChargerRobotContainer() {
         controlData = SwerveControlData(
             anglePID = PIDConstants(10.0,0.0,0.0),
             velocityPID = PIDConstants.None,
-            velocityFF = AngularMotorFFConstants.fromSI(0.0,0.0,0.0),
-            openLoopDiscretizationRate = 2.3
+            velocityFF = AngularMotorFFConstants.fromSI(0.0,0.0,0.0)
         ),
         hardwareData = SwerveHardwareData.mk4iL2(
             trackWidth = 32.inches,
             wheelBase = 32.inches
         ),
-        gyro = gyroIO,
+        gyro = if (isReal()) gyroIO else null,
     ).apply {
+
+
+
         defaultCommand = buildCommand{
             addRequirements(this@apply) // requires the drivetrain(the "this" of the apply function)
 
@@ -108,34 +128,7 @@ class RobotContainer: ChargerRobotContainer() {
 
 
 
-    //val testio = IntakeIOSim("Intake1")
-
-    /*
-    val moduleTest = RioPIDSwerveModule(
-        ModuleIOSim(
-            LoggableInputsProvider("ModTest"),
-            DCMotor.getNEO(1),
-            DCMotor.getNEO(1),
-            1.0,
-            1.0
-        ),
-        SwerveControlData(
-            anglePID = PIDConstants(10.0,0.0,0.0),
-            velocityPID = PIDConstants.None,
-            velocityFF = AngularMotorFFConstants.fromSI(0.0,0.0,0.0),
-            openLoopDiscretizationRate = 2.3
-        )
-    )
-
-     */
-
-
-
-
-
     init{
-
-
         if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
             DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
         }
@@ -144,15 +137,10 @@ class RobotContainer: ChargerRobotContainer() {
 
         configureBindings()
 
-
-
         configureIMUSimulation(
             headingSupplier = { drivetrain.heading },
             chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
-
-
-
 
         LiveWindow.disableAllTelemetry()
     }
@@ -184,21 +172,28 @@ class RobotContainer: ChargerRobotContainer() {
             pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle)
         }
 
-
+        OperatorController.apply{
+            aimToTagButton.whileTrue(
+                aimToApriltag(
+                    pidConstants = AIM_TO_APRILTAG_PID,
+                    drivetrain = drivetrain,
+                    visionIO = apriltagIO
+                )
+            )
+        }
 
     }
 
 
 
+
     override val autonomousCommand: Command
         get() = buildCommand(name = "Taxi Auto") {
-
-
             addRequirements(drivetrain)
 
-            drivetrain.driveStraightAction(10.seconds, power = -0.2)
-
-
+            loopFor(3.seconds){
+                drivetrain.swerveDrive(-0.3,0.0,0.0)
+            }
         }
 
 }

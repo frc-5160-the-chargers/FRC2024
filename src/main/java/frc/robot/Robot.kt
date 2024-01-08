@@ -17,6 +17,7 @@ val ROBOT = ChargerRobot(
     config = RobotConfig(
         isReplay = false,
         tuningMode = false,
-        onError = { println("An error has occurred. Normally, this will write to the crash tracker disc. ") }
+        onError = { println("An error has occurred. Normally, this will write to the crash tracker disc. ") },
+        hardwareConfigRetryLimit = 3
     )
 )
