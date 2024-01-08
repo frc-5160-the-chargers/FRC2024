@@ -13,8 +13,8 @@ package frc.robot.hardware.subsystems.odometry.threads;
 // GNU General Public License for more details.
 
 import edu.wpi.first.wpilibj.Notifier;
-import frc.robot.ConstantsKt;
 import frc.robot.LogInputsKt;
+import frc.robot.constants.DrivetrainConstantsKt;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +47,7 @@ public class OdometryThread {
     private OdometryThread() {
         notifier = new Notifier(this::periodic);
         notifier.setName("SparkMaxOdometryThread");
-        notifier.startPeriodic(1.0 / ConstantsKt.ODOMETRY_UPDATE_FREQUENCY_HZ );
+        notifier.startPeriodic(1.0 / DrivetrainConstantsKt.ODOMETRY_UPDATE_FREQUENCY_HZ );
     }
 
     public Queue<Double> registerSignal(DoubleSupplier signal) {

@@ -7,12 +7,12 @@ import com.batterystaple.kmeasure.units.seconds
 import com.revrobotics.CANSparkLowLevel
 import frc.chargers.constants.drivetrain.SwerveHardwareData
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
-import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
+import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.subsystems.swervedrive.SwerveEncoders
 import frc.chargers.hardware.subsystems.swervedrive.SwerveMotors
 import frc.chargers.wpilibextensions.delay
-import frc.robot.ODOMETRY_UPDATE_FREQUENCY_HZ
+import frc.robot.constants.ODOMETRY_UPDATE_FREQUENCY_HZ
 import frc.robot.OdometryLog
 import frc.robot.hardware.subsystems.odometry.threads.OdometryThread
 import java.util.*
@@ -21,7 +21,7 @@ open class OdometryIO(
     // all wrappers inherit their base class(CANSparkMax and CANcoder)
     private val hardwareData: SwerveHardwareData,
     turnMotors: SwerveMotors<ChargerSparkMax>,
-    turnEncoders: SwerveEncoders<ChargerCANcoder>,
+    turnEncoders: SwerveEncoders<PositionEncoder>,
     driveMotors: SwerveMotors<ChargerSparkMax>,
     gyro: ChargerNavX
 ){
@@ -70,7 +70,7 @@ open class OdometryIO(
     private fun ChargerSparkMax.fetchDriveOffset(): Angle =
         (this.encoder.angularPosition / hardwareData.driveGearRatio).also{ println(it) }
 
-    private fun ChargerSparkMax.fetchTurnOffset(encoder: ChargerCANcoder): Angle =
+    private fun ChargerSparkMax.fetchTurnOffset(encoder: PositionEncoder): Angle =
         ((this.encoder.angularPosition / hardwareData.turnGearRatio) - encoder.angularPosition).also{ println(it) }
 
     private val topLeftWheelPositionOffset = driveMotors.topLeft.fetchDriveOffset()

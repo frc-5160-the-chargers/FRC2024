@@ -13,8 +13,8 @@ import frc.chargers.utils.math.equations.Polynomial
 import frc.chargers.utils.math.equations.epsilonEquals
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
-import frc.robot.AIM_TO_TARGET_ENABLED
-import frc.robot.DRIVER_CONTROLLER_PORT
+import frc.robot.constants.AIM_TO_TARGET_ENABLED
+import frc.robot.constants.DRIVER_CONTROLLER_PORT
 import org.littletonrobotics.junction.Logger.recordOutput
 import kotlin.math.pow
 

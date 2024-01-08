@@ -3,18 +3,21 @@
 // the WPILib BSD license file in the root directory of this project.
 package frc.robot
 
+// part of Kmeasure
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.units.*
+
+// WPILib imports
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.RobotBase.isReal
-
-import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+
+// ChargerLib imports
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.constants.drivetrain.SwerveControlData
@@ -23,20 +26,24 @@ import frc.chargers.constants.tuning.DashboardTuner
 import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
-import frc.chargers.hardware.motorcontrol.rev.neoSparkMax
-import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.configureIMUSimulation
 import frc.chargers.hardware.sensors.vision.VisionPipeline
 import frc.chargers.hardware.sensors.vision.VisionTarget
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
-import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
-import frc.chargers.wpilibextensions.kinematics.ChassisPowers
+
+
+import frc.robot.commands.aimAndDriveToApriltag
 import frc.robot.commands.aimToApriltag
+import frc.robot.commands.teleopDrive
+import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorController
+import frc.robot.hardware.subsystems.odometry.OdometryIO
+import frc.robot.hardware.subsystems.odometry.ThreadedPoseMonitor
+
+// AdvantageKit
 import org.littletonrobotics.junction.Logger.recordOutput
 
 class RobotContainer: ChargerRobotContainer() {
@@ -56,38 +63,10 @@ class RobotContainer: ChargerRobotContainer() {
             logInputs = LoggableInputsProvider("LimelightApriltagVision")
         )
 
-
     private val drivetrain = EncoderHolonomicDrivetrain(
-        turnMotors = sparkMaxSwerveMotors(
-            topLeftId = 29,
-            topRightId = 31,
-            bottomLeftId = 22,
-            bottomRightId = 4
-        ){
-            smartCurrentLimit = SmartCurrentLimit(30.amps)
-            voltageCompensationNominalVoltage = 12.volts
-        },
-        turnEncoders = swerveCANcoders(
-            topLeftId = 44,
-            topRightId = 42,
-            bottomLeftId = 43,
-            bottomRightId = 45,
-            useAbsoluteSensor = true
-        ).withOffsets(
-            topLeftZero = 0.602.radians,
-            topRightZero = 1.81.radians,
-            bottomLeftZero = 1.48.radians,
-            bottomRightZero = 2.936.radians
-        ),
-        driveMotors = sparkMaxSwerveMotors(
-            topLeft = neoSparkMax(10){inverted = false},
-            topRight = neoSparkMax(16){inverted = true},
-            bottomLeft = neoSparkMax(30){inverted = false},
-            bottomRight = neoSparkMax(3){inverted = false}
-        ){
-            smartCurrentLimit = SmartCurrentLimit(60.amps)
-            voltageCompensationNominalVoltage = 12.volts
-        },
+        turnMotors = TURN_MOTORS,
+        turnEncoders = TURN_ENCODERS,
+        driveMotors = DRIVE_MOTORS,
         turnGearbox = DCMotor.getNEO(1),
         driveGearbox = DCMotor.getNEO(1),
         controlData = SwerveControlData(
@@ -101,29 +80,26 @@ class RobotContainer: ChargerRobotContainer() {
         ),
         gyro = if (isReal()) gyroIO else null,
     ).apply {
-
-
-
-        defaultCommand = buildCommand{
-            addRequirements(this@apply) // requires the drivetrain(the "this" of the apply function)
-
-            if (isSimulation()){
-                runOnce{
-                    poseEstimator.zeroPose()
-                }
-            }
-
-            var swerveOutput: ChassisPowers
-
-            loopForever{
-                swerveOutput = DriverController.swerveOutput(gyroIO.heading)
-                swerveDrive(swerveOutput)
-            }
-
-            onEnd{
-                stop()
-            }
+        if (isReal()){
+            poseEstimator = ThreadedPoseMonitor(
+                OdometryIO(
+                    this.hardwareData,
+                    TURN_MOTORS,
+                    TURN_ENCODERS,
+                    DRIVE_MOTORS,
+                    gyroIO
+                ),
+                this
+            )
         }
+
+        // heading and currentSpeeds are drivetrain getters
+        configureIMUSimulation(
+            headingSupplier = { heading },
+            chassisSpeedsSupplier = { currentSpeeds }
+        )
+
+        defaultCommand = teleopDrive(this)
     }
 
 
@@ -137,13 +113,9 @@ class RobotContainer: ChargerRobotContainer() {
 
         configureBindings()
 
-        configureIMUSimulation(
-            headingSupplier = { drivetrain.heading },
-            chassisSpeedsSupplier = { drivetrain.currentSpeeds }
-        )
-
         LiveWindow.disableAllTelemetry()
     }
+
 
     private fun configureBindings(){
 
@@ -176,6 +148,15 @@ class RobotContainer: ChargerRobotContainer() {
             aimToTagButton.whileTrue(
                 aimToApriltag(
                     pidConstants = AIM_TO_APRILTAG_PID,
+                    drivetrain = drivetrain,
+                    visionIO = apriltagIO
+                )
+            )
+            aimToTagAndDriveButton.whileTrue(
+                aimAndDriveToApriltag(
+                    5.inches,
+                    targetHeight = 0.inches, // idk abt this
+                    pidConstants = PIDConstants(0.2,0.0,0.0),
                     drivetrain = drivetrain,
                     visionIO = apriltagIO
                 )
