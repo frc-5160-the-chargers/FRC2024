@@ -13,9 +13,7 @@ package frc.robot.hardware.subsystems.odometry.threads;
 // GNU General Public License for more details.
 
 import edu.wpi.first.wpilibj.Notifier;
-import frc.robot.LogInputsKt;
 import frc.robot.constants.DrivetrainConstantsKt;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
@@ -52,24 +50,24 @@ public class OdometryThread {
 
     public Queue<Double> registerSignal(DoubleSupplier signal) {
         Queue<Double> queue = new ArrayBlockingQueue<>(100);
-        LogInputsKt.OdometryLog.getUpdateInputsLock().lock();
+        DrivetrainConstantsKt.getODOMETRY_LOCK().lock();
         try {
             signals.add(signal);
             queues.add(queue);
         } finally {
-            LogInputsKt.OdometryLog.getUpdateInputsLock().unlock();
+            DrivetrainConstantsKt.getODOMETRY_LOCK().unlock();
         }
         return queue;
     }
 
     private void periodic() {
-        LogInputsKt.OdometryLog.getUpdateInputsLock().lock();
+        DrivetrainConstantsKt.getODOMETRY_LOCK().lock();
         try {
             for (int i = 0; i < signals.size(); i++) {
                 queues.get(i).offer(signals.get(i).getAsDouble());
             }
         } finally {
-            LogInputsKt.OdometryLog.getUpdateInputsLock().unlock();
+            DrivetrainConstantsKt.getODOMETRY_LOCK().unlock();
         }
     }
 }

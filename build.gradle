@@ -1,7 +1,7 @@
 plugins {
     id "java"
-    id "edu.wpi.first.GradleRIO" version "2024.1.1-beta-4"
-    id 'org.jetbrains.kotlin.jvm' version '1.9.20'
+    id "edu.wpi.first.GradleRIO" version "2024.1.1"
+    id 'org.jetbrains.kotlin.jvm' version '2.0.0-Beta2'
     id 'io.gitlab.arturbosch.detekt' version '1.22.0'
     id("org.jetbrains.dokka") version "1.8.20"
     id ("com.peterabeles.gversion") version "1.10.2"
@@ -42,6 +42,8 @@ deploy {
         }
     }
 }
+
+
 
 def deployArtifact = deploy.targets.roborio.artifacts.frcJava
 

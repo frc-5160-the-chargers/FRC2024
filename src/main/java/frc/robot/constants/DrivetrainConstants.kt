@@ -3,12 +3,39 @@ package frc.robot.constants
 import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.volts
+import edu.wpi.first.wpilibj.RobotBase.isReal
+import frc.chargers.constants.drivetrain.SwerveControlData
+import frc.chargers.controls.feedforward.AngularMotorFFConstants
+import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.motorcontrol.rev.neoSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
+import java.util.concurrent.locks.ReentrantLock
 
 const val ODOMETRY_UPDATE_FREQUENCY_HZ = 250.0
+
+val ODOMETRY_LOCK = ReentrantLock()
+
+
+
+
+val DRIVE_CONTROL_DATA = if (isReal()){
+    SwerveControlData(
+        anglePID = PIDConstants(4.0,0.0,0.0),
+        velocityPID = PIDConstants(0.2,0.0,0.0),
+        velocityFF = AngularMotorFFConstants.fromSI(0.00162,0.13394,0.0)
+    )
+}else{
+    SwerveControlData(
+        anglePID = PIDConstants(10.0,0.0,0.0),
+        velocityPID = PIDConstants(0.2,0.0,0.0),
+        velocityFF = AngularMotorFFConstants.fromSI(0.12117,0.13210,0.0)
+    )
+}
+
+
+
 
 val TURN_MOTORS = sparkMaxSwerveMotors(
     topLeftId = 29,

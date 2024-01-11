@@ -16,10 +16,11 @@ import frc.robot.constants.ODOMETRY_UPDATE_FREQUENCY_HZ
 import frc.robot.OdometryLog
 import frc.robot.hardware.subsystems.odometry.threads.OdometryThread
 import java.util.*
+import kotlin.math.roundToInt
 
-open class OdometryIO(
-    // all wrappers inherit their base class(CANSparkMax and CANcoder)
-    private val hardwareData: SwerveHardwareData,
+class OdometryIO(
+    // all wrappers inherit their base class(CANSparkMax)
+    val hardwareData: SwerveHardwareData,
     turnMotors: SwerveMotors<ChargerSparkMax>,
     turnEncoders: SwerveEncoders<PositionEncoder>,
     driveMotors: SwerveMotors<ChargerSparkMax>,
@@ -34,7 +35,7 @@ open class OdometryIO(
         driveMotors.forEach{
             it.setCANTimeout(250)
             it.setPeriodicFramePeriod(
-                CANSparkLowLevel.PeriodicFrame.kStatus2, (1000 / ODOMETRY_UPDATE_FREQUENCY_HZ).toInt()
+                CANSparkLowLevel.PeriodicFrame.kStatus2, (1000 / ODOMETRY_UPDATE_FREQUENCY_HZ).roundToInt()
             )
             delay(0.02.seconds)
             it.burnFlash()
@@ -43,7 +44,7 @@ open class OdometryIO(
         turnMotors.forEach{
             it.setCANTimeout(250)
             it.setPeriodicFramePeriod(
-                CANSparkLowLevel.PeriodicFrame.kStatus2, (1000 / ODOMETRY_UPDATE_FREQUENCY_HZ).toInt()
+                CANSparkLowLevel.PeriodicFrame.kStatus2, (1000 / ODOMETRY_UPDATE_FREQUENCY_HZ).roundToInt()
             )
             delay(0.02.seconds)
             it.burnFlash()

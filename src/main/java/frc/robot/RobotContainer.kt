@@ -18,12 +18,9 @@ import edu.wpi.first.wpilibj2.command.InstantCommand
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 
 // ChargerLib imports
-import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.runOnceCommand
-import frc.chargers.constants.drivetrain.SwerveControlData
 import frc.chargers.constants.drivetrain.SwerveHardwareData
 import frc.chargers.constants.tuning.DashboardTuner
-import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.sensors.imu.ChargerNavX
@@ -36,6 +33,7 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 
 import frc.robot.commands.aimAndDriveToApriltag
 import frc.robot.commands.aimToApriltag
+import frc.robot.commands.auto.pathplannerTaxi
 import frc.robot.commands.teleopDrive
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
@@ -49,6 +47,7 @@ import org.littletonrobotics.junction.Logger.recordOutput
 class RobotContainer: ChargerRobotContainer() {
 
 
+    // ChargerLib subsystems/components
     private val gyroIO = ChargerNavX(useFusedHeading = false)
 
     private val limelight = ChargerLimelight(
@@ -69,15 +68,8 @@ class RobotContainer: ChargerRobotContainer() {
         driveMotors = DRIVE_MOTORS,
         turnGearbox = DCMotor.getNEO(1),
         driveGearbox = DCMotor.getNEO(1),
-        controlData = SwerveControlData(
-            anglePID = PIDConstants(10.0,0.0,0.0),
-            velocityPID = PIDConstants.None,
-            velocityFF = AngularMotorFFConstants.fromSI(0.0,0.0,0.0)
-        ),
-        hardwareData = SwerveHardwareData.mk4iL2(
-            trackWidth = 32.inches,
-            wheelBase = 32.inches
-        ),
+        controlData = DRIVE_CONTROL_DATA,
+        hardwareData = SwerveHardwareData.mk4iL2(trackWidth = 32.inches, wheelBase = 32.inches),
         gyro = if (isReal()) gyroIO else null,
     ).apply {
         if (isReal()){
@@ -89,19 +81,19 @@ class RobotContainer: ChargerRobotContainer() {
                     DRIVE_MOTORS,
                     gyroIO
                 ),
-                this
+                kinematics = this.kinematics
             )
         }
 
-        // heading and currentSpeeds are drivetrain getters
         configureIMUSimulation(
-            headingSupplier = { heading },
-            chassisSpeedsSupplier = { currentSpeeds }
+            headingSupplier = { this.heading },
+            chassisSpeedsSupplier = { this.currentSpeeds }
         )
 
         defaultCommand = teleopDrive(this)
     }
 
+    // Robot-defined components
 
 
     init{
@@ -118,14 +110,11 @@ class RobotContainer: ChargerRobotContainer() {
 
 
     private fun configureBindings(){
-
-
         val resetAimToAngle = runOnceCommand{ DriverController.targetHeading = null}
 
-        fun targetAngle(heading: Angle) = runOnceCommand(){ DriverController.targetHeading = heading}
+        fun targetAngle(heading: Angle) = runOnceCommand{ DriverController.targetHeading = heading }
 
         DriverController.apply{
-
             if (isReal()) {
                 headingZeroButton.onTrue(InstantCommand(gyroIO::zeroHeading))
                 poseZeroButton.onTrue(
@@ -135,8 +124,6 @@ class RobotContainer: ChargerRobotContainer() {
                     }
                 )
             }
-
-
 
             pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle)
             pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle)
@@ -168,13 +155,8 @@ class RobotContainer: ChargerRobotContainer() {
 
 
 
-    override val autonomousCommand: Command
-        get() = buildCommand(name = "Taxi Auto") {
-            addRequirements(drivetrain)
 
-            loopFor(3.seconds){
-                drivetrain.swerveDrive(-0.3,0.0,0.0)
-            }
-        }
+    override val autonomousCommand: Command
+        get() = pathplannerTaxi(drivetrain, resetPoseAtStart = true)
 
 }

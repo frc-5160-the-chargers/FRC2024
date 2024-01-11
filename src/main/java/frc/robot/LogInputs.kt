@@ -2,6 +2,7 @@ package frc.robot
 
 import edu.wpi.first.wpilibj.RobotBase
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+import frc.robot.constants.ODOMETRY_LOCK
 
 // the following use chargerlib's custom advantagekit wrapper: LoggableInputsProvider.
 // These utilize property delegates to provide auto-logged inputs, I.E:
@@ -11,4 +12,9 @@ import frc.chargers.advantagekitextensions.LoggableInputsProvider
 // these inputs will simply update and process themselves.
 
 @JvmField
-val OdometryLog = LoggableInputsProvider("PoseData", updateInputs = RobotBase.isReal())
+val OdometryLog = LoggableInputsProvider(
+    "PoseData",
+    updateInputs = RobotBase.isReal(),
+    runBeforeInputUpdate = ODOMETRY_LOCK::lock,
+    runAfterInputUpdate = ODOMETRY_LOCK::unlock
+)

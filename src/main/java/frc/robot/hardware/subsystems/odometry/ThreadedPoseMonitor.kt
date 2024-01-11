@@ -3,24 +3,26 @@ package frc.robot.hardware.subsystems.odometry
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.hardware.sensors.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
-import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
+
+
 
 @Suppress("unused")
 class ThreadedPoseMonitor(
     private val io: OdometryIO,
-    private val drivetrain: EncoderHolonomicDrivetrain,
+    private val kinematics: SwerveDriveKinematics,
     startingPose: UnitPose2d = UnitPose2d(),
     private val useGyro: Boolean = true,
     vararg visionPoseSuppliers: VisionPoseSupplier
 ): RobotPoseMonitor, SubsystemBase() {
-    private val wheelRadius = drivetrain.hardwareData.wheelDiameter / 2.0
+    private val wheelRadius = io.hardwareData.wheelDiameter / 2.0
 
     private val visionPoseSuppliers = mutableListOf(*visionPoseSuppliers)
 
@@ -87,7 +89,7 @@ class ThreadedPoseMonitor(
             previousBLPosition = currentBLPosition
             previousBRPosition = currentBRPosition
 
-            val twist = drivetrain.kinematics.toTwist2d(
+            val twist = kinematics.toTwist2d(
                 SwerveModulePosition( currentTLPositionDelta.siValue, currentTLAngle.asRotation2d()),
                 SwerveModulePosition( currentTRPositionDelta.siValue, currentTRAngle.asRotation2d()),
                 SwerveModulePosition( currentBLPositionDelta.siValue, currentBLAngle.asRotation2d()),
