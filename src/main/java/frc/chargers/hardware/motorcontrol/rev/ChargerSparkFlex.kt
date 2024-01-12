@@ -127,7 +127,7 @@ public class ChargerSparkFlex(
         if (factoryDefault) {
             restoreFactoryDefaults()
             delay(200.milli.seconds)
-            println("SparkMax has been factory defaulted.")
+            println("ChargerSparkFlex has been factory defaulted.")
         }
         if (configuration != null){
             configure(configuration)

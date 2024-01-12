@@ -10,7 +10,9 @@ import com.batterystaple.kmeasure.units.*
 // WPILib imports
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.system.plant.DCMotor
+import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isReal
+import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
@@ -101,6 +103,10 @@ class RobotContainer: ChargerRobotContainer() {
             DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
         }
 
+        if (isSimulation()){
+            DriverStation.silenceJoystickConnectionWarning(true)
+        }
+
         recordOutput("Tuning Mode", DashboardTuner.tuningMode)
 
         configureBindings()
@@ -115,15 +121,13 @@ class RobotContainer: ChargerRobotContainer() {
         fun targetAngle(heading: Angle) = runOnceCommand{ DriverController.targetHeading = heading }
 
         DriverController.apply{
-            if (isReal()) {
-                headingZeroButton.onTrue(InstantCommand(gyroIO::zeroHeading))
-                poseZeroButton.onTrue(
-                    runOnceCommand{
-                        drivetrain.poseEstimator.zeroPose()
-                        println("Pose has been reset.")
-                    }
-                )
-            }
+            headingZeroButton.onTrue(InstantCommand(gyroIO::zeroHeading))
+            poseZeroButton.onTrue(
+                runOnceCommand{
+                    drivetrain.poseEstimator.zeroPose()
+                    println("Pose has been reset.")
+                }
+            )
 
             pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle)
             pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle)

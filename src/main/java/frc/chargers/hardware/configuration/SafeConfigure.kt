@@ -19,7 +19,6 @@ public inline fun safeConfigure(
     getErrorInfo: () -> String = {"[Nothing]"},
     configure: () -> Boolean
 ){
-    println(ChargerRobot.hardwareConfigRetryLimit)
     repeat(ChargerRobot.hardwareConfigRetryLimit){ index: Int ->
         val iteration = index + 1
         if (configure()){
