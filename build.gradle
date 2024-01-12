@@ -58,7 +58,8 @@ def includeDesktopSupport = true
 dependencies {
     implementation wpi.java.deps.wpilib()
     implementation wpi.java.vendor.java()
-    implementation "frc.chargers:ChargerLib:1.0.0"
+    api('io.github.battery-staple:KMeasure:1.4.1-k2')
+    implementation "gov.nist.math:jama:1.0.3"
 
     roborioDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.roborio)
     roborioDebug wpi.java.vendor.jniDebug(wpi.platforms.roborio)

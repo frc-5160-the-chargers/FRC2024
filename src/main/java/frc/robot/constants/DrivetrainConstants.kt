@@ -7,7 +7,7 @@ import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.constants.drivetrain.SwerveControlData
 import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.hardware.motorcontrol.rev.neoSparkMax
+import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
@@ -61,10 +61,10 @@ val TURN_ENCODERS = swerveCANcoders(
 )
 
 val DRIVE_MOTORS = sparkMaxSwerveMotors(
-    topLeft = neoSparkMax(10){inverted = false},
-    topRight = neoSparkMax(16){inverted = true},
-    bottomLeft = neoSparkMax(30){inverted = false},
-    bottomRight = neoSparkMax(3){inverted = false}
+    topLeft = ChargerSparkMax(10){inverted = false},
+    topRight = ChargerSparkMax(16){inverted = true},
+    bottomLeft = ChargerSparkMax(30){inverted = false},
+    bottomRight = ChargerSparkMax(3){inverted = false}
 ){
     smartCurrentLimit = SmartCurrentLimit(60.amps)
     voltageCompensationNominalVoltage = 12.volts

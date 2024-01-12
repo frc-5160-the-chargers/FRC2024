@@ -132,22 +132,24 @@ class RobotContainer: ChargerRobotContainer() {
         }
 
         OperatorController.apply{
-            aimToTagButton.whileTrue(
-                aimToApriltag(
-                    pidConstants = AIM_TO_APRILTAG_PID,
-                    drivetrain = drivetrain,
-                    visionIO = apriltagIO
+            if (isReal()){
+                aimToTagButton.whileTrue(
+                    aimToApriltag(
+                        pidConstants = AIM_TO_APRILTAG_PID,
+                        drivetrain = drivetrain,
+                        visionIO = apriltagIO
+                    )
                 )
-            )
-            aimToTagAndDriveButton.whileTrue(
-                aimAndDriveToApriltag(
-                    5.inches,
-                    targetHeight = 0.inches, // idk abt this
-                    pidConstants = PIDConstants(0.2,0.0,0.0),
-                    drivetrain = drivetrain,
-                    visionIO = apriltagIO
+                aimToTagAndDriveButton.whileTrue(
+                    aimAndDriveToApriltag(
+                        5.inches,
+                        targetHeight = 0.inches, // idk abt this
+                        pidConstants = PIDConstants(0.2,0.0,0.0),
+                        drivetrain = drivetrain,
+                        visionIO = apriltagIO
+                    )
                 )
-            )
+            }
         }
 
     }
