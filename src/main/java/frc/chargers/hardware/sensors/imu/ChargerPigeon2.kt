@@ -47,6 +47,22 @@ public class ChargerPigeon2(
     configuration: ChargerPigeon2Configuration? = null
 ): Pigeon2(canId, canBus), ZeroableHeadingProvider, HardwareConfigurable<ChargerPigeon2Configuration> {
 
+    private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
+    private var configAppliedProperly = true
+
+    private fun StatusCode.updateConfigStatus(): StatusCode {
+        if (this != StatusCode.OK){
+            if (isSimulation()){
+                println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
+            }else{
+                delay(200.milli.seconds)
+                allConfigErrors.add(this)
+                configAppliedProperly = false
+            }
+        }
+        return this
+    }
+
     init{
         ChargerRobot.runPeriodically (addToFront = true) {
             val currentStatus = BaseStatusSignal.refreshAll(
@@ -180,22 +196,6 @@ public class ChargerPigeon2(
         override val zAcceleration: Acceleration by AccelerometerLog.quantity{
             if (isReal()) zAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)
         }
-    }
-
-    private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
-    private var configAppliedProperly = true
-
-    private fun StatusCode.updateConfigStatus(): StatusCode {
-        if (this != StatusCode.OK){
-            if (isSimulation()){
-                println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
-            }else{
-                delay(200.milli.seconds)
-                allConfigErrors.add(this)
-                configAppliedProperly = false
-            }
-        }
-        return this
     }
 
 

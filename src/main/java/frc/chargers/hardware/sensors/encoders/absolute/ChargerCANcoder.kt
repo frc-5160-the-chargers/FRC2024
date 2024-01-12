@@ -45,6 +45,22 @@ public class ChargerCANcoder(
     configuration: ChargerCANcoderConfiguration? = null
 ): CANcoder(deviceId, canBus), ResettableEncoder, HardwareConfigurable<ChargerCANcoderConfiguration> {
 
+    private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
+    private var configAppliedProperly = true
+    private fun StatusCode.updateConfigStatus(): StatusCode {
+        if (this != StatusCode.OK){
+            if (RobotBase.isSimulation()){
+                println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
+            }else{
+                delay(200.milli.seconds)
+                allConfigErrors.add(this)
+                configAppliedProperly = false
+            }
+        }
+        return this
+    }
+
+
     init{
         val baseConfig = CANcoderConfiguration()
 
@@ -95,22 +111,6 @@ public class ChargerCANcoder(
     override val angularVelocity: AngularVelocity
         get() = velSignal.refresh(true).value.ofUnit(rotations/seconds)
 
-
-
-    private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
-    private var configAppliedProperly = true
-    private fun StatusCode.updateConfigStatus(): StatusCode {
-        if (this != StatusCode.OK){
-            if (RobotBase.isSimulation()){
-                println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
-            }else{
-                delay(200.milli.seconds)
-                allConfigErrors.add(this)
-                configAppliedProperly = false
-            }
-        }
-        return this
-    }
 
 
     override fun configure(configuration: ChargerCANcoderConfiguration) {
