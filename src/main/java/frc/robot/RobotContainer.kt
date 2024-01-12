@@ -19,8 +19,8 @@ import frc.chargers.advantagekitextensions.LoggableInputsProvider
 
 // ChargerLib imports
 import frc.chargers.commands.runOnceCommand
-import frc.chargers.constants.drivetrain.SwerveHardwareData
-import frc.chargers.constants.tuning.DashboardTuner
+import frc.chargers.constants.SwerveHardwareData
+import frc.chargers.constants.DashboardTuner
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.sensors.imu.ChargerNavX

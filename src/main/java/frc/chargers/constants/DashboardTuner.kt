@@ -1,5 +1,5 @@
 @file:Suppress("RedundantVisibilityModifier", "unused")
-package frc.chargers.constants.tuning
+package frc.chargers.constants
 
 import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.quantities.Quantity
@@ -17,7 +17,7 @@ import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
-public typealias TunableDelegate<T> = PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?,T>>
+public typealias TunableDelegate<T> = PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T>>
 
 
 /**
@@ -69,22 +69,24 @@ public open class DashboardTuner(
                 }
             }
 
-        private val isCompAlert = Alert.warning(text = "Tuning mode WAS NOT SET: It looks like you're in a match right now.")
-        private val tuningModeEnabledAlert = Alert.warning(text = "Tuning mode is enabled; Expect loop times to be greater. ")
+        private val isCompAlert =
+            Alert.warning(text = "Tuning mode WAS NOT SET: It looks like you're in a match right now.")
+        private val tuningModeEnabledAlert =
+            Alert.warning(text = "Tuning mode is enabled; Expect loop times to be greater. ")
     }
 
     init{
-        ChargerRobot.runPeriodically{
-            if (tuningMode){
-                val updateStatus: List<Boolean> = allTunables.map{
+        ChargerRobot.runPeriodically {
+            if (tuningMode) {
+                val updateStatus: List<Boolean> = allTunables.map {
                     it.needsUpdate()
                 }
 
-                if (true in updateStatus){
-                    allTunables.forEach{
+                if (true in updateStatus) {
+                    allTunables.forEach {
                         it.updateValue()
                     }
-                    allRefreshables.forEach{
+                    allRefreshables.forEach {
                         it.refresh()
                     }
                     println("Values have been refreshed for a Tunable Subsystem.")
@@ -124,7 +126,7 @@ public open class DashboardTuner(
 
     private inner class TunableDouble(default: Double, key: String): ReadOnlyProperty<Any?, Double> {
 
-        val dashNumber = LoggedDashboardNumber("$dashKey/$key",default)
+        val dashNumber = LoggedDashboardNumber("$dashKey/$key", default)
         private var value = default
 
         init{
@@ -146,7 +148,7 @@ public open class DashboardTuner(
      * @see Quantity
      * @see LoggedDashboardNumber
      */
-    public fun <D: Dimension<*,*,*,*>> quantity(
+    public fun <D: Dimension<*, *, *, *>> quantity(
         default: Quantity<D>, key: String? = null, logUnit: KmeasureUnit<D> = siUnit()
     ): TunableDelegate<Quantity<D>> =
         PropertyDelegateProvider{ _, variable ->
@@ -154,11 +156,11 @@ public open class DashboardTuner(
             TunableQuantity(default, name, logUnit)
         }
 
-    private inner class TunableQuantity<D: Dimension<*,*,*,*>>(
+    private inner class TunableQuantity<D: Dimension<*, *, *, *>>(
         default: Quantity<D>, key: String, logUnit: KmeasureUnit<D>
     ): ReadOnlyProperty<Any?, Quantity<D>> {
 
-        val dashNumber = LoggedDashboardNumber("$dashKey/$key",default.inUnit(logUnit))
+        val dashNumber = LoggedDashboardNumber("$dashKey/$key", default.inUnit(logUnit))
         private var value = default
 
         init{
@@ -189,7 +191,7 @@ public open class DashboardTuner(
         default: Boolean, key: String
     ): ReadOnlyProperty<Any?, Boolean> {
 
-        val dashBool = LoggedDashboardBoolean(key,default)
+        val dashBool = LoggedDashboardBoolean(key, default)
         private var value = default
 
         init{
@@ -216,15 +218,15 @@ public open class DashboardTuner(
      * Represents [PIDConstants] that can be tuned from the dashboard.
      */
     public fun pidConstants(kP: Double, kI: Double, kD: Double, key: String? = null): TunableDelegate<PIDConstants> =
-        pidConstants(PIDConstants(kP,kI,kD),key)
+        pidConstants(PIDConstants(kP, kI, kD),key)
 
 
     private inner class TunablePIDConstants(
         default: PIDConstants, key: String
     ): ReadOnlyProperty<Any?, PIDConstants> {
-        val kpDashNumber = LoggedDashboardNumber("$dashKey/$key-kP",default.kP)
-        val kiDashNumber = LoggedDashboardNumber("$dashKey/$key-kI",default.kI)
-        val kdDashNumber = LoggedDashboardNumber("$dashKey/$key-kD",default.kD)
+        val kpDashNumber = LoggedDashboardNumber("$dashKey/$key-kP", default.kP)
+        val kiDashNumber = LoggedDashboardNumber("$dashKey/$key-kI", default.kI)
+        val kdDashNumber = LoggedDashboardNumber("$dashKey/$key-kD", default.kD)
 
         private var value = default
         // ap test stuff; cs and math

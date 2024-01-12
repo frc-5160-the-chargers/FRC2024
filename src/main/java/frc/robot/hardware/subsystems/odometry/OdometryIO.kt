@@ -5,7 +5,7 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.seconds
 import com.revrobotics.CANSparkLowLevel
-import frc.chargers.constants.drivetrain.SwerveHardwareData
+import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX

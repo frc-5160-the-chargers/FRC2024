@@ -1,5 +1,5 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
-package frc.chargers.constants.drivetrain
+package frc.chargers.constants
 
 import com.batterystaple.kmeasure.quantities.Distance
 import com.batterystaple.kmeasure.quantities.Length

@@ -5,8 +5,8 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
-import frc.chargers.constants.drivetrain.SwerveControlData
-import frc.chargers.constants.tuning.DashboardTuner
+import frc.chargers.constants.SwerveControlData
+import frc.chargers.constants.DashboardTuner
 import frc.chargers.controls.FeedbackController
 import frc.chargers.controls.SetpointSupplier
 import frc.chargers.controls.feedforward.Feedforward

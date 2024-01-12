@@ -81,7 +81,7 @@ public inline fun ChargerTalonFX(
  * @see com.ctre.phoenix6.hardware.TalonFX
  * @see ChargerTalonFXConfiguration
  */
-public open class ChargerTalonFX(
+public class ChargerTalonFX(
     deviceId: Int,
     canBus: String = "rio",
     factoryDefault: Boolean = true,
@@ -91,32 +91,42 @@ public open class ChargerTalonFX(
     private val talonFXFollowers: MutableSet<TalonFX> = mutableSetOf()
     private val otherFollowers: MutableSet<SmartEncoderMotorController> = mutableSetOf()
 
+    private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
+    private var configAppliedProperly = true
+    private fun StatusCode.updateConfigStatus(): StatusCode {
+        if (this != StatusCode.OK){
+            if (RobotBase.isSimulation()){
+                println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
+            }else{
+                allConfigErrors.add(this)
+                configAppliedProperly = false
+            }
+        }
+        return this
+    }
+
     init{
         val baseConfig = TalonFXConfiguration()
-        var baseConfigHasChanged = false
 
         if (!factoryDefault){
             configurator.refresh(baseConfig)
-            baseConfigHasChanged = true
+        }else{
+            // an empty CTRE TalonFXConfiguration will factory default the motor if applied.
+            println("TalonFX will factory default.")
         }
 
         if (configuration != null){
-            applyChanges(baseConfig, configuration)
-            baseConfigHasChanged = true
-        }
-
-        if (baseConfigHasChanged){
-            configurator.apply(baseConfig)
+            configure(configuration, baseConfig)
+        }else{
+            configure(ChargerTalonFXConfiguration(), baseConfig)
         }
     }
 
 
-    @Suppress("LeakingThis") // Known to be safe; CTREMotorControllerEncoderAdapter ONLY uses final functions
-    // and does not pass around the reference to this class.
     /**
      * The encoder of the TalonFX.
      */
-    final override val encoder: TalonFXEncoderAdapter =
+    override val encoder: TalonFXEncoderAdapter =
         TalonFXEncoderAdapter(this)
 
 
@@ -277,33 +287,29 @@ public open class ChargerTalonFX(
     }
 
 
-
-    private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
-    private var configAppliedProperly = true
-    private fun StatusCode.updateConfigStatus(): StatusCode {
-        if (this != StatusCode.OK){
-            if (RobotBase.isSimulation()){
-                println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
-            }else{
-                allConfigErrors.add(this)
-                configAppliedProperly = false
-            }
-        }
-        return this
+    override fun configure(configuration: ChargerTalonFXConfiguration) {
+        // for a CTRE TalonFXConfiguration,
+        // calling configurator.apply(configuration) will cause all configurations not explicitly specified
+        // to revert to the factory default.
+        // in contrast, ChargerTalonFXConfiguration has all values default to null,
+        // where "null" is an untouched configuration(aka preserved from previous configurations).
+        // thus, to acheive this functionality, a CTRE configuration must be refreshed FIRST
+        // before changes are applied and the configuration is configured.
+        val baseTalonFXConfig = TalonFXConfiguration()
+        configurator.refresh(baseTalonFXConfig)
+        configure(configuration, baseTalonFXConfig)
     }
 
 
-    final override fun configure(configuration: ChargerTalonFXConfiguration){
+    public fun configure(configuration: ChargerTalonFXConfiguration, baseTalonFXConfiguration: TalonFXConfiguration){
         configAppliedProperly = true
         safeConfigure(
             deviceName = "ChargerTalonFX(id = $deviceID)",
             getErrorInfo = {"All Recorded Errors: $allConfigErrors"}
         ){
             allConfigErrors.clear()
-            val baseTalonFXConfig = TalonFXConfiguration()
-            configurator.refresh(baseTalonFXConfig)
-            applyChanges(baseTalonFXConfig, configuration)
-            configurator.apply(baseTalonFXConfig,0.02).updateConfigStatus()
+            applyChanges(baseTalonFXConfiguration, configuration)
+            configurator.apply(baseTalonFXConfiguration,0.02).updateConfigStatus()
 
             configuration.apply{
                 positionUpdateFrequency?.let{

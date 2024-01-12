@@ -6,9 +6,9 @@ import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
-import frc.chargers.constants.drivetrain.DEFAULT_GEAR_RATIO
-import frc.chargers.constants.drivetrain.DEFAULT_SWERVE_DRIVE_INERTIA
-import frc.chargers.constants.drivetrain.DEFAULT_SWERVE_TURN_INERTIA
+import frc.chargers.constants.DEFAULT_GEAR_RATIO
+import frc.chargers.constants.DEFAULT_SWERVE_DRIVE_INERTIA
+import frc.chargers.constants.DEFAULT_SWERVE_TURN_INERTIA
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.utils.math.inputModulus
 

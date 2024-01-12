@@ -5,6 +5,7 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.milli
 import com.batterystaple.kmeasure.units.seconds
+import com.batterystaple.kmeasure.units.standardGravities
 import com.ctre.phoenix6.BaseStatusSignal
 import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.hardware.Pigeon2
@@ -16,33 +17,61 @@ import frc.chargers.hardware.configuration.HardwareConfiguration
 import frc.chargers.hardware.configuration.safeConfigure
 import frc.chargers.hardware.sensors.imu.gyroscopes.ThreeAxisGyroscope
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
-import frc.chargers.utils.math.units.g
 import frc.chargers.wpilibextensions.delay
-import com.ctre.phoenix6.configs.Pigeon2Configuration as CTREPigeon2Configuration
+import com.ctre.phoenix6.configs.Pigeon2Configuration
 
 /**
  * Creates a [ChargerPigeon2] with inline configuration.
  */
-public fun ChargerPigeon2(
+public inline fun ChargerPigeon2(
     canId: Int,
     canBus: String = "rio",
-    configure: Pigeon2Configuration.() -> Unit
-): ChargerPigeon2 = ChargerPigeon2(canId,canBus).also{
-    val config = Pigeon2Configuration().apply(configure)
-    it.configure(config)
-}
+    factoryDefault: Boolean = true,
+    configure: ChargerPigeon2Configuration.() -> Unit
+): ChargerPigeon2 = ChargerPigeon2(
+    canId, canBus, factoryDefault,
+    ChargerPigeon2Configuration().apply(configure)
+)
 
 
 /**
  * A wrapper around the [Pigeon2] class from CTRE,
  * with units support and interface implementation.
  *
- * @see Pigeon2Configuration
+ * @see ChargerPigeon2Configuration
  */
 public class ChargerPigeon2(
     canId: Int,
-    canBus: String = "rio"
-): Pigeon2(canId, canBus), ZeroableHeadingProvider, HardwareConfigurable<Pigeon2Configuration> {
+    canBus: String = "rio",
+    factoryDefault: Boolean = true,
+    configuration: ChargerPigeon2Configuration? = null
+): Pigeon2(canId, canBus), ZeroableHeadingProvider, HardwareConfigurable<ChargerPigeon2Configuration> {
+
+    init{
+        ChargerRobot.runPeriodically (addToFront = true) {
+            val currentStatus = BaseStatusSignal.refreshAll(
+                *gyroscope.getSignals(),
+                *accelerometer.getSignals()
+            )
+            isConnected = currentStatus == StatusCode.OK
+        }
+
+        val baseConfig = Pigeon2Configuration()
+
+        if (!factoryDefault){
+            configurator.refresh(baseConfig)
+        }else{
+            println("Pigeon2 will factory default.")
+        }
+
+        if (configuration != null){
+            configure(configuration, baseConfig)
+        }else{
+            configure(ChargerPigeon2Configuration(), baseConfig)
+        }
+    }
+
+
 
     /**
      * The gyroscope of the Pigeon; contains yaw, pitch, and roll data
@@ -75,18 +104,6 @@ public class ChargerPigeon2(
         setValue = { value -> _isConnected = value }
     )
 
-
-
-
-    init{
-        ChargerRobot.runPeriodically (addToFront = true) {
-            val currentStatus = BaseStatusSignal.refreshAll(
-                *gyroscope.getSignals(),
-                *accelerometer.getSignals()
-            )
-            isConnected = currentStatus == StatusCode.OK
-        }
-    }
 
     /*
     Internal constructor makes it so that the inner class can be accepted as a type argument,
@@ -153,15 +170,15 @@ public class ChargerPigeon2(
             arrayOf(xAccelSignal, yAccelSignal, zAccelSignal)
 
         override val xAcceleration: Acceleration by AccelerometerLog.quantity{
-            if (isReal()) xAccelSignal.value.ofUnit(g) else Acceleration(0.0)
+            if (isReal()) xAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)
         }
 
         override val yAcceleration: Acceleration by AccelerometerLog.quantity{
-            if (isReal()) yAccelSignal.value.ofUnit(g) else Acceleration(0.0)
+            if (isReal()) yAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)
         }
 
         override val zAcceleration: Acceleration by AccelerometerLog.quantity{
-            if (isReal()) zAccelSignal.value.ofUnit(g) else Acceleration(0.0)
+            if (isReal()) zAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)
         }
     }
 
@@ -181,17 +198,23 @@ public class ChargerPigeon2(
         return this
     }
 
-    override fun configure(configuration: Pigeon2Configuration){
+
+    override fun configure(configuration: ChargerPigeon2Configuration) {
+        val baseConfig = Pigeon2Configuration()
+        configurator.refresh(baseConfig)
+        configure(configuration, baseConfig)
+    }
+
+
+    public fun configure(configuration: ChargerPigeon2Configuration, basePigeon2Configuration: Pigeon2Configuration){
         configAppliedProperly = true
         safeConfigure(
             deviceName = "ChargerCANcoder(id = $deviceID)",
             getErrorInfo = {"All Recorded Errors: $allConfigErrors"}
         ) {
             allConfigErrors.clear()
-            val ctreConfig = CTREPigeon2Configuration()
-            configurator.refresh(ctreConfig)
-            applyChanges(ctreConfig, configuration)
-            configurator.apply(ctreConfig).updateConfigStatus()
+            applyChanges(basePigeon2Configuration, configuration)
+            configurator.apply(basePigeon2Configuration).updateConfigStatus()
             return@safeConfigure configAppliedProperly
         }
     }
@@ -201,7 +224,7 @@ public class ChargerPigeon2(
 /**
  * A configuration class for the [ChargerPigeon2].
  */
-public data class Pigeon2Configuration(
+public data class ChargerPigeon2Configuration(
     var futureProofConfigs: Boolean? = null,
     var gyroScalarX: Angle? = null,
     var gyroScalarY: Angle? = null,
@@ -214,7 +237,7 @@ public data class Pigeon2Configuration(
     var enableCompass: Boolean? = null
 ): HardwareConfiguration
 
-internal fun applyChanges(ctreConfig: CTREPigeon2Configuration, configuration: Pigeon2Configuration): CTREPigeon2Configuration{
+internal fun applyChanges(ctreConfig: Pigeon2Configuration, configuration: ChargerPigeon2Configuration): Pigeon2Configuration{
     ctreConfig.apply{
         configuration.futureProofConfigs?.let{ FutureProofConfigs = it }
         GyroTrim.apply{

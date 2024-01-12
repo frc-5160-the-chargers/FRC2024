@@ -6,7 +6,7 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.RobotController
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
-import frc.chargers.constants.drivetrain.DEFAULT_GEAR_RATIO
+import frc.chargers.constants.DEFAULT_GEAR_RATIO
 import frc.chargers.hardware.motorcontrol.*
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.utils.math.inputModulus

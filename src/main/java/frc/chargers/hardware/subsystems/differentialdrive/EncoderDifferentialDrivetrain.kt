@@ -16,8 +16,8 @@ import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
-import frc.chargers.constants.drivetrain.DiffDriveControlData
-import frc.chargers.constants.drivetrain.DiffDriveHardwareData
+import frc.chargers.constants.DiffDriveControlData
+import frc.chargers.constants.DiffDriveHardwareData
 import frc.chargers.controls.SetpointSupplier
 import frc.chargers.controls.feedforward.Feedforward
 import frc.chargers.controls.pid.SuperPIDController

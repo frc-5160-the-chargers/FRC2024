@@ -5,13 +5,13 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
+import com.batterystaple.kmeasure.units.standardGravities
 import com.kauailabs.navx.frc.AHRS
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.imu.gyroscopes.ThreeAxisGyroscope
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.utils.math.inputModulus
-import frc.chargers.utils.math.units.g
 import frc.chargers.wpilibextensions.kinematics.xVelocity
 import frc.chargers.wpilibextensions.kinematics.yVelocity
 
@@ -95,7 +95,7 @@ public class ChargerNavX(
 
         override val xAcceleration: Acceleration by AccelerometerLog.quantity{
             if (isReal()){
-                return@quantity ahrs.worldLinearAccelX.toDouble().ofUnit(g)
+                return@quantity ahrs.worldLinearAccelX.toDouble().ofUnit(standardGravities)
             }else{
                 val currXVelSim = getSimChassisSpeeds().xVelocity
                 return@quantity ((currXVelSim - previousXVelSim) / ChargerRobot.LOOP_PERIOD).also{
@@ -106,7 +106,7 @@ public class ChargerNavX(
 
         override val yAcceleration: Acceleration by AccelerometerLog.quantity{
             if (isReal()){
-                return@quantity ahrs.worldLinearAccelY.toDouble().ofUnit(g)
+                return@quantity ahrs.worldLinearAccelY.toDouble().ofUnit(standardGravities)
             }else{
                 val currYVelSim = getSimChassisSpeeds().yVelocity
                 return@quantity ((currYVelSim - previousYVelSim) / ChargerRobot.LOOP_PERIOD).also{
@@ -116,7 +116,7 @@ public class ChargerNavX(
         }
 
         override val zAcceleration: Acceleration by AccelerometerLog.quantity{
-            if (isReal()) ahrs.worldLinearAccelZ.toDouble().ofUnit(g) else Acceleration(0.0)
+            if (isReal()) ahrs.worldLinearAccelZ.toDouble().ofUnit(standardGravities) else Acceleration(0.0)
         }
     }
 

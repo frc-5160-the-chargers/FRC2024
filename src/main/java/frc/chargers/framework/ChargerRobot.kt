@@ -13,7 +13,7 @@ import org.littletonrobotics.junction.wpilog.WPILOGReader
 import org.littletonrobotics.junction.wpilog.WPILOGWriter
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import frc.external.pathplanner.LocalADStarAK
-import frc.chargers.constants.tuning.DashboardTuner
+import frc.chargers.constants.DashboardTuner
 import frc.chargers.wpilibextensions.Alert
 import org.littletonrobotics.junction.AutoLogOutputManager
 import org.littletonrobotics.junction.LogTable

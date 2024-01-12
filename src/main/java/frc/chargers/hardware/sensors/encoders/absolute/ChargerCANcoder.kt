@@ -7,8 +7,8 @@ import com.batterystaple.kmeasure.units.milli
 import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.seconds
 import com.ctre.phoenix6.StatusCode
-import com.ctre.phoenix6.configs.CANcoderConfiguration as CTRECANcoderConfiguration
-import com.ctre.phoenix6.hardware.CANcoder as CTRECANcoder
+import com.ctre.phoenix6.configs.CANcoderConfiguration
+import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue
 import com.ctre.phoenix6.signals.SensorDirectionValue
 import edu.wpi.first.wpilibj.RobotBase
@@ -26,27 +26,39 @@ public inline fun ChargerCANcoder(
     deviceId: Int,
     canBus: String = "",
     factoryDefault: Boolean = true,
-    configure: CANcoderConfiguration.() -> Unit
-): ChargerCANcoder = ChargerCANcoder(deviceId,canBus,factoryDefault).also{
-    it.configure(CANcoderConfiguration().apply(configure))
-}
+    configure: ChargerCANcoderConfiguration.() -> Unit
+): ChargerCANcoder = ChargerCANcoder(
+    deviceId, canBus, factoryDefault,
+    ChargerCANcoderConfiguration().apply(configure)
+)
 
 /**
  * A wrapper for the CTRE's CANcoder class, with integration into chargerlib.
  *
- * @see CTRECANcoder
- * @see CANcoderConfiguration
+ * @see CANcoder
+ * @see ChargerCANcoderConfiguration
  */
 public class ChargerCANcoder(
     deviceId: Int,
     canBus: String = "",
-    factoryDefault: Boolean = true
-): CTRECANcoder(deviceId, canBus), ResettableEncoder, HardwareConfigurable<CANcoderConfiguration> {
+    factoryDefault: Boolean = true,
+    configuration: ChargerCANcoderConfiguration? = null
+): CANcoder(deviceId, canBus), ResettableEncoder, HardwareConfigurable<ChargerCANcoderConfiguration> {
 
     init{
-        if (factoryDefault){
-            configurator.apply(CTRECANcoderConfiguration(),0.02)
-            println("CANcoder has been factory defaulted.")
+        val baseConfig = CANcoderConfiguration()
+
+        if (!factoryDefault){
+            configurator.refresh(baseConfig)
+        }else{
+            // an empty CTRE CANcoderConfiguration will factory default the encoder if applied.
+            println("CANcoder will factory default.")
+        }
+
+        if (configuration != null){
+            configure(configuration, baseConfig)
+        }else {
+            configure(ChargerCANcoderConfiguration(), baseConfig)
         }
     }
 
@@ -55,7 +67,7 @@ public class ChargerCANcoder(
      */
     public val absolute: ResettableEncoder = AbsoluteEncoderAdaptor()
 
-    private inner class AbsoluteEncoderAdaptor: ResettableEncoder by this, HardwareConfigurable<CANcoderConfiguration> by this{
+    private inner class AbsoluteEncoderAdaptor: ResettableEncoder by this, HardwareConfigurable<ChargerCANcoderConfiguration> by this{
         private val absolutePosSignal = absolutePosition
 
         override val angularPosition: Angle
@@ -99,18 +111,30 @@ public class ChargerCANcoder(
         }
         return this
     }
+
+
+    override fun configure(configuration: ChargerCANcoderConfiguration) {
+        // for a CTRE CANcoderConfiguration,
+        // calling configurator.apply(configuration) will cause all configurations not explicitly specified
+        // to revert to the factory default.
+        // in contrast, ChargerCANcoderConfiguration has all values default to null,
+        // where "null" is an untouched configuration(aka preserved from previous configurations).
+        // thus, to acheive this functionality, a CTRE configuration must be refreshed FIRST
+        // before changes are applied and the configuration is configured.
+        val baseConfig = CANcoderConfiguration()
+        configurator.refresh(baseConfig)
+        configure(configuration, baseConfig)
+    }
     
-    override fun configure(configuration: CANcoderConfiguration){
+    public fun configure(configuration: ChargerCANcoderConfiguration, baseCANcoderConfiguration: CANcoderConfiguration){
         configAppliedProperly = true
         safeConfigure(
             deviceName = "ChargerCANcoder(id = $deviceID)",
             getErrorInfo = {"All Recorded Errors: $allConfigErrors"}
         ) {
             allConfigErrors.clear()
-            val baseConfig = CTRECANcoderConfiguration()
-            configurator.refresh(baseConfig)
-            applyChanges(baseConfig,configuration)
-            configurator.apply(baseConfig,0.02).updateConfigStatus()
+            applyChanges(baseCANcoderConfiguration,configuration)
+            configurator.apply(baseCANcoderConfiguration,0.02).updateConfigStatus()
 
 
             configuration.positionUpdateFrequency?.let{
@@ -130,7 +154,7 @@ public class ChargerCANcoder(
 }
 
 
-public data class CANcoderConfiguration(
+public data class ChargerCANcoderConfiguration(
     var futureProofConfigs: Boolean? = null,
     var sensorDirection: SensorDirectionValue? = null,
     var absoluteSensorRange: AbsoluteSensorRangeValue? = null,
@@ -141,7 +165,7 @@ public data class CANcoderConfiguration(
     var velocityUpdateFrequency: Frequency? = null
 ): HardwareConfiguration
 
-internal fun applyChanges(ctreConfig: CTRECANcoderConfiguration, chargerConfig: CANcoderConfiguration): CTRECANcoderConfiguration{
+internal fun applyChanges(ctreConfig: CANcoderConfiguration, chargerConfig: ChargerCANcoderConfiguration): CANcoderConfiguration{
     ctreConfig.apply{
         chargerConfig.futureProofConfigs?.let{
             FutureProofConfigs = it

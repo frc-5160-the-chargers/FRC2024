@@ -4,7 +4,7 @@ package frc.chargers.hardware.motorcontrol
 
 import com.batterystaple.kmeasure.quantities.*
 import edu.wpi.first.wpilibj.motorcontrol.MotorController
-import frc.chargers.constants.drivetrain.DEFAULT_GEAR_RATIO
+import frc.chargers.constants.DEFAULT_GEAR_RATIO
 import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.sensors.encoders.Encoder

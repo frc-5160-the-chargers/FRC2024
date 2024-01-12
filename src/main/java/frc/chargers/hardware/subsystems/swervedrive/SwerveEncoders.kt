@@ -4,7 +4,7 @@ package frc.chargers.hardware.subsystems.swervedrive
 import com.batterystaple.kmeasure.quantities.Angle
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
-import frc.chargers.hardware.sensors.encoders.absolute.CANcoderConfiguration
+import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoderConfiguration
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
 import frc.chargers.hardware.sensors.withOffset
 
@@ -17,7 +17,7 @@ public inline fun swerveCANcoders(
     bottomLeftId: Int,
     bottomRightId: Int,
     useAbsoluteSensor: Boolean,
-    configure: CANcoderConfiguration.() -> Unit = {}
+    configure: ChargerCANcoderConfiguration.() -> Unit = {}
 ): SwerveEncoders<ResettableEncoder> = swerveCANcoders(
     ChargerCANcoder(topLeftId),
     ChargerCANcoder(topRightId),
@@ -35,9 +35,9 @@ public inline fun swerveCANcoders(
     bottomLeft: ChargerCANcoder,
     bottomRight: ChargerCANcoder,
     useAbsoluteSensor: Boolean,
-    configure: CANcoderConfiguration.() -> Unit = {}
+    configure: ChargerCANcoderConfiguration.() -> Unit = {}
 ): SwerveEncoders<ResettableEncoder> {
-    val config = CANcoderConfiguration().apply(configure)
+    val config = ChargerCANcoderConfiguration().apply(configure)
     topLeft.configure(config)
     topRight.configure(config)
     bottomLeft.configure(config)

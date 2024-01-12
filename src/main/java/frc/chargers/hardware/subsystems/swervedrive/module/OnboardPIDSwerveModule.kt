@@ -7,9 +7,9 @@ import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
-import frc.chargers.constants.drivetrain.DEFAULT_GEAR_RATIO
-import frc.chargers.constants.drivetrain.SwerveControlData
-import frc.chargers.constants.tuning.DashboardTuner
+import frc.chargers.constants.DEFAULT_GEAR_RATIO
+import frc.chargers.constants.SwerveControlData
+import frc.chargers.constants.DashboardTuner
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.subsystems.swervedrive.module.lowlevel.ModuleIO

@@ -8,7 +8,6 @@ import frc.chargers.commands.InstantCommand
 import frc.chargers.commands.RunCommand
 import frc.chargers.commands.then
 import frc.chargers.commands.withExtraRequirements
-import frc.chargers.utils.MappableContext
 import org.littletonrobotics.junction.Logger
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -208,18 +207,12 @@ public class CommandBuilder{
     /**
      * Adds a command that will run the appropriate mapped command, depending on the key given.
      *
-     * Commands that are specified within the [MappableContext] are automatically removed from the command set of the [CommandBuilder].
      *
      * @param key: A lambda that gets a generic value, used for choosing an appropriate command.
-     * @param block: The [MappableContext] that maps the key's value to a specific command.
+     * @param commands: A map between the key and commands to be called.
      */
-    public fun <T: Any> runWhen(key: () -> T, block: MappableContext<T, Command>.() -> Unit): Command =
-        SelectCommand(
-            MappableContext<T,Command>().apply(block).map.onEach { (_: T, c: Command) ->
-                removeCommand(c)
-            },
-            key
-        ).also(::addCommand)
+    public fun <T: Any> runWhen(key: () -> T, commands: Map<T, Command>): Command =
+        SelectCommand(commands, key).also(::addCommand)
 
 
     /**

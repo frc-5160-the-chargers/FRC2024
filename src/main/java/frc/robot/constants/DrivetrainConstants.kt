@@ -4,7 +4,7 @@ import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.RobotBase.isReal
-import frc.chargers.constants.drivetrain.SwerveControlData
+import frc.chargers.constants.SwerveControlData
 import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax

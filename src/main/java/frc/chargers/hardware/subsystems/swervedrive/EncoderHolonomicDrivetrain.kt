@@ -14,7 +14,8 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
-import frc.chargers.constants.drivetrain.*
+import frc.chargers.constants.SwerveControlData
+import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.hardware.motorcontrol.EncoderMotorController
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.sensors.RobotPoseMonitor
