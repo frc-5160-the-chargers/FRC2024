@@ -12,7 +12,7 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.wpilibextensions.geometry.ofUnit
 
 fun basicTaxi(drivetrain: EncoderHolonomicDrivetrain, power: Double = -0.2): Command =
-    buildCommand{
+    buildCommand("Taxi Auto"){
         addRequirements(drivetrain)
 
         loopFor(3.seconds){
@@ -28,7 +28,7 @@ fun pathplannerTaxi(
     drivetrain: EncoderHolonomicDrivetrain,
     resetPoseAtStart: Boolean = true
 ): Command =
-    buildCommand(name = "Taxi Auto w/ Path") {
+    buildCommand("Taxi Auto w/ Path") {
         addRequirements(drivetrain)
 
         val path = PathPlannerPath.fromPathFile("Taxi Path")
@@ -42,5 +42,15 @@ fun pathplannerTaxi(
             }
         }
 
+        runOnce(drivetrain){
+            println("hello")
+        }
+
+
         +AutoBuilder.followPath(path)
+
+        loopFor(5.seconds){
+            drivetrain.stopInX()
+            println("hi")
+        }
     }

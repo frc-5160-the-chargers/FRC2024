@@ -211,6 +211,12 @@ public class ChargerSparkFlex(
     /**
      * Adds a generic amount of followers to the Spark Max.
      *
+     *
+     * This following works differently than traditional motor following:
+     * as each follower's ***inversion is preserved***!
+     * Thus, each motor must manage their own inverts; similar to the MotorControllerGroup class.
+     *
+     *
      * For each follower that is a Spark Max or Spark Flex, we will call the vendor implementation;
      * otherwise, the other motors are added to a list of motors within this class
      * to be run.

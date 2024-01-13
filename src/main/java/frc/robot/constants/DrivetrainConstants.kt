@@ -11,31 +11,26 @@ import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
-import java.util.concurrent.locks.ReentrantLock
 
 const val ODOMETRY_UPDATE_FREQUENCY_HZ = 250.0
-
-val ODOMETRY_LOCK = ReentrantLock()
-
-
-
 
 val DRIVE_CONTROL_DATA = if (isReal()){
     SwerveControlData(
         anglePID = PIDConstants(4.0,0.0,0.0),
         velocityPID = PIDConstants(0.2,0.0,0.0),
-        velocityFF = AngularMotorFFConstants.fromSI(0.00162,0.13394,0.0)
+        velocityFF = AngularMotorFFConstants.fromSI(0.00162,0.13394,0.0),
+        robotRotationPID = PIDConstants(0.5, 0.0, 0.0), // for pathplanner
+        robotTranslationPID = PIDConstants(0.4,0.0,0.0)
     )
 }else{
     SwerveControlData(
         anglePID = PIDConstants(10.0,0.0,0.0),
         velocityPID = PIDConstants(0.2,0.0,0.0),
-        velocityFF = AngularMotorFFConstants.fromSI(0.12117,0.13210,0.0)
+        velocityFF = AngularMotorFFConstants.fromSI(0.12117,0.13210,0.0),
+        robotRotationPID = PIDConstants(0.5, 0.0, 0.0), // for pathplanner
+        robotTranslationPID = PIDConstants(0.4,0.0,0.0)
     )
 }
-
-
-
 
 val TURN_MOTORS = sparkMaxSwerveMotors(
     topLeftId = 29,
@@ -61,10 +56,10 @@ val TURN_ENCODERS = swerveCANcoders(
 )
 
 val DRIVE_MOTORS = sparkMaxSwerveMotors(
-    topLeft = ChargerSparkMax(10){inverted = false},
-    topRight = ChargerSparkMax(16){inverted = true},
-    bottomLeft = ChargerSparkMax(30){inverted = false},
-    bottomRight = ChargerSparkMax(3){inverted = false}
+    topLeft = ChargerSparkMax(10){inverted = true},
+    topRight = ChargerSparkMax(16){inverted = false},
+    bottomLeft = ChargerSparkMax(30){inverted = true},
+    bottomRight = ChargerSparkMax(3){inverted = true}
 ){
     smartCurrentLimit = SmartCurrentLimit(60.amps)
     voltageCompensationNominalVoltage = 12.volts

@@ -5,6 +5,8 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.seconds
 import com.revrobotics.CANSparkLowLevel
+import edu.wpi.first.wpilibj.RobotBase
+import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
@@ -13,10 +15,22 @@ import frc.chargers.hardware.subsystems.swervedrive.SwerveEncoders
 import frc.chargers.hardware.subsystems.swervedrive.SwerveMotors
 import frc.chargers.wpilibextensions.delay
 import frc.robot.constants.ODOMETRY_UPDATE_FREQUENCY_HZ
-import frc.robot.OdometryLog
-import frc.robot.hardware.subsystems.odometry.threads.OdometryThread
 import java.util.*
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.math.roundToInt
+
+@JvmField
+val OdometryLock = ReentrantLock()
+
+
+@JvmField
+val OdometryLog = LoggableInputsProvider(
+    "PoseData",
+    updateInputs = RobotBase.isReal(), // if robot is simulation, don't update inputs.
+    runBeforeInputUpdate = OdometryLock::lock,
+    runAfterInputUpdate = OdometryLock::unlock
+)
+
 
 class OdometryIO(
     // all wrappers inherit their base class(CANSparkMax)
@@ -33,7 +47,6 @@ class OdometryIO(
         }
 
         driveMotors.forEach{
-            it.setCANTimeout(250)
             it.setPeriodicFramePeriod(
                 CANSparkLowLevel.PeriodicFrame.kStatus2, (1000 / ODOMETRY_UPDATE_FREQUENCY_HZ).roundToInt()
             )
@@ -42,7 +55,6 @@ class OdometryIO(
         }
 
         turnMotors.forEach{
-            it.setCANTimeout(250)
             it.setPeriodicFramePeriod(
                 CANSparkLowLevel.PeriodicFrame.kStatus2, (1000 / ODOMETRY_UPDATE_FREQUENCY_HZ).roundToInt()
             )

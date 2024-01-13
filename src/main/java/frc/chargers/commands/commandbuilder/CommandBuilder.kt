@@ -42,28 +42,16 @@ import kotlin.reflect.KProperty
  * ```
  * @param name The name of the buildCommand(defaults to "Generic BuildCommand").
  * @param logIndividualCommands If true, will log the individual commands that are part of the DSL. Defaults to false.
- * @param shouldConvertCommandsToProxy If true, all the commands added to the [CommandBuilder] will become proxy commands:
- * which mean that the requirements of individual commands(like runOnce, loopForever, etc.)
- * aren't required through the entire buildCommand. Defaults to true; it is recommended to use
- * addRequirements for buildCommand-wide requirements instead of turning this option to false.
  * @param block The entry point to the DSL. Has the context of [CommandBuilder].
  */
 public inline fun buildCommand(
     name: String = "Generic BuildCommand",
     logIndividualCommands: Boolean = false,
-    shouldConvertCommandsToProxy: Boolean = true,
     block: CommandBuilder.() -> Unit
 ): Command{
     val builder = CommandBuilder().apply(block)
 
-    val commandArray: Array<Command> = if (shouldConvertCommandsToProxy){
-        builder.commands.map{
-            val commandName = it.name
-            return@map it.asProxy().withName(commandName)
-        }.toTypedArray()
-    }else{
-        builder.commands.toTypedArray()
-    }
+    val commandArray: Array<Command> = builder.commands.toTypedArray()
 
     var command: Command = if(logIndividualCommands){
         loggedSequentialCommandGroup(name, *commandArray)
@@ -135,6 +123,7 @@ public class CommandBuilder{
             commands.add(c)
         }
     }
+
 
     private fun removeCommand(c: Command){
         commands.remove(c)

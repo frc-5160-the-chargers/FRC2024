@@ -16,6 +16,7 @@ import frc.external.frc6995.NomadApriltagUtil
 import frc.chargers.advantagekitextensions.recordLatency
 import frc.chargers.hardware.sensors.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
+import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.ofUnit
@@ -54,6 +55,9 @@ public class SwervePoseMonitor(
 
     override fun resetPose(pose: UnitPose2d){
         poseEstimator.resetPose(pose.inUnit(meters))
+        if (drivetrain.gyro is ZeroableHeadingProvider){
+            drivetrain.gyro.zeroHeading(pose.rotation)
+        }
     }
 
     override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier){

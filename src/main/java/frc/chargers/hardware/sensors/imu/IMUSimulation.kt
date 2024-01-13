@@ -4,16 +4,23 @@ package frc.chargers.hardware.sensors.imu
 import com.batterystaple.kmeasure.quantities.Angle
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 
-/**
- * Configures simulation for all IMUs.
- */
-public fun configureIMUSimulation(
-    headingSupplier: () -> Angle = { Angle(0.0) },
-    chassisSpeedsSupplier: () -> ChassisSpeeds = { ChassisSpeeds() },
-){
-    getSimChassisSpeeds = chassisSpeedsSupplier
-    getSimHeading = headingSupplier
-}
+public object IMUSimulation{
+    private var simHeadingGetter: () -> Angle = { Angle(0.0) }
+    private var simChassisSpeedsGetter: () -> ChassisSpeeds = { ChassisSpeeds() }
 
-internal var getSimChassisSpeeds: () -> ChassisSpeeds = { ChassisSpeeds() }
-internal var getSimHeading: () -> Angle = { Angle(0.0) }
+    /**
+     * Configures simulation for all IMUs.
+     */
+    fun configure(
+        headingSupplier: () -> Angle = { Angle(0.0) },
+        chassisSpeedsSupplier: () -> ChassisSpeeds = { ChassisSpeeds() },
+    ){
+        simChassisSpeedsGetter = chassisSpeedsSupplier
+        simHeadingGetter = headingSupplier
+    }
+
+    fun getHeading(): Angle = simHeadingGetter()
+
+    fun getChassisSpeeds(): ChassisSpeeds = simChassisSpeedsGetter()
+
+}

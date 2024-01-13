@@ -46,7 +46,6 @@ public class ChargerPigeon2(
     factoryDefault: Boolean = true,
     configuration: ChargerPigeon2Configuration? = null
 ): Pigeon2(canId, canBus), ZeroableHeadingProvider, HardwareConfigurable<ChargerPigeon2Configuration> {
-
     private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
     private var configAppliedProperly = true
 
@@ -108,7 +107,7 @@ public class ChargerPigeon2(
     /**
      * Zeroes the heading of the Pigeon.
      */
-    override fun zeroHeading() { reset() }
+    override fun zeroHeading(angle: Angle) { setYaw(angle.inUnit(degrees)) }
 
     private var _isConnected = true
 
@@ -128,6 +127,7 @@ public class ChargerPigeon2(
 
 
     public inner class Gyroscope internal constructor(): ThreeAxisGyroscope {
+        private var simPreviousYaw = Angle(0.0)
 
         private val yawSignal = getYaw()
         private val rollSignal = getRoll()
@@ -140,10 +140,10 @@ public class ChargerPigeon2(
         internal fun getSignals(): Array<BaseStatusSignal> =
             arrayOf(yawSignal, rollSignal, pitchSignal, yawRateSignal, pitchRateSignal, rollRateSignal)
 
-        private var simPreviousYaw = Angle(0.0)
+
 
         override val yaw: Angle by GyroLog.quantity{
-            if (isReal()) yawSignal.value.ofUnit(degrees) else getSimHeading()
+            if (isReal()) yawSignal.value.ofUnit(degrees) else IMUSimulation.getHeading()
         }
 
         override val pitch: Angle by GyroLog.quantity{
@@ -154,11 +154,13 @@ public class ChargerPigeon2(
             if (isReal()) rollSignal.value.ofUnit(degrees) else Angle(0.0)
         }
 
+
+
         public val yawRate: AngularVelocity by GyroLog.quantity{
             if (isReal()){
                 yawRateSignal.value.ofUnit(degrees/seconds)
             }else{
-                val currH = getSimHeading()
+                val currH = IMUSimulation.getHeading()
                 ((currH - simPreviousYaw) / ChargerRobot.LOOP_PERIOD).also{
                     simPreviousYaw = currH
                 }
@@ -172,7 +174,6 @@ public class ChargerPigeon2(
         public val rollRate: AngularVelocity by GyroLog.quantity{
             if (isReal()) rollRateSignal.value.ofUnit(degrees/seconds) else AngularVelocity(0.0)
         }
-
     }
 
 
@@ -184,6 +185,8 @@ public class ChargerPigeon2(
 
         internal fun getSignals(): Array<BaseStatusSignal> =
             arrayOf(xAccelSignal, yAccelSignal, zAccelSignal)
+
+
 
         override val xAcceleration: Acceleration by AccelerometerLog.quantity{
             if (isReal()) xAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)

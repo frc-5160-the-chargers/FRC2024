@@ -23,7 +23,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
     /* Top-Level constants */
     private val aimToTargetPIDConstants =
-        if (isReal()) PIDConstants(-0.2,0.0,0.0) else PIDConstants(0.8,0.0,0.0)
+        if (isReal()) PIDConstants(0.2,0.0,0.0) else PIDConstants(0.8,0.0,0.0)
     private const val DEFAULT_DEADBAND = 0.1
 
 
@@ -76,12 +76,13 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
     private val forwardAxis =
         InputAxis{ leftY }
-            .applyDeadband(0.1)
+            .applyDefaults()
+            .applyMultiplier(-1.0)
             .withModifier{ it * getScaleRate() }
 
     private val strafeAxis =
         InputAxis{ leftX }
-            .applyDefaults()
+            .applyMultiplier(-1.0)
             .withModifier{ it * getScaleRate() }
 
     private val rotationAxis =

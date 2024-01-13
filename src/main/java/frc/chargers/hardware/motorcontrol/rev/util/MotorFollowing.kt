@@ -18,7 +18,13 @@ internal fun addFollowers(
         followers.forEach{ follower ->
             if (follower is CANSparkBase){
                 revFollowers.add(follower)
-                follower.follow(this)
+                follower.follow(
+                    this,
+                    // determines whether to invert the follower;
+                    // cast necessary to avoid overload resolution ambiguity
+                    (follower as CANSparkBase).inverted != revMotor.inverted
+                )
+
                 // configures frame periods of each follower, to reduce device latency
                 // doesn't need a safe config; as only cost is a little bit more bus utilization
                 follower.setPeriodicFramePeriod(PeriodicFrame.kStatus0, SLOW_PERIODIC_FRAME_STRATEGY)

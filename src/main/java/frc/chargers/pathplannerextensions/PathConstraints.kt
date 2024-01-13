@@ -25,8 +25,8 @@ public fun PathConstraints(
     linearConstraints: LinearMotionConstraints,
     angularConstraints: AngularMotionConstraints
 ): PathConstraints = PathConstraints(
-    linearConstraints.maxVelocity.siValue,
-    linearConstraints.maxAcceleration.siValue,
-    angularConstraints.maxVelocity.siValue,
-    angularConstraints.maxAcceleration.siValue
+    linearConstraints.maxVelocity.inUnit(meters / seconds),
+    linearConstraints.maxAcceleration.inUnit(meters / seconds / seconds),
+    angularConstraints.maxVelocity.inUnit(radians / seconds),
+    angularConstraints.maxAcceleration.inUnit(radians / seconds / seconds)
 )

@@ -1,4 +1,4 @@
-package frc.robot.hardware.subsystems.odometry.threads;
+package frc.robot.hardware.subsystems.odometry;
 // Copyright 2021-2023 FRC 6328
 // http://github.com/Mechanical-Advantage
 //
@@ -50,24 +50,24 @@ public class OdometryThread {
 
     public Queue<Double> registerSignal(DoubleSupplier signal) {
         Queue<Double> queue = new ArrayBlockingQueue<>(100);
-        DrivetrainConstantsKt.getODOMETRY_LOCK().lock();
+        OdometryIOKt.OdometryLock.lock();
         try {
             signals.add(signal);
             queues.add(queue);
         } finally {
-            DrivetrainConstantsKt.getODOMETRY_LOCK().unlock();
+            OdometryIOKt.OdometryLock.unlock();
         }
         return queue;
     }
 
     private void periodic() {
-        DrivetrainConstantsKt.getODOMETRY_LOCK().lock();
+        OdometryIOKt.OdometryLock.lock();
         try {
             for (int i = 0; i < signals.size(); i++) {
                 queues.get(i).offer(signals.get(i).getAsDouble());
             }
         } finally {
-            DrivetrainConstantsKt.getODOMETRY_LOCK().unlock();
+            OdometryIOKt.OdometryLock.unlock();
         }
     }
 }

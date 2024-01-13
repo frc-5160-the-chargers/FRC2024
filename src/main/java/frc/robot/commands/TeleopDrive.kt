@@ -1,6 +1,5 @@
 package frc.robot.commands
 
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
@@ -12,11 +11,13 @@ fun teleopDrive(
 ): Command = buildCommand{
     addRequirements(drivetrain)
 
+    /*
     if (RobotBase.isSimulation()){
         runOnce{
             drivetrain.poseEstimator.zeroPose()
         }
     }
+     */
 
     var swerveOutput: ChassisPowers
 

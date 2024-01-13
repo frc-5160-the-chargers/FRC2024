@@ -17,16 +17,16 @@ import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
-import frc.chargers.advantagekitextensions.LoggableInputsProvider
 
 // ChargerLib imports
+import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.sensors.imu.ChargerNavX
-import frc.chargers.hardware.sensors.imu.configureIMUSimulation
+import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.sensors.vision.VisionPipeline
 import frc.chargers.hardware.sensors.vision.VisionTarget
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
@@ -40,8 +40,6 @@ import frc.robot.commands.teleopDrive
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorController
-import frc.robot.hardware.subsystems.odometry.OdometryIO
-import frc.robot.hardware.subsystems.odometry.ThreadedPoseMonitor
 
 // AdvantageKit
 import org.littletonrobotics.junction.Logger.recordOutput
@@ -49,8 +47,10 @@ import org.littletonrobotics.junction.Logger.recordOutput
 class RobotContainer: ChargerRobotContainer() {
 
 
-    // ChargerLib subsystems/components
-    private val gyroIO = ChargerNavX(useFusedHeading = false)
+    // Subsystems/components
+
+    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{ zeroHeading() }
+
 
     private val limelight = ChargerLimelight(
         useJsonDump = false,
@@ -60,7 +60,7 @@ class RobotContainer: ChargerRobotContainer() {
 
     private val apriltagIO: VisionPipeline<VisionTarget.AprilTag> =
         limelight.ApriltagPipeline(
-            index = 0,
+            index = 1,
             logInputs = LoggableInputsProvider("LimelightApriltagVision")
         )
 
@@ -74,6 +74,7 @@ class RobotContainer: ChargerRobotContainer() {
         hardwareData = SwerveHardwareData.mk4iL2(trackWidth = 32.inches, wheelBase = 32.inches),
         gyro = if (isReal()) gyroIO else null,
     ).apply {
+        /*
         if (isReal()){
             poseEstimator = ThreadedPoseMonitor(
                 OdometryIO(
@@ -86,16 +87,15 @@ class RobotContainer: ChargerRobotContainer() {
                 kinematics = this.kinematics
             )
         }
+         */
 
-        configureIMUSimulation(
+        IMUSimulation.configure(
             headingSupplier = { this.heading },
             chassisSpeedsSupplier = { this.currentSpeeds }
         )
 
         defaultCommand = teleopDrive(this)
     }
-
-    // Robot-defined components
 
 
     init{
@@ -135,26 +135,26 @@ class RobotContainer: ChargerRobotContainer() {
             pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle)
         }
 
+
         OperatorController.apply{
-            if (isReal()){
-                aimToTagButton.whileTrue(
-                    aimToApriltag(
-                        pidConstants = AIM_TO_APRILTAG_PID,
-                        drivetrain = drivetrain,
-                        visionIO = apriltagIO
-                    )
+            aimToTagButton.whileTrue(
+                aimToApriltag(
+                    pidConstants = AIM_TO_APRILTAG_PID,
+                    drivetrain = drivetrain,
+                    visionIO = apriltagIO
                 )
-                aimToTagAndDriveButton.whileTrue(
-                    aimAndDriveToApriltag(
-                        5.inches,
-                        targetHeight = 0.inches, // idk abt this
-                        pidConstants = PIDConstants(0.2,0.0,0.0),
-                        drivetrain = drivetrain,
-                        visionIO = apriltagIO
-                    )
+            )
+            aimToTagAndDriveButton.whileTrue(
+                aimAndDriveToApriltag(
+                    5.inches,
+                    targetHeight = 0.inches, // idk abt this
+                    pidConstants = PIDConstants(0.2,0.0,0.0),
+                    drivetrain = drivetrain,
+                    visionIO = apriltagIO
                 )
-            }
+            )
         }
+
 
     }
 
