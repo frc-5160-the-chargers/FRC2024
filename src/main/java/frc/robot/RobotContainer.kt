@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand
 
 // ChargerLib imports
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.constants.DashboardTuner
@@ -95,6 +96,8 @@ class RobotContainer: ChargerRobotContainer() {
         )
 
         defaultCommand = teleopDrive(this)
+
+        //NamedCommands.registerCommand("Hello", runOnceCommand{ println("hello") })
     }
 
 
@@ -162,7 +165,8 @@ class RobotContainer: ChargerRobotContainer() {
 
 
 
+
     override val autonomousCommand: Command
-        get() = pathplannerTaxi(drivetrain, resetPoseAtStart = true)
+        get() = pathplannerTaxi(drivetrain)
 
 }

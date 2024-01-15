@@ -7,13 +7,12 @@ import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.VecBuilder
 import edu.wpi.first.math.geometry.Pose2d
-import edu.wpi.first.wpilibj.smartdashboard.Field2d
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.external.frc6328.MechanicalAdvantagePoseEstimator
 import frc.external.frc6328.MechanicalAdvantagePoseEstimator.TimestampedVisionUpdate
 import frc.external.frc6995.NomadApriltagUtil
 import frc.chargers.advantagekitextensions.recordLatency
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
@@ -48,8 +47,6 @@ public class SwervePoseMonitor(
         poseSuppliers.toList(),
         startingPose
     )
-
-    public val field: Field2d = Field2d().also{ SmartDashboard.putData("Field",it) }
 
     override val robotPose: UnitPose2d get() = poseEstimator.latestPose.ofUnit(meters)
 
@@ -158,7 +155,7 @@ public class SwervePoseMonitor(
             /*
             Records the robot's pose on the field and in AdvantageScope.
              */
-            field.robotPose = poseEstimator.latestPose
+            ChargerRobot.FIELD.robotPose = poseEstimator.latestPose
             recordOutput("Drivetrain(Swerve)/Pose2d", Pose2d.struct, poseEstimator.latestPose)
             recordOutput("Drivetrain(Swerve)/realGyroUsedInPoseEstimation", drivetrain.gyro != null)
             recordOutput("Drivetrain(Swerve)/realGyroHeadingRad", drivetrain.gyro?.heading?.inUnit(radians) ?: 0.0)

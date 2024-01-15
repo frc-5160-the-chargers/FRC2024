@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+import frc.chargers.advantagekitextensions.recordOutput
 import frc.chargers.constants.SwerveControlData
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.hardware.motorcontrol.EncoderMotorController
@@ -264,6 +265,15 @@ public class EncoderHolonomicDrivetrain(
     }
     private var currentControlMode: ControlMode = ControlMode.CLOSED_LOOP
 
+    /*
+    // offsets stored for coupling ratios; these theoretically improve the accuracy of the drivetrain
+    private var couplingOffsetTL = Angle(0.0)
+    private var couplingOffsetTR = Angle(0.0)
+    private var couplingOffsetBL = Angle(0.0)
+    private var couplingOffsetBR = Angle(0.0)
+
+     */
+
     init{
         AutoBuilder.configureHolonomic(
             { poseEstimator.robotPose.inUnit(meters) },
@@ -386,6 +396,12 @@ public class EncoderHolonomicDrivetrain(
                 bottomLeft.setDirectionalPower((ms.bottomLeftSpeed/hardwareData.maxModuleSpeed).siValue, ms.bottomLeftAngle)
                 bottomRight.setDirectionalPower((ms.bottomRightSpeed/hardwareData.maxModuleSpeed).siValue, ms.bottomRightAngle)
             }
+            // chargerlib functions for recording Kmeasure outputs in ascope; see frc.chargers.advantagekitextensions
+            recordOutput("Drivetrain(Swerve)/TopLeftLinearVel", topLeft.speed * wheelRadius)
+            recordOutput("Drivetrain(Swerve)/TopRightLinearVel", topRight.speed * wheelRadius)
+            recordOutput("Drivetrain(Swerve)/BottomLeftLinearVel", bottomLeft.speed * wheelRadius)
+            recordOutput("Drivetrain(Swerve)/BottomRightLinearVel", bottomRight.speed * wheelRadius)
+
             recordOutput("Drivetrain(Swerve)/DesiredModuleStates", SwerveModuleState.struct, ms.topLeftState,ms.topRightState,ms.bottomLeftState,ms.bottomRightState)
         }
 

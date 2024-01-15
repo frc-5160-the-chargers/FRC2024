@@ -62,6 +62,7 @@ fun aimToApriltag(
 
         runOnce{
             visionIO.removeRequirement()
+            drivetrain.stop()
         }
     }
 
@@ -97,7 +98,8 @@ fun aimAndDriveToApriltag(
             }
 
             // abs() function overload for Kmeasure Quantities(visionIO.distanceToTarget)
-            return abs(currentError) < 0.05 && abs(visionIO.distanceToTarget(targetHeight)) <= abs(wantedDistance)
+            return abs(currentError) < 0.05 &&
+                    abs(visionIO.distanceToTarget(targetHeight)) <= abs(wantedDistance)
         }
 
         addRequirements(drivetrain)
@@ -116,5 +118,6 @@ fun aimAndDriveToApriltag(
 
         runOnce{
             visionIO.removeRequirement()
+            drivetrain.stop()
         }
     }

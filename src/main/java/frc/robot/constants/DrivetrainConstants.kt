@@ -17,10 +17,10 @@ const val ODOMETRY_UPDATE_FREQUENCY_HZ = 250.0
 val DRIVE_CONTROL_DATA = if (isReal()){
     SwerveControlData(
         anglePID = PIDConstants(4.0,0.0,0.0),
-        velocityPID = PIDConstants(0.2,0.0,0.0),
+        velocityPID = PIDConstants(0.1,0.0,0.0),
         velocityFF = AngularMotorFFConstants.fromSI(0.00162,0.13394,0.0),
         robotRotationPID = PIDConstants(0.5, 0.0, 0.0), // for pathplanner
-        robotTranslationPID = PIDConstants(0.4,0.0,0.0)
+        robotTranslationPID = PIDConstants(0.5,0.0,0.0) // for pathplanner
     )
 }else{
     SwerveControlData(
@@ -28,7 +28,7 @@ val DRIVE_CONTROL_DATA = if (isReal()){
         velocityPID = PIDConstants(0.2,0.0,0.0),
         velocityFF = AngularMotorFFConstants.fromSI(0.12117,0.13210,0.0),
         robotRotationPID = PIDConstants(0.5, 0.0, 0.0), // for pathplanner
-        robotTranslationPID = PIDConstants(0.4,0.0,0.0)
+        robotTranslationPID = PIDConstants(0.5,0.0,0.0) // for pathplanner
     )
 }
 
@@ -61,6 +61,6 @@ val DRIVE_MOTORS = sparkMaxSwerveMotors(
     bottomLeft = ChargerSparkMax(30){inverted = true},
     bottomRight = ChargerSparkMax(3){inverted = true}
 ){
-    smartCurrentLimit = SmartCurrentLimit(60.amps)
+    smartCurrentLimit = SmartCurrentLimit(55.amps)
     voltageCompensationNominalVoltage = 12.volts
 }

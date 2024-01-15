@@ -42,15 +42,5 @@ fun pathplannerTaxi(
             }
         }
 
-        runOnce(drivetrain){
-            println("hello")
-        }
-
-
         +AutoBuilder.followPath(path)
-
-        loopFor(5.seconds){
-            drivetrain.stopInX()
-            println("hi")
-        }
     }

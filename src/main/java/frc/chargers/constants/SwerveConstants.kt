@@ -34,6 +34,8 @@ public data class SwerveControlData(
  */
 public data class SwerveHardwareData(
     val invertTurnMotors: Boolean = false,
+    // offsets the encoder readings to theoretically improve odometry accuracy
+    val couplingRatio: Double? = null,
     val turnGearRatio: Double = DEFAULT_GEAR_RATIO,
     val driveGearRatio: Double = DEFAULT_GEAR_RATIO,
     val turnInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_TURN_INERTIA,
@@ -50,12 +52,14 @@ public data class SwerveHardwareData(
          */
         public fun mk4iL2(
             maxModuleSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
+            useCouplingRatio: Boolean = true,
             trackWidth: Distance,
             wheelBase: Distance,
             turnInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_TURN_INERTIA,
             driveInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_DRIVE_INERTIA,
         ): SwerveHardwareData = SwerveHardwareData(
             invertTurnMotors = true,
+            if (useCouplingRatio) 50.0 / 14.0 else null,
             150.0 / 7.0,
             6.75,
             turnInertiaMoment,
@@ -72,12 +76,14 @@ public data class SwerveHardwareData(
          */
         public fun mk4iL3(
             maxModuleSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
+            useCouplingRatio: Boolean = true,
             trackWidth: Distance,
             wheelBase: Distance,
             turnInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_TURN_INERTIA,
             driveInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_DRIVE_INERTIA,
         ): SwerveHardwareData = SwerveHardwareData(
             invertTurnMotors = true,
+            if (useCouplingRatio) 50.0 / 14.0 else null,
             150.0 / 7.0,
             6.12,
             turnInertiaMoment,
@@ -94,12 +100,14 @@ public data class SwerveHardwareData(
          */
         public fun mk4iL1(
             maxModuleSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
+            useCouplingRatio: Boolean = true,
             turnInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_TURN_INERTIA,
             driveInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_DRIVE_INERTIA,
             trackWidth: Distance,
             wheelBase: Distance
         ): SwerveHardwareData = SwerveHardwareData(
             invertTurnMotors = true,
+            if (useCouplingRatio) 50.0 / 14.0 else null,
             150.0 / 7.0,
             8.14,
             turnInertiaMoment,

@@ -7,9 +7,8 @@ import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.VecBuilder
 import edu.wpi.first.math.geometry.Pose2d
-import edu.wpi.first.wpilibj.smartdashboard.Field2d
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.chargers.framework.ChargerRobot
 import frc.external.frc6328.MechanicalAdvantagePoseEstimator
 import frc.external.frc6995.NomadApriltagUtil
 import frc.chargers.hardware.sensors.RobotPoseMonitor
@@ -42,8 +41,6 @@ public class DifferentialPoseMonitor(
         poseSuppliers.toMutableList(),
         startingPose
     )
-
-    public val field: Field2d = Field2d().also{ SmartDashboard.putData("Field",it) }
 
     override val robotPose: UnitPose2d get() = poseEstimator.latestPose.ofUnit(meters)
 
@@ -118,7 +115,7 @@ public class DifferentialPoseMonitor(
         }
 
 
-        field.robotPose = poseEstimator.latestPose
+        ChargerRobot.FIELD.robotPose = poseEstimator.latestPose
         recordOutput("Drivetrain(Differential)/Pose2d", Pose2d.struct, poseEstimator.latestPose)
         recordOutput("Drivetrain(Differential)/realGyroUsedInPoseEstimation", drivetrain.gyro != null)
         recordOutput("Drivetrain(Differential)/realGyroHeadingRad", drivetrain.gyro?.heading?.inUnit(radians) ?: 0.0)

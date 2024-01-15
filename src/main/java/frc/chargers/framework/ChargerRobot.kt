@@ -6,6 +6,8 @@ import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.pathfinding.Pathfinding
 import edu.wpi.first.wpilibj.RobotBase
+import edu.wpi.first.wpilibj.smartdashboard.Field2d
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.advantagekitextensions.*
 import org.littletonrobotics.junction.LogFileUtil
@@ -73,14 +75,20 @@ public open class ChargerRobot(
         public var LOOP_PERIOD: Time = 0.02.seconds
             private set
 
+        /**
+         * The [Field2d] that belongs to the robot.
+         */
+        public val FIELD: Field2d = Field2d()
+
+
+
+        // logging tables for custom loggable items
         internal var AK_LOGGABLE_REPLAY_TABLE: LogTable? = null
         internal var AK_LOGGABLE_REAL_TABLE: LogTable? = null
         @PublishedApi
         internal var hardwareConfigRetryLimit: Int = 1
 
-
-
-
+        // stores alerts and periodic runnables
         private val periodicRunnables: MutableList<() -> Unit> = mutableListOf()
         private val lowPriorityPeriodicRunnables: MutableList<() -> Unit> = mutableListOf()
         private val noUsbSignalAlert = Alert.warning(text = "No logging to WPILOG is happening; cannot find USB stick")
@@ -118,6 +126,8 @@ public open class ChargerRobot(
             AutoLogOutputManager.addPackage("frc.frc.chargers")
 
             Pathfinding.setPathfinder(LocalADStarAK())
+
+            SmartDashboard.putData("Field", FIELD)
 
             CommandScheduler.getInstance().apply{
                 onCommandInitialize{
