@@ -3,10 +3,11 @@ package frc.robot
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.GitData
 import frc.chargers.framework.RobotConfig
+import frc.external.frc254.CrashTracker
 import frc.robot.BuildConstants.*
 
 val ROBOT = ChargerRobot(
-    { RobotContainer() },
+    getRobotContainer = { RobotContainer() },
     gitData = GitData(
         projectName = MAVEN_NAME,
         buildDate = BUILD_DATE,
@@ -17,7 +18,7 @@ val ROBOT = ChargerRobot(
     config = RobotConfig(
         isReplay = false,
         tuningMode = false,
-        onError = { println("An error has occurred. Normally, this will write to the crash tracker disc. ") },
+        onError = { CrashTracker.logThrowableCrash(it) },
         hardwareConfigRetryLimit = 3
     )
 )

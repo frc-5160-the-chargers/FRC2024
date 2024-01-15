@@ -248,7 +248,7 @@ public class ChargerSparkMax(
             .also{ previousTemp = it }
 
     override val appliedVoltage: Voltage
-        get() = busVoltage.ofUnit(volts)
+        get() = (get() * busVoltage.ofUnit(volts))
             .revertIfInvalid(previousVoltage)
             .also{ previousVoltage = it }
 

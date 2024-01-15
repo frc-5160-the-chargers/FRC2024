@@ -32,12 +32,12 @@ import frc.chargers.hardware.sensors.vision.VisionPipeline
 import frc.chargers.hardware.sensors.vision.VisionTarget
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-
-
 import frc.robot.commands.aimAndDriveToApriltag
 import frc.robot.commands.aimToApriltag
+
+
+//import frc.robot.commands.aimToApriltag
 import frc.robot.commands.auto.pathplannerTaxi
-import frc.robot.commands.teleopDrive
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorController
@@ -62,7 +62,7 @@ class RobotContainer: ChargerRobotContainer() {
     private val apriltagIO: VisionPipeline<VisionTarget.AprilTag> =
         limelight.ApriltagPipeline(
             index = 1,
-            logInputs = LoggableInputsProvider("LimelightApriltagVision")
+            logInputs = LoggableInputsProvider("LimelightApriltagVision") // logs to the "LimelightApriltagVision" namespace
         )
 
     private val drivetrain = EncoderHolonomicDrivetrain(
@@ -94,10 +94,6 @@ class RobotContainer: ChargerRobotContainer() {
             headingSupplier = { this.heading },
             chassisSpeedsSupplier = { this.currentSpeeds }
         )
-
-        defaultCommand = teleopDrive(this)
-
-        //NamedCommands.registerCommand("Hello", runOnceCommand{ println("hello") })
     }
 
 
@@ -105,16 +101,36 @@ class RobotContainer: ChargerRobotContainer() {
         if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
             DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
         }
-
         if (isSimulation()){
             DriverStation.silenceJoystickConnectionWarning(true)
         }
-
         recordOutput("Tuning Mode", DashboardTuner.tuningMode)
+        LiveWindow.disableAllTelemetry()
 
         configureBindings()
+        configureDefaultCommands()
+    }
 
-        LiveWindow.disableAllTelemetry()
+    private fun configureDefaultCommands(){
+        drivetrain.defaultCommand = buildCommand{
+            addRequirements(drivetrain)
+
+            if (isSimulation()){
+                runOnce{
+                    drivetrain.poseEstimator.zeroPose()
+                }
+            }
+
+            loop{
+                drivetrain.swerveDrive(
+                    DriverController.swerveOutput(drivetrain.heading)
+                )
+            }
+
+            onEnd{
+                drivetrain.stop()
+            }
+        }
     }
 
 
@@ -139,26 +155,26 @@ class RobotContainer: ChargerRobotContainer() {
         }
 
 
+
         OperatorController.apply{
             aimToTagButton.whileTrue(
                 aimToApriltag(
-                    pidConstants = AIM_TO_APRILTAG_PID,
+                    aimingPID = AIM_TO_APRILTAG_PID,
                     drivetrain = drivetrain,
                     visionIO = apriltagIO
                 )
             )
             aimToTagAndDriveButton.whileTrue(
                 aimAndDriveToApriltag(
-                    5.inches,
-                    targetHeight = 0.inches, // idk abt this
-                    pidConstants = PIDConstants(0.2,0.0,0.0),
+                    wantedDistance = 5.inches,
+                    targetId = 6,
+                    distanceTargetPID = PIDConstants(0.2,0.0,0.0),
+                    aimingPID = PIDConstants(0.2,0.0,0.0),
                     drivetrain = drivetrain,
                     visionIO = apriltagIO
                 )
             )
         }
-
-
     }
 
 
@@ -167,6 +183,6 @@ class RobotContainer: ChargerRobotContainer() {
 
 
     override val autonomousCommand: Command
-        get() = pathplannerTaxi(drivetrain)
+        get() = pathplannerTaxi(drivetrain, "New Path")
 
 }

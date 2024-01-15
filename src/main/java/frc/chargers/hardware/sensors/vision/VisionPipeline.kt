@@ -76,21 +76,29 @@ public interface VisionPipeline<R: VisionTarget> {
      * Calculates the horizontal distance to a target, utilizing the pitch and height of the target.
      */
     public fun distanceToTarget(
-        targetHeight: Distance, targetPitch: Angle = Angle(0.0)
-    ): Distance = PhotonUtils.calculateDistanceToTargetMeters(
-        lensHeight.inUnit(meters),
-        targetHeight.inUnit(meters),
-        mountAngle.inUnit(radians),
-        targetPitch.inUnit(radians)
-    ).ofUnit(meters)
+        targetHeight: Distance,
+        target: R? = bestTarget
+    ): Distance? = if (target != null){
+        PhotonUtils.calculateDistanceToTargetMeters(
+            lensHeight.inUnit(meters),
+            targetHeight.inUnit(meters),
+            mountAngle.inUnit(radians),
+            target.ty.ofUnit(degrees).inUnit(radians)
+        ).ofUnit(meters)
+    }else{
+        null
+    }
 
     /**
      * Calculates the diagonal distance to the target.
      */
-    public fun diagonalDistanceToTarget(targetHeight: Distance, targetPitch: Angle = Angle(0.0)): Distance =
-        Distance(
-            sqrt(distanceToTarget(targetHeight, targetPitch).siValue.pow(2) + targetHeight.siValue.pow(2.0))
+    public fun diagonalDistanceToTarget(targetHeight: Distance, target: R? = bestTarget): Distance? {
+        val horizontalDistance = distanceToTarget(targetHeight, target) ?: return null
+        return Distance(
+            sqrt(horizontalDistance.siValue.pow(2) + targetHeight.siValue.pow(2.0))
         )
+    }
+
 
 }
 

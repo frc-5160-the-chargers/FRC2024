@@ -14,6 +14,7 @@ import frc.chargers.controls.SetpointSupplier
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.utils.Precision
 import frc.chargers.utils.within
+import org.littletonrobotics.junction.Logger.recordOutput
 
 
 enum class PivotAngle(val angle: Angle){
@@ -32,7 +33,6 @@ class Shooter(
     private val pivotProfile: SetpointSupplier<AngleDimension, VoltageDimension> = SetpointSupplier.Default(),
     private val pivotPrecision: Precision.Within<AngleDimension> = Precision.Within(0.5.degrees)
 ): SubsystemBase() {
-
     private var targetPosition: Angle? = null
 
     fun hasHitPivotTarget(): Boolean{
@@ -42,6 +42,7 @@ class Shooter(
 
     fun setPivotPosition(target: PivotAngle){
         setPivotPosition(target.angle)
+        recordOutput("Shooter/pivotAngleTarget", target)
     }
 
     fun setPivotPosition(position: Angle){
@@ -57,6 +58,9 @@ class Shooter(
             )
         }
     }
+
+    fun setPivotVoltage(voltage: Voltage) = io.setPivotVoltage(voltage)
+
 
     fun spin(power: Double){
         spin(power * 12.volts)

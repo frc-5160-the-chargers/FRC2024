@@ -47,9 +47,9 @@ import kotlin.reflect.KProperty
 public inline fun buildCommand(
     name: String = "Generic BuildCommand",
     logIndividualCommands: Boolean = false,
-    block: CommandBuilder.() -> Unit
+    block: BuildCommandScope.() -> Unit
 ): Command{
-    val builder = CommandBuilder().apply(block)
+    val builder = BuildCommandScope().apply(block)
 
     val commandArray: Array<Command> = builder.commands.toTypedArray()
 
@@ -62,7 +62,9 @@ public inline fun buildCommand(
     if (builder.requirements.size > 0){
         command = command.withExtraRequirements(*builder.requirements.toTypedArray())
     }
+
     builder.addingCommandsLocked = true
+    builder.addingRequirementsLocked = true
 
     return command
 }
@@ -78,15 +80,58 @@ public inline fun buildCommand(
 public annotation class CommandBuilderMarker
 
 /**
+ * A scope exclusive to [buildCommand]; this contains things like end behavior and command requirements
+ * which aren't used in other places where a [CommandBuilder] scope is asked for
+ * (like runSequentially, runParallelUntilAllFinish, etc.)
+ */
+@CommandBuilderMarker
+public class BuildCommandScope: CommandBuilder(){
+    public val requirements: MutableList<Subsystem> = mutableListOf()
+
+    public var addingRequirementsLocked: Boolean = false
+
+    public var endBehavior: (Boolean) -> Unit = {}
+
+    /**
+     * Adds subsystems that are required across the entire [buildCommand].
+     */
+    public fun addRequirements(vararg requirements: Subsystem){
+        if (addingRequirementsLocked){
+            error("""
+                It looks like you are attempting to add requirements to the command while it is running.
+                This is not allowed; you must call addRequirements() within the block of the buildCommand, and not in a CodeBlockContext.
+                
+                For instance:
+                buildCommand{
+                    runOnce{
+                        // does not compile
+                        addRequirements(...)
+                        // compiles, but will NOT WORK!
+                        this@buildCommand.addRequirements(...)
+                    }
+                }
+            """.trimIndent())
+        }else{
+            this.requirements.addAll(requirements)
+        }
+    }
+
+    /**
+     * Runs the function block when the [buildCommand] is finished.
+     */
+    public inline fun onEnd(crossinline run: CodeBlockContext.(Boolean) -> Unit){
+        endBehavior = { CodeBlockContext.run(it) }
+    }
+}
+
+
+
+/**
  * The scope class responsible for governing the BuildCommand DSL.
  */
 @CommandBuilderMarker
-public class CommandBuilder{
+public open class CommandBuilder{
     public var commands: LinkedHashSet<Command> = linkedSetOf() // LinkedHashSet keeps commands in order, but also ensures they're not added multiple times
-
-    public val requirements: MutableList<Subsystem> = mutableListOf()
-
-    public var endBehavior: (Boolean) -> Unit = {}
 
     public var addingCommandsLocked: Boolean = false
 
@@ -96,26 +141,19 @@ public class CommandBuilder{
                 """
                 It seems that you have attempted to add a command to the CommandBuilder during runtime. This is not allowed.
                 Make sure that you don't have any nested runOnce, loopForever, loopUntil, etc. blocks 
-                within another command-adding block, and make sure that all functions that are suffixed with 'Action' 
-                are placed in the command builder block instead of a code block. For instance: 
+                within another command-adding block, and no explicit builtCommand receivers are called.
                 
                 buildCommand{
-                
                     runOnce{
                         // NOT ALLOWED
                         this@buildCommand.runOnce{
                             doSomething()
                         }
-                        // Will not compile
+                        // Will not compile(DSL scope enforcement)
                         runOnce{
                             doSomethingElse()
                         }
-                        // NOT ALLOWED
-                        drivetrain.driveStraightAction(...)
                     }
-                    
-                    // Intended behavior
-                    drivetrain.driveStraightAction(...)
                 } 
                 """.trimIndent()
             )
@@ -123,12 +161,6 @@ public class CommandBuilder{
             commands.add(c)
         }
     }
-
-
-    private fun removeCommand(c: Command){
-        commands.remove(c)
-    }
-
     
     /**
      * Adds a single command to be run until its completion.
@@ -156,23 +188,8 @@ public class CommandBuilder{
      * ```
      */
     public operator fun <C: Command> C.unaryMinus(): C{
-        removeCommand(this)
+        commands.remove(this)
         return this
-    }
-
-
-    /**
-     * Adds subsystems that are required across the entire [buildCommand].
-     */
-    public fun addRequirements(vararg requirements: Subsystem){
-        this.requirements.addAll(requirements)
-    }
-
-    /**
-     * Runs the function block when the [buildCommand] is finished.
-     */
-    public inline fun onEnd(crossinline run: CodeBlockContext.(Boolean) -> Unit){
-        endBehavior = { CodeBlockContext.run(it) }
     }
 
 
@@ -261,16 +278,12 @@ public class CommandBuilder{
      * @param block a builder allowing more parallel commands to be defined and added
      * @see ParallelRaceGroup
      */
-    public fun runParallelUntilOneFinishes(vararg commands: Command, block: CommandBuilder.() -> Unit): Command {
+    public inline fun runParallelUntilOneFinishes(vararg commands: Command, block: CommandBuilder.() -> Unit): Command {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
-        var command: Command = ParallelRaceGroup(*commandsSet.map{it.asProxy()}.toTypedArray()).finallyDo(builder.endBehavior)
-        if (builder.requirements.size > 0){
-            command = command.withExtraRequirements(*builder.requirements.toTypedArray())
-        }
         builder.addingCommandsLocked = true
-        return command.also(::addCommand)
+        return ParallelRaceGroup(*commandsSet.toTypedArray()).also(::addCommand)
     }
 
 
@@ -281,18 +294,14 @@ public class CommandBuilder{
      * @param block a builder allowing more parallel commands to be defined and added
      * @see ParallelDeadlineGroup
      */
-    public fun runParallelUntilFirstCommandFinishes(vararg commands: Command, block: CommandBuilder.() -> Unit): Command {
+    public inline fun runParallelUntilFirstCommandFinishes(vararg commands: Command, block: CommandBuilder.() -> Unit): Command {
         val builder = CommandBuilder().apply(block)
-        var commandsSet = commands.toMutableSet() + builder.commands
-        val firstCommand = commandsSet.first()
-        commandsSet = commandsSet.minus(firstCommand)
+        val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
-        var command: Command = ParallelDeadlineGroup(firstCommand, *commandsSet.map{it.asProxy()}.toTypedArray()).finallyDo(builder.endBehavior)
-        if (builder.requirements.size > 0){
-            command = command.withExtraRequirements(*builder.requirements.toTypedArray())
-        }
         builder.addingCommandsLocked = true
-        return command.also(::addCommand)
+        val firstCommand = commandsSet.first()
+        val otherCommands = commandsSet - firstCommand
+        return ParallelDeadlineGroup(firstCommand, *otherCommands.toTypedArray()).also(::addCommand)
     }
 
     /**
@@ -302,16 +311,12 @@ public class CommandBuilder{
      * @param block a builder allowing more parallel commands to be defined and added
      * @see ParallelCommandGroup
      */
-    public fun runParallelUntilAllFinish(vararg commands: Command, block: CommandBuilder.() -> Unit): Command {
+    public inline fun runParallelUntilAllFinish(vararg commands: Command, block: CommandBuilder.() -> Unit): Command {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
-        var command: Command = ParallelCommandGroup(*commandsSet.map{it.asProxy()}.toTypedArray()).finallyDo(builder.endBehavior)
-        if (builder.requirements.size > 0){
-            command = command.withExtraRequirements(*builder.requirements.toTypedArray())
-        }
         builder.addingCommandsLocked = true
-        return command.also(::addCommand)
+        return ParallelCommandGroup(*commandsSet.toTypedArray()).also(::addCommand)
     }
 
 
@@ -322,16 +327,12 @@ public class CommandBuilder{
      * @param block a builder to create the commands to run sequentially
      * @see SequentialCommandGroup
      */
-    public fun runSequentially(vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
+    public inline fun runSequentially(vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
-        var command: Command = SequentialCommandGroup(*commandsSet.map{it.asProxy()}.toTypedArray()).finallyDo(builder.endBehavior)
-        if (builder.requirements.size > 0){
-            command = command.withExtraRequirements(*builder.requirements.toTypedArray())
-        }
         builder.addingCommandsLocked = true
-        return command.also(::addCommand)
+        return SequentialCommandGroup(*commandsSet.toTypedArray()).also(::addCommand)
     }
 
     /**
@@ -340,7 +341,7 @@ public class CommandBuilder{
      * @param command the command to run
      * @param timeInterval the maximum allowed runtime of the command
      */
-    public fun loopFor(timeInterval: Time, command: Command): ParallelRaceGroup =
+    public fun runFor(timeInterval: Time, command: Command): ParallelRaceGroup =
         command
         .withTimeout(timeInterval.inUnit(seconds))
         .also(::addCommand)
@@ -352,8 +353,12 @@ public class CommandBuilder{
      * @param requirements the Subsystems this command requires
      * @param execute the code to be run
      */
-    public inline fun loopFor(timeInterval: Time, vararg requirements: Subsystem, crossinline execute: CodeBlockContext.() -> Unit): ParallelRaceGroup =
-        loopFor(timeInterval, RunCommand(*requirements) { CodeBlockContext.execute() })
+    public inline fun loopFor(
+        timeInterval: Time,
+        vararg requirements: Subsystem,
+        crossinline execute: CodeBlockContext.() -> Unit
+    ): ParallelRaceGroup =
+        RunCommand(*requirements) { CodeBlockContext.execute() }.withTimeout(timeInterval.inUnit(seconds)).also(::addCommand)
 
     /**
      * Adds a command to be run continuously.
@@ -361,7 +366,10 @@ public class CommandBuilder{
      * @param requirements the Subsystems this command requires
      * @param execute the code to be run
      */
-    public fun loopForever(vararg requirements: Subsystem, execute: CodeBlockContext.() -> Unit): RunCommand =
+    public inline fun loop(
+        vararg requirements: Subsystem,
+        crossinline execute: CodeBlockContext.() -> Unit
+    ): RunCommand =
             RunCommand(*requirements) { CodeBlockContext.execute() }.also(::addCommand)
 
     /**
@@ -387,7 +395,7 @@ public class CommandBuilder{
      *
      * @param message a function that generates the message to print
      */
-    public fun printToConsole(message: () -> Any?): Command =
+    public fun print(message: () -> Any?): Command =
         InstantCommand { println(message()) }.also(::addCommand)
 
     /**

@@ -26,12 +26,13 @@ fun basicTaxi(drivetrain: EncoderHolonomicDrivetrain, power: Double = -0.2): Com
 
 fun pathplannerTaxi(
     drivetrain: EncoderHolonomicDrivetrain,
-    resetPoseAtStart: Boolean = true
+    pathName: String = "Taxi Path",
+    resetPoseAtStart: Boolean = true,
 ): Command =
     buildCommand("Taxi Auto w/ Path") {
         addRequirements(drivetrain)
 
-        val path = PathPlannerPath.fromPathFile("Taxi Path")
+        val path = PathPlannerPath.fromPathFile(pathName)
 
         runOnce{
             if (resetPoseAtStart){

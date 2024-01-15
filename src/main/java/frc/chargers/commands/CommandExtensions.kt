@@ -6,7 +6,6 @@ import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.wpilibj2.command.*
 import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.wpilibextensions.timeSinceMatchStart
 
 
 
@@ -39,22 +38,6 @@ public fun loopForeverCommand(vararg subsystems: Subsystem, toRun: () -> Unit): 
 public fun <S: Subsystem> S.setDefaultRunCommand(vararg requirements: Subsystem, toRun: S.() -> Unit){
     defaultCommand = RunCommand({toRun()}, this, *requirements)
 }
-
-
-
-
-
-
-/**
- * Adds basic start-end logging to a command.
- */
-public fun Command.withLog(): Command = buildCommand{
-    val startTime by getOnceDuringRun{ timeSinceMatchStart() }
-    printToConsole{ ("Command $name: started at " + startTime.inUnit(seconds) + " seconds." ).uppercase() }
-    +this@withLog
-    printToConsole{("Command $name: ended with duration " + startTime.inUnit(seconds) + " seconds." ).uppercase() }
-}
-
 
 /**
  * Constructs a command with extra requirements.
