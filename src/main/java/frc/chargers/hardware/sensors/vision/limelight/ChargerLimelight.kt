@@ -41,7 +41,8 @@ public class ChargerLimelight(
         }
     }
 
-    private fun hasTargets() = if (useJsonDump) latestResults.valid else getTV(name)
+    private fun hasTargets() =
+        if (useJsonDump) latestResults.valid else getTV(name)
 
 
     /**
@@ -124,7 +125,16 @@ public class ChargerLimelight(
                 }
 
                 if (useJsonDump){
-                    val allTargets = latestResults.targets_Fiducials.toVisionTargets()
+                    val allTargets = latestResults.targets_Fiducials.map{
+                        VisionTarget.AprilTag(
+                            tx = it.tx,
+                            ty = it.ty,
+                            areaPercent = it.ta,
+                            id = it.fiducialID.toInt(),
+                            // converts it to a UnitTransform3d.
+                            targetTransformFromCam = it.targetPose_CameraSpace.ofUnit(meters) - UnitPose3d()
+                        )
+                    }.toMutableList()
                     val bestTarget = allTargets.removeAt(0)
                     val latency = latestResults.latency_capture.ofUnit(milli.seconds)
 
@@ -207,18 +217,6 @@ public class ChargerLimelight(
                     )
                 }
         }
-
-        private fun Array<LimelightTarget_Fiducial>.toVisionTargets(): MutableList<VisionTarget.AprilTag> =
-            this.map{
-                VisionTarget.AprilTag(
-                    tx = it.tx,
-                    ty = it.ty,
-                    areaPercent = it.ta,
-                    id = it.fiducialID.toInt(),
-                    // converts it to a UnitTransform3d.
-                    targetTransformFromCam = it.targetPose_CameraSpace.ofUnit(meters) - UnitPose3d()
-                )
-            }.toMutableList()
     }
 
     public inner class MLDetectorPipeline(
@@ -241,7 +239,14 @@ public class ChargerLimelight(
                 }
 
                 if (useJsonDump){
-                    val allTargets = latestResults.targets_Detector.toVisionTargets()
+                    val allTargets = latestResults.targets_Detector.map{
+                        VisionTarget.ML(
+                            tx = it.tx,
+                            ty = it.ty,
+                            areaPercent = it.ta,
+                            id = it.classID.toInt()
+                        )
+                    }.toMutableList()
                     val bestTarget = allTargets.removeAt(0)
                     val latency = latestResults.latency_capture.ofUnit(milli.seconds)
 
@@ -263,16 +268,6 @@ public class ChargerLimelight(
         override val lensHeight: Distance = this@ChargerLimelight.lensHeight
 
         override val mountAngle: Angle = this@ChargerLimelight.mountAngle
-
-        private fun Array<LimelightTarget_Detector>.toVisionTargets(): MutableList<VisionTarget.ML> =
-            this.map{
-                VisionTarget.ML(
-                    tx = it.tx,
-                    ty = it.ty,
-                    areaPercent = it.ta,
-                    id = it.classID.toInt()
-                )
-            }.toMutableList()
     }
 
     public open inner class MLClassifierPipeline(
