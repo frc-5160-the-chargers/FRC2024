@@ -27,6 +27,7 @@ import frc.chargers.hardware.subsystems.differentialdrive.DifferentialDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.module.*
 import frc.chargers.hardware.subsystems.swervedrive.module.lowlevel.*
 import frc.chargers.pathplannerextensions.asPathPlannerConstants
+import frc.chargers.utils.math.equations.epsilonEquals
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
@@ -279,7 +280,10 @@ public class EncoderHolonomicDrivetrain(
             { poseEstimator.robotPose.inUnit(meters) },
             { poseEstimator.resetPose(it.ofUnit(meters)) },
             { currentSpeeds },
-            { speeds -> velocityDrive(speeds, fieldRelative = false) },
+            { speeds ->
+                velocityDrive(speeds, fieldRelative = false)
+                recordOutput("Drivetrain(Swerve)/pathplanningChassisSpeeds", speeds)
+            },
             HolonomicPathFollowerConfig(
                 controlData.robotTranslationPID.asPathPlannerConstants(),
                 controlData.robotRotationPID.asPathPlannerConstants(),
@@ -543,7 +547,11 @@ public class EncoderHolonomicDrivetrain(
         speeds: ChassisSpeeds,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
-        if (DriverStation.isDisabled()){
+        val speedsAreZero = speeds.vxMetersPerSecond epsilonEquals 0.0 &&
+                speeds.vyMetersPerSecond epsilonEquals 0.0 &&
+                speeds.omegaRadiansPerSecond epsilonEquals 0.0
+
+        if (DriverStation.isDisabled() || speedsAreZero){
             topLeft.halt()
             topRight.halt()
             bottomLeft.halt()

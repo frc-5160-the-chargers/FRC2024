@@ -4,7 +4,7 @@
 package frc.robot
 
 // part of Kmeasure
-import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 
 // WPILib imports
@@ -32,6 +32,9 @@ import frc.chargers.hardware.sensors.vision.VisionPipeline
 import frc.chargers.hardware.sensors.vision.VisionTarget
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.chargers.pathplannerextensions.PathConstraints
+import frc.chargers.wpilibextensions.geometry.motion.LinearMotionConstraints
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.commands.aimAndDriveToApriltag
 import frc.robot.commands.aimToApriltag
 
@@ -109,17 +112,27 @@ class RobotContainer: ChargerRobotContainer() {
 
         configureBindings()
         configureDefaultCommands()
+
+        /*
+        PPHolonomicDriveController.setRotationTargetOverride {
+            Optional.of(Rotation2d.fromDegrees(90.0))
+        }
+
+         */
     }
 
     private fun configureDefaultCommands(){
         drivetrain.defaultCommand = buildCommand{
             addRequirements(drivetrain)
 
+            /*
             if (isSimulation()){
                 runOnce{
                     drivetrain.poseEstimator.zeroPose()
                 }
             }
+
+             */
 
             loop{
                 drivetrain.swerveDrive(
@@ -176,6 +189,8 @@ class RobotContainer: ChargerRobotContainer() {
             )
         }
     }
+
+
 
 
 

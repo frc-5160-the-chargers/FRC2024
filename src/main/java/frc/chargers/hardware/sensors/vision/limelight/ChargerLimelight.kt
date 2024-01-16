@@ -123,14 +123,16 @@ public class ChargerLimelight(
                     return@nullableValue null
                 }
 
-                val allTargets: MutableList<VisionTarget.AprilTag>
-                val timestamp: Time
-
                 if (useJsonDump){
-                    allTargets = latestResults.targets_Fiducials.toVisionTargets()
-                    timestamp = (getLatency_Capture(name) + getLatency_Pipeline(name)).ofUnit(milli.seconds)
+                    val allTargets = latestResults.targets_Fiducials.toVisionTargets()
+                    val bestTarget = allTargets.removeAt(0)
+                    val latency = latestResults.latency_capture.ofUnit(milli.seconds)
+
+                    return@nullableValue VisionData(fpgaTimestamp() - latency, bestTarget, allTargets)
                 }else{
-                    allTargets = mutableListOf(
+                    val latency = (getLatency_Capture(name) + getLatency_Pipeline(name)).ofUnit(milli.seconds)
+                    return@nullableValue VisionData(
+                        fpgaTimestamp() - latency,
                         VisionTarget.AprilTag(
                             getTX(name),
                             getTY(name),
@@ -139,13 +141,7 @@ public class ChargerLimelight(
                             getTargetPose3d_CameraSpace(name).ofUnit(meters) - UnitPose3d()
                         )
                     )
-                    timestamp =
-                        (latestResults.timestamp_RIOFPGA_capture + latestResults.timestamp_LIMELIGHT_publish)
-                        .ofUnit(milli.seconds)
                 }
-
-                val bestTarget = allTargets.removeAt(0)
-                return@nullableValue VisionData(timestamp, bestTarget, allTargets)
             }
 
         override val lensHeight: Distance = this@ChargerLimelight.lensHeight
@@ -244,10 +240,16 @@ public class ChargerLimelight(
                     return@nullableValue null
                 }
 
-                val allTargets = if (useJsonDump){
-                    latestResults.targets_Detector.toVisionTargets()
+                if (useJsonDump){
+                    val allTargets = latestResults.targets_Detector.toVisionTargets()
+                    val bestTarget = allTargets.removeAt(0)
+                    val latency = latestResults.latency_capture.ofUnit(milli.seconds)
+
+                    return@nullableValue VisionData(fpgaTimestamp() - latency, bestTarget, allTargets)
                 }else{
-                    mutableListOf(
+                    val latency = (getLatency_Capture(name) + getLatency_Pipeline(name)).ofUnit(milli.seconds)
+                    return@nullableValue VisionData(
+                        fpgaTimestamp() - latency,
                         VisionTarget.ML(
                             getTX(name),
                             getTY(name),
@@ -256,13 +258,6 @@ public class ChargerLimelight(
                         )
                     )
                 }
-
-                val bestTarget = allTargets.removeAt(0)
-
-                return@nullableValue VisionData(
-                    latestResults.timestamp_RIOFPGA_capture.ofUnit(seconds),
-                    bestTarget, allTargets
-                )
             }
 
         override val lensHeight: Distance = this@ChargerLimelight.lensHeight

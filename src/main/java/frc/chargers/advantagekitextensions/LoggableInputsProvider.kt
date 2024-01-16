@@ -4,6 +4,7 @@ package frc.chargers.advantagekitextensions
 
 import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.quantities.Quantity
+import edu.wpi.first.util.WPISerializable
 import edu.wpi.first.util.function.BooleanConsumer
 import frc.chargers.framework.ChargerRobot
 import org.littletonrobotics.junction.LogTable
@@ -780,4 +781,73 @@ public class LoggableInputsProvider(
             set(value)
         }
     }
+
+
+    private inner class AutoLoggedEnum <E: Enum<E>>(
+        val name: String,
+        val default: E,
+        val get: () -> E,
+        val set: (E) -> Unit
+    ): ReadWriteProperty<Any?, E>, AutoLoggedItem(){
+        private var field = default
+
+        override fun getValue(thisRef: Any?, property: KProperty<*>): E = field
+
+        override fun setValue(thisRef: Any?, property: KProperty<*>, value: E) {
+            set(value)
+        }
+
+        override val inputsProcessor = object: LoggableInputs{
+            override fun toLog(table: LogTable) {
+                table.put(name, field)
+            }
+
+            override fun fromLog(table: LogTable) {
+                field = table.get(name, default)
+            }
+        }
+
+        override fun updateInputs() {
+            field = get()
+        }
+    }
+
+
+
+
+
+
+    private inner class AutoLoggedWPISerializable <T: WPISerializable>(
+        val name: String,
+        val default: T,
+        val get: () -> T,
+        val set: (T) -> Unit
+    ): ReadWriteProperty<Any?, T>, AutoLoggedItem(){
+        private var field = default
+
+        override fun getValue(thisRef: Any?, property: KProperty<*>): T = field
+
+        override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+            set(value)
+        }
+
+        override val inputsProcessor = object: LoggableInputs{
+            override fun toLog(table: LogTable) {
+                table.put(name, field)
+            }
+
+            override fun fromLog(table: LogTable) {
+                field = table.get(name, default)
+            }
+        }
+
+        override fun updateInputs() {
+            field = get()
+        }
+    }
+
+
+
+
+
 }

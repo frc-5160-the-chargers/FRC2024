@@ -1,7 +1,7 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.hardware.sensors.vision
 
-import frc.chargers.wpilibextensions.fpgaTimestamp
+import com.batterystaple.kmeasure.quantities.Time
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 
 /*
@@ -14,7 +14,7 @@ import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 
 public fun emptyAprilTagVisionData(): VisionData<VisionTarget.AprilTag> =
     VisionData(
-        timestamp = fpgaTimestamp(),
+        timestamp = Time(0.0),
         bestTarget = VisionTarget.AprilTag(
             0.0,0.0,0.0,0, UnitTransform3d()
         )
@@ -22,7 +22,7 @@ public fun emptyAprilTagVisionData(): VisionData<VisionTarget.AprilTag> =
 
 public fun emptyMLVisionData(): VisionData<VisionTarget.ML> =
     VisionData(
-        timestamp = fpgaTimestamp(),
+        timestamp = Time(0.0),
         bestTarget = VisionTarget.ML(
             0.0,0.0,0.0,0
         )
@@ -30,6 +30,6 @@ public fun emptyMLVisionData(): VisionData<VisionTarget.ML> =
 
 public fun emptyGenericVisionData(): VisionData<VisionTarget.Generic> =
     VisionData(
-        timestamp = fpgaTimestamp(),
+        timestamp = Time(0.0),
         bestTarget = VisionTarget.Generic(0.0,0.0,0.0)
     )

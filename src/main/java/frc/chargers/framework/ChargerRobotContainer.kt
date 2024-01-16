@@ -11,7 +11,7 @@ public abstract class ChargerRobotContainer {
 
     public abstract val autonomousCommand: Command
 
-    // instantCommand is used over DoNothing in case the test command isn't canceled for some reason
+    // instantCommand is used over Commands.idle() in case the test command isn't canceled for some reason
     public open val testCommand: Command get() = InstantCommand{}
 
     /*

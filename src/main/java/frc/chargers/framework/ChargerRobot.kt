@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused")
+@file:Suppress("RedundantVisibilityModifier", "unused", "KotlinConstantConditions")
 package frc.chargers.framework
 
 import com.batterystaple.kmeasure.quantities.Time
@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler
 import frc.external.pathplanner.LocalADStarAK
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.wpilibextensions.Alert
+import frc.robot.BuildConstants
 import org.littletonrobotics.junction.AutoLogOutputManager
 import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.LoggedRobot
@@ -33,7 +34,6 @@ import java.nio.file.Path
  */
 public open class ChargerRobot(
     private val getRobotContainer: () -> ChargerRobotContainer,
-    private val gitData: GitData,
     private val config: RobotConfig
 ): LoggedRobot(config.loopPeriod.inUnit(seconds)){
     public companion object{
@@ -157,11 +157,11 @@ public open class ChargerRobot(
         recordMetadata(
             "Robot", if (RobotBase.isReal()) "REAL" else if (config.isReplay) "REPLAY" else "SIM"
         )
-        recordMetadata("ProjectName", gitData.projectName)
-        recordMetadata("BuildDate", gitData.buildDate)
-        recordMetadata("GitSHA", gitData.sha)
-        recordMetadata("GitBranch", gitData.branch)
-        when(gitData.dirty){
+        recordMetadata("ProjectName", BuildConstants.MAVEN_NAME)
+        recordMetadata("BuildDate", BuildConstants.BUILD_DATE)
+        recordMetadata("GitSHA", BuildConstants.GIT_SHA)
+        recordMetadata("GitBranch", BuildConstants.GIT_BRANCH)
+        when(BuildConstants.DIRTY){
             0 -> recordMetadata("GitDirty", "All changes committed")
             1 -> recordMetadata("GitDirty", "Uncommitted changes")
             else -> recordMetadata("GitDirty", "Unknown")
