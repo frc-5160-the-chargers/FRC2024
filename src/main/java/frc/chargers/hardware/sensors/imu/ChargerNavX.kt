@@ -25,9 +25,7 @@ public class ChargerNavX(
      * which automatically handle AdvantageKit logging and replay support(and work essentially as getters variables).
      * @see [frc.chargers.advantagekitextensions.LoggableInputsProvider]
      */
-
-    private var fusedHeadingOffset = 0.degrees
-    private var simBasicHeadingOffset = 0.degrees
+    private var headingOffset = 0.degrees
 
 
 
@@ -45,15 +43,15 @@ public class ChargerNavX(
                 println("AHRS has finished calibrating.")
             }
 
-            ahrs.angleAdjustment = -angle.inUnit(degrees)
-            println("AHRS angle/heading has been zeroed. This does not impact the gyroscope yaw(AHRS.getYaw / navX.gyroscope.yaw).")
-
-            // negated because fused heading direction is inverted; see below
-            fusedHeadingOffset = ahrs.fusedHeading.toDouble().ofUnit(degrees)
-            println("AHRS fused heading has been zeroed. This does not impact the gyroscope yaw(AHRS.getYaw / navX.gyroscope.yaw).")
+            headingOffset  = if (ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance && useFusedHeading){
+                ahrs.fusedHeading.toDouble().ofUnit(degrees) + angle
+            }else{
+                ahrs.angle.ofUnit(degrees) + angle
+            }
+            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
         }else{
-            fusedHeadingOffset = -IMUSimulation.getHeading()
-            simBasicHeadingOffset = -IMUSimulation.getHeading()
+            headingOffset = -IMUSimulation.getHeading()
+            println("AHRS heading has been offset in sim.")
         }
     }
 
@@ -68,16 +66,16 @@ public class ChargerNavX(
      * The heading of the NavX. Reports a value in between 0-360 degrees.
      */
     override val heading: Angle by ImuLog.quantity{
-        if (isReal()) {
+        (if (isReal()) {
+            // Negative sign because the navX reports clockwise as positive, whereas we want counterclockwise to be positive
             if (ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance && useFusedHeading){
-                -ahrs.fusedHeading.toDouble().ofUnit(degrees) + fusedHeadingOffset
-                // Negative sign because the navX reports clockwise as positive, whereas we want counterclockwise to be positive
+                -ahrs.fusedHeading.toDouble().ofUnit(degrees)
             }else{
-                ahrs.angle.ofUnit(degrees)
+                -ahrs.angle.ofUnit(degrees)
             }
         }else{
-            (IMUSimulation.getHeading() + simBasicHeadingOffset)
-        }.inputModulus(0.degrees..360.degrees)
+            IMUSimulation.getHeading()
+        } + headingOffset).inputModulus(0.degrees..360.degrees)
     }
 
     /**
@@ -127,8 +125,7 @@ public class ChargerNavX(
             ahrs.zeroYaw()
         }
 
-
-        override val heading: Angle by GyroLog.quantity{ this@ChargerNavX.heading }
+        override val heading: Angle get() = this@ChargerNavX.heading
     }
 
 

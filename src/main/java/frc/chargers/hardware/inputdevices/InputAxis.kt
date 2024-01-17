@@ -57,6 +57,9 @@ public class InputAxis(
     public fun square(): InputAxis =
         withModifier{ (it * it).preserveSign(it) }
 
+    public fun invert(): InputAxis =
+        withModifier{ it * -1.0 }
+
 
     public fun getBaseValue(): TriggerValue = get()
 

@@ -13,6 +13,7 @@ import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.subsystems.swervedrive.SwerveEncoders
 import frc.chargers.hardware.subsystems.swervedrive.SwerveMotors
+import frc.chargers.utils.math.equations.epsilonEquals
 import frc.chargers.wpilibextensions.delay
 import frc.robot.constants.ODOMETRY_UPDATE_FREQUENCY_HZ
 import java.util.*
@@ -31,7 +32,7 @@ val OdometryLog = LoggableInputsProvider(
     runAfterInputUpdate = OdometryLock::unlock
 )
 
-
+// issue; timeout while waiting for periodic status 2....
 class OdometryIO(
     // all wrappers inherit their base class(CANSparkMax)
     val hardwareData: SwerveHardwareData,
@@ -42,8 +43,8 @@ class OdometryIO(
 ){
 
     init{
-        require(gyro.ahrs.requestedUpdateRate.toDouble() == ODOMETRY_UPDATE_FREQUENCY_HZ){
-            "The NavX update rate is incorrect."
+        require(gyro.ahrs.requestedUpdateRate.toDouble() epsilonEquals ODOMETRY_UPDATE_FREQUENCY_HZ){
+            "The NavX update rate is incorrect. Current update rate: " + gyro.ahrs.requestedUpdateRate.toDouble() + ", Needed rate: " + ODOMETRY_UPDATE_FREQUENCY_HZ
         }
 
         driveMotors.forEach{
@@ -114,7 +115,7 @@ class OdometryIO(
 
 
     val gyroHeadings by OdometryLog.quantityList{
-        gyroReadingsQueue.stream().map{ it.ofUnit(degrees) }.toList().also{ it.clear() }
+        gyroReadingsQueue.stream().map{ it.ofUnit(degrees) }.toList().also{ gyroReadingsQueue.clear() }
     }
 
 

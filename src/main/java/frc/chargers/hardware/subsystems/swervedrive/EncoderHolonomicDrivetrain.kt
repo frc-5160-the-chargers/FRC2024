@@ -335,7 +335,8 @@ public class EncoderHolonomicDrivetrain(
      *
      * @see HeadingProvider
      */
-    override val heading: Angle get() = poseEstimator.heading.inputModulus(0.degrees..360.degrees)
+    override val heading: Angle get() =
+        (gyro?.heading ?: poseEstimator.heading).inputModulus(0.degrees..360.degrees)
 
 
     /**
@@ -395,10 +396,10 @@ public class EncoderHolonomicDrivetrain(
                 bottomLeft.setDirectionalVelocity(ms.bottomLeftSpeed / wheelRadius,ms.bottomLeftAngle)
                 bottomRight.setDirectionalVelocity(ms.bottomRightSpeed / wheelRadius,ms.bottomRightAngle)
             }else{
-                topLeft.setDirectionalPower((ms.topLeftSpeed/hardwareData.maxModuleSpeed).siValue, ms.topLeftAngle)
-                topRight.setDirectionalPower((ms.topRightSpeed/hardwareData.maxModuleSpeed).siValue, ms.topRightAngle)
-                bottomLeft.setDirectionalPower((ms.bottomLeftSpeed/hardwareData.maxModuleSpeed).siValue, ms.bottomLeftAngle)
-                bottomRight.setDirectionalPower((ms.bottomRightSpeed/hardwareData.maxModuleSpeed).siValue, ms.bottomRightAngle)
+                topLeft.setDirectionalPower((ms.topLeftSpeed / hardwareData.maxModuleSpeed).siValue, ms.topLeftAngle)
+                topRight.setDirectionalPower((ms.topRightSpeed / hardwareData.maxModuleSpeed).siValue, ms.topRightAngle)
+                bottomLeft.setDirectionalPower((ms.bottomLeftSpeed / hardwareData.maxModuleSpeed).siValue, ms.bottomLeftAngle)
+                bottomRight.setDirectionalPower((ms.bottomRightSpeed / hardwareData.maxModuleSpeed).siValue, ms.bottomRightAngle)
             }
             // chargerlib functions for recording Kmeasure outputs in ascope; see frc.chargers.advantagekitextensions
             recordOutput("Drivetrain(Swerve)/TopLeftLinearVel", topLeft.speed * wheelRadius)
@@ -494,18 +495,26 @@ public class EncoderHolonomicDrivetrain(
         powers: ChassisPowers,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
-        if (DriverStation.isDisabled() || (powers.xPower == 0.0 && powers.yPower == 0.0 && powers.rotationPower == 0.0)){
+        val speedsAreZero: Boolean =
+            powers.xPower epsilonEquals 0.0 &&
+            powers.yPower epsilonEquals 0.0 &&
+            powers.rotationPower epsilonEquals 0.0
+
+        if (DriverStation.isDisabled() || speedsAreZero){
             topLeft.halt()
             topRight.halt()
             bottomLeft.halt()
             bottomRight.halt()
             return
         }
+
         currentControlMode = ControlMode.OPEN_LOOP
         var speeds = powers.toChassisSpeeds(maxLinearVelocity,maxRotationalVelocity)
         if (fieldRelative) speeds = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading.asRotation2d())
         // extension function defined in chargerlib
         speeds = speeds.discretize(driftRate = controlData.openLoopDiscretizationRate)
+        recordOutput("Drivetrain(Swerve)/openLoopSpeeds", speeds)
+
         val stateArray = kinematics.toSwerveModuleStates(speeds)
 
         currentModuleStates = ModuleStateGroup(
@@ -560,7 +569,7 @@ public class EncoderHolonomicDrivetrain(
         }
         currentControlMode = ControlMode.CLOSED_LOOP
         var newSpeeds: ChassisSpeeds =
-            if (fieldRelative) ChassisSpeeds.fromFieldRelativeSpeeds(speeds,heading.asRotation2d()) else speeds
+            if (fieldRelative) ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading.asRotation2d()) else speeds
         // extension function defined in chargerlib
         newSpeeds = newSpeeds.discretize(driftRate = controlData.closedLoopDiscretizationRate)
         val stateArray = kinematics.toSwerveModuleStates(newSpeeds)

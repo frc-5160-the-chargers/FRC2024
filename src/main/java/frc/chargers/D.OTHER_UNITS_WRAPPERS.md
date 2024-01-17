@@ -11,7 +11,6 @@ Here are the listed improvements:
 
 Here is a basic diagram of how it works:
 
-(User specified Inputs)
 
 
 

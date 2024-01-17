@@ -6,6 +6,7 @@ package frc.robot
 // part of Kmeasure
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
+import com.kauailabs.navx.frc.AHRS
 
 // WPILib imports
 import edu.wpi.first.hal.AllianceStationID
@@ -13,6 +14,7 @@ import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
+import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
@@ -32,9 +34,6 @@ import frc.chargers.hardware.sensors.vision.VisionPipeline
 import frc.chargers.hardware.sensors.vision.VisionTarget
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.pathplannerextensions.PathConstraints
-import frc.chargers.wpilibextensions.geometry.motion.LinearMotionConstraints
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.commands.aimAndDriveToApriltag
 import frc.robot.commands.aimToApriltag
 
@@ -44,6 +43,8 @@ import frc.robot.commands.auto.pathplannerTaxi
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorController
+import frc.robot.hardware.subsystems.odometry.OdometryIO
+import frc.robot.hardware.subsystems.odometry.ThreadedPoseMonitor
 
 // AdvantageKit
 import org.littletonrobotics.junction.Logger.recordOutput
@@ -53,7 +54,10 @@ class RobotContainer: ChargerRobotContainer() {
 
     // Subsystems/components
 
-    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{ zeroHeading() }
+    private val gyroIO = ChargerNavX(
+        useFusedHeading = false,
+        ahrs = AHRS(SPI.Port.kMXP, ODOMETRY_UPDATE_FREQUENCY_HZ.toInt().toByte())
+    ).apply{ zeroHeading() }
 
 
     private val limelight = ChargerLimelight(
@@ -78,6 +82,7 @@ class RobotContainer: ChargerRobotContainer() {
         hardwareData = SwerveHardwareData.mk4iL2(trackWidth = 32.inches, wheelBase = 32.inches),
         gyro = if (isReal()) gyroIO else null,
     ).apply {
+
         /*
         if (isReal()){
             poseEstimator = ThreadedPoseMonitor(
@@ -91,7 +96,9 @@ class RobotContainer: ChargerRobotContainer() {
                 kinematics = this.kinematics
             )
         }
+
          */
+
 
         IMUSimulation.configure(
             headingSupplier = { this.heading },
@@ -125,18 +132,10 @@ class RobotContainer: ChargerRobotContainer() {
         drivetrain.defaultCommand = buildCommand{
             addRequirements(drivetrain)
 
-            /*
-            if (isSimulation()){
-                runOnce{
-                    drivetrain.poseEstimator.zeroPose()
-                }
-            }
-
-             */
-
             loop{
                 drivetrain.swerveDrive(
-                    DriverController.swerveOutput(drivetrain.heading)
+                    DriverController.swerveOutput(drivetrain.heading),
+                    fieldRelative = true
                 )
             }
 
@@ -198,6 +197,18 @@ class RobotContainer: ChargerRobotContainer() {
 
 
     override val autonomousCommand: Command
-        get() = pathplannerTaxi(drivetrain, "New Path")
+        get() = buildCommand {
+            loop(drivetrain){
+                drivetrain.swerveDrive(0.2,0.0,0.0)
+            }
+        }
+
+    override val testCommand: Command
+        get() = runOnceCommand(drivetrain){
+            drivetrain.poseEstimator.zeroPose()
+            println("Pose zeroed. New pose: " + drivetrain.poseEstimator.robotPose)
+            gyroIO.zeroHeading()
+            println("Gyro zeroed. New gyro heading: " + gyroIO.heading)
+        }
 
 }

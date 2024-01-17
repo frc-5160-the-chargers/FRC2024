@@ -12,7 +12,7 @@ import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 
-const val ODOMETRY_UPDATE_FREQUENCY_HZ = 250.0
+const val ODOMETRY_UPDATE_FREQUENCY_HZ = 200.0
 
 val DRIVE_CONTROL_DATA = if (isReal()){
     SwerveControlData(
@@ -56,10 +56,10 @@ val TURN_ENCODERS = swerveCANcoders(
 )
 
 val DRIVE_MOTORS = sparkMaxSwerveMotors(
-    topLeft = ChargerSparkMax(10){inverted = true},
-    topRight = ChargerSparkMax(16){inverted = false},
-    bottomLeft = ChargerSparkMax(30){inverted = true},
-    bottomRight = ChargerSparkMax(3){inverted = true}
+    topLeft = ChargerSparkMax(10){inverted = false},
+    topRight = ChargerSparkMax(16){inverted = true},
+    bottomLeft = ChargerSparkMax(30){inverted = false},
+    bottomRight = ChargerSparkMax(3){inverted = false}
 ){
     smartCurrentLimit = SmartCurrentLimit(55.amps)
     voltageCompensationNominalVoltage = 12.volts

@@ -77,19 +77,21 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     private val forwardAxis =
         InputAxis{ leftY }
             .applyDefaults()
-            .applyMultiplier(if (isReal()) -1.0 else 1.0)
+            //.applyMultiplier(if (isReal()) -1.0 else 1.0)
             .withModifier{ it * getScaleRate() }
 
     private val strafeAxis =
         InputAxis{ leftX }
-            .applyMultiplier(if (isReal()) -1.0 else 1.0)
+            //.applyMultiplier(if (isReal()) -1.0 else 1.0)
             .withModifier{ it * getScaleRate() }
 
     private val rotationAxis =
         InputAxis{ rightX }
             .applyDefaults()
             .square()
+            .invert()
             .applyEquation( Polynomial(0.1,0.0,0.5,0.0) )
+
 
     private val turboAxis =
         InputAxis{ leftTriggerAxis }
