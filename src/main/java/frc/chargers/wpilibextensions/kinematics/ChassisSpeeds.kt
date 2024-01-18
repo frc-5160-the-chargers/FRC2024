@@ -39,9 +39,7 @@ public val ChassisSpeeds.rotationSpeed: AngularVelocity
  * This function also allows you to customize the rate of correction, in addition to the loop period.
  */
 public fun ChassisSpeeds.discretize(dt: Time? = null, driftRate: Double = 1.0): ChassisSpeeds {
-
     val period = dt ?: ChargerRobot.LOOP_PERIOD
-
     val futureRobotPose = Pose2d(
         vxMetersPerSecond * period.inUnit(seconds),
         vyMetersPerSecond * period.inUnit(seconds),

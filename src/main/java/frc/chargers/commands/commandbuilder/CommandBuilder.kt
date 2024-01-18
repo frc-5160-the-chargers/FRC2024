@@ -193,6 +193,20 @@ public open class CommandBuilder{
     }
 
 
+    /**
+     * Allows removal of commands within a code block.(For getOnceDuringRun)
+     */
+    context(CodeBlockContext)
+    public operator fun <C: Command> C.unaryMinus(): C{
+        with (this@CommandBuilder){
+            commands.remove(this@unaryMinus)
+        }
+        return this
+    }
+
+
+
+
 
     /**
      * Adds a command that will run once and then complete.

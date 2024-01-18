@@ -35,7 +35,7 @@ class Shooter(
 ): SubsystemBase() {
     private var targetPosition: Angle? = null
 
-    fun hasHitPivotTarget(): Boolean{
+    val hasHitPivotTarget: Boolean get() {
         val currentPosition = targetPosition ?: return true
         return currentPosition.within(pivotPrecision)
     }
@@ -48,7 +48,7 @@ class Shooter(
     fun setPivotPosition(position: Angle){
         targetPosition = position
         val setpoint = pivotProfile.calculateSetpoint(position)
-        if (hasHitPivotTarget()){
+        if (hasHitPivotTarget){
             io.setPivotVoltage(0.volts)
         }else{
             io.setPivotPosition(
@@ -61,6 +61,9 @@ class Shooter(
 
     fun setPivotVoltage(voltage: Voltage) = io.setPivotVoltage(voltage)
 
+    val hasGamepiece: Boolean get() = io.hasGamepiece
+
+    val canDetectGamepieces: Boolean get() = io.hasBeamBreakSensor
 
     fun spin(power: Double){
         spin(power * 12.volts)

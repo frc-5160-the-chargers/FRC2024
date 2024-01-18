@@ -36,12 +36,12 @@ public class ChargerNavX(
      */
     override fun zeroHeading(angle: Angle){
         if (isReal()){
-            if (ahrs.isCalibrating){
+            while (ahrs.isCalibrating){
                 println("Waiting for AHRS to calibrate...")
                 // Wait for 1 second (hardware initialization) before zeroing heading
                 Thread.sleep(1000)
-                println("AHRS has finished calibrating.")
             }
+            println("AHRS has finished calibrating.")
 
             headingOffset  = if (ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance && useFusedHeading){
                 ahrs.fusedHeading.toDouble().ofUnit(degrees) + angle

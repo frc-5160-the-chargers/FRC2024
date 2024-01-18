@@ -131,6 +131,7 @@ public class RioPIDSwerveModule(
         }else{
             turnController.calculateOutput()
         }
+        recordOutput("$logTab/withinPrecision", (turnController.error).within(controlData.modulePrecision))
         recordOutput("$logTab/target", turnController.target.siValue)
         recordOutput("$logTab/controllerErrorRad", turnController.error.inUnit(radians))
         recordOutput("$logTab/controllerOutputVolts", turnController.calculateOutput().inUnit(volts))

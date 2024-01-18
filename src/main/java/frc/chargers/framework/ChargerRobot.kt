@@ -23,8 +23,7 @@ import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.LoggedRobot
 import org.littletonrobotics.junction.Logger.*
 import org.littletonrobotics.junction.networktables.NT4Publisher
-import java.nio.file.Files
-import java.nio.file.Path
+import java.io.File
 
 
 /**
@@ -167,13 +166,22 @@ public open class ChargerRobot(
             else -> recordMetadata("GitDirty", "Unknown")
         }
 
-        // real robot
+
+
+
         if (RobotBase.isReal()){
-            if (Files.exists(Path.of("media/sda1"))){
-                addDataReceiver(WPILOGWriter("media/sda1"))
-            }else if (Files.exists(Path.of("media/sda2"))){
-                addDataReceiver(WPILOGWriter("media/sda2"))
-            }else{
+            // real robot
+            val availablePaths = File("/media/").listFiles()?.map{ it.path } ?: listOf()
+            recordMetadata("All File Paths Available", availablePaths.toString())
+            var noLogHappening = true
+            for (filePathOption in config.filePathOptions){
+                if (filePathOption in availablePaths){
+                    addDataReceiver(WPILOGWriter(filePathOption))
+                    noLogHappening = false
+                    break
+                }
+            }
+            if (noLogHappening){
                 noUsbSignalAlert.active = true
             }
         }else if (config.isReplay){

@@ -45,7 +45,9 @@
           },
           "altitude(SI value)": {
             "open": true
-          },
+          }
+        },
+        "PoseData": {
           "open": true
         },
         "RealOutputs": {

@@ -31,8 +31,15 @@ public class ChargerPhotonCam(
 ): PhotonCamera(name){
     private var required: Boolean = false
 
+    private val allIndexes: MutableList<Int> = mutableListOf()
+
+    private fun ensureIndexValid(index: Int){
+        require (index !in allIndexes){ "There is already a PhotonVision pipeline with index $index." }
+        allIndexes.add(index)
+    }
+
     public inner class ApriltagPipeline(
-        override val index: Int,
+        public val index: Int,
         /**
          * The namespace of which the Limelight Pipeline logs to:
          * Ensure that this namespace is the same across real and sim equivalents.
@@ -41,7 +48,10 @@ public class ChargerPhotonCam(
         private val logInputs: LoggableInputsProvider
     ): VisionPipeline<VisionTarget.AprilTag> {
 
-        init{ reset() }
+        init{
+            ensureIndexValid(index)
+            reset()
+        }
 
         override fun reset(){
             pipelineIndex = index
@@ -125,7 +135,7 @@ public class ChargerPhotonCam(
     }
 
     public inner class ColorPipeline(
-        override val index: Int,
+        public val index: Int,
         /**
          * The namespace of which the Limelight Pipeline logs to:
          * Ensure that this namespace is the same across real and sim equivalents.
@@ -134,7 +144,10 @@ public class ChargerPhotonCam(
         logInputs: LoggableInputsProvider
     ): VisionPipeline<VisionTarget.Generic> {
 
-        init{ reset() }
+        init{
+            ensureIndexValid(index)
+            reset()
+        }
 
         override fun reset(){
             pipelineIndex = index

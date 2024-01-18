@@ -1,6 +1,7 @@
 package frc.robot.constants
 
 import com.batterystaple.kmeasure.units.amps
+import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.RobotBase.isReal
@@ -11,13 +12,15 @@ import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
+import frc.chargers.utils.Precision
 
 const val ODOMETRY_UPDATE_FREQUENCY_HZ = 200.0
 
 val DRIVE_CONTROL_DATA = if (isReal()){
     SwerveControlData(
-        anglePID = PIDConstants(4.0,0.0,0.0),
+        anglePID = PIDConstants(6.0,0.0,0.0),
         velocityPID = PIDConstants(0.1,0.0,0.0),
+        modulePrecision = Precision.Within(1.degrees),
         velocityFF = AngularMotorFFConstants.fromSI(0.00162,0.13394,0.0),
         robotRotationPID = PIDConstants(0.5, 0.0, 0.0), // for pathplanner
         robotTranslationPID = PIDConstants(0.5,0.0,0.0) // for pathplanner
@@ -61,6 +64,6 @@ val DRIVE_MOTORS = sparkMaxSwerveMotors(
     bottomLeft = ChargerSparkMax(30){inverted = false},
     bottomRight = ChargerSparkMax(3){inverted = false}
 ){
-    smartCurrentLimit = SmartCurrentLimit(55.amps)
+    smartCurrentLimit = SmartCurrentLimit(45.amps)
     voltageCompensationNominalVoltage = 12.volts
 }

@@ -34,9 +34,11 @@ class ThreadedPoseMonitor(
 
 
     init{
+        /*
         if (RobotBase.isSimulation()){
             error("Threaded pose estimation doesn't work in sim; sorry!")
         }
+         */
     }
 
     override var robotPose: UnitPose2d = startingPose

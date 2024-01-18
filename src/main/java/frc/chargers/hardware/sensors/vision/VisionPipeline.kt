@@ -28,11 +28,6 @@ public interface VisionPipeline<R: VisionTarget> {
     public val visionData: NonLoggableVisionData<R>?
 
     /**
-     * The pipeline index of the [VisionPipeline].
-     */
-    public val index: Int
-
-    /**
      * How high the vision camera's lens is from the ground.
      */
     public val lensHeight: Distance

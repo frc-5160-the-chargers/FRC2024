@@ -30,16 +30,14 @@ import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
-import frc.chargers.hardware.sensors.vision.VisionPipeline
-import frc.chargers.hardware.sensors.vision.VisionTarget
+import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.commands.aimAndDriveToApriltag
-import frc.robot.commands.aimToApriltag
+import frc.robot.commands.apriltag.aimAndDriveToApriltag
+import frc.robot.commands.apriltag.aimToApriltag
 
 
 //import frc.robot.commands.aimToApriltag
-import frc.robot.commands.auto.pathplannerTaxi
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorController
@@ -66,7 +64,7 @@ class RobotContainer: ChargerRobotContainer() {
         mountAngle = LIMELIGHT_MOUNT_ANGLE
     )
 
-    private val apriltagIO: VisionPipeline<VisionTarget.AprilTag> =
+    private val apriltagIO: AprilTagVisionPipeline =
         limelight.ApriltagPipeline(
             index = 1,
             logInputs = LoggableInputsProvider("LimelightApriltagVision") // logs to the "LimelightApriltagVision" namespace
@@ -83,7 +81,7 @@ class RobotContainer: ChargerRobotContainer() {
         gyro = if (isReal()) gyroIO else null,
     ).apply {
 
-        /*
+
         if (isReal()){
             poseEstimator = ThreadedPoseMonitor(
                 OdometryIO(
@@ -97,7 +95,6 @@ class RobotContainer: ChargerRobotContainer() {
             )
         }
 
-         */
 
 
         IMUSimulation.configure(
@@ -111,9 +108,7 @@ class RobotContainer: ChargerRobotContainer() {
         if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
             DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
         }
-        if (isSimulation()){
-            DriverStation.silenceJoystickConnectionWarning(true)
-        }
+        DriverStation.silenceJoystickConnectionWarning(true)
         recordOutput("Tuning Mode", DashboardTuner.tuningMode)
         LiveWindow.disableAllTelemetry()
 
@@ -152,41 +147,12 @@ class RobotContainer: ChargerRobotContainer() {
         fun targetAngle(heading: Angle) = runOnceCommand{ DriverController.targetHeading = heading }
 
         DriverController.apply{
-            headingZeroButton.onTrue(InstantCommand(gyroIO::zeroHeading))
-            poseZeroButton.onTrue(
-                runOnceCommand{
-                    drivetrain.poseEstimator.zeroPose()
-                    println("Pose has been reset.")
-                }
-            )
-
             pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle)
             pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle)
             pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle)
             pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle)
         }
 
-
-
-        OperatorController.apply{
-            aimToTagButton.whileTrue(
-                aimToApriltag(
-                    aimingPID = AIM_TO_APRILTAG_PID,
-                    drivetrain = drivetrain,
-                    visionIO = apriltagIO
-                )
-            )
-            aimToTagAndDriveButton.whileTrue(
-                aimAndDriveToApriltag(
-                    wantedDistance = 5.inches,
-                    targetId = 6,
-                    distanceTargetPID = PIDConstants(0.2,0.0,0.0),
-                    aimingPID = PIDConstants(0.2,0.0,0.0),
-                    drivetrain = drivetrain,
-                    visionIO = apriltagIO
-                )
-            )
-        }
     }
 
 
@@ -199,7 +165,7 @@ class RobotContainer: ChargerRobotContainer() {
     override val autonomousCommand: Command
         get() = buildCommand {
             loop(drivetrain){
-                drivetrain.swerveDrive(0.2,0.0,0.0)
+                drivetrain.swerveDrive(0.8,0.0,0.06)
             }
         }
 

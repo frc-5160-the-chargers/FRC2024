@@ -37,8 +37,6 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     val pointSouthButton: Trigger = a()
     val pointEastButton: Trigger = x()
     val pointWestButton: Trigger = b()
-    val headingZeroButton: Trigger = if (isReal()) back() else Trigger{false}
-    val poseZeroButton: Trigger = if (isReal()) start() else Trigger{false}
 
 
     /* Private implementation */
@@ -89,8 +87,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
         InputAxis{ rightX }
             .applyDefaults()
             .square()
-            .invert()
-            .applyEquation( Polynomial(0.1,0.0,0.5,0.0) )
+            .applyEquation( Polynomial(0.1,0.0,0.4,0.0) )
 
 
     private val turboAxis =

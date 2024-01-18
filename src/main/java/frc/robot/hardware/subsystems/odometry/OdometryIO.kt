@@ -48,20 +48,22 @@ class OdometryIO(
         }
 
         driveMotors.forEach{
-            it.setPeriodicFramePeriod(
-                CANSparkLowLevel.PeriodicFrame.kStatus2, (1000 / ODOMETRY_UPDATE_FREQUENCY_HZ).roundToInt()
-            )
-            delay(0.02.seconds)
-            it.burnFlash()
+            println("Status: " + it.setPeriodicFramePeriod(
+                CANSparkLowLevel.PeriodicFrame.kStatus2, (1000.0 / ODOMETRY_UPDATE_FREQUENCY_HZ).roundToInt()
+            ))
         }
 
+
         turnMotors.forEach{
-            it.setPeriodicFramePeriod(
-                CANSparkLowLevel.PeriodicFrame.kStatus2, (1000 / ODOMETRY_UPDATE_FREQUENCY_HZ).roundToInt()
-            )
-            delay(0.02.seconds)
-            it.burnFlash()
+            println("Status: " + it.setPeriodicFramePeriod(
+                CANSparkLowLevel.PeriodicFrame.kStatus2, (1000.0 / ODOMETRY_UPDATE_FREQUENCY_HZ).roundToInt()
+            ))
         }
+
+        delay(0.02.seconds)
+
+        driveMotors.forEach{ it.burnFlash() }
+        turnMotors.forEach{ it.burnFlash() }
     }
 
     private val gyroReadingsQueue = OdometryThread.getInstance().registerSignal(gyro.ahrs::getAngle)

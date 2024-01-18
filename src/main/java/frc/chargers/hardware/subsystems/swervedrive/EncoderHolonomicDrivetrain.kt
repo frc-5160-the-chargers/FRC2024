@@ -36,6 +36,7 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
 import frc.chargers.wpilibextensions.kinematics.*
 import org.littletonrobotics.junction.Logger.*
 import java.util.Optional
+import kotlin.math.abs
 import kotlin.math.pow
 
 
@@ -96,10 +97,6 @@ public fun EncoderHolonomicDrivetrain(
     }else{
         if (hardwareData.invertTurnMotors){
             turnMotors.apply{
-                println(topLeft.inverted)
-                println(topRight.inverted)
-                println(bottomLeft.inverted)
-                println(bottomRight.inverted)
                 topLeft.inverted = !topLeft.inverted
                 topRight.inverted = !topRight.inverted
                 bottomLeft.inverted = !bottomLeft.inverted
@@ -509,10 +506,13 @@ public class EncoderHolonomicDrivetrain(
         }
 
         currentControlMode = ControlMode.OPEN_LOOP
+
         var speeds = powers.toChassisSpeeds(maxLinearVelocity,maxRotationalVelocity)
         if (fieldRelative) speeds = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading.asRotation2d())
-        // extension function defined in chargerlib
-        speeds = speeds.discretize(driftRate = controlData.openLoopDiscretizationRate)
+        if (abs(powers.rotationPower) > 0.05){
+            // extension function defined in chargerlib
+            speeds = speeds.discretize(driftRate = controlData.openLoopDiscretizationRate)
+        }
         recordOutput("Drivetrain(Swerve)/openLoopSpeeds", speeds)
 
         val stateArray = kinematics.toSwerveModuleStates(speeds)
@@ -570,8 +570,10 @@ public class EncoderHolonomicDrivetrain(
         currentControlMode = ControlMode.CLOSED_LOOP
         var newSpeeds: ChassisSpeeds =
             if (fieldRelative) ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading.asRotation2d()) else speeds
-        // extension function defined in chargerlib
-        newSpeeds = newSpeeds.discretize(driftRate = controlData.closedLoopDiscretizationRate)
+        if (abs(speeds.omegaRadiansPerSecond / maxRotationalVelocity.siValue) > 0.05){
+            // extension function defined in chargerlib
+            newSpeeds = newSpeeds.discretize(driftRate = controlData.closedLoopDiscretizationRate)
+        }
         val stateArray = kinematics.toSwerveModuleStates(newSpeeds)
         currentModuleStates = ModuleStateGroup(
             topLeftState = stateArray[0],

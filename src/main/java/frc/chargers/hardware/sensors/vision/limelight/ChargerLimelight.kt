@@ -33,6 +33,14 @@ public class ChargerLimelight(
     // Limelight Helpers results
     private var jsonResults: Results = Results().apply{ valid = false }
 
+    private val allIndexes: MutableList<Int> = mutableListOf()
+
+    private fun ensureIndexValid(index: Int){
+        require (index !in allIndexes){ "There is already a Limelight pipeline with index $index." }
+        require (index in 0..9){ "Your Limelight pipeline's index($index) is out of range." }
+        allIndexes.add(index)
+    }
+
     private fun updateJson(){
         if (useJsonDump && isReal() && getTV(name)){
             jsonResults = getLatestResults(name).targetingResults
@@ -95,7 +103,7 @@ public class ChargerLimelight(
 
 
     public inner class ApriltagPipeline(
-        override val index: Int,
+        public val index: Int,
         /**
          * The namespace of which the Limelight Pipeline logs to:
          * Ensure that this namespace is the same across real and sim equivalents.
@@ -104,9 +112,7 @@ public class ChargerLimelight(
         private val logInputs: LoggableInputsProvider
     ): VisionPipeline<VisionTarget.AprilTag> {
         init{
-            if (index < 0 || index > 9){
-                error("Your pipeline's ID is out of range.")
-            }
+            ensureIndexValid(index)
             reset()
         }
 
@@ -224,7 +230,7 @@ public class ChargerLimelight(
     }
 
     public inner class MLDetectorPipeline(
-        override val index: Int,
+        public val index: Int,
         /**
          * The namespace of which the Limelight Pipeline logs to:
          * Ensure that this namespace is the same across real and sim equivalents.
@@ -232,6 +238,11 @@ public class ChargerLimelight(
          */
         logInputs: LoggableInputsProvider
     ): MLClassifierPipeline(index,logInputs), VisionPipeline<VisionTarget.ML> {
+
+        init{
+            reset()
+        }
+
 
         override val visionData: VisionData<VisionTarget.ML>?
             by logInputs.nullableValue(default = emptyMLVisionData()){ getMLData() }
