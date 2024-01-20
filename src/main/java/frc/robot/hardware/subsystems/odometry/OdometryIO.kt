@@ -96,8 +96,6 @@ class OdometryIO(
 
 
 
-
-
     private fun Queue<Double>.asDrivePositionList(): List<Angle> =
         this.stream()
             .map{ it.ofUnit(rotations) / hardwareData.driveGearRatio }
@@ -110,11 +108,31 @@ class OdometryIO(
             .toList()
             .also{ this.clear() } // clears the queue; not the list
 
+    
+    
+    
+    fun emptyQueues(){
+        gyroReadingsQueue.clear()
+        
+        wheelPositionQueueTL.clear()
+        wheelPositionQueueTR.clear()
+        wheelPositionQueueBL.clear()
+        wheelPositionQueueBR.clear()
+
+
+        wheelDirectionQueueTL.clear()
+        wheelDirectionQueueTR.clear()
+        wheelDirectionQueueBL.clear()
+        wheelDirectionQueueBR.clear()
+    }
+    
+    
 
     val gyroHeadings by OdometryLog.quantityList{
         gyroReadingsQueue.stream().map{ it.ofUnit(degrees) }.toList().also{ gyroReadingsQueue.clear() }
     }
-
+    
+    
 
     val topLeftWheelPositions by OdometryLog.quantityList{
         wheelPositionQueueTL.asDrivePositionList().map { it - topLeftWheelPositionOffset }
@@ -133,9 +151,7 @@ class OdometryIO(
     }
 
 
-
-
-
+    
     val topLeftWheelDirections by OdometryLog.quantityList{
         wheelDirectionQueueTL.asTurnPositionList().map { it - topLeftDirectionOffset }
     }

@@ -6,6 +6,7 @@ package frc.robot
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
+import com.batterystaple.kmeasure.units.seconds
 import com.kauailabs.navx.frc.AHRS
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.system.plant.DCMotor
@@ -26,6 +27,7 @@ import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.chargers.wpilibextensions.delay
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.subsystems.odometry.OdometryIO
@@ -65,29 +67,7 @@ class RobotContainer: ChargerRobotContainer() {
         controlData = DRIVE_CONTROL_DATA,
         hardwareData = SwerveHardwareData.mk4iL2(trackWidth = 32.inches, wheelBase = 32.inches),
         gyro = if (isReal()) gyroIO else null,
-    ).apply {
-
-
-        if (isReal() || hasReplaySource()){
-            poseEstimator = ThreadedPoseMonitor(
-                OdometryIO(
-                    this.hardwareData,
-                    TURN_MOTORS,
-                    TURN_ENCODERS,
-                    DRIVE_MOTORS,
-                    gyroIO
-                ),
-                kinematics = this.kinematics
-            )
-        }
-
-
-
-        IMUSimulation.configure(
-            headingSupplier = { this.heading },
-            chassisSpeedsSupplier = { this.currentSpeeds }
-        )
-    }
+    )
 
 
     init{
@@ -107,6 +87,26 @@ class RobotContainer: ChargerRobotContainer() {
         }
 
          */
+        IMUSimulation.configure(
+            headingSupplier = { drivetrain.heading },
+            chassisSpeedsSupplier = { drivetrain.currentSpeeds }
+        )
+
+        // waits 0.02 seconds to prevent potential issues
+        delay(0.02.seconds)
+
+        if (isReal() || hasReplaySource()){
+            drivetrain.poseEstimator = ThreadedPoseMonitor(
+                OdometryIO(
+                    drivetrain.hardwareData,
+                    TURN_MOTORS,
+                    TURN_ENCODERS,
+                    DRIVE_MOTORS,
+                    gyroIO
+                ),
+                kinematics = drivetrain.kinematics
+            )
+        }
     }
 
     private fun configureDefaultCommands(){

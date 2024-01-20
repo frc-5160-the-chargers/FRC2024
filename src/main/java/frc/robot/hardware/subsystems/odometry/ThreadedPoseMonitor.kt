@@ -45,6 +45,11 @@ class ThreadedPoseMonitor(
         visionPoseSuppliers.addAll(visionSystems)
     }
 
+
+    init{
+        io.emptyQueues()
+    }
+
     override fun periodic() {
         val numSamples = arrayOf(
             io.topLeftWheelDirections,
