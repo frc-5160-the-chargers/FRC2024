@@ -3,48 +3,34 @@
 // the WPILib BSD license file in the root directory of this project.
 package frc.robot
 
-// part of Kmeasure
-import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.*
+import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.units.degrees
+import com.batterystaple.kmeasure.units.inches
 import com.kauailabs.navx.frc.AHRS
-
-// WPILib imports
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isReal
-import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.InstantCommand
-
-// ChargerLib imports
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.runOnceCommand
-import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.constants.DashboardTuner
-import frc.chargers.controls.pid.PIDConstants
+import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.commands.apriltag.aimAndDriveToApriltag
-import frc.robot.commands.apriltag.aimToApriltag
-
-
-//import frc.robot.commands.aimToApriltag
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
-import frc.robot.hardware.inputdevices.OperatorController
 import frc.robot.hardware.subsystems.odometry.OdometryIO
 import frc.robot.hardware.subsystems.odometry.ThreadedPoseMonitor
-
-// AdvantageKit
+import org.littletonrobotics.junction.Logger.hasReplaySource
 import org.littletonrobotics.junction.Logger.recordOutput
 
 class RobotContainer: ChargerRobotContainer() {
@@ -82,7 +68,7 @@ class RobotContainer: ChargerRobotContainer() {
     ).apply {
 
 
-        if (isReal()){
+        if (isReal() || hasReplaySource()){
             poseEstimator = ThreadedPoseMonitor(
                 OdometryIO(
                     this.hardwareData,

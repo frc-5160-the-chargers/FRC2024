@@ -73,15 +73,10 @@ class OdometryIO(
     private val wheelPositionQueueBL = OdometryThread.getInstance().registerSignal(driveMotors.bottomLeft.getEncoder()::getPosition)
     private val wheelPositionQueueBR = OdometryThread.getInstance().registerSignal(driveMotors.bottomRight.getEncoder()::getPosition)
 
-    private val topLeftEncoder = turnMotors.topLeft.encoder
-    private val topRightEncoder = turnMotors.topRight.encoder
-    private val bottomLeftEncoder = turnMotors.bottomLeft.encoder
-    private val bottomRightEncoder = turnMotors.bottomRight.encoder
-
-    private val wheelDirectionQueueTL = OdometryThread.getInstance().registerSignal{topLeftEncoder.angularPosition.siValue}
-    private val wheelDirectionQueueTR = OdometryThread.getInstance().registerSignal{topRightEncoder.angularPosition.siValue}
-    private val wheelDirectionQueueBL = OdometryThread.getInstance().registerSignal{bottomLeftEncoder.angularPosition.siValue}
-    private val wheelDirectionQueueBR = OdometryThread.getInstance().registerSignal{bottomRightEncoder.angularPosition.siValue}
+    private val wheelDirectionQueueTL = OdometryThread.getInstance().registerSignal(turnMotors.topLeft.getEncoder()::getPosition)
+    private val wheelDirectionQueueTR = OdometryThread.getInstance().registerSignal(turnMotors.topRight.getEncoder()::getPosition)
+    private val wheelDirectionQueueBL = OdometryThread.getInstance().registerSignal(turnMotors.bottomLeft.getEncoder()::getPosition)
+    private val wheelDirectionQueueBR = OdometryThread.getInstance().registerSignal(turnMotors.bottomRight.getEncoder()::getPosition)
 
     private fun ChargerSparkMax.fetchDriveOffset(): Angle =
         (this.encoder.angularPosition / hardwareData.driveGearRatio).also{ println(it) }
@@ -107,13 +102,13 @@ class OdometryIO(
         this.stream()
             .map{ it.ofUnit(rotations) / hardwareData.driveGearRatio }
             .toList()
-            .also{ clear() }
+            .also{ this.clear() } // clears the queue; not the list
 
     private fun Queue<Double>.asTurnPositionList(): List<Angle> =
         this.stream()
             .map{ it.ofUnit(rotations) / hardwareData.turnGearRatio }
             .toList()
-            .also{ clear() }
+            .also{ this.clear() } // clears the queue; not the list
 
 
     val gyroHeadings by OdometryLog.quantityList{

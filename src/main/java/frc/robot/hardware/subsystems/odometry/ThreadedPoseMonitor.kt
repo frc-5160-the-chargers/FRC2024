@@ -1,17 +1,17 @@
 package frc.robot.hardware.subsystems.odometry
 
 import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.hardware.sensors.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
-
+import org.littletonrobotics.junction.Logger
 
 
 @Suppress("unused")
@@ -31,15 +31,8 @@ class ThreadedPoseMonitor(
     private var previousBLPosition = 0.meters
     private var previousBRPosition = 0.meters
 
+    private var previousGyroHeading = 0.degrees
 
-
-    init{
-        /*
-        if (RobotBase.isSimulation()){
-            error("Threaded pose estimation doesn't work in sim; sorry!")
-        }
-         */
-    }
 
     override var robotPose: UnitPose2d = startingPose
         private set
@@ -99,11 +92,15 @@ class ThreadedPoseMonitor(
             )
 
             if (useGyro){
-                twist.dtheta = io.gyroHeadings[i].inUnit(radians)
+                val currentHeading = io.gyroHeadings[i]
+                val deltaHeading = currentHeading - previousGyroHeading
+                previousGyroHeading = currentHeading
+                twist.dtheta = deltaHeading.inUnit(radians)
             }
 
             robotPose = UnitPose2d(robotPose.siValue.exp(twist))
         }
+        Logger.recordOutput("ThreadedPoseEstimation", robotPose.siValue)
     }
 
 }

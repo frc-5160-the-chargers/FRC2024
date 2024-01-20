@@ -11,6 +11,7 @@ public data class RobotConfig(
     val filePathOptions: List<String> = listOf("sda", "sda1", "sda2", "home/lvuser"),
     val tuningMode: Boolean,
     val isReplay: Boolean,
+    val logFilePath: String? = null,
     val hardwareConfigRetryLimit: Int = 3,
     val extraLoggerConfig: () -> Unit = {},
     val onError: (Throwable) -> Unit = {},

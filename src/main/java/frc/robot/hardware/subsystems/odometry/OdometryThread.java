@@ -44,7 +44,7 @@ public class OdometryThread {
 
     private OdometryThread() {
         notifier = new Notifier(this::periodic);
-        notifier.setName("SparkMaxOdometryThread");
+        notifier.setName("OdometryThread");
         notifier.startPeriodic(1.0 / DrivetrainConstantsKt.ODOMETRY_UPDATE_FREQUENCY_HZ );
     }
 

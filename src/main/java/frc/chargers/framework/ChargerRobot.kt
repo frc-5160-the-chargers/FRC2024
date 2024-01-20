@@ -187,7 +187,7 @@ public open class ChargerRobot(
             }
         }else if (config.isReplay){
             // replay mode; sim
-            val path = LogFileUtil.findReplayLog()
+            val path = config.logFilePath ?: LogFileUtil.findReplayLog()
             setReplaySource(WPILOGReader(path))
             addDataReceiver(WPILOGWriter(LogFileUtil.addPathSuffix(path, "_replayed")))
         }
