@@ -6,7 +6,6 @@ package frc.robot
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
-import com.batterystaple.kmeasure.units.seconds
 import com.kauailabs.navx.frc.AHRS
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.system.plant.DCMotor
@@ -27,7 +26,6 @@ import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.wpilibextensions.delay
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.subsystems.odometry.OdometryIO
@@ -91,9 +89,6 @@ class RobotContainer: ChargerRobotContainer() {
             headingSupplier = { drivetrain.heading },
             chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
-
-        // waits 0.02 seconds to prevent potential issues
-        delay(0.02.seconds)
 
         if (isReal() || hasReplaySource()){
             drivetrain.poseEstimator = ThreadedPoseMonitor(

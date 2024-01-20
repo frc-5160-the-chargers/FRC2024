@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package frc.robot.hardware.subsystems.odometry
 
 import com.batterystaple.kmeasure.quantities.*
@@ -66,7 +67,7 @@ class OdometryIO(
         turnMotors.forEach{ it.burnFlash() }
     }
 
-    private val gyroReadingsQueue = OdometryThread.getInstance().registerSignal(gyro.ahrs::getAngle)
+    private val gyroReadingsQueue = OdometryThread.getInstance().registerSignal{ gyro.heading.inUnit(degrees) }
 
     private val wheelPositionQueueTL = OdometryThread.getInstance().registerSignal(driveMotors.topLeft.getEncoder()::getPosition)
     private val wheelPositionQueueTR = OdometryThread.getInstance().registerSignal(driveMotors.topRight.getEncoder()::getPosition)
@@ -79,10 +80,10 @@ class OdometryIO(
     private val wheelDirectionQueueBR = OdometryThread.getInstance().registerSignal(turnMotors.bottomRight.getEncoder()::getPosition)
 
     private fun ChargerSparkMax.fetchDriveOffset(): Angle =
-        (this.encoder.angularPosition / hardwareData.driveGearRatio).also{ println(it) }
+        (this.encoder.angularPosition / hardwareData.driveGearRatio).also{ println("Spark max drive offset: $it") }
 
     private fun ChargerSparkMax.fetchTurnOffset(encoder: PositionEncoder): Angle =
-        ((this.encoder.angularPosition / hardwareData.turnGearRatio) - encoder.angularPosition).also{ println(it) }
+        ((this.encoder.angularPosition / hardwareData.turnGearRatio) - encoder.angularPosition).also{ println("Spark max turn offset: $it") }
 
     private val topLeftWheelPositionOffset = driveMotors.topLeft.fetchDriveOffset()
     private val topRightWheelPositionOffset = driveMotors.topRight.fetchDriveOffset()
