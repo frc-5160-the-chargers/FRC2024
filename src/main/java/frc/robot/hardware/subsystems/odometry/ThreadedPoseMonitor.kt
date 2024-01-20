@@ -1,11 +1,14 @@
 package frc.robot.hardware.subsystems.odometry
 
+import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
+import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
+import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.hardware.sensors.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
@@ -32,6 +35,16 @@ class ThreadedPoseMonitor(
     private var previousBRPosition = 0.meters
 
     private var previousGyroHeading = 0.degrees
+
+    private var innacurateReadingTimestamps: MutableList<Double> = mutableListOf()
+
+    private fun logInnacurateReadings(){
+        Logger.recordOutput("ThreadedPoseEstimator/innacurateReadingsTimestamps", innacurateReadingTimestamps.toDoubleArray())
+    }
+
+    init{
+        logInnacurateReadings()
+    }
 
 
     override var robotPose: UnitPose2d = startingPose
@@ -62,16 +75,44 @@ class ThreadedPoseMonitor(
             io.gyroHeadings
         ).minOfOrNull { it.size } ?: error("No samples are being recorded.")
 
+        fun <D: Dimension<*,*,*,*>> isInvalid(input: Quantity<D>): Boolean{
+            val siValue = input.siValue
+            return siValue.isNaN() || siValue == Double.POSITIVE_INFINITY || siValue == Double.NEGATIVE_INFINITY
+        }
+
         repeat(numSamples) {i ->
             val currentTLPosition = io.topLeftWheelPositions[i] * wheelRadius
             val currentTRPosition = io.topRightWheelPositions[i] * wheelRadius
             val currentBLPosition = io.bottomLeftWheelPositions[i]  * wheelRadius
             val currentBRPosition = io.bottomRightWheelPositions[i] * wheelRadius
 
+            if (
+                isInvalid(currentTLPosition) ||
+                isInvalid(currentTRPosition) ||
+                isInvalid(currentBLPosition) ||
+                isInvalid(currentBRPosition)
+            ){
+                innacurateReadingTimestamps.add(Timer.getFPGATimestamp())
+                logInnacurateReadings()
+                return@repeat
+            }
+
+
             val currentTLPositionDelta = currentTLPosition - previousTLPosition
             val currentTRPositionDelta = currentTRPosition - previousTRPosition
             val currentBLPositionDelta = currentBLPosition - previousBLPosition
             val currentBRPositionDelta = currentBRPosition - previousBRPosition
+
+            if (
+                abs(currentTLPositionDelta) > 0.5.meters ||
+                abs(currentTRPositionDelta) > 0.5.meters ||
+                abs(currentBLPositionDelta) > 0.5.meters ||
+                abs(currentBRPositionDelta) > 0.5.meters
+            ){
+                innacurateReadingTimestamps.add(Timer.getFPGATimestamp())
+                logInnacurateReadings()
+                return@repeat
+            }
 
             // angles are already zeroed off of absolute encoders; no delta calc nessecary
             val currentTLAngle = io.topLeftWheelDirections[i]
@@ -100,7 +141,7 @@ class ThreadedPoseMonitor(
 
             robotPose = UnitPose2d(robotPose.siValue.exp(twist))
         }
-        Logger.recordOutput("ThreadedPoseEstimation", robotPose.siValue)
+        Logger.recordOutput("ThreadedPoseEstimator/pose", Pose2d.struct, robotPose.siValue)
     }
 
 }

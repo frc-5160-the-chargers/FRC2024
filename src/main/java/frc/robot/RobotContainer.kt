@@ -4,9 +4,15 @@
 package frc.robot
 
 import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.AngularVelocity
+import com.batterystaple.kmeasure.quantities.Velocity
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
+import com.batterystaple.kmeasure.units.meters
+import com.batterystaple.kmeasure.units.seconds
 import com.kauailabs.navx.frc.AHRS
+import com.pathplanner.lib.auto.AutoBuilder
+import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
@@ -26,12 +32,15 @@ import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.chargers.wpilibextensions.geometry.ofUnit
+import frc.robot.commands.auto.basicTaxi
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.subsystems.odometry.OdometryIO
 import frc.robot.hardware.subsystems.odometry.ThreadedPoseMonitor
 import org.littletonrobotics.junction.Logger.hasReplaySource
 import org.littletonrobotics.junction.Logger.recordOutput
+import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 
 class RobotContainer: ChargerRobotContainer() {
 
@@ -90,6 +99,7 @@ class RobotContainer: ChargerRobotContainer() {
             chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
 
+
         if (isReal() || hasReplaySource()){
             drivetrain.poseEstimator = ThreadedPoseMonitor(
                 OdometryIO(
@@ -141,13 +151,25 @@ class RobotContainer: ChargerRobotContainer() {
 
 
 
+    val autoChooser = LoggedDashboardChooser<Command>("Auto Command").apply{
+        addDefaultOption("Taxi", basicTaxi(drivetrain))
+    }
 
 
     override val autonomousCommand: Command
         get() = buildCommand {
-            loop(drivetrain){
-                drivetrain.swerveDrive(0.8,0.0,0.06)
+            loopFor(3.seconds, drivetrain){
+                drivetrain.velocityDrive(Velocity(1.0), Velocity(0.0), AngularVelocity(0.0))
             }
+            /*
+            val testPath = PathPlannerPath.fromPathFile("New Path")
+
+            runOnce(drivetrain){
+                drivetrain.poseEstimator.resetPose(testPath.previewStartingHolonomicPose.ofUnit(meters))
+            }
+
+            +AutoBuilder.followPath(testPath)
+             */
         }
 
     override val testCommand: Command

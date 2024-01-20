@@ -1,4 +1,4 @@
-package frc.robot.commands
+package frc.robot.commands.gamepiece
 
 import com.batterystaple.kmeasure.quantities.Scalar
 import com.batterystaple.kmeasure.units.seconds
@@ -9,53 +9,29 @@ import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.hardware.sensors.vision.MLVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.robot.constants.DEFAULT_AIMING_PID
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 private val GROUND_INTAKE_DEFAULT_VOLTAGE = 8.volts
 private val SHOOTER_INTAKE_DEFAULT_VOLTAGE = 5.volts
 
-private const val DRIVE_POWER = -0.4
+private const val DEFAULT_DRIVE_POWER = 0.0
 
 
 fun grabGamepiece(
-    drivetrain: EncoderHolonomicDrivetrain,
-    shooter: Shooter,
-    groundIntake: GroundIntake
-): Command = buildCommand{
-    addRequirements(drivetrain, shooter, groundIntake)
+    drivePower: Double = DEFAULT_DRIVE_POWER,
+    aimingPID: PIDConstants = DEFAULT_AIMING_PID,
 
-    fun spinIntakesAndDrive(){
-        drivetrain.swerveDrive(DRIVE_POWER, 0.0, 0.0)
-        groundIntake.spin(GROUND_INTAKE_DEFAULT_VOLTAGE)
-        shooter.spin(SHOOTER_INTAKE_DEFAULT_VOLTAGE)
-    }
-
-    if (shooter.canDetectGamepieces){
-        loopUntil( {shooter.hasGamepiece} ){
-            spinIntakesAndDrive()
-        }
-    }else{
-        loopFor(3.seconds){
-            spinIntakesAndDrive()
-        }
-    }
-}
-
-
-
-
-fun grabGamepiece(
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
     groundIntake: GroundIntake,
     visionIO: MLVisionPipeline,
-    aimingPID: PIDConstants
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, groundIntake)
 
     fun spinIntakesAndDrive(strafe: Double = 0.0){
-        drivetrain.swerveDrive(DRIVE_POWER, strafe, 0.0)
+        drivetrain.swerveDrive(drivePower, strafe, 0.0)
         groundIntake.spin(GROUND_INTAKE_DEFAULT_VOLTAGE)
         shooter.spin(SHOOTER_INTAKE_DEFAULT_VOLTAGE)
     }
@@ -90,5 +66,8 @@ fun grabGamepiece(
 
     runOnce{
         visionIO.removeRequirement()
+        drivetrain.stop()
+        shooter.setPivotVoltage(0.volts)
+        shooter.spin(0.0)
     }
 }

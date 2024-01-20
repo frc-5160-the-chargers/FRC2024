@@ -40,6 +40,21 @@ class Shooter(
         return currentPosition.within(pivotPrecision)
     }
 
+    val hasGamepiece: Boolean get() = io.hasGamepiece
+
+    val canDetectGamepieces: Boolean get() = io.hasBeamBreakSensor
+
+
+
+
+    fun setIdle(){
+        io.setPivotVoltage(0.volts)
+        io.spin(0.volts, 0.volts)
+    }
+
+
+
+
     fun setPivotPosition(target: PivotAngle){
         setPivotPosition(target.angle)
         recordOutput("Shooter/pivotAngleTarget", target)
@@ -59,11 +74,15 @@ class Shooter(
         }
     }
 
+
+
+
     fun setPivotVoltage(voltage: Voltage) = io.setPivotVoltage(voltage)
 
-    val hasGamepiece: Boolean get() = io.hasGamepiece
+    fun setPivotPercentOut(percentOut: Double) = io.setPivotVoltage(percentOut * 11.volts)
 
-    val canDetectGamepieces: Boolean get() = io.hasBeamBreakSensor
+
+
 
     fun spin(power: Double){
         spin(power * 12.volts)

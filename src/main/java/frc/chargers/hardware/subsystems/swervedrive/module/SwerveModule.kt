@@ -33,7 +33,7 @@ public interface SwerveModule: ModuleIO {
     public fun getModulePosition(wheelRadius: Length): SwerveModulePosition
 
     public fun halt(){
-        setDirectionalPower(0.0, Angle(0.0))
+        setDirectionalPower(0.0, direction)
     }
 
 }

@@ -1,6 +1,3 @@
 package frc.robot.commands.apriltag
 
-class AimToSpeakerCore{
-
-
-}
+// tbd
