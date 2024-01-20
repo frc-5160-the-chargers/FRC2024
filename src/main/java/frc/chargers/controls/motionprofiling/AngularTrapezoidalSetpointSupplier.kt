@@ -72,7 +72,7 @@ public class AngularTrapezoidalSetpointSupplier(
         continuousInputRange: ClosedRange<Angle>,
         measurement: Angle
     ): Setpoint<AngleDimension, VoltageDimension> =
-        calculateSetpoint(target, continuousInputRange = continuousInputRange, measurement = measurement)
+        calculateSetpoint(target, AngularVelocity(0.0), continuousInputRange, measurement)
 
 
 
@@ -98,13 +98,13 @@ public class AngularTrapezoidalSetpointSupplier(
         targetPosition: Angle,
         targetVelocity: AngularVelocity,
         continuousInputRange: ClosedRange<Angle>,
-        mechanismMeasurement: Angle
+        measurement: Angle
     ): Setpoint<AngleDimension, VoltageDimension>{
         val goalState = State(targetPosition.siValue, targetVelocity.siValue)
         optimizeMotionProfileTargets(
             currentState, goalState,
             continuousInputRange.start.siValue..continuousInputRange.endInclusive.siValue,
-            mechanismMeasurement.siValue
+            measurement.siValue
         )
         refreshProfile(goalState)
         return getSetpoint()

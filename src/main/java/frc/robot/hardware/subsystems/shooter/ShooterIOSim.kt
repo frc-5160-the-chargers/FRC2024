@@ -29,7 +29,7 @@ class ShooterIOSim(
     private var _pivotVoltage = Voltage(0.0)
 
     private val pivotController = SuperPIDController(
-        PIDConstants(0.0,0.0,0.0),
+        PIDConstants(0.3,0.0,0.0),
         getInput = { pivotPosition },
         target = 0.degrees,
         outputRange = (-12).volts..12.volts

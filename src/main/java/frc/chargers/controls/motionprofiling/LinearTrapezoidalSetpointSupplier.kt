@@ -75,9 +75,7 @@ public class LinearTrapezoidalSetpointSupplier(
         continuousInputRange: ClosedRange<Distance>,
         measurement: Distance
     ): Setpoint<DistanceDimension, VoltageDimension> =
-        calculateSetpoint(
-            target, continuousInputRange = continuousInputRange, measurement = measurement
-        )
+        calculateSetpoint(target, Velocity(0.0), continuousInputRange, measurement)
 
 
     /**
@@ -101,13 +99,13 @@ public class LinearTrapezoidalSetpointSupplier(
         targetPosition: Distance,
         targetVelocity: Velocity,
         continuousInputRange: ClosedRange<Distance>,
-        mechanismMeasurement: Distance
+        measurement: Distance
     ): Setpoint<DistanceDimension, VoltageDimension>{
         val goalState = State(targetPosition.siValue, targetVelocity.siValue)
         optimizeMotionProfileTargets(
             currentState, goalState,
             continuousInputRange.start.siValue..continuousInputRange.endInclusive.siValue,
-            mechanismMeasurement.siValue
+            measurement.siValue
         )
         refreshProfile(goalState)
         return getSetpoint()

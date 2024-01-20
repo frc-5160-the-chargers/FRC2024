@@ -8,7 +8,7 @@ import com.batterystaple.kmeasure.units.seconds
  * A generic data class that configures a [ChargerRobot].
  */
 public data class RobotConfig(
-    val filePathOptions: List<String> = listOf("/sda1", "/sda2", "/home/lvuser"),
+    val filePathOptions: List<String> = listOf("sda", "sda1", "sda2", "home/lvuser"),
     val tuningMode: Boolean,
     val isReplay: Boolean,
     val hardwareConfigRetryLimit: Int = 3,

@@ -174,7 +174,8 @@ public open class ChargerRobot(
             val availablePaths = File("/media/").listFiles()?.map{ it.path } ?: listOf()
             recordMetadata("All File Paths Available", availablePaths.toString())
             var noLogHappening = true
-            for (filePathOption in config.filePathOptions){
+            for (filePathSuffix in config.filePathOptions){
+                val filePathOption = "/media/$filePathSuffix"
                 if (filePathOption in availablePaths){
                     addDataReceiver(WPILOGWriter(filePathOption))
                     noLogHappening = false

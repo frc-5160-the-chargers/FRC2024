@@ -24,7 +24,7 @@ class FusedAprilTagPipeline(
                 error("You cannot add 2 pipelines of the same type together in a Fused vision pipeline" +
                         "(as they consume the same camera resource). Class name: $className"
                 )
-            }else {
+            }else{
                 classNames.add(className)
             }
         }
@@ -40,6 +40,7 @@ class FusedAprilTagPipeline(
         val areaPercent = targetData.map{ it.areaPercent }.average()
         val targetTransform = targetData[0].targetTransformFromCam
         val id = targetData[0].id
+
         return VisionTarget.AprilTag(
             tx, ty, areaPercent, id, targetTransform
         )
@@ -78,6 +79,7 @@ class FusedAprilTagPipeline(
 
     override val lensHeight: Distance
         get() = pipelines.map{ it.lensHeight }.average() // custom .average() overload for kmeasure
+
     override val mountAngle: Angle
         get() = pipelines.map{ it.mountAngle }.average() // custom .average() overload for kmeasure
 

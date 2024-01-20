@@ -161,6 +161,26 @@ public open class CommandBuilder{
             commands.add(c)
         }
     }
+
+    /**
+     * Applies a generic modifier to a command.
+     * This function must be used for command-returning functions in order for the new versions to be added to the command builder.
+     * For instance:
+     *
+     * ```
+     * buildCommand{
+     *      runOnce{ println("hi") }.modify{ withTimeout(5) }
+     *
+     * }
+     */
+    public fun Command.modify(modifier: Command.() -> Command): Command{
+        commands.remove(this)
+        val newCommand = this.modifier()
+        commands.add(newCommand)
+        return newCommand
+    }
+
+
     
     /**
      * Adds a single command to be run until its completion.

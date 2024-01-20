@@ -3,6 +3,7 @@ package frc.robot.commands.apriltag
 
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
+import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
@@ -15,7 +16,7 @@ import frc.robot.hardware.subsystems.shooter.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 import java.util.*
 
-enum class PathAndAimTarget(
+enum class DriveToTargetGoal(
     // no need for red alliance pose; flip is manually applied
     val blueAlliancePose: UnitPose2d,
     val blueAllianceApriltagId: Int,
@@ -44,8 +45,8 @@ enum class PathAndAimTarget(
     )
 }
 
-fun pathAndAim(
-    target: PathAndAimTarget,
+fun driveToTarget(
+    target: DriveToTargetGoal,
     aimingPID: PIDConstants = DEFAULT_AIMING_PID,
     drivetrain: EncoderHolonomicDrivetrain,
     visionIO: AprilTagVisionPipeline,
@@ -55,13 +56,13 @@ fun pathAndAim(
     runParallelUntilAllFinish {
         if (shooter != null){
             runSequentially{
-                fun hasHitTarget(): Boolean = shooter.hasHitPivotTarget
+                runOnce(shooter){ shooter.setPivotPosition(target.shooterAngle) }
 
-                runOnce{ shooter.setPivotPosition(target.shooterAngle) }
-
-                loopUntil(::hasHitTarget){
+                loopUntil({ shooter.hasHitPivotTarget }, shooter){
                     shooter.setPivotPosition(target.shooterAngle)
                 }
+
+                runOnce(shooter){ shooter.setPivotVoltage(0.volts) }
             }
         }
 

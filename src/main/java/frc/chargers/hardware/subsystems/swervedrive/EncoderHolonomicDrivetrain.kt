@@ -40,13 +40,13 @@ import kotlin.math.abs
 import kotlin.math.pow
 
 
-private val topLeftModInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/TopLeftModule")
+private val topLeftLogInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/TopLeftModule")
 
-private val topRightModInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/TopRightModule")
+private val topRightLogInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/TopRightModule")
 
-private val bottomLeftModInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/BottomLeftModule")
+private val bottomLeftLogInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/BottomLeftModule")
 
-private val bottomRightModInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/BottomRightModule")
+private val bottomRightLogInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/BottomRightModule")
 
 /**
  * A convenience function used to create an [EncoderHolonomicDrivetrain],
@@ -70,25 +70,25 @@ public fun EncoderHolonomicDrivetrain(
         return EncoderHolonomicDrivetrain(
             topLeft = RioPIDSwerveModule(
                 ModuleIOSim(
-                    topLeftModInputs,
+                    topLeftLogInputs,
                     turnGearbox, driveGearbox, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
                 ), controlData
             ),
             topRight = RioPIDSwerveModule(
                 ModuleIOSim(
-                    topRightModInputs,
+                    topRightLogInputs,
                     turnGearbox, driveGearbox, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
                 ), controlData
             ),
             bottomLeft = RioPIDSwerveModule(
                 ModuleIOSim(
-                    bottomLeftModInputs,
+                    bottomLeftLogInputs,
                     turnGearbox, driveGearbox, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
                 ), controlData
             ),
             bottomRight = RioPIDSwerveModule(
                 ModuleIOSim(
-                    bottomRightModInputs,
+                    bottomRightLogInputs,
                     turnGearbox, driveGearbox, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
                 ), controlData
             ),
@@ -132,7 +132,7 @@ public fun EncoderHolonomicDrivetrain(
 
 
             topLeft = OnboardPIDSwerveModule(
-                topLeftModInputs,
+                topLeftLogInputs,
                 controlData,
                 turnMotors.topLeft,
                 turnEncoders.topLeft,
@@ -141,7 +141,7 @@ public fun EncoderHolonomicDrivetrain(
             )
 
             topRight = OnboardPIDSwerveModule(
-                topRightModInputs,
+                topRightLogInputs,
                 controlData,
                 turnMotors.topRight,
                 turnEncoders.topRight,
@@ -150,7 +150,7 @@ public fun EncoderHolonomicDrivetrain(
             )
 
             bottomLeft = OnboardPIDSwerveModule(
-                bottomLeftModInputs,
+                bottomLeftLogInputs,
                 controlData,
                 turnMotors.bottomLeft,
                 turnEncoders.bottomLeft,
@@ -159,7 +159,7 @@ public fun EncoderHolonomicDrivetrain(
             )
 
             bottomRight = OnboardPIDSwerveModule(
-                bottomRightModInputs,
+                bottomRightLogInputs,
                 controlData,
                 turnMotors.bottomRight,
                 turnEncoders.bottomRight,
@@ -170,7 +170,7 @@ public fun EncoderHolonomicDrivetrain(
         }else{
             topLeft = RioPIDSwerveModule(
                 ModuleIOReal(
-                    topLeftModInputs,
+                    topLeftLogInputs,
                     turnMotor = turnMotors.topLeft,
                     turnEncoder = turnEncoders.topLeft,
                     driveMotor = driveMotors.topLeft,
@@ -181,7 +181,7 @@ public fun EncoderHolonomicDrivetrain(
 
             topRight = RioPIDSwerveModule(
                 ModuleIOReal(
-                    topRightModInputs,
+                    topRightLogInputs,
                     turnMotor = turnMotors.topRight,
                     turnEncoder = turnEncoders.topRight,
                     driveMotor = driveMotors.topRight,
@@ -192,7 +192,7 @@ public fun EncoderHolonomicDrivetrain(
 
             bottomLeft = RioPIDSwerveModule(
                 ModuleIOReal(
-                    bottomLeftModInputs,
+                    bottomLeftLogInputs,
                     turnMotor = turnMotors.bottomLeft,
                     turnEncoder = turnEncoders.bottomLeft,
                     driveMotor = driveMotors.bottomLeft,
@@ -203,7 +203,7 @@ public fun EncoderHolonomicDrivetrain(
 
             bottomRight = RioPIDSwerveModule(
                 ModuleIOReal(
-                    bottomRightModInputs,
+                    bottomRightLogInputs,
                     turnMotor = turnMotors.bottomRight,
                     turnEncoder = turnEncoders.bottomRight,
                     driveMotor = driveMotors.bottomRight,
@@ -269,7 +269,6 @@ public class EncoderHolonomicDrivetrain(
     private var couplingOffsetTR = Angle(0.0)
     private var couplingOffsetBL = Angle(0.0)
     private var couplingOffsetBR = Angle(0.0)
-
      */
 
     init{
@@ -399,10 +398,10 @@ public class EncoderHolonomicDrivetrain(
                 bottomRight.setDirectionalPower((ms.bottomRightSpeed / hardwareData.maxModuleSpeed).siValue, ms.bottomRightAngle)
             }
             // chargerlib functions for recording Kmeasure outputs in ascope; see frc.chargers.advantagekitextensions
-            recordOutput("Drivetrain(Swerve)/TopLeftLinearVel", topLeft.speed * wheelRadius)
-            recordOutput("Drivetrain(Swerve)/TopRightLinearVel", topRight.speed * wheelRadius)
-            recordOutput("Drivetrain(Swerve)/BottomLeftLinearVel", bottomLeft.speed * wheelRadius)
-            recordOutput("Drivetrain(Swerve)/BottomRightLinearVel", bottomRight.speed * wheelRadius)
+            recordOutput("Drivetrain(Swerve)/TopLeftModule/LinearVel", topLeft.speed * wheelRadius)
+            recordOutput("Drivetrain(Swerve)/TopRightModule/LinearVel", topRight.speed * wheelRadius)
+            recordOutput("Drivetrain(Swerve)/BottomLeftModule/LinearVel", bottomLeft.speed * wheelRadius)
+            recordOutput("Drivetrain(Swerve)/BottomRightModule/LinearVel", bottomRight.speed * wheelRadius)
 
             recordOutput("Drivetrain(Swerve)/DesiredModuleStates", SwerveModuleState.struct, ms.topLeftState,ms.topRightState,ms.bottomLeftState,ms.bottomRightState)
         }

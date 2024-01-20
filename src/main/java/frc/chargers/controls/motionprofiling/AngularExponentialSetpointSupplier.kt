@@ -60,7 +60,7 @@ public class AngularExponentialSetpointSupplier(
         continuousInputRange: ClosedRange<Angle>,
         measurement: Angle
     ): Setpoint<AngleDimension, VoltageDimension> =
-        calculateSetpoint(target, continuousInputRange = continuousInputRange, measurement = measurement)
+        calculateSetpoint(target, AngularVelocity(0.0), continuousInputRange, measurement)
 
 
     /**
@@ -72,13 +72,13 @@ public class AngularExponentialSetpointSupplier(
         targetPosition: Angle,
         targetVelocity: AngularVelocity,
         continuousInputRange: ClosedRange<Angle>,
-        mechanismMeasurement: Angle
+        measurement: Angle
     ): Setpoint<AngleDimension, VoltageDimension>{
         var goalState = State(targetPosition.siValue, targetVelocity.siValue)
         val setpointGoalPair = optimizeMotionProfileTargets(
             currentState, goalState,
             continuousInputRange.start.siValue..continuousInputRange.endInclusive.siValue,
-            mechanismMeasurement.siValue
+            measurement.siValue
         )
         currentState = setpointGoalPair.first
         goalState = setpointGoalPair.second
