@@ -147,42 +147,6 @@ public class ChargerTalonSRX(
             pulsesPerRotation = encoderTicksPerRotation
         )
 
-    public fun withFollowers(vararg followers: EncoderMotorController): ChargerTalonSRX{
-        followers.forEach{
-            if (it is WPI_TalonSRX){
-                it.follow(this)
-            }else{
-                nonSRXFollowers.add(it)
-            }
-        }
-        return this
-    }
-
-    override fun set(speed: Double){
-        super.set(speed)
-        nonSRXFollowers.forEach{ it.set(speed) }
-    }
-
-    override fun stopMotor() {
-        super.stopMotor()
-        nonSRXFollowers.forEach{ it.stopMotor() }
-    }
-
-    override fun setInverted(isInverted: Boolean){
-        super.setInverted(isInverted)
-        nonSRXFollowers.forEach{
-            // property access syntax
-            it.inverted = isInverted
-        }
-    }
-
-    override fun disable(){
-        super.disable()
-        nonSRXFollowers.forEach{
-            it.disable()
-        }
-    }
-
 
     override fun configure(configuration: ChargerTalonSRXConfiguration) {
         configuration.inverted?.let(::setInverted)

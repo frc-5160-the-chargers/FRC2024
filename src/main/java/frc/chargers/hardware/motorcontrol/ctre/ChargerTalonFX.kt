@@ -6,9 +6,6 @@ import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs
 import com.ctre.phoenix6.configs.Slot0Configs
-import com.ctre.phoenix6.controls.Follower
-import com.ctre.phoenix6.controls.PositionVoltage
-import com.ctre.phoenix6.controls.VelocityVoltage
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
 import edu.wpi.first.wpilibj.RobotBase
@@ -21,6 +18,7 @@ import frc.chargers.hardware.motorcontrol.*
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
 import frc.chargers.utils.math.inputModulus
 import com.ctre.phoenix6.configs.TalonFXConfiguration
+import com.ctre.phoenix6.controls.*
 
 /**
  * An adaptor to the encoder of a [TalonFX].
@@ -88,7 +86,8 @@ public class ChargerTalonFX(
     configuration: ChargerTalonFXConfiguration? = null
 ): TalonFX(deviceId, canBus), SmartEncoderMotorController, HardwareConfigurable<ChargerTalonFXConfiguration> {
 
-    private val talonFXFollowers: MutableSet<TalonFX> = mutableSetOf()
+    private val forwardTalonFXFollowers: MutableSet<TalonFX> = mutableSetOf()
+    private val invertedTalonFXFollowers: MutableSet<TalonFX> = mutableSetOf()
     private val otherFollowers: MutableSet<SmartEncoderMotorController> = mutableSetOf()
 
     private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
@@ -148,16 +147,46 @@ public class ChargerTalonFX(
     private val invertFollowRequest = Follower(deviceID, true)
 
     /**
-     * Adds follower motors to this TalonFX.
+     * Adds follower motors to this TalonFX that mirror this motor's direction,
+     * regardless of invert.
      *
-     * If they are also TalonFX's, ctre-based optimizations will occur;
-     * other motors added as followers simply mirror the requests of this motor.
+     * See [withInvertedFollowers] if having followers
+     * which run in the opposite direction of the master is desired.
+     *
+     * Do not try and access the individual motors passed into this function,
+     * as this can lead to unexpected results. To configure followers,
+     * it is recommended to use an [apply] or [also] block, or use ChargerLib's inline configuration to do so.
      */
     public fun withFollowers(vararg followers: SmartEncoderMotorController){
+        val thisInverted = this.inverted
         followers.forEach{
             if (it is TalonFX){
-                talonFXFollowers.add(it)
+                forwardTalonFXFollowers.add(it)
             }else{
+                it.inverted = thisInverted
+                otherFollowers.add(it)
+            }
+        }
+    }
+
+
+    /**
+     * Adds follower motors to this TalonFX that run in the opposite direction of this motor,
+     * regardless of invert.
+     *
+     * See [withFollowers] if inverting direction is not desired.
+     *
+     * Do not try and access the individual motors passed into this function,
+     * as this can lead to unexpected results. To configure followers,
+     * it is recommended to use an [apply] or [also] block, or use ChargerLib's inline configuration to do so.
+     */
+    public fun withInvertedFollowers(vararg followers: SmartEncoderMotorController){
+        val thisInverted = this.inverted
+        followers.forEach{
+            if (it is TalonFX){
+                invertedTalonFXFollowers.add(it)
+            }else{
+                it.inverted = !thisInverted
                 otherFollowers.add(it)
             }
         }
@@ -165,45 +194,32 @@ public class ChargerTalonFX(
 
 
     private fun runFollowing(){
-        talonFXFollowers.forEach{
-            if (it.inverted == this.inverted){
-                it.setControl(defaultFollowRequest)
-            }else{
-                it.setControl(invertFollowRequest)
-            }
-        }
+        forwardTalonFXFollowers.forEach{ it.setControl(defaultFollowRequest) }
+        invertedTalonFXFollowers.forEach{ it.setControl(invertFollowRequest) }
     }
 
-    override fun set(speed: Double){
-        super.set(speed)
+    override fun setControl(request: VoltageOut): StatusCode {
         runFollowing()
         otherFollowers.forEach{
-            it.set(speed)
+            it.setVoltage(request.Output)
         }
+        return super.setControl(request)
     }
 
-    override fun stopMotor() {
-        super.stopMotor()
+    override fun setControl(request: DutyCycleOut): StatusCode {
         runFollowing()
         otherFollowers.forEach{
+            it.set(request.Output)
+        }
+        return super.setControl(request) // returns a status code
+    }
+
+    override fun setControl(request: NeutralOut): StatusCode {
+        runFollowing()
+        otherFollowers.forEach {
             it.stopMotor()
         }
-    }
-
-    override fun setInverted(isInverted: Boolean){
-        super.setInverted(isInverted)
-        runFollowing()
-        otherFollowers.forEach{
-            it.inverted = isInverted
-        }
-    }
-
-    override fun disable(){
-        super.disable()
-        runFollowing()
-        otherFollowers.forEach{
-            it.disable()
-        }
+        return super.setControl(request) // returns a status code
     }
 
 

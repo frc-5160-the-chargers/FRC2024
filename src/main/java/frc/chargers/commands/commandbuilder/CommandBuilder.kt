@@ -10,6 +10,7 @@ import frc.chargers.commands.then
 import frc.chargers.commands.withExtraRequirements
 import org.littletonrobotics.junction.Logger
 import kotlin.properties.ReadOnlyProperty
+import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 
@@ -429,51 +430,93 @@ public open class CommandBuilder{
      *
      * @param message a function that generates the message to print
      */
-    public fun print(message: () -> Any?): Command =
+    public fun printToConsole(message: () -> Any?): Command =
         InstantCommand { println(message()) }.also(::addCommand)
 
     /**
-     * Adds a command that gets a property when it executes; this is useful for
-     * getting initial positions, etc. when commands first run.
+     * Creates values that will refresh once during run;
+     * at the point of which this statement is placed within the command.
+     *
+     * In order to do this, read-only properties(val)
+     * within the command builder block have their getValue function "delegated" by this function.
+     *
+     * See [here](https://kotlinlang.org/docs/delegated-properties.html#standard-delegates)
+     * for an explanation of property delegates.
+     *
+     * ```
+     * val command = buildCommand{
+     *      val armStartingPosition by getOnceDuringRun{ arm.position }
+     *
+     *      runOnce{
+     *          // because this is called in a function(CodeBlockContext) block,
+     *          // it will print the new armStartingPosition whenever the command runs.
+     *          println(armStartingPosition)
+     *      }
+     *
+     *      // this fetches the value of armStartingPosition when the command is initialized;
+     *      // this means that p2 will not refresh itself when the command runs, unlike armStartingPosition.
+     *      val p2 = armStartingPosition
+     *
+     *      // this, on the other hand, is valid.
+     *      val p2 by getOnceDuringRun{ armStartingPosition }
+     * }
+     */
+    public fun <T : Any> getOnceDuringRun(get: CodeBlockContext.() -> T) : ReadOnlyProperty<Any?, T> =
+        object: ReadOnlyProperty<Any?, T> {
+            init {
+                addCommand(
+                    object : Command() { // Add a new command that initializes this value in its initialize() function.
+                        override fun initialize() {
+                            // if the value is not initialized yet, initialize it.
+                            // ::value is a property reference, which allows you to check whether something
+                            if (!::value.isInitialized) {
+                                initializeValue()
+                            }
+                        }
+
+                        // command does not stop until value is initialized
+                        override fun isFinished(): Boolean = ::value.isInitialized
+                    }
+                )
+            }
+
+            private fun initializeValue() {
+                value = CodeBlockContext.get()
+            }
+
+            private lateinit var value: T
+
+            override fun getValue(thisRef: Any?, property: KProperty<*>): T =
+                try {
+                    value
+                } catch (e: UninitializedPropertyAccessException) { // If value is tried to be used before the initializer command runs (for example, by another command running in parallel), then initialize it immediately.
+                    initializeValue()
+                    value
+                }
+        }
+
+
+    /**
+     *
+     * Adds a command that resets a variable when it is run.
      *
      * Returns a property delegate; see [here](https://kotlinlang.org/docs/delegated-properties.html#standard-delegates)
      * for an explanation of property delegates.
      */
-    public fun <T : Any> getOnceDuringRun(get: CodeBlockContext.() -> T) : ReadOnlyProperty<Any?, T> =
-        DuringRunGetter(get)
+    public fun <T: Any> resetDuringRun(getDefault: () -> T): ReadWriteProperty<Any?, T> =
+        object: ReadWriteProperty<Any?, T>{
+            private var value: T = getDefault()
 
-    private inner class DuringRunGetter<T : Any>(private val get: CodeBlockContext.() -> T) : ReadOnlyProperty<Any?, T> {
-        init {
-            addCommand(
-                object : Command() { // Add a new command that initializes this value in its initialize() function.
-                    override fun initialize() {
-                        if (!::value.isInitialized) {
-                            initializeValue()
-                        }
-                    }
-
-                    override fun isFinished(): Boolean = ::value.isInitialized
-                }
-            )
-        }
-
-        private fun initializeValue() {
-            value = CodeBlockContext.get()
-        }
-
-        private lateinit var value: T
-
-        override fun getValue(thisRef: Any?, property: KProperty<*>): T =
-            try {
-                value
-            } catch (e: UninitializedPropertyAccessException) { // If value is tried to be used before the initializer command runs (for example, by another command running in parallel), then initialize it immediately.
-                initializeValue()
-                value
+            init{
+                addCommand(
+                    // adds a command that resets the value
+                    InstantCommand({value = getDefault()})
+                )
             }
-    }
 
-
-
+            override fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+            override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) { this.value = value }
+        }
 }
 
 
@@ -511,6 +554,8 @@ internal fun Command.withLogInCommandGroup(commandGroupName: String): Command{
  * ```
  * buildCommand{
  *      loopForever{
+ *          // will not compile due to the marker prohibiting implicit "this"
+ *          // when not called directly within buildCommand.
  *          loopForever{
  *              println("hi")
  *          }

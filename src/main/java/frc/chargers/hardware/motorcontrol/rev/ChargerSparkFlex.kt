@@ -57,9 +57,9 @@ public sealed class SparkFlexEncoderType{
 
 
 /**
- * A class that represents possible configurations for a spark max motor controller.
+ * A class that represents possible configurations for a spark flex motor controller.
  *
- * @see ChargerSparkMax
+ * @see ChargerSparkFlex
  */
 public class ChargerSparkFlexConfiguration(
     public var encoderType: SparkFlexEncoderType? = null,
@@ -97,6 +97,7 @@ public class ChargerSparkFlexConfiguration(
 public inline fun ChargerSparkFlex(
     deviceId: Int,
     factoryDefault: Boolean = true,
+    // context function; configure is called as if it was a function within the ChargerSparkFlexConfiguration class itself
     configure: ChargerSparkFlexConfiguration.() -> Unit
 ): ChargerSparkFlex = ChargerSparkFlex(
     deviceId, factoryDefault,
@@ -136,9 +137,15 @@ public class ChargerSparkFlex(
 
     private var encoderType: SparkFlexEncoderType = SparkFlexEncoderType.Regular()
 
+    /**
+     * The encoder of the spark flex.
+     */
     override var encoder: SparkEncoderAdaptor = getEncoder(encoderType)
         private set
 
+    /**
+     * @see frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderAdaptor
+     */
     private fun getEncoder(encoderType: SparkFlexEncoderType): SparkEncoderAdaptor{
         this.encoderType = encoderType
 
@@ -175,7 +182,7 @@ public class ChargerSparkFlex(
 
             is SparkFlexEncoderType.Absolute -> SparkEncoderAdaptor(
                 super.getAbsoluteEncoder(encoderType.category).apply{
-                    // property access syntax setters
+                    // property access syntax setters(replace setAverageDepth and getAverageDepth)
                     if (encoderType.averageDepth != null){
                         averageDepth = encoderType.averageDepth
                     }
@@ -194,7 +201,7 @@ public class ChargerSparkFlex(
 
     override val appliedCurrent: Current
         get() = outputCurrent.ofUnit(amps)
-            .revertIfInvalid(previousCurrent)
+            .revertIfInvalid(previousCurrent) // reverts value if it is NaN or infinity. Applies to Kmeasure Quantities and Doubles.
             .also{ previousCurrent = it }
 
     override val tempCelsius: Double
@@ -209,54 +216,71 @@ public class ChargerSparkFlex(
 
 
     /**
-     * Adds a generic amount of followers to the Spark Max.
+     * Adds a generic amount of followers to the Spark Max, where all followers
+     * mirror this motor's direction, regardless of invert.
      *
+     * To make followers oppose the master's direction, see [withInvertedFollowers].
      *
-     * This following works differently than traditional motor following:
-     * as each follower's ***inversion is preserved***!
-     * Thus, each motor must manage their own inverts; similar to the MotorControllerGroup class.
-     *
-     *
-     * For each follower that is a Spark Max or Spark Flex, we will call the vendor implementation;
-     * otherwise, the other motors are added to a list of motors within this class
-     * to be run.
+     * Do not try and access the individual motors passed into this function,
+     * as this can lead to unexpected results. To configure followers,
+     * it is recommended to use an [apply] or [also] block, or use ChargerLib's inline configuration to do so.
      */
     public fun withFollowers(vararg followers: SmartEncoderMotorController): ChargerSparkFlex{
-        // chargerlib defined util function
+        /**
+         * @see frc.chargers.hardware.motorcontrol.rev.util.addFollowers
+         */
         addFollowers(
             this,
-            nonRevFollowerSet = nonRevFollowers,
+            nonRevFollowerSetReference = nonRevFollowers,
+            invert = false,
             *followers
         )
         return this
     }
 
+
+    /**
+     * Adds a generic amount of followers to the Spark Max, where all followers
+     * run in the opposite direction of this motor, regardless of invert.
+     *
+     * To make followers oppose the master's direction, see [withFollowers].
+     *
+     * Do not try and access the individual motors passed into this function,
+     * as this can lead to unexpected results. To configure followers,
+     * it is recommended to use an [apply] or [also] block, or use ChargerLib's inline configuration to do so.
+     */
+    public fun withInvertedFollowers(vararg followers: SmartEncoderMotorController): ChargerSparkFlex{
+        /**
+         * @see frc.chargers.hardware.motorcontrol.rev.util.addFollowers
+         */
+        addFollowers(
+            this,
+            nonRevFollowerSetReference = nonRevFollowers,
+            invert = true,
+            *followers
+        )
+        return this
+    }
+
+
+
+
+
     override fun set(speed: Double){
-        super.set(speed)
-        nonRevFollowers.forEach{ it.set(speed) }
+        super.set(speed.coerceIn(-1.0..1.0))
+        nonRevFollowers.forEach{ it.set(speed.coerceIn(-1.0..1.0)) }
     }
 
-    override fun stopMotor() {
-        super.stopMotor()
-        nonRevFollowers.forEach{ it.stopMotor() }
-    }
-
-    override fun setInverted(isInverted: Boolean){
-        super.setInverted(isInverted)
-        nonRevFollowers.forEach{
-            // property access syntax
-            it.inverted = isInverted
-        }
-    }
 
     override fun disable(){
         super.disable()
-        nonRevFollowers.forEach{
-            it.disable()
-        }
+        nonRevFollowers.forEach{ it.disable() }
     }
 
 
+    /**
+     * @see frc.chargers.hardware.motorcontrol.rev.util.SparkPIDHandler
+     */
     private val pidHandler = SparkPIDHandler(this, encoderAdaptor = encoder)
 
     override fun setAngularPosition(
@@ -284,7 +308,12 @@ public class ChargerSparkFlex(
             deviceName = "ChargerSparkFlex(id = $deviceId)",
             getErrorInfo = {"All Recorded Errors: $allConfigErrors"}
         ){
-            // configures the motor and records errors
+            /**
+             * Configures common configurations between motors that inherit [CANSparkBase].
+             * Returns a List of [REVLibError]'s
+             *
+             * @see frc.chargers.hardware.motorcontrol.rev.util.SparkConfigurationBase
+             */
             allConfigErrors = configuration.applyTo(this).toMutableList()
 
             fun REVLibError.addError(){

@@ -19,7 +19,7 @@ public class SparkEncoderAdaptor(
     init{
         require (
             revEncoder is AbsoluteEncoder || revEncoder is RelativeEncoder
-        ){"Encoder type of spark max is invalid: internal error."}
+        ){ "Encoder type of spark motor is invalid: internal error." }
     }
 
 

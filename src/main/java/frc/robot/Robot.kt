@@ -8,7 +8,7 @@ import frc.external.frc254.CrashTracker
 val ROBOT = ChargerRobot(
     getRobotContainer = { RobotContainer() },
     config = RobotConfig(
-        isReplay = false,
+        isReplay = true,
         tuningMode = false,
         onError = {
             if (RobotBase.isReal()) {

@@ -1,5 +1,5 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
-package frc.chargers.hardware.motorcontrol.rev
+package frc.chargers.hardware.motorcontrol.rev.util
 
 // units are milliseconds; kmeasure isn't used simply for convenience
 public const val SLOW_PERIODIC_FRAME_STRATEGY: Int = 500

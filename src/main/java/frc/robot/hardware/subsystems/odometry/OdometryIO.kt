@@ -133,7 +133,6 @@ class OdometryIO(
         gyroReadingsQueue.stream().map{ it.ofUnit(degrees) }.toList().also{ gyroReadingsQueue.clear() }
     }
     
-    
 
     val topLeftWheelPositions by OdometryLog.quantityList{
         wheelPositionQueueTL.asDrivePositionList().map { it - topLeftWheelPositionOffset }

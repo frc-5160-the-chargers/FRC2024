@@ -4,12 +4,11 @@ package frc.chargers.hardware.motorcontrol.rev.util
 import com.revrobotics.CANSparkLowLevel.*
 import com.revrobotics.CANSparkBase
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
-import frc.chargers.hardware.motorcontrol.rev.DISABLED_PERIODIC_FRAME_STRATEGY
-import frc.chargers.hardware.motorcontrol.rev.SLOW_PERIODIC_FRAME_STRATEGY
 
 internal fun addFollowers(
     revMotor: CANSparkBase,
-    nonRevFollowerSet: MutableSet<SmartEncoderMotorController>,
+    nonRevFollowerSetReference: MutableSet<SmartEncoderMotorController>,
+    invert: Boolean,
     vararg followers: SmartEncoderMotorController
 ) {
     revMotor.apply{
@@ -18,12 +17,7 @@ internal fun addFollowers(
         followers.forEach{ follower ->
             if (follower is CANSparkBase){
                 revFollowers.add(follower)
-                follower.follow(
-                    this,
-                    // determines whether to invert the follower;
-                    // cast necessary to avoid overload resolution ambiguity
-                    (follower as CANSparkBase).inverted != revMotor.inverted
-                )
+                follower.follow(this, invert)
 
                 // configures frame periods of each follower, to reduce device latency
                 // doesn't need a safe config; as only cost is a little bit more bus utilization
@@ -35,7 +29,12 @@ internal fun addFollowers(
                 follower.setPeriodicFramePeriod(PeriodicFrame.kStatus5, DISABLED_PERIODIC_FRAME_STRATEGY)
                 follower.setPeriodicFramePeriod(PeriodicFrame.kStatus6, DISABLED_PERIODIC_FRAME_STRATEGY)
             }else{
-                nonRevFollowerSet.add(follower)
+                if (invert){
+                    follower.inverted = revMotor.inverted
+                }else{
+                    follower.inverted = !revMotor.inverted
+                }
+                nonRevFollowerSetReference.add(follower)
             }
         }
         revFollowers.forEach{

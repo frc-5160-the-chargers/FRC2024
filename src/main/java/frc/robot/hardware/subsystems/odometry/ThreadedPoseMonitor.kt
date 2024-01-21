@@ -80,6 +80,7 @@ class ThreadedPoseMonitor(
             return siValue.isNaN() || siValue == Double.POSITIVE_INFINITY || siValue == Double.NEGATIVE_INFINITY
         }
 
+        var numActualSamples = 0
         repeat(numSamples) {i ->
             val currentTLPosition = io.topLeftWheelPositions[i] * wheelRadius
             val currentTRPosition = io.topRightWheelPositions[i] * wheelRadius
@@ -113,6 +114,7 @@ class ThreadedPoseMonitor(
                 logInnacurateReadings()
                 return@repeat
             }
+            numActualSamples++
 
             // angles are already zeroed off of absolute encoders; no delta calc nessecary
             val currentTLAngle = io.topLeftWheelDirections[i]
@@ -142,6 +144,8 @@ class ThreadedPoseMonitor(
             robotPose = UnitPose2d(robotPose.siValue.exp(twist))
         }
         Logger.recordOutput("ThreadedPoseEstimator/pose", Pose2d.struct, robotPose.siValue)
+        Logger.recordOutput("ThreadedPoseEstimator/numActualSamples", numActualSamples)
+        Logger.recordOutput("ThreadedPoseEstimator/numIntendedSamples", numSamples)
     }
 
 }

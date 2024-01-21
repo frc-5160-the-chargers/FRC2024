@@ -31,6 +31,8 @@ public class ChargerQuadEncoder:
 
 
     private val anglePerPulse: Angle
+
+
     /*
      * The various constructors for the Encoder wrapper.
      */
