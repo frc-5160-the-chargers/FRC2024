@@ -4,7 +4,7 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.constants.SwerveControlData
-import frc.chargers.controls.feedforward.AngularMotorFFConstants
+import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.AngularTrapezoidalSetpointSupplier
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
@@ -13,6 +13,7 @@ import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.chargers.pathplannerextensions.PathConstraints
 import frc.chargers.utils.Precision
+import frc.chargers.wpilibextensions.geometry.motion.AngularMotionConstraints
 
 const val ODOMETRY_UPDATE_FREQUENCY_HZ = 200.0
 
@@ -23,15 +24,13 @@ val PATHFIND_CONSTRAINTS = PathConstraints(
     AngularAcceleration(2.0)
 )
 
-val DEFAULT_AIMING_PID = PIDConstants(0.2,0.0,0.0)
-
 
 val DRIVE_CONTROL_DATA = if (isReal()){
     SwerveControlData(
         anglePID = PIDConstants(7.0,0.0,0.2),
         velocityPID = PIDConstants(0.1,0.0,0.0),
         modulePrecision = Precision.Within(2.degrees),
-        velocityFF = AngularMotorFFConstants.fromSI(0.12117,0.13210,0.0),
+        velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
         robotRotationPID = PIDConstants(0.5, 0.0, 0.0), // for pathplanner
         robotTranslationPID = PIDConstants(0.5,0.0,0.0) // for pathplanner
     )
@@ -39,11 +38,13 @@ val DRIVE_CONTROL_DATA = if (isReal()){
     SwerveControlData(
         anglePID = PIDConstants(13.0,0.0,0.2),
         angleSetpointSupplier = AngularTrapezoidalSetpointSupplier(
-            maxVelocity = 5.0.radians / 1.seconds,
-            maxAcceleration = 3.radians / 1.seconds / 1.seconds,
+            AngularMotionConstraints(
+                maxVelocity = 5.0.radians / 1.seconds,
+                maxAcceleration = 3.radians / 1.seconds / 1.seconds,
+            )
         ),
         velocityPID = PIDConstants(0.2,0.0,0.0),
-        velocityFF = AngularMotorFFConstants.fromSI(0.12117,0.13210,0.0),
+        velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
         robotRotationPID = PIDConstants(0.5, 0.0, 0.0), // for pathplanner
         robotTranslationPID = PIDConstants(0.5,0.0,0.0) // for pathplanner
     )

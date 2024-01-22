@@ -1,16 +1,12 @@
 @file:Suppress("RedundantVisibilityModifier", "unused")
 package frc.chargers.hardware.motorcontrol.rev.util
 
-import com.batterystaple.kmeasure.dimensions.AngularVelocityDimension
-import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.volts
-import frc.chargers.controls.feedforward.AngularMotorFFConstants
-import frc.chargers.controls.feedforward.Feedforward
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.sensors.encoders.Encoder
@@ -26,8 +22,6 @@ internal class SparkPIDHandler(
 
     private val innerController = motor.pidController
     private var currentPIDConstants = PIDConstants(0.0,0.0,0.0)
-    private var currentFFConstants = AngularMotorFFConstants.None
-    private var currentFF = Feedforward<AngularVelocityDimension, VoltageDimension>{ Voltage(0.0) }
     private var isCurrentlyWrapping = false
 
 
@@ -43,22 +37,18 @@ internal class SparkPIDHandler(
     fun setAngularVelocity(
         target: AngularVelocity,
         pidConstants: PIDConstants,
-        feedforwardConstants: AngularMotorFFConstants,
+        feedforward: Voltage,
         vararg followers: SmartEncoderMotorController
     ) {
         updateControllerConstants(pidConstants)
-        if (currentFFConstants != feedforwardConstants){
-            currentFFConstants = feedforwardConstants
-            currentFF = Feedforward(currentFFConstants)
-        }
         innerController.setReference(
             target.siValue,
             com.revrobotics.CANSparkBase.ControlType.kVelocity,
             0,
-            currentFF.calculate(target).inUnit(volts)
+            feedforward.inUnit(volts)
         )
         followers.forEach{
-            it.setAngularVelocity(target, pidConstants, feedforwardConstants)
+            it.setAngularVelocity(target, pidConstants, feedforward)
         }
     }
 

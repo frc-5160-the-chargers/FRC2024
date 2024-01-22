@@ -3,7 +3,6 @@ package frc.chargers.hardware.motorcontrol
 
 import com.batterystaple.kmeasure.quantities.*
 import frc.chargers.constants.DEFAULT_GEAR_RATIO
-import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 
@@ -29,12 +28,12 @@ public interface SmartEncoderMotorController: EncoderMotorController{
     public val tempCelsius: Double
 
     /**
-     * Sets the angular velocity of the motor.
+     * Sets the angular velocity of the motor, with a feedforward voltage.
      */
     public fun setAngularVelocity(
         target: AngularVelocity,
         pidConstants: PIDConstants,
-        feedforwardConstants: AngularMotorFFConstants
+        feedforward: Voltage
     )
 
     /**
@@ -47,6 +46,18 @@ public interface SmartEncoderMotorController: EncoderMotorController{
         extraVoltage: Voltage = Voltage(0.0)
     )
 
+
+
+
+
+    /**
+     * Sets the angular velocity of the motor, with a feedforward equation.
+     */
+    public fun setAngularVelocity(
+        target: AngularVelocity,
+        pidConstants: PIDConstants,
+        ffEquation: (AngularVelocity) -> Voltage
+    ) = setAngularVelocity(target, pidConstants, ffEquation(target))
 
     /**
      * Sets the position of the motor using closed loop control;

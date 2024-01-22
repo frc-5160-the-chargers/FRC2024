@@ -6,7 +6,6 @@ import com.batterystaple.kmeasure.units.*
 import com.revrobotics.*
 import com.revrobotics.CANSparkLowLevel.*
 import edu.wpi.first.wpilibj.RobotBase
-import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.safeConfigure
@@ -282,8 +281,8 @@ public class ChargerSparkMax(
     override fun setAngularVelocity(
         target: AngularVelocity,
         pidConstants: PIDConstants,
-        feedforwardConstants: AngularMotorFFConstants
-    ): Unit = pidHandler.setAngularVelocity(target, pidConstants, feedforwardConstants)
+        feedforward: Voltage
+    ): Unit = pidHandler.setAngularVelocity(target, pidConstants, feedforward)
 
 
 

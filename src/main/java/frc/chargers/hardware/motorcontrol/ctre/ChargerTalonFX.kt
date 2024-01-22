@@ -9,7 +9,6 @@ import com.ctre.phoenix6.configs.Slot0Configs
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
 import edu.wpi.first.wpilibj.RobotBase
-import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
@@ -242,27 +241,19 @@ public class ChargerTalonFX(
     override fun setAngularVelocity(
         target: AngularVelocity,
         pidConstants: PIDConstants,
-        feedforwardConstants: AngularMotorFFConstants
+        feedforward: Voltage
     ) {
-        var configHasChanged = false
         if (currentPIDConstants() != pidConstants){
             setPIDConstants(pidConstants)
-            configHasChanged = true
-        }
-        if (currentSlotConfigs.kS != feedforwardConstants.kS.inUnit(volts) || currentSlotConfigs.kV != feedforwardConstants.kV.inUnit(volts * seconds / rotations)){
-            currentSlotConfigs.kS = feedforwardConstants.kS.inUnit(volts)
-            currentSlotConfigs.kV = feedforwardConstants.kV.inUnit(volts * seconds / rotations)
-            configHasChanged = true
-        }
-        if (configHasChanged){
             configurator.apply(currentSlotConfigs)
             println("PID status has been updated.")
         }
         velocityRequest.Velocity = target.inUnit(rotations/seconds)
+        velocityRequest.FeedForward = feedforward.inUnit(volts)
         setControl(velocityRequest)
         runFollowing()
         otherFollowers.forEach{
-            it.setAngularVelocity(target, pidConstants, feedforwardConstants)
+            it.setAngularVelocity(target, pidConstants, feedforward)
         }
     }
 

@@ -11,6 +11,7 @@
   "NTProvider": {
     "types": {
       "/FMSInfo": "FMSInfo",
+      "/SmartDashboard/Auto Command": "String Chooser",
       "/SmartDashboard/Field": "Field2d"
     },
     "windows": {

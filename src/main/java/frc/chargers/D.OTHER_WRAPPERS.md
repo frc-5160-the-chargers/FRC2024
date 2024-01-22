@@ -18,8 +18,50 @@ Essentially, the controller target, or goal, is passed into a ```SetpointSupplie
 
 ### Feedforward control
 
-Feedforward control is handled through the ```Feedforward<I: AnyDimension, O: AnyDimension>``` interface.
+Feedforward control is handled through the ```Feedforward<I: AnyDimension, O: AnyDimension>``` functional interface.
+This has 1 method: calculate, which takes a target of type Quantity<I> and outputs a control effort of type Quantity<O>.
 
+Because Feedforward is a functional interface, custom feedforwards can be constructed using SAM notation:
+
+```kotlin
+val ff = Feedforward{ velocity: Velocity -> somePolynomialFunction(velocity) }
+```
+
+However, the most common use case of Feedforwards is using characterized gains in order to get an equation. T
+his hinges on the various FFConstants classes, which include:
+
+```AngularMotorFFConstants(kS, kV, kA)``` - Holds constants for a simple motor feedforward, with angular velocity,
+```LinearMotorFFConstants(kS, kV, kA)``` - Holds constants for a simple motor feedforward, with linear velocity,
+
+```ArmFFConstants(kS, kG, kV, kA)```- Holds constants for an arm motor feedforward, with angular velocity,
+```ElevatorFFConstants(kS, kG, kV, kA)``` - Holds constants for an elevator feedforward, with linear velocity.
+
+These classes use typesafe units for templating; however, they all provide a ```fromSI``` factory function
+that takes Doubles(which correspond to the SI values) instead. 
+
+For angular feedforwards, these are radians, seconds, and volts, 
+while in linear feedforwards, these are meters, seconds, and volts.
+
+In order to utilize these feedforward constants, simply construct a Feedforward like so:
+
+```kotlin
+
+var angularConsts = AngularMotorFFConstants( 0.1.volts, 0.2.volts / (1.meters / 1.seconds), 0.1.volts / (1.meters / 1.seconds / 1.seconds) )
+angularConsts = AngularMotorFFConstants.fromSI(0.1, 0.2, 0.1)
+
+// Feedforward is also a factory function here
+val angularMotorFF = Feedforward(angularConsts, getTargetAccel = { Acceleration(0.0 })
+
+```
+
+Note: in order to pass target accelerations into a charger feedforward, utilize the getTargetAccel lambda
+passed into the Feedforward overloads. 
+
+
+
+
+
+### Motion Profiling using SetpointSupplier
 
 There are a couple of different setpoint suppliers:
 
@@ -58,3 +100,7 @@ pose2d = pose2dWPI.ofUnit(meters)
 
 var translation3d = UnitTranslation3d(...)
 ```
+
+# Polynomial Equations
+
+ChargerLib provides classes for polynomial equations that can be solved.

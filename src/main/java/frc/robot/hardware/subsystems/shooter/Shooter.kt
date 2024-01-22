@@ -9,7 +9,9 @@ import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.RobotBase
+import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.SetpointSupplier
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.utils.Precision
@@ -95,4 +97,18 @@ class Shooter(
             io.spin(voltage, -voltage)
         }
     }
+
+
+
+
+    fun setAngleCommand(target: PivotAngle): Command =
+        buildCommand{
+            runOnce(this@Shooter){ setPivotPosition(target) }
+
+            loopUntil({ hasHitPivotTarget }, this@Shooter){
+                setPivotPosition(target)
+            }
+
+            runOnce(this@Shooter){ setPivotVoltage(0.volts) }
+        }
 }

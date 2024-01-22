@@ -7,7 +7,7 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.inches
 import com.pathplanner.lib.util.ReplanningConfig
 import frc.chargers.controls.SetpointSupplier
-import frc.chargers.controls.feedforward.AngularMotorFFConstants
+import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.utils.Precision
 
@@ -20,11 +20,11 @@ public data class SwerveControlData(
     val angleSetpointSupplier: SetpointSupplier<AngleDimension, VoltageDimension> = SetpointSupplier.Default(),
     val modulePrecision: Precision<AngleDimension> = Precision.AllowOvershoot,
     val velocityPID: PIDConstants,
-    val velocityFF: AngularMotorFFConstants,
+    val velocityFF: AngularMotorFFEquation,
     val openLoopDiscretizationRate: Double = 2.0,
     val closedLoopDiscretizationRate: Double = 1.0,
-    val robotRotationPID: PIDConstants = PIDConstants(0.3,0.0,0.0),
-    val robotTranslationPID: PIDConstants = PIDConstants(0.3,0.0,0.0),
+    val robotRotationPID: PIDConstants = PIDConstants(0.3,0,0),
+    val robotTranslationPID: PIDConstants = PIDConstants(0.3,0,0),
     val pathReplanConfig: ReplanningConfig = ReplanningConfig()
 )
 

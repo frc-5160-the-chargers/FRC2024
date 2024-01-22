@@ -19,7 +19,6 @@ import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.constants.DiffDriveControlData
 import frc.chargers.constants.DiffDriveHardwareData
 import frc.chargers.controls.SetpointSupplier
-import frc.chargers.controls.feedforward.Feedforward
 import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.configuration.HardwareConfigurable
@@ -149,8 +148,7 @@ public class EncoderDifferentialDrivetrain(
         getInput = {leftVelocity},
         target = AngularVelocity(0.0),
         setpointSupplier = SetpointSupplier.Default(
-            // leftFF stores the left feedforward constants.
-            Feedforward(controlData.leftFF)
+            controlData.leftFF
         ),
         selfSustain = true,
     )
@@ -160,8 +158,7 @@ public class EncoderDifferentialDrivetrain(
         getInput = {rightVelocity},
         target = AngularVelocity(0.0),
         setpointSupplier = SetpointSupplier.Default(
-            // rightff stores the right feedforward constants.
-            Feedforward(controlData.rightFF)
+            controlData.rightFF
         ),
         selfSustain = true,
     )

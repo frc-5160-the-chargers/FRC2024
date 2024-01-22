@@ -2,14 +2,12 @@
 package frc.chargers.controls.motionprofiling
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.dimensions.AngularVelocityDimension
 import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.trajectory.TrapezoidProfile
 import frc.chargers.controls.Setpoint
 import frc.chargers.controls.SetpointSupplier
-import frc.chargers.controls.feedforward.Feedforward
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.motion.AngularMotionConstraints
 
@@ -23,23 +21,20 @@ public class AngularTrapezoidalSetpointSupplier(
     /**
      * The feedforward helps the mechanism reach the velocity output of the motion profile.
      */
-    private val velocityTargetFF: Feedforward<AngularVelocityDimension, VoltageDimension> = Feedforward{ Voltage(0.0) },
-    startingState: State = State()
+    private val velocityFFEquation: (AngularVelocity) -> Voltage = { Voltage(0.0) },
+    startingPosition: Angle = Angle(0.0),
+    startingVelocity: AngularVelocity = AngularVelocity(0.0)
 ): TrapezoidProfile(profileConstraints.siValue), SetpointSupplier<AngleDimension, VoltageDimension> {
 
     public constructor(
-        maxVelocity: AngularVelocity,
-        maxAcceleration: AngularAcceleration,
-        feedforward: Feedforward<AngularVelocityDimension, VoltageDimension> = Feedforward { Voltage(0.0) }
-    ) : this(AngularMotionConstraints(maxVelocity, maxAcceleration), feedforward)
-
-    public constructor(
         constraints: Constraints,
-        feedforward: Feedforward<AngularVelocityDimension, VoltageDimension> = Feedforward { Voltage(0.0) }
-    ) : this(AngularMotionConstraints(constraints), feedforward)
+        velocityFFEquation: (AngularVelocity) -> Voltage = { Voltage(0.0) },
+        startingPosition: Angle = Angle(0.0),
+        startingVelocity: AngularVelocity = AngularVelocity(0.0)
+    ): this(AngularMotionConstraints(constraints), velocityFFEquation, startingPosition, startingVelocity)
 
 
-    private var currentState = startingState
+    private var currentState = State(startingPosition.siValue, startingVelocity.siValue)
     private var previousT = fpgaTimestamp()
 
     /**
@@ -123,7 +118,7 @@ public class AngularTrapezoidalSetpointSupplier(
 
     private fun getSetpoint() = Setpoint(
         Angle(currentState.position),
-        velocityTargetFF.calculate(AngularVelocity(currentState.velocity))
+        velocityFFEquation(AngularVelocity(currentState.velocity))
     )
 
 }

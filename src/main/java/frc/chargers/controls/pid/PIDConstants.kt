@@ -24,6 +24,12 @@ public data class PIDConstants(
     @JvmField
     public var kD: Double
 ){
+    public constructor(kP: Number, kI: Number, kD: Number): this(
+        kP.toDouble(),
+        kI.toDouble(),
+        kD.toDouble()
+    )
+
     public companion object{
         public val None: PIDConstants = PIDConstants(0.0,0.0,0.0)
     }

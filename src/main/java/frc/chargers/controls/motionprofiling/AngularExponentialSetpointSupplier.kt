@@ -2,16 +2,15 @@
 package frc.chargers.controls.motionprofiling
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.dimensions.AngularVelocityDimension
 import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.AngularVelocity
+import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.trajectory.ExponentialProfile
 import frc.chargers.controls.Setpoint
 import frc.chargers.controls.SetpointSupplier
-import frc.chargers.controls.feedforward.Feedforward
 import frc.chargers.wpilibextensions.fpgaTimestamp
 
 /**
@@ -24,13 +23,13 @@ public class AngularExponentialSetpointSupplier(
     /**
      * The feedforward helps the mechanism reach the velocity output of the motion profile.
      */
-    private val velocityTargetFF: Feedforward<AngularVelocityDimension, VoltageDimension>,
-    startingState: State = State(0.0,0.0)
+    private val velocityFFEquation: (AngularVelocity) -> Voltage = { Voltage(0.0) },
+    startingPosition: Angle = Angle(0.0),
+    startingVelocity: AngularVelocity = AngularVelocity(0.0)
 ): ExponentialProfile(profileConstraints), SetpointSupplier<AngleDimension, VoltageDimension>{
 
-    private var currentState = startingState
+    private var currentState = State(startingPosition.siValue, startingVelocity.siValue)
     private var previousT = fpgaTimestamp()
-
 
     /**
      * Fetches the current position that the [SetpointSupplier]
@@ -110,7 +109,7 @@ public class AngularExponentialSetpointSupplier(
 
     private fun getSetpoint() = Setpoint(
         Angle(currentState.position),
-        velocityTargetFF.calculate(AngularVelocity(currentState.velocity))
+        velocityFFEquation(AngularVelocity(currentState.velocity))
     )
 
 }

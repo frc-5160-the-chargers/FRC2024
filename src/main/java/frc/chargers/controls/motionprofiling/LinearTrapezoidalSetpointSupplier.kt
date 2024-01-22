@@ -7,7 +7,6 @@ import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.trajectory.TrapezoidProfile
 import frc.chargers.controls.Setpoint
 import frc.chargers.controls.SetpointSupplier
-import frc.chargers.controls.feedforward.Feedforward
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.motion.LinearMotionConstraints
 
@@ -22,24 +21,19 @@ public class LinearTrapezoidalSetpointSupplier(
     /**
      * The feedforward helps the mechanism reach the velocity output of the motion profile.
      */
-    private val velocityTargetFF: Feedforward<VelocityDimension, VoltageDimension> = Feedforward{ Voltage(0.0) },
-    startingState: State = State()
+    private val velocityFFEquation: (Velocity) -> Voltage = { Voltage(0.0) },
+    startingPosition: Distance = Distance(0.0),
+    startingVelocity: Velocity = Velocity(0.0)
 ): TrapezoidProfile(profileConstraints.siValue), SetpointSupplier<DistanceDimension, VoltageDimension> {
 
     public constructor(
-        maxVelocity: Velocity,
-        maxAcceleration: Acceleration,
-        feedforward: Feedforward<VelocityDimension, VoltageDimension> = Feedforward{ Voltage(0.0) }
-    ): this(LinearMotionConstraints(maxVelocity,maxAcceleration), feedforward)
-
-    public constructor(
         constraints: Constraints,
-        feedforward: Feedforward<VelocityDimension, VoltageDimension> = Feedforward{ Voltage(0.0) }
-    ): this(LinearMotionConstraints(constraints), feedforward)
+        velocityFFEquation: (Velocity) -> Voltage = { Voltage(0.0) },
+        startingPosition: Distance = Distance(0.0),
+        startingVelocity: Velocity = Velocity(0.0)
+    ): this(LinearMotionConstraints(constraints), velocityFFEquation, startingPosition, startingVelocity)
 
-
-
-    private var currentState = startingState
+    private var currentState = State(startingPosition.siValue, startingVelocity.siValue)
     private var previousT = fpgaTimestamp()
 
 
@@ -125,7 +119,7 @@ public class LinearTrapezoidalSetpointSupplier(
 
     private fun getSetpoint() = Setpoint(
         Distance(currentState.position),
-        velocityTargetFF.calculate(Velocity(currentState.velocity))
+        velocityFFEquation(Velocity(currentState.velocity))
     )
 
 }

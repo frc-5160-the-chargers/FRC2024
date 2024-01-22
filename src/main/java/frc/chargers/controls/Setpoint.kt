@@ -3,7 +3,6 @@ package frc.chargers.controls
 
 import com.batterystaple.kmeasure.dimensions.*
 import com.batterystaple.kmeasure.quantities.*
-import frc.chargers.controls.feedforward.Feedforward
 
 /**
  * Stores a produced Setpoint; with the appropriate setpoint value,
@@ -52,10 +51,10 @@ public fun interface SetpointSupplier<S: Dimension<*,*,*,*>, O: Dimension<*,*,*,
      * you would use this class and pass in the appropriate feedforward.
      */
     public class Default<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
-        private val feedforward: Feedforward<I, O> = Feedforward{ Quantity(0.0) }
+        private val ffEquation: (Quantity<I>) -> Quantity<O> = { Quantity(0.0) }
     ): SetpointSupplier<I,O>{
         override fun calculateSetpoint(target: Quantity<I>): Setpoint<I,O> =
-            Setpoint(target,feedforward.calculate(target))
+            Setpoint(target,ffEquation(target))
     }
 
 }

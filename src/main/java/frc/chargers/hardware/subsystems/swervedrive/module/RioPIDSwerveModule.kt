@@ -9,7 +9,6 @@ import frc.chargers.constants.SwerveControlData
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.controls.FeedbackController
 import frc.chargers.controls.SetpointSupplier
-import frc.chargers.controls.feedforward.Feedforward
 import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.hardware.subsystems.swervedrive.module.lowlevel.ModuleIO
 import frc.chargers.utils.math.inputModulus
@@ -70,7 +69,7 @@ public class RioPIDSwerveModule(
              * with a feedforward that directly corresponds to the input.
              */
             setpointSupplier = SetpointSupplier.Default(
-                feedforward = Feedforward(controlData.velocityFF)
+                ffEquation = controlData.velocityFF
             ),
             outputRange = -12.volts..12.volts,
             selfSustain = true

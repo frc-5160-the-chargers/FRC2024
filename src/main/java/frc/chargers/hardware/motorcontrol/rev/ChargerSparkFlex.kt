@@ -8,7 +8,6 @@ import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import com.revrobotics.*
 import edu.wpi.first.wpilibj.RobotBase
-import frc.chargers.controls.feedforward.AngularMotorFFConstants
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.safeConfigure
@@ -293,8 +292,8 @@ public class ChargerSparkFlex(
     override fun setAngularVelocity(
         target: AngularVelocity,
         pidConstants: PIDConstants,
-        feedforwardConstants: AngularMotorFFConstants
-    ): Unit = pidHandler.setAngularVelocity(target, pidConstants, feedforwardConstants)
+        feedforward: Voltage
+    ): Unit = pidHandler.setAngularVelocity(target, pidConstants, feedforward)
 
 
     private var allConfigErrors: MutableList<REVLibError> = mutableListOf()

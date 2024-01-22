@@ -18,7 +18,7 @@ import java.util.*
 
 
 
-enum class DriveToTargetGoal(
+enum class AimToTargetGoal(
     // no need for red alliance pose; flip is manually applied
     val path: PathPlannerPath,
     val blueAllianceApriltagId: Int,
@@ -47,8 +47,8 @@ enum class DriveToTargetGoal(
     )
 }
 
-fun driveToTarget(
-    target: DriveToTargetGoal,
+fun aimToTarget(
+    target: AimToTargetGoal,
     aimingPID: PIDConstants = DEFAULT_AIMING_PID,
     pathfind: Boolean = true,
 

@@ -2,16 +2,15 @@
 package frc.chargers.controls.motionprofiling
 
 import com.batterystaple.kmeasure.dimensions.DistanceDimension
-import com.batterystaple.kmeasure.dimensions.VelocityDimension
 import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.Distance
 import com.batterystaple.kmeasure.quantities.Velocity
+import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.trajectory.ExponentialProfile
 import frc.chargers.controls.Setpoint
 import frc.chargers.controls.SetpointSupplier
-import frc.chargers.controls.feedforward.Feedforward
 import frc.chargers.wpilibextensions.fpgaTimestamp
 
 /**
@@ -24,11 +23,12 @@ public class LinearExponentialSetpointSupplier(
     /**
      * The feedforward helps the mechanism reach the velocity output of the motion profile.
      */
-    private val velocityTargetFF: Feedforward<VelocityDimension, VoltageDimension>,
-    startingState: State = State(0.0,0.0)
+    private val velocityFFEquation: (Velocity) -> Voltage = { Voltage(0.0) },
+    startingPosition: Distance = Distance(0.0),
+    startingVelocity: Velocity = Velocity(0.0)
 ): ExponentialProfile(profileConstraints), SetpointSupplier<DistanceDimension, VoltageDimension>{
 
-    private var currentState = startingState
+    private var currentState = State(startingPosition.siValue, startingVelocity.siValue)
     private var previousT = fpgaTimestamp()
 
 
@@ -105,7 +105,7 @@ public class LinearExponentialSetpointSupplier(
 
     private fun getSetpoint() = Setpoint(
         Distance(currentState.position),
-        velocityTargetFF.calculate(Velocity(currentState.velocity))
+        velocityFFEquation(Velocity(currentState.velocity))
     )
 
 }
