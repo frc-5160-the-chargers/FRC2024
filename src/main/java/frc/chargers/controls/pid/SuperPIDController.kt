@@ -1,14 +1,37 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress("RedundantVisibilityModifier", "unused")
 package frc.chargers.controls.pid
 
 import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.quantities.Quantity
 import edu.wpi.first.math.controller.PIDController
 import frc.chargers.controls.FeedbackController
-import frc.chargers.controls.SetpointSupplier
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.utils.Precision
 import frc.chargers.utils.math.inputModulus
+import kotlin.internal.LowPriorityInOverloadResolution
+
+
+@LowPriorityInOverloadResolution
+inline fun <I: Dimension<*,*,*,*>,O: Dimension<*,*,*,*>> SuperPIDController(
+    pidConstants: PIDConstants,
+    crossinline feedforward: (Quantity<I>) -> Quantity<O>,
+    noinline getInput: () -> Quantity<I>,
+    target: Quantity<I>,
+    continuousInputRange: ClosedRange<Quantity<I>>? = null,
+    outputRange: ClosedRange<Quantity<O>> = Quantity<O>(Double.NEGATIVE_INFINITY)..Quantity(Double.POSITIVE_INFINITY),
+    errorTolerance: Precision<I> = Precision.AllowOvershoot,
+    selfSustain: Boolean = false,
+) = SuperPIDController(
+    pidConstants,
+    { feedforward(this.target) },
+    getInput, target,
+    continuousInputRange, outputRange,
+    errorTolerance, selfSustain
+)
+
+
+
+
 
 /**
  * Wraps WPILib's [PIDController], adding various improvements and units support.
@@ -21,11 +44,17 @@ import frc.chargers.utils.math.inputModulus
  *
  * See [here](https://www.ni.com/en-us/innovations/white-papers/06/pid-theory-explained.html) for an explanation of PID.
  */
-public class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
+public open class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
     /**
      * The PID constants of the controller.
      */
     pidConstants: PIDConstants,
+    /**
+     * a Lambda function that fetches the feedforward of the controller.
+     *
+     * Has the context of this class; which means that it can access properties directly(such as target, setpoint, etc.)
+     */
+    private val feedforward: SuperPIDController<I,O>.() -> Quantity<O> = { Quantity(0.0) },
     /**
      * A function that fetches the controller input.
      */
@@ -33,14 +62,7 @@ public class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
     /**
      * The target is the value the PID controller is attempting to achieve.
      */
-    override var target: Quantity<I>,
-    /**
-     * The setpoint supplier converts a target into one or multiple setpoints
-     * for the pid controller to run to.
-     *
-     * This can include trapezoidal or exponential motion profiles.
-     */
-    private val setpointSupplier: SetpointSupplier<I, O> = SetpointSupplier.Default(),
+    target: Quantity<I>,
     /**
      * If this value is not null, enables continuous input within a certain [ClosedRange],
      * and wraps all target values/input values within the range.
@@ -48,7 +70,7 @@ public class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
      * see [here](https://docs.wpilib.org/en/stable/docs/software/advanced-controls/controllers/pidcontroller.html#setting-continuous-input)
      * for an explanation on continuous input.
      */
-    private val continuousInputRange: ClosedRange<Quantity<I>>? = null,
+    protected val continuousInputRange: ClosedRange<Quantity<I>>? = null,
     /**
      * Optionally clamps the output of the controller within a certain [ClosedRange].
      */
@@ -63,11 +85,8 @@ public class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
      */
     selfSustain: Boolean = false,
 ) : FeedbackController<Quantity<I>, Quantity<O>> {
-    private fun Quantity<I>.standardize(): Quantity<I> =
-        if (continuousInputRange == null) this else this.inputModulus(continuousInputRange)
 
-
-    private val pidController = PIDController(pidConstants.kP, pidConstants.kI, pidConstants.kD)
+    protected val pidController = PIDController(pidConstants.kP, pidConstants.kI, pidConstants.kD)
 
     init{
         if (selfSustain){
@@ -86,6 +105,8 @@ public class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
                 (errorTolerance.allowableError.endInclusive - errorTolerance.allowableError.start).siValue
             )
         }
+
+        pidController.setpoint = target.siValue
     }
 
 
@@ -93,24 +114,16 @@ public class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
      * Calculates the output of the PID controller, using the calculated error.
      */
     override fun calculateOutput(): Quantity<O> {
-        val input = getInput()
-        val setpoint = if (continuousInputRange == null){
-            setpointSupplier.calculateSetpoint(target)
-        }else{
-            setpointSupplier.calculateSetpoint(
-                target.standardize(),
-                continuousInputRange,
-                input.standardize()
-            )
-        }
         val pidOutput = Quantity<O>(
             pidController.calculate(
-                input.standardize().siValue,
-                setpoint.value.standardize().siValue
+                if (continuousInputRange == null){
+                    getInput().siValue
+                }else {
+                    getInput().inputModulus(continuousInputRange).siValue
+                }
             )
         )
-        val ffOutput = setpoint.feedforwardOutput
-        return (pidOutput + ffOutput).coerceIn(outputRange)
+        return (pidOutput + feedforward()).coerceIn(outputRange)
     }
 
 
@@ -119,6 +132,13 @@ public class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
      */
     override val error: Quantity<I>
         get() = Quantity(pidController.positionError)
+
+
+    override var target: Quantity<I>
+        get() = Quantity(pidController.setpoint)
+        set(value){
+            pidController.setpoint = value.siValue
+        }
 
 
     /**
@@ -134,5 +154,4 @@ public class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
                 pidController.d = value.kD
             }
         }
-
 }

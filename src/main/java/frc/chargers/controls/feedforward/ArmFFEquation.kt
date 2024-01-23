@@ -1,10 +1,7 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate", "CanBeParameter")
 package frc.chargers.controls.feedforward
 
-import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.AngularAcceleration
-import com.batterystaple.kmeasure.quantities.AngularVelocity
-import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.quantities.*
 import edu.wpi.first.math.controller.ArmFeedforward
 import frc.chargers.utils.math.units.VoltagePerAngle
 import frc.chargers.utils.math.units.VoltagePerAngularAcceleration
@@ -41,4 +38,6 @@ class ArmFFEquation(
 
     inline fun withAngleSupplier(crossinline angleSupplier: () -> Angle): (AngularVelocity) -> Voltage =
         { velocity -> invoke(angleSupplier(), velocity) }
+
+    // arm ff does not have calculatePlantInversion due to problem optimization reasons(apparently)
 }

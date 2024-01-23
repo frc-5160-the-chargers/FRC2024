@@ -5,10 +5,7 @@ package frc.chargers.wpilibextensions.geometry
 import com.batterystaple.kmeasure.dimensions.DistanceDimension
 import com.batterystaple.kmeasure.quantities.*
 import edu.wpi.first.math.geometry.*
-import edu.wpi.first.math.trajectory.TrapezoidProfile
 import frc.chargers.utils.math.units.KmeasureUnit
-import frc.chargers.wpilibextensions.geometry.motion.AngularMotionConstraints
-import frc.chargers.wpilibextensions.geometry.motion.LinearMotionConstraints
 import frc.chargers.wpilibextensions.geometry.twodimensional.asAngle
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
@@ -64,23 +61,4 @@ public fun Pose3d.ofUnit(unit: KmeasureUnit<DistanceDimension>): UnitPose3d =
         y.ofUnit(unit),
         z.ofUnit(unit),
         rotation
-    )
-
-
-/**
- * Converts WPILib's [TrapezoidProfile.Constraints] into an [AngularMotionConstraints].
- */
-public fun TrapezoidProfile.Constraints.ofUnit(angleUnit: Angle, timeUnit: Time): AngularMotionConstraints =
-    AngularMotionConstraints(
-        this.maxVelocity.ofUnit(angleUnit/timeUnit),
-        this.maxAcceleration.ofUnit(angleUnit/timeUnit/timeUnit)
-    )
-
-/**
- * Converts WPILib's [TrapezoidProfile.Constraints] into a [LinearMotionConstraints].
- */
-public fun TrapezoidProfile.Constraints.ofUnit(distanceUnit: Distance, timeUnit: Time): LinearMotionConstraints =
-    LinearMotionConstraints(
-        this.maxVelocity.ofUnit(distanceUnit/timeUnit),
-        this.maxAcceleration.ofUnit(distanceUnit/timeUnit/timeUnit)
     )

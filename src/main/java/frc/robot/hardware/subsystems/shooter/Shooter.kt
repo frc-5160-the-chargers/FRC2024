@@ -2,17 +2,19 @@
 package frc.robot.hardware.subsystems.shooter
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.degrees
+import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.controls.SetpointSupplier
+import frc.chargers.controls.feedforward.ArmFFEquation
+import frc.chargers.controls.motionprofiling.AngularMotionProfile
+import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.utils.Precision
 import frc.chargers.utils.within
@@ -32,10 +34,13 @@ class Shooter(
     private val io: ShooterIO,
     private val pivotPID: PIDConstants,
     // SetpointSupplier.Default indicates no motion profile
-    private val pivotProfile: SetpointSupplier<AngleDimension, VoltageDimension> = SetpointSupplier.Default(),
+    private val pivotProfile: AngularMotionProfile? = null,
+    private val pivotFF: ArmFFEquation = ArmFFEquation(0.0,0.0,0.0),
     private val pivotPrecision: Precision.Within<AngleDimension> = Precision.Within(0.5.degrees)
 ): SubsystemBase() {
+
     private var targetPosition: Angle? = null
+    private var motionProfileSetpoint = AngularMotionProfileState(io.pivotPosition)
 
     val hasHitPivotTarget: Boolean get() {
         val currentPosition = targetPosition ?: return true
@@ -63,15 +68,29 @@ class Shooter(
     }
 
     fun setPivotPosition(position: Angle){
-        targetPosition = position
-        val setpoint = pivotProfile.calculateSetpoint(position)
+        val setpointPosition: Angle
+        val feedforward: Voltage
+        if (pivotProfile != null){
+            motionProfileSetpoint = pivotProfile.calculate(
+                0.02.seconds,
+                motionProfileSetpoint,
+                AngularMotionProfileState(position)
+            )
+            setpointPosition = motionProfileSetpoint.position
+            feedforward = pivotFF(io.pivotPosition, motionProfileSetpoint.velocity)
+        }else{
+            setpointPosition = position
+            feedforward = 0.volts
+        }
+
+
         if (hasHitPivotTarget){
             io.setPivotVoltage(0.volts)
         }else{
             io.setPivotPosition(
-                setpoint.value,
+                setpointPosition,
                 pivotPID,
-                setpoint.feedforwardOutput
+                feedforward
             )
         }
     }

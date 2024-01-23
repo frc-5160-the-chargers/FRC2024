@@ -2,12 +2,11 @@
 package frc.chargers.constants
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.inches
 import com.pathplanner.lib.util.ReplanningConfig
-import frc.chargers.controls.SetpointSupplier
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
+import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.utils.Precision
 
@@ -16,9 +15,7 @@ import frc.chargers.utils.Precision
  * This includes PID constants, feedforward, and path re-planning configs.
  */
 public data class SwerveControlData(
-    val anglePID: PIDConstants,
-    val angleSetpointSupplier: SetpointSupplier<AngleDimension, VoltageDimension> = SetpointSupplier.Default(),
-    val modulePrecision: Precision<AngleDimension> = Precision.AllowOvershoot,
+    val azimuthControl: SwerveAzimuthControl,
     val velocityPID: PIDConstants,
     val velocityFF: AngularMotorFFEquation,
     val openLoopDiscretizationRate: Double = 2.0,
@@ -27,6 +24,25 @@ public data class SwerveControlData(
     val robotTranslationPID: PIDConstants = PIDConstants(0.3,0,0),
     val pathReplanConfig: ReplanningConfig = ReplanningConfig()
 )
+
+
+public sealed class SwerveAzimuthControl(
+    val pidConstants: PIDConstants,
+    val precision: Precision<AngleDimension> = Precision.AllowOvershoot
+){
+    class PID(
+        pidConstants: PIDConstants,
+        precision: Precision<AngleDimension> = Precision.AllowOvershoot
+    ): SwerveAzimuthControl(pidConstants, precision)
+
+    class ProfiledPID(
+        pidConstants: PIDConstants,
+        precision: Precision<AngleDimension> = Precision.AllowOvershoot,
+        val motionProfile: AngularMotionProfile,
+        val ffEquation: AngularMotorFFEquation = AngularMotorFFEquation(0.0,0.0)
+    ): SwerveAzimuthControl(pidConstants, precision)
+}
+
 
 /**
  * A class that holds Hardware constants for a [frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain].

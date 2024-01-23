@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.DoubleSupplier;
 
 /**
@@ -29,6 +30,11 @@ import java.util.function.DoubleSupplier;
  */
 @SuppressWarnings("ALL")
 public class OdometryThread {
+    /**
+     * The reentrant lock used for odometry.
+     */
+    public static final ReentrantLock ODOMETRY_LOCK = new ReentrantLock();
+
     private final List<DoubleSupplier> signals = new ArrayList<>();
     private final List<Queue<Double>> queues = new ArrayList<>();
 
@@ -50,24 +56,24 @@ public class OdometryThread {
 
     public Queue<Double> registerSignal(DoubleSupplier signal) {
         Queue<Double> queue = new ArrayBlockingQueue<>(100);
-        OdometryIOKt.OdometryLock.lock();
+        ODOMETRY_LOCK.lock();
         try {
             signals.add(signal);
             queues.add(queue);
         } finally {
-            OdometryIOKt.OdometryLock.unlock();
+            ODOMETRY_LOCK.unlock();
         }
         return queue;
     }
 
     private void periodic() {
-        OdometryIOKt.OdometryLock.lock();
+        ODOMETRY_LOCK.lock();
         try {
             for (int i = 0; i < signals.size(); i++) {
                 queues.get(i).offer(signals.get(i).getAsDouble());
             }
         } finally {
-            OdometryIOKt.OdometryLock.unlock();
+            ODOMETRY_LOCK.unlock();
         }
     }
 }

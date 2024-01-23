@@ -7,9 +7,12 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import frc.chargers.constants.SwerveControlData
 import frc.chargers.constants.DashboardTuner
+import frc.chargers.constants.SwerveAzimuthControl
 import frc.chargers.controls.FeedbackController
-import frc.chargers.controls.SetpointSupplier
+import frc.chargers.controls.motionprofiling.MotionProfileState
 import frc.chargers.controls.pid.SuperPIDController
+import frc.chargers.controls.pid.SuperProfiledPIDController
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.subsystems.swervedrive.module.lowlevel.ModuleIO
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.utils.within
@@ -50,7 +53,7 @@ public class RioPIDSwerveModule(
     private val tuner = DashboardTuner()
 
     private val turnPIDConstants by tuner.pidConstants(
-        controlData.anglePID,
+        controlData.azimuthControl.pidConstants,
         "$logTab/Turning PID Constants"
     )
 
@@ -62,15 +65,9 @@ public class RioPIDSwerveModule(
     private val velocityController by tuner.refreshWhenTuned{
         SuperPIDController(
             drivePIDConstants,
+            controlData.velocityFF,
             getInput = {speed},
             target = AngularVelocity(0.0),
-            /**
-             * Here, the setpoint supplier is set to the default,
-             * with a feedforward that directly corresponds to the input.
-             */
-            setpointSupplier = SetpointSupplier.Default(
-                ffEquation = controlData.velocityFF
-            ),
             outputRange = -12.volts..12.volts,
             selfSustain = true
         )
@@ -79,20 +76,42 @@ public class RioPIDSwerveModule(
 
     private val turnController: FeedbackController<Angle, Voltage>
         by tuner.refreshWhenTuned{
-            SuperPIDController(
-                turnPIDConstants,
-                getInput = { direction },
-                target = Angle(0.0),
-                /**
-                 * the [SetpointSupplier] allows the controller
-                 * to be a regular PID controller, trapezoid profiled PID controller or
-                 * exponential profiled PID controller, depending on user specification.
-                 */
-                setpointSupplier = controlData.angleSetpointSupplier,
-                outputRange = -12.volts..12.volts,
-                continuousInputRange = 0.degrees..360.degrees,
-                selfSustain = true
-            )
+            when (controlData.azimuthControl){
+                is SwerveAzimuthControl.ProfiledPID -> SuperProfiledPIDController(
+                    turnPIDConstants,
+                    controlData.azimuthControl.motionProfile,
+                    getInput = { direction },
+                    targetState = MotionProfileState(Angle(0.0)),
+                    outputRange = -12.volts..12.volts,
+                    continuousInputRange = 0.degrees..360.degrees,
+                    selfSustain = true,
+                    feedforward = ff@{ // has the context of the SuperProfiledPIDController class
+                        // fetches the current setpoint velocity
+                        val currentVelocitySetpoint: AngularVelocity = setpoint.velocity
+
+                        // calculates the profile state 1 loop ahead, and gets the velocity from it
+                        val nextVelocitySetpoint: AngularVelocity =
+                            controlData.azimuthControl.motionProfile
+                                .calculate(ChargerRobot.LOOP_PERIOD, setpoint, targetState)
+                                .velocity
+
+                        // uses linear plant inversion to calculate optimal feedforward output
+                        return@ff controlData.azimuthControl.ffEquation.calculatePlantInversion(
+                            currentVelocitySetpoint,
+                            nextVelocitySetpoint
+                        )
+                    },
+                )
+
+                is SwerveAzimuthControl.PID -> SuperPIDController(
+                    turnPIDConstants,
+                    getInput = { direction },
+                    target = Angle(0.0),
+                    outputRange = -12.volts..12.volts,
+                    continuousInputRange = 0.degrees..360.degrees,
+                    selfSustain = true
+                )
+            }
         }
 
     override fun setDirectionalPower(
@@ -125,12 +144,12 @@ public class RioPIDSwerveModule(
     override fun setDirection(direction: Angle){
         turnController.target = direction.standardize()
         // turnVoltage is a setter variable of ModuleIO
-        turnVoltage = if ( (turnController.error).within(controlData.modulePrecision) ){
+        turnVoltage = if ( (turnController.error).within(controlData.azimuthControl.precision) ){
             0.0.volts
         }else{
             turnController.calculateOutput()
         }
-        recordOutput("$logTab/withinPrecision", (turnController.error).within(controlData.modulePrecision))
+        recordOutput("$logTab/withinPrecision", (turnController.error).within(controlData.azimuthControl.precision))
         recordOutput("$logTab/target", turnController.target.siValue)
         recordOutput("$logTab/controllerErrorRad", turnController.error.inUnit(radians))
         recordOutput("$logTab/controllerOutputVolts", turnController.calculateOutput().inUnit(volts))

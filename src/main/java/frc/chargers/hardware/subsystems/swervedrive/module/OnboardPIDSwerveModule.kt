@@ -10,6 +10,9 @@ import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.constants.DEFAULT_GEAR_RATIO
 import frc.chargers.constants.SwerveControlData
 import frc.chargers.constants.DashboardTuner
+import frc.chargers.constants.SwerveAzimuthControl
+import frc.chargers.controls.motionprofiling.AngularMotionProfileState
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.subsystems.swervedrive.module.lowlevel.ModuleIO
@@ -26,7 +29,9 @@ public class OnboardPIDSwerveModule private constructor( // Do not use this cons
     private val controlData: SwerveControlData,
     private val turnMotor: SmartEncoderMotorController,
     private val turnEncoder: PositionEncoder,
-    private val driveMotor: SmartEncoderMotorController
+    private val driveMotor: SmartEncoderMotorController,
+    private val driveGearRatio: Double,
+    private val turnGearRatio: Double
 ): ModuleIO by lowLevel, SwerveModule {
     // ModuleIO by lowLevel makes the lowLevel parameter provide implementation
     // of the ModuleIO interface to the class, reducing boilerplate code
@@ -43,13 +48,13 @@ public class OnboardPIDSwerveModule private constructor( // Do not use this cons
         ModuleIOReal(
             logInputs, turnMotor, turnEncoder, driveMotor, driveGearRatio, turnGearRatio
         ),
-        controlData, turnMotor, turnEncoder, driveMotor
+        controlData, turnMotor, turnEncoder, driveMotor, driveGearRatio, turnGearRatio
     )
 
     private val tuner = DashboardTuner()
 
     private val turnPIDConstants by tuner.pidConstants(
-        controlData.anglePID,
+        controlData.azimuthControl.pidConstants,
         "$logTab/Turning PID Constants"
     )
 
@@ -57,6 +62,8 @@ public class OnboardPIDSwerveModule private constructor( // Do not use this cons
         controlData.velocityPID,
         "$logTab/Driving PID Constants"
     )
+
+    private var currentProfileState = AngularMotionProfileState(turnEncoder.angularPosition)
 
     override fun setDirectionalPower(power: Double, direction: Angle) {
         val modState = optimizeOnboardPIDState(
@@ -97,16 +104,44 @@ public class OnboardPIDSwerveModule private constructor( // Do not use this cons
     }
 
     override fun setDirection(direction: Angle) {
-        val turnSetpoint =
-            controlData.angleSetpointSupplier.calculateSetpoint(direction)
+        if (controlData.azimuthControl is SwerveAzimuthControl.ProfiledPID){
+            currentProfileState = controlData.azimuthControl.motionProfile.calculate(
+                ChargerRobot.LOOP_PERIOD,
+                currentProfileState,
+                AngularMotionProfileState(direction)
+            )
 
-        turnMotor.setAngularPosition(
-            turnSetpoint.value,
-            turnPIDConstants,
-            continuousWrap = true,
-            extraVoltage = turnSetpoint.feedforwardOutput,
-            turnEncoder = turnEncoder
-        )
+            // calculates the profile state 1 loop ahead
+            val futureProfileState = controlData.azimuthControl.motionProfile.calculate(
+                ChargerRobot.LOOP_PERIOD,
+                currentProfileState,
+                AngularMotionProfileState(direction)
+            )
+
+            // uses plant inversion to calculate feedforward output
+            val feedforwardOutput =
+                controlData.azimuthControl.ffEquation.calculatePlantInversion(
+                    currentProfileState.velocity,
+                    futureProfileState.velocity
+                )
+
+            turnMotor.setAngularPosition(
+                currentProfileState.position,
+                turnPIDConstants,
+                extraVoltage = feedforwardOutput,
+                turnEncoder = turnEncoder,
+                motorToEncoderRatio = turnGearRatio,
+                continuousWrap = true,
+            )
+        }else{
+            turnMotor.setAngularPosition(
+                direction,
+                turnPIDConstants,
+                turnEncoder = turnEncoder,
+                motorToEncoderRatio = turnGearRatio,
+                continuousWrap = true,
+            )
+        }
     }
 
 

@@ -5,9 +5,12 @@
 package frc.robot
 
 import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.AngularVelocity
+import com.batterystaple.kmeasure.quantities.Velocity
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
+import com.batterystaple.kmeasure.units.seconds
 import com.kauailabs.navx.frc.AHRS
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
@@ -189,12 +192,12 @@ class RobotContainer: ChargerRobotContainer() {
 
     override val autonomousCommand: Command
         get() = buildCommand {
-            /*
             loopFor(3.seconds, drivetrain){
                 drivetrain.velocityDrive(Velocity(1.0), Velocity(0.0), AngularVelocity(0.0))
             }
 
-             */
+
+
 
             val testPath = PathPlannerPath.fromPathFile("New Path")
 

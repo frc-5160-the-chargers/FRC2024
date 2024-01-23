@@ -3,9 +3,10 @@ package frc.robot.constants
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.wpilibj.RobotBase.isReal
+import frc.chargers.constants.SwerveAzimuthControl
 import frc.chargers.constants.SwerveControlData
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
-import frc.chargers.controls.motionprofiling.AngularTrapezoidalSetpointSupplier
+import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
@@ -13,7 +14,6 @@ import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.chargers.pathplannerextensions.PathConstraints
 import frc.chargers.utils.Precision
-import frc.chargers.wpilibextensions.geometry.motion.AngularMotionConstraints
 
 const val ODOMETRY_UPDATE_FREQUENCY_HZ = 200.0
 
@@ -27,20 +27,22 @@ val PATHFIND_CONSTRAINTS = PathConstraints(
 
 val DRIVE_CONTROL_DATA = if (isReal()){
     SwerveControlData(
-        anglePID = PIDConstants(7.0,0.0,0.2),
+        azimuthControl = SwerveAzimuthControl.PID(
+            PIDConstants(7.0,0.0,0.2),
+            precision = Precision.Within(2.degrees)
+        ),
         velocityPID = PIDConstants(0.1,0.0,0.0),
-        modulePrecision = Precision.Within(2.degrees),
         velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
         robotRotationPID = PIDConstants(0.5, 0.0, 0.0), // for pathplanner
         robotTranslationPID = PIDConstants(0.5,0.0,0.0) // for pathplanner
     )
 }else{
     SwerveControlData(
-        anglePID = PIDConstants(13.0,0.0,0.2),
-        angleSetpointSupplier = AngularTrapezoidalSetpointSupplier(
-            AngularMotionConstraints(
-                maxVelocity = 5.0.radians / 1.seconds,
-                maxAcceleration = 3.radians / 1.seconds / 1.seconds,
+        azimuthControl = SwerveAzimuthControl.ProfiledPID(
+             PIDConstants(13.0,0,0.2),
+            motionProfile = AngularTrapezoidProfile(
+                maxVelocity = 7.0.radians / 1.seconds,
+                maxAcceleration = 4.radians / 1.seconds / 1.seconds,
             )
         ),
         velocityPID = PIDConstants(0.2,0.0,0.0),

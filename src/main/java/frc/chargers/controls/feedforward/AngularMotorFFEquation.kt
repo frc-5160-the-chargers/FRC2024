@@ -1,12 +1,10 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate", "CanBeParameter")
 package frc.chargers.controls.feedforward
 
-import com.batterystaple.kmeasure.quantities.AngularAcceleration
-import com.batterystaple.kmeasure.quantities.AngularVelocity
-import com.batterystaple.kmeasure.quantities.Length
-import com.batterystaple.kmeasure.quantities.Voltage
-import com.batterystaple.kmeasure.quantities.div
+import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.controller.SimpleMotorFeedforward
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.utils.math.units.VoltagePerAngularAcceleration
 import frc.chargers.utils.math.units.VoltagePerAngularVelocity
 
@@ -52,5 +50,18 @@ class AngularMotorFFEquation(
             kS.siValue,
             (kV / gearRatio / wheelRadius).siValue,
             kA.siValue / gearRatio / wheelRadius.siValue
+        )
+
+    fun calculatePlantInversion(currentTarget: AngularVelocity, nextTarget: AngularVelocity): Voltage =
+        Voltage(
+            if (kV.siValue == 0.0 || kS.siValue == 0.0){
+                0.0
+            }else{
+                baseFF.calculate(
+                    currentTarget.siValue,
+                    nextTarget.siValue,
+                    ChargerRobot.LOOP_PERIOD.inUnit(seconds)
+                )
+            }
         )
 }

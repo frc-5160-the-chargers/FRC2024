@@ -18,22 +18,16 @@ import frc.chargers.utils.math.equations.epsilonEquals
 import frc.chargers.wpilibextensions.delay
 import frc.robot.constants.ODOMETRY_UPDATE_FREQUENCY_HZ
 import java.util.*
-import java.util.concurrent.locks.ReentrantLock
 import kotlin.math.roundToInt
-
-@JvmField
-val OdometryLock = ReentrantLock()
-
 
 @JvmField
 val OdometryLog = LoggableInputsProvider(
     "PoseData",
     updateInputs = RobotBase.isReal(), // if robot is simulation, don't update inputs.
-    runBeforeInputUpdate = OdometryLock::lock,
-    runAfterInputUpdate = OdometryLock::unlock
+    runBeforeInputUpdate = OdometryThread.ODOMETRY_LOCK::lock,
+    runAfterInputUpdate = OdometryThread.ODOMETRY_LOCK::unlock
 )
 
-// issue; timeout while waiting for periodic status 2....
 class OdometryIO(
     // all wrappers inherit their base class(CANSparkMax)
     val hardwareData: SwerveHardwareData,

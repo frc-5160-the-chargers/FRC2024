@@ -2,8 +2,10 @@
 package frc.chargers.controls.feedforward
 
 import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.controller.ElevatorFeedforward
 import edu.wpi.first.math.controller.SimpleMotorFeedforward
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.utils.math.units.VoltagePerAcceleration
 import frc.chargers.utils.math.units.VoltagePerVelocity
 
@@ -47,4 +49,17 @@ class ElevatorFFEquation(
 
     override operator fun invoke(velocity: Velocity): Voltage =
         invoke(velocity, Acceleration(0.0))
+
+    fun calculatePlantInversion(currentTarget: Velocity, nextTarget: Velocity): Voltage =
+        Voltage(
+            if (kV.siValue == 0.0 || kS.siValue == 0.0){
+                0.0
+            }else{
+                baseFF.calculate(
+                    currentTarget.siValue,
+                    nextTarget.siValue,
+                    ChargerRobot.LOOP_PERIOD.inUnit(seconds)
+                )
+            }
+        )
 }

@@ -18,7 +18,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.constants.DiffDriveControlData
 import frc.chargers.constants.DiffDriveHardwareData
-import frc.chargers.controls.SetpointSupplier
 import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.configuration.HardwareConfigurable
@@ -147,9 +146,7 @@ public class EncoderDifferentialDrivetrain(
         controlData.leftVelocityPID,
         getInput = {leftVelocity},
         target = AngularVelocity(0.0),
-        setpointSupplier = SetpointSupplier.Default(
-            controlData.leftFF
-        ),
+        feedforward = controlData.leftFF,
         selfSustain = true,
     )
 
@@ -157,9 +154,7 @@ public class EncoderDifferentialDrivetrain(
         controlData.rightVelocityPID,
         getInput = {rightVelocity},
         target = AngularVelocity(0.0),
-        setpointSupplier = SetpointSupplier.Default(
-            controlData.rightFF
-        ),
+        feedforward = controlData.rightFF,
         selfSustain = true,
     )
 
