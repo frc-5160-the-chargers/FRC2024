@@ -5,6 +5,8 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
+import com.batterystaple.kmeasure.units.seconds
+import edu.wpi.first.math.VecBuilder
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
@@ -12,8 +14,11 @@ import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.hardware.sensors.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
+import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
+import frc.external.frc6328.MechanicalAdvantagePoseEstimator
+import frc.external.frc6995.NomadApriltagUtil
 import org.littletonrobotics.junction.Logger
 
 
@@ -27,7 +32,14 @@ class ThreadedPoseMonitor(
 ): RobotPoseMonitor, SubsystemBase() {
     private val wheelRadius = io.hardwareData.wheelDiameter / 2.0
 
+    private val poseEstimator = MechanicalAdvantagePoseEstimator(
+        VecBuilder.fill(0.003, 0.003, 0.00001)
+    )
     private val visionPoseSuppliers = mutableListOf(*visionPoseSuppliers)
+    private val visionUpdates = mutableListOf<MechanicalAdvantagePoseEstimator.TimestampedVisionUpdate>()
+
+    private var noVisionPose = UnitPose2d()
+
 
     private var previousTLPosition = 0.meters
     private var previousTRPosition = 0.meters
@@ -44,14 +56,13 @@ class ThreadedPoseMonitor(
 
     init{
         logInnacurateReadings()
+        poseEstimator.resetPose(startingPose.siValue)
     }
 
-
-    override var robotPose: UnitPose2d = startingPose
-        private set
+    override val robotPose: UnitPose2d = poseEstimator.latestPose.ofUnit(meters)
 
     override fun resetPose(pose: UnitPose2d) {
-        robotPose = pose
+        poseEstimator.resetPose(pose.siValue)
     }
 
     override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier) {
@@ -105,10 +116,10 @@ class ThreadedPoseMonitor(
             val currentBRPositionDelta = currentBRPosition - previousBRPosition
 
             if (
-                abs(currentTLPositionDelta) > 0.5.meters ||
-                abs(currentTRPositionDelta) > 0.5.meters ||
-                abs(currentBLPositionDelta) > 0.5.meters ||
-                abs(currentBRPositionDelta) > 0.5.meters
+                abs(currentTLPositionDelta) > 1.meters ||
+                abs(currentTRPositionDelta) > 1.meters ||
+                abs(currentBLPositionDelta) > 1.meters ||
+                abs(currentBRPositionDelta) > 1.meters
             ){
                 innacurateReadingTimestamps.add(Timer.getFPGATimestamp())
                 logInnacurateReadings()
@@ -141,8 +152,44 @@ class ThreadedPoseMonitor(
                 twist.dtheta = deltaHeading.inUnit(radians)
             }
 
-            robotPose = UnitPose2d(robotPose.siValue.exp(twist))
+
+            poseEstimator.addDriveData(
+                Timer.getFPGATimestamp(),
+                twist
+            )
+
+            noVisionPose = UnitPose2d(noVisionPose.siValue.exp(twist))
         }
+
+        /*
+        Sends all pose data to the pose estimator.
+         */
+        if (visionPoseSuppliers.size > 0) {
+            visionUpdates.clear()
+            visionPoseSuppliers.forEach {
+                val measurement = it.robotPoseEstimate
+                if (measurement != null) {
+                    val stdDevVector = NomadApriltagUtil.calculateVisionUncertainty(
+                        measurement.value.x.siValue,
+                        heading.asRotation2d(),
+                        it.cameraYaw.asRotation2d(),
+                    )
+                    visionUpdates.add(
+                        MechanicalAdvantagePoseEstimator.TimestampedVisionUpdate(
+                            measurement.timestamp.inUnit(seconds),
+                            measurement.value.inUnit(meters),
+                            stdDevVector
+                        )
+                    )
+                }
+            }
+            if (visionUpdates.size != 0) {
+                poseEstimator.addVisionData(visionUpdates)
+            }
+        }
+
+
+        Logger.recordOutput("ThreadedPoseEstimator/debugNovisionPose", Pose2d.struct, noVisionPose.siValue)
         Logger.recordOutput("ThreadedPoseEstimator/pose", Pose2d.struct, robotPose.siValue)
         Logger.recordOutput("ThreadedPoseEstimator/numActualSamples", numActualSamples)
         Logger.recordOutput("ThreadedPoseEstimator/numIntendedSamples", numSamples)

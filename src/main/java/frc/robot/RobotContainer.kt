@@ -54,8 +54,6 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 
 class RobotContainer: ChargerRobotContainer() {
 
-
-    /*
     // Subsystems/components
 
     private val gyroIO = ChargerNavX(
@@ -70,11 +68,14 @@ class RobotContainer: ChargerRobotContainer() {
         mountAngle = LIMELIGHT_MOUNT_ANGLE
     )
 
+    /*
     private val apriltagIO: AprilTagVisionPipeline =
         limelight.ApriltagPipeline(
             index = 1,
             logInputs = LoggableInputsProvider("LimelightApriltagVision") // logs to the "LimelightApriltagVision" namespace
         )
+
+     */
 
     private val drivetrain = EncoderHolonomicDrivetrain(
         turnMotors = TURN_MOTORS,
@@ -87,6 +88,7 @@ class RobotContainer: ChargerRobotContainer() {
         gyro = if (isReal()) gyroIO else null,
     )
 
+    /*
     private val shooter = Shooter(
         ShooterIOSim(
             DCMotor.getNEO(1),
@@ -123,6 +125,8 @@ class RobotContainer: ChargerRobotContainer() {
             chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
 
+         */
+
 
         if (isReal() || hasReplaySource()){
             drivetrain.poseEstimator = ThreadedPoseMonitor(
@@ -138,6 +142,7 @@ class RobotContainer: ChargerRobotContainer() {
         }
 
 
+        /*
         PathPlannerLogging.setLogCurrentPoseCallback {
             recordOutput("Pathplanner/currentPose", Pose2d.struct, it)
         }
@@ -195,7 +200,8 @@ class RobotContainer: ChargerRobotContainer() {
     }
 
 
-
+    override val autonomousCommand: Command
+        get() = runOnceCommand{}
 
 
 
@@ -233,6 +239,7 @@ class RobotContainer: ChargerRobotContainer() {
 
      */
 
+    /*
     val motor = ChargerSparkMax(29).apply{
         this.getEncoder().position = 0.0
         restoreFactoryDefaults()
@@ -250,5 +257,7 @@ class RobotContainer: ChargerRobotContainer() {
                 recordOutput("Testing/motorPosition", motor.encoder.angularPosition.inUnit(degrees))
             }
         }
+
+     */
 
 }

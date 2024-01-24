@@ -53,8 +53,7 @@ fun grabGamepiece(
         }
 
         runOnce{
-            aimingConfig.vision.reset()
-            aimingConfig.vision.require()
+            aimingConfig.vision.requireAndReset()
         }
 
         if (shooter.canDetectGamepieces){

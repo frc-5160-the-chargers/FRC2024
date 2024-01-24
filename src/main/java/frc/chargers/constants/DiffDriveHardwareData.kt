@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package frc.chargers.constants
 
 import com.batterystaple.kmeasure.quantities.Length

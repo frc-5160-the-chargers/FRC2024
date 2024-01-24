@@ -5,6 +5,7 @@ package frc.chargers.hardware.sensors.vision
 /**
  * Adds scalars onto the tx, ty and areaPercent terms of an [AprilTagVisionPipeline].
  */
+@JvmName("withScalarsAprilTag")
 fun AprilTagVisionPipeline.withScalars(
     txScalar: Double = 1.0,
     tyScalar: Double = 1.0,
@@ -38,6 +39,7 @@ fun AprilTagVisionPipeline.withScalars(
 /**
  * Adds scalars onto the tx, ty and areaPercent terms of an [AprilTagVisionPipeline].
  */
+@JvmName("withScalarsObject")
 fun ObjectVisionPipeline.withScalars(
     txScalar: Double = 1.0,
     tyScalar: Double = 1.0,

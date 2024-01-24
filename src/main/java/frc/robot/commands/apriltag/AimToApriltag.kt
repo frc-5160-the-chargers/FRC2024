@@ -64,7 +64,7 @@ fun aimToApriltag(
         addRequirements(drivetrain)
 
         runOnce{
-            visionIO.require()
+            visionIO.requireAndReset()
         }
 
         loopWhile({ canFindTarget() && !hasFinishedAiming() }){

@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress( "unused")
 package frc.chargers.constants
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
@@ -12,7 +12,7 @@ import frc.chargers.utils.Precision
  * A class that holds Control data for a [frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain].
  * This includes PID constants, feedforward, and path re-planning configs.
  */
-public data class SwerveControlData(
+data class SwerveControlData(
     val azimuthControl: SwerveAzimuthControl,
     val velocityPID: PIDConstants,
     val velocityFF: AngularMotorFFEquation,
@@ -24,7 +24,7 @@ public data class SwerveControlData(
 )
 
 
-public sealed class SwerveAzimuthControl(
+sealed class SwerveAzimuthControl(
     val pidConstants: PIDConstants,
     val precision: Precision<AngleDimension> = Precision.AllowOvershoot
 ){
