@@ -4,10 +4,16 @@ import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Distance
 
 /**
- * A utility class that stores constants related a single vision camera module.
+ * A utility class that stores constants related a single vision camera.
+ *
+ * Different pipelines should have the same instance of this class.
  */
 data class VisionCameraConstants(
-    val name: String,
+    /**
+     * The name of the overarching vision camera.
+     * This should be the same for every pipeline that belongs to the same camera.
+     */
+    val cameraName: String,
     /**
      * How high the vision camera's lens is from the ground.
      */

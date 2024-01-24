@@ -18,10 +18,11 @@ class FusedAprilTagPipeline(
         // ensures that all pipelines added are distinct and aren't from the same camera
         val camNames: MutableList<String> = mutableListOf()
         for (pipeline in pipelines){
-            val camName = pipeline.cameraConstants.name
+            val camName = pipeline.cameraConstants.cameraName
             if (camName in camNames){
-                error("You cannot add 2 pipelines of the same type together in a Fused vision pipeline" +
-                        "(as they consume the same camera resource). Camera name: $camName"
+                error(
+                    "You cannot add 2 vision pipelines from the same vision camera into a fused vision pipeline" +
+                    "(as they consume the same camera resource). Camera name: $camName"
                 )
             }else{
                 camNames.add(camName)
