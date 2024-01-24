@@ -74,7 +74,7 @@ internal class SparkPIDHandler(
 
         innerController.setReference(
             if (isCurrentlyWrapping){
-                target.inputModulus(-180.degrees..180.degrees).siValue
+                target.inputModulus((-180).degrees..180.degrees).siValue
             }else{
                 target.siValue
             },

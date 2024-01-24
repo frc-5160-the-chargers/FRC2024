@@ -4,7 +4,6 @@ package frc.chargers.hardware.sensors.vision
 
 import com.batterystaple.kmeasure.interop.average
 import com.batterystaple.kmeasure.interop.sum
-import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Distance
 
 
@@ -17,15 +16,15 @@ class FusedAprilTagPipeline(
 
     init{
         // ensures that all pipelines added are distinct and aren't from the same camera
-        val classNames: MutableList<String> = mutableListOf()
+        val camNames: MutableList<String> = mutableListOf()
         for (pipeline in pipelines){
-            val className = pipeline::class.simpleName ?: continue  // continues if added class is anonymous(has no name)
-            if (className in classNames){
+            val camName = pipeline.cameraConstants.name
+            if (camName in camNames){
                 error("You cannot add 2 pipelines of the same type together in a Fused vision pipeline" +
-                        "(as they consume the same camera resource). Class name: $className"
+                        "(as they consume the same camera resource). Camera name: $camName"
                 )
             }else{
-                classNames.add(className)
+                camNames.add(camName)
             }
         }
     }
@@ -77,21 +76,20 @@ class FusedAprilTagPipeline(
             }
         }
 
-    override val lensHeight: Distance
-        get() = pipelines.map{ it.lensHeight }.average() // custom .average() overload for kmeasure
+    override val cameraConstants: VisionCameraConstants
+        get(){
+            val allData = pipelines.map{ it.cameraConstants }
 
-    override val mountAngle: Angle
-        get() = pipelines.map{ it.mountAngle }.average() // custom .average() overload for kmeasure
-
-    override fun reset() {
-        pipelines.forEach{
-            it.reset()
+            return VisionCameraConstants(
+                "Fused AprilTag Pipeline($allData)",
+                allData.map{ it.lensHeight }.average(),
+                allData.map{ it.mountAngle }.average(),
+            )
         }
-    }
 
-    override fun require() {
-        pipelines.forEach {
-            it.require()
+    override fun requireAndReset() {
+        pipelines.forEach{
+            it.requireAndReset()
         }
     }
 

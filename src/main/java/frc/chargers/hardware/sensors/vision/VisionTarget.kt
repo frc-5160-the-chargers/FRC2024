@@ -12,9 +12,7 @@ import org.littletonrobotics.junction.LogTable
 
 
 /**
- * Represents Vision Data(timestamp, best target, and other targets)
- *
- * that can be pushed to log.
+ * Represents Vision Data(timestamp, best target, and other targets) that can be pushed to AdvantageKit.
  */
 public class VisionData<out R>(
     timestamp: Time,
@@ -66,7 +64,6 @@ public open class NonLoggableVisionData<out R: VisionTarget>(
     ): this(timestamp, bestTarget, listOf(*otherTargets))
 
     public val allTargets: List<R> = otherTargets + listOf(bestTarget)
-
 }
 
 /**
@@ -108,7 +105,7 @@ public sealed interface VisionTarget{
             )
     }
 
-    public class AprilTag(
+    public open class AprilTag(
         override val tx: Double,
         override val ty: Double,
         override val areaPercent: Double,

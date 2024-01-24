@@ -1,5 +1,5 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
-package frc.chargers.hardware.sensors.vision
+package frc.chargers.utils
 
 import edu.wpi.first.networktables.NetworkTableEntry
 import edu.wpi.first.networktables.NetworkTableInstance
@@ -18,18 +18,23 @@ public class DriverCameraView(
             setResolution(defaultResWidth,defaultResHeight)
         }
     }
-    private val cameraSelector: NetworkTableEntry = NetworkTableInstance.getDefault().getTable("").getEntry("CameraSelection")
+
+    private val cameraSelector: NetworkTableEntry =
+        NetworkTableInstance
+            .getDefault()
+            .getTable("")
+            .getEntry("CameraSelection")
 
 
-    public fun switchToCamera(id: Int){
-        cameraSelector.setString(driverCameras[id].name)
+    public fun switchToCamera(index: Int){
+        cameraSelector.setString(driverCameras[index].name)
     }
 
-    public fun setResolutionOf(id: Int, width:Int, height:Int){
-        driverCameras[id].setResolution(width,height)
+    public fun setResolutionOf(index: Int, width: Int, height: Int){
+        driverCameras[index].setResolution(width, height)
     }
 
-    public fun setResolution(width:Int, height:Int){
-        driverCameras.forEach{it.setResolution(width,height)}
+    public fun setResolution(width: Int, height: Int){
+        driverCameras.forEach{it.setResolution(width, height)}
     }
 }

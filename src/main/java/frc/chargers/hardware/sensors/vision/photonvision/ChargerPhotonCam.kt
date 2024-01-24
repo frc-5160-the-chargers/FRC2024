@@ -23,13 +23,13 @@ import org.photonvision.targeting.PhotonTrackedTarget
 import java.util.*
 
 /**
- * A wrapper over PhotonVision's [PhotonCamera], built for ChargerLib.
+ * A wrapper over PhotonVision's [PhotonCamera], with support for advantagekit and more integration within ChargerLib.
  */
 public class ChargerPhotonCam(
     name: String,
     public val lensHeight: Distance,
     public val mountAngle: Angle
-): PhotonCamera(name){
+): PhotonCamera(name) {
     private var required: Boolean = false
 
     private val allIndexes: MutableList<Int> = mutableListOf()
@@ -40,7 +40,7 @@ public class ChargerPhotonCam(
     }
 
     /**
-     * Represents a
+     * Represents a photonvision pipeline that can detect AprilTags.
      */
     public inner class AprilTagPipeline(
         index: Int,
@@ -78,8 +78,8 @@ public class ChargerPhotonCam(
          * This should be equivalent to the pipeline index of the corresponding [AprilTagPipeline].
          */
         aprilTagPipelineIndex: Int,
-        logInputs: LoggableInputsProvider,
         robotToCamera: UnitTransform3d,
+        logInputs: LoggableInputsProvider,
 
         fieldTags: AprilTagFieldLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
         strategy: PoseStrategy = PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
@@ -88,7 +88,7 @@ public class ChargerPhotonCam(
         strategy,
         this@ChargerPhotonCam,
         robotToCamera.inUnit(meters)
-    ), VisionPoseSupplier{
+    ), VisionPoseSupplier {
         override val cameraYaw: Angle
             get() = Angle(robotToCameraTransform.rotation.z)
 
@@ -150,21 +150,30 @@ public class ChargerPhotonCam(
     abstract inner class PhotonCameraPipeline<T: VisionTarget>(val index: Int): VisionPipeline<T>{
         init{
             ensureIndexValid(index)
-            reset()
+            // only reset pipeline if there is currently 1 pipeline index or less.
+            if (allIndexes.size <= 1){
+                resetPipeline()
+            }
         }
 
-        final override fun reset(){
-            pipelineIndex = index
-            println("Photon Camera with name $name has had it's pipeline reset to $index")
+        private fun resetPipeline(){
+            // property access syntax(was getPipelineIndex() and setPipelineIndex())
+            if (pipelineIndex != index){
+                pipelineIndex = index
+                println("Photon Camera with name $name has had it's pipeline reset to $index")
+            }else{
+                println("Photon Camera with name $name is on a pipeline with index $index")
+            }
         }
 
-        override fun require(){
+        override fun requireAndReset(){
             if (required){
                 error("A Photon Camera with name '$name' has been required in 2 different places. \n " +
                         "Make sure to call pipeline.isRequired = false at the end of all commands!"
                 )
             }
             required = true
+            resetPipeline()
         }
 
         override fun removeRequirement(){
@@ -174,9 +183,11 @@ public class ChargerPhotonCam(
             required = false
         }
 
-        override val lensHeight: Distance = this@ChargerPhotonCam.lensHeight
-
-        override val mountAngle: Angle = this@ChargerPhotonCam.mountAngle
+        override val cameraConstants = VisionCameraConstants(
+            "Photon Camera " + this@ChargerPhotonCam.name,
+            this@ChargerPhotonCam.lensHeight,
+            this@ChargerPhotonCam.mountAngle
+        )
     }
 
     private fun toAprilTagTarget(target: PhotonTrackedTarget) =

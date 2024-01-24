@@ -19,14 +19,14 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 
 
 /**
- * A wrapper around the Limelight, optimized for usage within ChargerLib.
+ * A wrapper around the Limelight, with advantagekit support,
+ * optimized for usage within ChargerLib.
  */
 public class ChargerLimelight(
     @JvmField public val name: String = "limelight",
     useJsonDump: Boolean = false,
     public val lensHeight: Distance,
-    public val mountAngle: Angle,
-    public val defaultDriverStationIfUnavailable: DriverStation.Alliance = DriverStation.Alliance.Blue,
+    public val mountAngle: Angle
 ){
     // used to manage requirements for the limelight.
     private var required: Boolean = false
@@ -104,6 +104,9 @@ public class ChargerLimelight(
 
     /**
      * Represents a Limelight pipeline that can detect AprilTags.
+     *
+     * Note: this class does not provide pose estimation. Use [ChargerLimelight.AprilTagPoseEstimator]
+     * with the SAME pipeline index as this class instead.
      */
     public inner class ApriltagPipeline(
         index: Int,
@@ -167,6 +170,7 @@ public class ChargerLimelight(
         logInputs: LoggableInputsProvider,
         override val cameraYaw: Angle
     ): VisionPoseSupplier {
+
         override val robotPoseEstimate: Measurement<UnitPose2d>?
             by logInputs.nullableValue(default = Measurement(UnitPose2d(), Time(0.0))){
                 if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != aprilTagPipelineIndex) {
@@ -174,7 +178,7 @@ public class ChargerLimelight(
                 }
 
                 val allianceColor: DriverStation.Alliance =
-                    DriverStation.getAlliance().orElse(defaultDriverStationIfUnavailable)
+                    DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
 
                 val poseArray: DoubleArray
 
@@ -270,19 +274,32 @@ public class ChargerLimelight(
      */
     abstract inner class LimelightPipeline<T: VisionTarget>(
         public val index: Int
-    ): VisionPipeline<T>{
+    ): VisionPipeline<T> {
         init{
             ensureIndexValid(index)
-            reset()
+            // if there is only 1 current index; reset the pipeline as the camera is likely only running on 1 index;
+            if (allIndexes.size <= 1){
+                resetPipeline()
+            }
         }
 
-        override fun require(){
+        private fun resetPipeline(){
+            if (getCurrentPipelineIndex(name).toInt() != index){
+                setPipelineIndex(name, index)
+                println("Limelight with name $name has had it's pipeline reset to $index")
+            }else{
+                println("Limelight with name $name is already on index $index.")
+            }
+        }
+
+        override fun requireAndReset(){
             if (required){
                 error("A Limelight with name '$name' has been required in 2 different places. \n " +
                         "Make sure to call pipeline.isRequired = false at the end of all commands!"
                 )
             }
             required = true
+            resetPipeline()
         }
 
         override fun removeRequirement(){
@@ -292,13 +309,10 @@ public class ChargerLimelight(
             required = false
         }
 
-        final override fun reset(){
-            setPipelineIndex(name, index)
-            println("Limelight with name $name has had it's pipeline reset to $index")
-        }
-
-        override val lensHeight: Distance = this@ChargerLimelight.lensHeight
-
-        override val mountAngle: Angle = this@ChargerLimelight.mountAngle
+        override val cameraConstants = VisionCameraConstants(
+            "Limelight " + this@ChargerLimelight.name,
+            this@ChargerLimelight.lensHeight,
+            this@ChargerLimelight.mountAngle
+        )
     }
 }

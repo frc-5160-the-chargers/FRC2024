@@ -36,11 +36,8 @@ fun twoPieceAmpWithVision(
 
         runSequentially{
             runOnce{
-                gamepieceDetector.require()
-                apriltagDetector.require()
-
-                gamepieceDetector.reset()
-                apriltagDetector.reset()
+                gamepieceDetector.requireAndReset()
+                apriltagDetector.requireAndReset()
             }
 
             +shooter.setAngleCommand(PivotAngle.IDLE)

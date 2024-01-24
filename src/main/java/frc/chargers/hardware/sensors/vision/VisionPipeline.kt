@@ -7,7 +7,6 @@ import org.photonvision.PhotonUtils
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-
 public typealias AprilTagVisionPipeline = VisionPipeline<VisionTarget.AprilTag>
 
 public typealias ObjectVisionPipeline = VisionPipeline<VisionTarget.Object>
@@ -22,30 +21,24 @@ public interface VisionPipeline<R: VisionTarget> {
     /**
      * Fetches the full vision data of the [VisionPipeline]; These are all from the exact same timestamp.
      * A null value represents the vision data being invalid/the pipeline having no available targets.
+     *
+     * This is intended to be used as a getter variable.
      */
     public val visionData: NonLoggableVisionData<R>?
 
     /**
-     * How high the vision camera's lens is from the ground.
+     * Camera constants specific to the overarching vision camera.
      */
-    public val lensHeight: Distance
+    public val cameraConstants: VisionCameraConstants
 
     /**
-     * The mount angle describes how many degrees the vision camera is from perfectly vertical.
+     * Requires the overarching vision camera of the pipeline,
+     * and performs any proper initialization needed; depending on the camera type.
+     * This method should ```always``` be called before you use the vision pipeline.
+     *
+     * Initialization can include: resetting the pipeline index/mode, performing crosshair offsets, etc.
      */
-    public val mountAngle: Angle
-
-    /**
-     * Resets the camera that the [VisionPipeline] belongs to in order to return proper results.
-     * This can include setting the overall camera's pipeline index to the index specified.
-     */
-    public fun reset()
-
-    /**
-     * Requires the overarching vision camera
-     * of the pipeline.
-     */
-    public fun require()
+    public fun requireAndReset()
 
     /**
      * Removes the requirement of the overarching vision camera
@@ -73,9 +66,9 @@ public interface VisionPipeline<R: VisionTarget> {
         target: R? = bestTarget
     ): Distance? = if (target != null){
         PhotonUtils.calculateDistanceToTargetMeters(
-            lensHeight.inUnit(meters),
+            cameraConstants.lensHeight.inUnit(meters),
             targetHeight.inUnit(meters),
-            mountAngle.inUnit(radians),
+            cameraConstants.mountAngle.inUnit(radians),
             target.ty.ofUnit(degrees).inUnit(radians)
         ).ofUnit(meters)
     }else{
@@ -91,7 +84,6 @@ public interface VisionPipeline<R: VisionTarget> {
             sqrt(horizontalDistance.siValue.pow(2) + targetHeight.siValue.pow(2.0))
         )
     }
-
 
 }
 
