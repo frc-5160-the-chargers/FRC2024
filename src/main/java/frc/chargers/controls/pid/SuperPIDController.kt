@@ -88,6 +88,10 @@ public open class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*
 
     protected val pidController = PIDController(pidConstants.kP, pidConstants.kI, pidConstants.kD)
 
+    protected open fun resetController(){
+        pidController.reset()
+    }
+
     init{
         if (selfSustain){
             ChargerRobot.runPeriodically(runnable = ::calculateOutput)
@@ -148,7 +152,7 @@ public open class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*
         get() = PIDConstants(pidController.p, pidController.i, pidController.d)
         set(value){
             if (value != constants){
-                pidController.reset()
+                resetController()
                 pidController.p = value.kP
                 pidController.i = value.kI
                 pidController.d = value.kD

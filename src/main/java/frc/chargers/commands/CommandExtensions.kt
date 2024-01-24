@@ -26,7 +26,7 @@ public fun runOnceCommand(vararg subsystems: Subsystem, toRun: () -> Unit): Inst
 public fun RunCommand(vararg subsystems: Subsystem, toRun: () -> Unit): RunCommand =
     RunCommand(toRun, *subsystems)
 
-public fun loopForeverCommand(vararg subsystems: Subsystem, toRun: () -> Unit): RunCommand =
+public fun loopCommand(vararg subsystems: Subsystem, toRun: () -> Unit): RunCommand =
     RunCommand(toRun, *subsystems)
 
 /**
@@ -94,7 +94,7 @@ public fun Command.repeatWhile(condition: () -> Boolean): Command = ParallelRace
 /**
  * Makes a command repeat for a certain amount of times.
  */
-public fun Command.repeat(numTimes: Int): Command = buildCommand{
+public fun Command.repeat(numTimes: Int): Command = buildCommand {
     for (i in 1..numTimes){
         +this@repeat
     }

@@ -10,6 +10,7 @@ import com.batterystaple.kmeasure.units.volts
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.sensors.encoders.Encoder
+import frc.chargers.utils.math.inputModulus
 
 /**
  * A utility class that manages closed loop control
@@ -70,12 +71,18 @@ internal class SparkPIDHandler(
             isCurrentlyWrapping = continuousWrap
         }
         updateControllerConstants(pidConstants)
+
         innerController.setReference(
-            target.siValue,
+            if (isCurrentlyWrapping){
+                target.inputModulus(-180.degrees..180.degrees).siValue
+            }else{
+                target.siValue
+            },
             com.revrobotics.CANSparkBase.ControlType.kPosition,
             0,
             extraVoltage.siValue
         )
+
         followers.forEach{
             it.setAngularPosition(
                 target, pidConstants, continuousWrap, extraVoltage, encoderAdaptor

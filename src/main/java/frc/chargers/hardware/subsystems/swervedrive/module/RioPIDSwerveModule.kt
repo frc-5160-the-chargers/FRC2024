@@ -85,8 +85,8 @@ public class RioPIDSwerveModule(
                     outputRange = -12.volts..12.volts,
                     continuousInputRange = 0.degrees..360.degrees,
                     selfSustain = true,
-                    feedforward = ff@{ // has the context of the SuperProfiledPIDController class
-                        // fetches the current setpoint velocity
+                    feedforward = ff@{ // has the context of the SuperProfiledPIDController class; thus, setpoint and targetState are pid controller properties
+                        // fetches the current setpoint velocity; this is not the goal(targetState) of the controller
                         val currentVelocitySetpoint: AngularVelocity = setpoint.velocity
 
                         // calculates the profile state 1 loop ahead, and gets the velocity from it

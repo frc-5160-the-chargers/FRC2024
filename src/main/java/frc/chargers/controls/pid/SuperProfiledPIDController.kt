@@ -40,7 +40,7 @@ inline fun <PI: Dimension<*,*,*,*>,VI: Dimension<*,*,*,*>> SuperProfiledPIDContr
 )
 
 /**
- * Wraps WPILib's [edu.wpi.first.math.controller.PIDController], adding units support and support for a wide variety of motion profiles.
+ * Wraps WPILib's [edu.wpi.first.math.controller.PIDController], adding units support and support for motion profiles.
  *
  * Although this controller's basic functionality is similar to the [edu.wpi.first.math.controller.ProfiledPIDController],
  * it supports generic motion profiles(including exponential profiles) and built in feedforward.
@@ -78,7 +78,7 @@ class SuperProfiledPIDController<PosI: Dimension<*,*,*,*>, VelI: Dimension<*,*,*
      *
      * The goal of a profiled pid controller is to follow multiple of these setpoints to obtain smoother motion
      */
-    var setpoint = MotionProfileState<PosI,VelI>(getInput())
+    var setpoint: MotionProfileState<PosI, VelI> = MotionProfileState(getInput())
         private set
 
     override var target: Quantity<PosI>
@@ -107,5 +107,10 @@ class SuperProfiledPIDController<PosI: Dimension<*,*,*,*>, VelI: Dimension<*,*,*
 
         super.target = setpoint.position
         return super.calculateOutput() + feedforward()
+    }
+
+    protected override fun resetController(){
+        pidController.reset()
+        setpoint = MotionProfileState(getInput())
     }
 }
