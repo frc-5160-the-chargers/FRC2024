@@ -52,6 +52,7 @@ val DRIVE_CONTROL_DATA = if (isReal()){
     )
 }
 
+/*
 val TURN_MOTORS = sparkMaxSwerveMotors(
     topLeftId = 29,
     topRightId = 31,
@@ -88,3 +89,6 @@ val DRIVE_MOTORS = sparkMaxSwerveMotors(
     openLoopRampRate = 48.0
     closedLoopRampRate = 48.0
 }
+
+ */
+

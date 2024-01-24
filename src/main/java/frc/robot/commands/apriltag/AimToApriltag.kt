@@ -43,11 +43,11 @@ fun aimToApriltag(
             return if (bestTarget == null){
                 noTargetFoundAlert.active = true
                 false
-            }else if (targetId != bestTarget.id ){
+            }else if (targetId != bestTarget.fiducialId ){
                 Alert.warning(text =
                 "An apriltag command can find an apriltag, " +
                         "but it does not match the id of $targetId. " +
-                        "(Found id: " + bestTarget.id
+                        "(Found id: " + bestTarget.fiducialId
                 ).active = true
                 false
             }else{

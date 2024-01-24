@@ -10,6 +10,7 @@ import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.vision.*
+import frc.chargers.hardware.sensors.vision.photonvision.ChargerPhotonCam.AprilTagPipeline
 import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.ofUnit
@@ -101,25 +102,18 @@ public class ChargerLimelight(
     }
 
 
-
+    /**
+     * Represents a Limelight pipeline that can detect AprilTags.
+     */
     public inner class ApriltagPipeline(
-        public val index: Int,
+        index: Int,
         /**
          * The namespace of which the Limelight Pipeline logs to:
          * Ensure that this namespace is the same across real and sim equivalents.
          * @see LoggableInputsProvider
          */
-        private val logInputs: LoggableInputsProvider
-    ): VisionPipeline<VisionTarget.AprilTag> {
-        init{
-            ensureIndexValid(index)
-            reset()
-        }
-
-        override fun reset(){
-            setPipelineIndex(name,index)
-            println("Limelight with name $name has had it's pipeline reset to $index")
-        }
+        logInputs: LoggableInputsProvider
+    ): LimelightPipeline<VisionTarget.AprilTag>(index) {
 
         override val visionData: VisionData<VisionTarget.AprilTag>?
             by logInputs.nullableValue(default = emptyAprilTagVisionData()){ getApriltagData() }
@@ -138,7 +132,7 @@ public class ChargerLimelight(
                         tx = it.tx,
                         ty = it.ty,
                         areaPercent = it.ta,
-                        id = it.fiducialID.toInt(),
+                        fiducialId = it.fiducialID.toInt(),
                         // converts it to a UnitTransform3d.
                         targetTransformFromCam = it.targetPose_CameraSpace.ofUnit(meters) - UnitPose3d()
                     )
@@ -161,36 +155,22 @@ public class ChargerLimelight(
                 )
             }
         }
+    }
 
-        override val lensHeight: Distance = this@ChargerLimelight.lensHeight
 
-        override val mountAngle: Angle = this@ChargerLimelight.mountAngle
-
-        override fun require(){
-            if (required){
-                error("A Limelight with name '$name' has been required in 2 different places. \n " +
-                        "Make sure to call pipeline.isRequired = false at the end of all commands!"
-                )
-            }
-            required = true
-        }
-
-        override fun removeRequirement(){
-            if (!required){
-                println("A requirement was removed; however, this requirement was never set in the first place.")
-            }
-            required = false
-        }
-
-        public inner class PoseEstimator(
-            override val cameraYaw: Angle
-        ): VisionPoseSupplier {
-            override val robotPoseEstimate: Measurement<UnitPose2d>?
-                by logInputs.nullableValue(default = Measurement(UnitPose2d(), Time(0.0))){ getPoseEstimate() }
-
-            private fun getPoseEstimate(): Measurement<UnitPose2d>?{
-                if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != index) {
-                    return null
+    public inner class AprilTagPoseEstimator(
+        /**
+         * The pipeline index where apriltag pose estimation takes place.
+         * This should be equivalent to the pipeline index of the corresponding [AprilTagPipeline].
+         */
+        aprilTagPipelineIndex: Int,
+        logInputs: LoggableInputsProvider,
+        override val cameraYaw: Angle
+    ): VisionPoseSupplier {
+        override val robotPoseEstimate: Measurement<UnitPose2d>?
+            by logInputs.nullableValue(default = Measurement(UnitPose2d(), Time(0.0))){
+                if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != aprilTagPipelineIndex) {
+                    return@nullableValue null
                 }
 
                 val allianceColor: DriverStation.Alliance =
@@ -216,7 +196,7 @@ public class ChargerLimelight(
                     }
                 }
 
-                return Measurement(
+                return@nullableValue Measurement(
                     value = UnitPose2d(
                         poseArray[0].ofUnit(meters),
                         poseArray[1].ofUnit(meters),
@@ -225,29 +205,28 @@ public class ChargerLimelight(
                     timestamp = fpgaTimestamp() - poseArray[6].ofUnit(milli.seconds)
                 )
             }
-
-        }
     }
 
-    public inner class MLDetectorPipeline(
-        public val index: Int,
+    /**
+     * Represents a Limelight pipeline which can detect objects.
+     *
+     * The method used to detect objects is agnostic; some options include machine learning and color pipelines.
+     */
+    public inner class ObjectPipeline(
+        index: Int,
+        private val isMachineLearning: Boolean,
         /**
          * The namespace of which the Limelight Pipeline logs to:
          * Ensure that this namespace is the same across real and sim equivalents.
          * @see LoggableInputsProvider
          */
         logInputs: LoggableInputsProvider
-    ): MLClassifierPipeline(index,logInputs), VisionPipeline<VisionTarget.ML> {
+    ): LimelightPipeline<VisionTarget.Object>(index){
 
-        init{
-            reset()
-        }
+        override val visionData: VisionData<VisionTarget.Object>?
+                by logInputs.nullableValue(default = emptyObjectVisionData()){ getMLData() }
 
-
-        override val visionData: VisionData<VisionTarget.ML>?
-            by logInputs.nullableValue(default = emptyMLVisionData()){ getMLData() }
-
-        private fun getMLData(): VisionData<VisionTarget.ML>?{
+        private fun getMLData(): VisionData<VisionTarget.Object>? {
             if (isSimulation() || !hasTargets()) {
                 return null
             }else if (getCurrentPipelineIndex(name).toInt() != index){
@@ -257,11 +236,11 @@ public class ChargerLimelight(
 
             if (useJsonDump){
                 val allTargets = jsonResults.targets_Detector.map{
-                    VisionTarget.ML(
+                    VisionTarget.Object(
                         tx = it.tx,
                         ty = it.ty,
                         areaPercent = it.ta,
-                        id = it.classID.toInt()
+                        classId = if (isMachineLearning) it.classID.toString() else null
                     )
                 }.toMutableList()
                 val bestTarget = allTargets.removeAt(0)
@@ -273,60 +252,31 @@ public class ChargerLimelight(
 
                 return VisionData(
                     fpgaTimestamp() - latency,
-                    VisionTarget.ML(
+                    VisionTarget.Object(
                         getTX(name),
                         getTY(name),
                         getTA(name),
-                        getNeuralClassID(name).toInt()
+                        if (isMachineLearning) getNeuralClassID(name).toString() else null
                     )
                 )
             }
         }
 
-        override val lensHeight: Distance = this@ChargerLimelight.lensHeight
-
-        override val mountAngle: Angle = this@ChargerLimelight.mountAngle
     }
 
-    public open inner class MLClassifierPipeline(
-        private val index: Int,
-        /**
-         * The namespace of which the Limelight Pipeline logs to:
-         * Ensure that this namespace is the same across real and sim equivalents.
-         * @see LoggableInputsProvider
-         */
-        logInputs: LoggableInputsProvider
-    ): Classifier<Int?> {
 
+    /**
+     * Represents a base pipeline for a limelight.
+     */
+    abstract inner class LimelightPipeline<T: VisionTarget>(
+        public val index: Int
+    ): VisionPipeline<T>{
         init{
-            if (index < 0 || index > 9){
-                error("Your pipeline's ID is out of range.")
-            }
+            ensureIndexValid(index)
             reset()
         }
 
-        final override fun reset(){
-            setPipelineIndex(name,index)
-            println("Limelight with name $name has had it's pipeline reset to $index")
-        }
-
-        final override val itemType: Int?
-            by logInputs.nullableInt{
-                if (getCurrentPipelineIndex(name).toInt() == index && hasTargets() && isReal()){
-                    if (useJsonDump){
-                        jsonResults.targets_Classifier[0].classID.toInt()
-                    }else{
-                        getNeuralClassID(name).toInt()
-                    }
-                }else{
-                    if (getCurrentPipelineIndex(name).toInt() != index){
-                        println("The current pipeline index for the limelight of name '$name' is incorrect. You must call reset() on the pipeline.")
-                    }
-                    null
-                }
-            }
-
-        final override fun require(){
+        override fun require(){
             if (required){
                 error("A Limelight with name '$name' has been required in 2 different places. \n " +
                         "Make sure to call pipeline.isRequired = false at the end of all commands!"
@@ -335,11 +285,20 @@ public class ChargerLimelight(
             required = true
         }
 
-        final override fun removeRequirement(){
+        override fun removeRequirement(){
             if (!required){
                 println("A requirement was removed; however, this requirement was never set in the first place.")
             }
             required = false
         }
+
+        final override fun reset(){
+            setPipelineIndex(name, index)
+            println("Limelight with name $name has had it's pipeline reset to $index")
+        }
+
+        override val lensHeight: Distance = this@ChargerLimelight.lensHeight
+
+        override val mountAngle: Angle = this@ChargerLimelight.mountAngle
     }
 }

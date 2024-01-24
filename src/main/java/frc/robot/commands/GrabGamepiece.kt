@@ -20,7 +20,7 @@ private const val DEFAULT_DRIVE_POWER = 0.0
 
 fun grabGamepiece(
     drivePower: Double = DEFAULT_DRIVE_POWER,
-    aimingConfig: AimingConfig<VisionTarget.ML>? = null,
+    aimingConfig: AimingConfig<VisionTarget.Object>? = null,
 
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,

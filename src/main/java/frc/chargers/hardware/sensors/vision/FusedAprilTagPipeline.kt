@@ -39,7 +39,7 @@ class FusedAprilTagPipeline(
         val ty = targetData.map{ it.ty }.average()
         val areaPercent = targetData.map{ it.areaPercent }.average()
         val targetTransform = targetData[0].targetTransformFromCam
-        val id = targetData[0].id
+        val id = targetData[0].fiducialId
 
         return VisionTarget.AprilTag(
             tx, ty, areaPercent, id, targetTransform

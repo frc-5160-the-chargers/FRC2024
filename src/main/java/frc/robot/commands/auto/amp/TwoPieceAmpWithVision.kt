@@ -7,7 +7,7 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
-import frc.chargers.hardware.sensors.vision.MLVisionPipeline
+import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.commands.AimingConfig
 import frc.robot.commands.DEFAULT_AIMING_PID
@@ -23,7 +23,7 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 fun twoPieceAmpWithVision(
     aimingPID: PIDConstants = DEFAULT_AIMING_PID,
     apriltagDetector: AprilTagVisionPipeline,
-    gamepieceDetector: MLVisionPipeline,
+    gamepieceDetector: ObjectVisionPipeline,
 
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,

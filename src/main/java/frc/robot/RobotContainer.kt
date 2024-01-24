@@ -7,6 +7,7 @@ package frc.robot
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Velocity
+import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
@@ -32,6 +33,7 @@ import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.ChargerRobotContainer
+import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
@@ -53,6 +55,7 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 class RobotContainer: ChargerRobotContainer() {
 
 
+    /*
     // Subsystems/components
 
     private val gyroIO = ChargerNavX(
@@ -94,6 +97,8 @@ class RobotContainer: ChargerRobotContainer() {
         PIDConstants(0.3,0,0)
     )
 
+     */
+
 
     init{
         if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
@@ -106,6 +111,7 @@ class RobotContainer: ChargerRobotContainer() {
         configureBindings()
         configureDefaultCommands()
 
+        /*
         /*
         PPHolonomicDriveController.setRotationTargetOverride {
             Optional.of(Rotation2d.fromDegrees(90.0))
@@ -146,9 +152,12 @@ class RobotContainer: ChargerRobotContainer() {
             recordOutput("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
             recordOutput("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
         }
+
+         */
     }
 
     private fun configureDefaultCommands(){
+        /*
         drivetrain.defaultCommand = buildCommand{
             addRequirements(drivetrain)
 
@@ -163,10 +172,13 @@ class RobotContainer: ChargerRobotContainer() {
                 drivetrain.stop()
             }
         }
+
+         */
     }
 
 
     private fun configureBindings(){
+        /*
         val resetAimToAngle = runOnceCommand{ DriverController.targetHeading = null}
 
         fun targetAngle(heading: Angle) = runOnceCommand{ DriverController.targetHeading = heading }
@@ -178,6 +190,8 @@ class RobotContainer: ChargerRobotContainer() {
             pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle)
         }
 
+         */
+
     }
 
 
@@ -185,6 +199,7 @@ class RobotContainer: ChargerRobotContainer() {
 
 
 
+    /*
     val autoChooser = LoggedDashboardChooser<Command>("Auto Command").apply{
         addDefaultOption("Taxi", basicTaxi(drivetrain))
     }
@@ -214,6 +229,26 @@ class RobotContainer: ChargerRobotContainer() {
             println("Pose zeroed. New pose: " + drivetrain.poseEstimator.robotPose)
             gyroIO.zeroHeading()
             println("Gyro zeroed. New gyro heading: " + gyroIO.heading)
+        }
+
+     */
+
+    val motor = ChargerSparkMax(29).apply{
+        this.getEncoder().position = 0.0
+        restoreFactoryDefaults()
+    }
+    override val autonomousCommand: Command
+        get() = buildCommand {
+            loop{
+                /*
+                motor.setAngularPosition(
+                    90.degrees,
+                    PIDConstants(0.3,0,0),
+                )
+                 */
+                motor.set(0.3)
+                recordOutput("Testing/motorPosition", motor.encoder.angularPosition.inUnit(degrees))
+            }
         }
 
 }

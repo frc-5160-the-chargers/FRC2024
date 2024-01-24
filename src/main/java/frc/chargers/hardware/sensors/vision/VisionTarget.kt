@@ -78,35 +78,41 @@ public sealed interface VisionTarget{
     public val ty: Double
     public val areaPercent: Double
 
-    public class Generic(
+
+    public open class Object(
         override val tx: Double,
         override val ty: Double,
-        override val areaPercent: Double
-    ): VisionTarget, AdvantageKitLoggable<Generic>{
+        override val areaPercent: Double,
+        open val classId: String? = null
+    ): VisionTarget, AdvantageKitLoggable<Object> {
         override fun pushToLog(table: LogTable, category: String) {
             table.apply{
                 put("$category/tx", tx)
-                put("$category/ty",ty)
-                put("$category/areaPercent",areaPercent)
+                put("$category/ty", ty)
+                put("$category/areaPercent", areaPercent)
+                put("$category/hasClassId", classId != null)
+                put("$category/classId", classId ?: "NULL")
             }
         }
 
-        override fun getFromLog(table: LogTable, category: String): Generic {
-            return Generic(
+        override fun getFromLog(table: LogTable, category: String): Object =
+            Object(
                 table.get("$category/tx",0.0),
                 table.get("$category/ty",0.0),
-                table.get("$category/areaPercent",0.0)
+                table.get("$category/areaPercent",0.0),
+                if (table.get("$category/hasClassId", false)){
+                    table.get("$category/classId", classId)
+                }else{
+                    null
+                }
             )
-        }
-
     }
-
 
     public class AprilTag(
         override val tx: Double,
         override val ty: Double,
         override val areaPercent: Double,
-        public val id: Int,
+        public val fiducialId: Int,
         public val targetTransformFromCam: UnitTransform3d
     ): VisionTarget, AdvantageKitLoggable<AprilTag>{
         override fun pushToLog(table: LogTable, category: String) {
@@ -114,7 +120,7 @@ public sealed interface VisionTarget{
                 put("$category/tx", tx)
                 put("$category/ty",ty)
                 put("$category/areaPercent",areaPercent)
-                put("$category/id",id.toLong())
+                put("$category/id", fiducialId)
             }
             targetTransformFromCam.pushToLog(table,"$category/transformFromCam")
         }
@@ -129,30 +135,4 @@ public sealed interface VisionTarget{
             )
         }
     }
-
-    public class ML(
-        override val tx: Double,
-        override val ty: Double,
-        override val areaPercent: Double,
-        public val id: Int
-    ): VisionTarget, AdvantageKitLoggable<ML>{
-        override fun pushToLog(table: LogTable, category: String) {
-            table.apply{
-                put("$category/tx", tx)
-                put("$category/ty",ty)
-                put("$category/areaPercent",areaPercent)
-                put("$category/id",id.toLong())
-            }
-        }
-
-        override fun getFromLog(table: LogTable, category: String): ML {
-            return ML(
-                table.get("$category/tx",0.0),
-                table.get("$category/ty",0.0),
-                table.get("$category/areaPercent",0.0),
-                table.get("$category/id",0)
-            )
-        }
-    }
-
 }

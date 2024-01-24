@@ -20,16 +20,10 @@ public fun emptyAprilTagVisionData(): VisionData<VisionTarget.AprilTag> =
         )
     )
 
-public fun emptyMLVisionData(): VisionData<VisionTarget.ML> =
+public fun emptyObjectVisionData(): VisionData<VisionTarget.Object> =
     VisionData(
         timestamp = Time(0.0),
-        bestTarget = VisionTarget.ML(
-            0.0,0.0,0.0,0
+        bestTarget = VisionTarget.Object(
+            0.0,0.0,0.0
         )
-    )
-
-public fun emptyGenericVisionData(): VisionData<VisionTarget.Generic> =
-    VisionData(
-        timestamp = Time(0.0),
-        bestTarget = VisionTarget.Generic(0.0,0.0,0.0)
     )
