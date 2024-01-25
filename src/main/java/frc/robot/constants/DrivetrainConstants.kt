@@ -39,10 +39,10 @@ val DRIVE_CONTROL_DATA = if (isReal()){
 }else{
     SwerveControlData(
         azimuthControl = SwerveAzimuthControl.ProfiledPID(
-             PIDConstants(13.0,0,0.2),
+            PIDConstants(13.0,0,0.2),
             motionProfile = AngularTrapezoidProfile(
-                maxVelocity = 7.0.radians / 1.seconds,
-                maxAcceleration = 4.radians / 1.seconds / 1.seconds,
+                maxVelocity = 10.0.radians / 1.seconds,
+                maxAcceleration = 8.radians / 1.seconds / 1.seconds,
             )
         ),
         velocityPID = PIDConstants(0.2,0.0,0.0),

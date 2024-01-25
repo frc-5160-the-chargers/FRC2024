@@ -20,14 +20,15 @@ public class ChargerNavX(
     private val useFusedHeading: Boolean = false,
     public val ahrs: AHRS = AHRS(),
 ): ZeroableHeadingProvider {
+
+    private var headingOffset = 0.degrees
+
+
     /**
      * ImuLog, GyroscopeLog, AccelerometerLog, and SpeedometerLog are LoggableInputsProviders,
      * which automatically handle AdvantageKit logging and replay support(and work essentially as getters variables).
      * @see [frc.chargers.advantagekitextensions.LoggableInputsProvider]
      */
-    private var headingOffset = 0.degrees
-
-
 
     /**
      * Zeroes the heading of the NavX.
@@ -54,6 +55,12 @@ public class ChargerNavX(
             println("AHRS heading has been offset in sim.")
         }
     }
+
+    /**
+     * The NavX's current heading offset.
+     */
+    fun getHeadingOffset(): Angle = headingOffset
+
 
     public val firmwareVersion: String by ImuLog.string{ ahrs.firmwareVersion }
 

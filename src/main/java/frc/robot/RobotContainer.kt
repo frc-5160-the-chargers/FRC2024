@@ -5,19 +5,10 @@
 package frc.robot
 
 import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.AngularVelocity
-import com.batterystaple.kmeasure.quantities.Velocity
-import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
-import com.batterystaple.kmeasure.units.meters
-import com.batterystaple.kmeasure.units.seconds
 import com.kauailabs.navx.frc.AHRS
-import com.pathplanner.lib.auto.AutoBuilder
-import com.pathplanner.lib.path.PathPlannerPath
-import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.hal.AllianceStationID
-import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isReal
@@ -25,31 +16,19 @@ import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
-import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.constants.SwerveHardwareData
-import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.ChargerRobotContainer
-import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.sensors.imu.ChargerNavX
-import frc.chargers.hardware.sensors.imu.IMUSimulation
-import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.wpilibextensions.geometry.ofUnit
-import frc.robot.commands.auto.basicTaxi
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
-import frc.robot.hardware.subsystems.odometry.OdometryIO
 import frc.robot.hardware.subsystems.odometry.ThreadedPoseMonitor
-import frc.robot.hardware.subsystems.shooter.Shooter
-import frc.robot.hardware.subsystems.shooter.ShooterIOSim
 import org.littletonrobotics.junction.Logger.hasReplaySource
 import org.littletonrobotics.junction.Logger.recordOutput
-import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 
 
 class RobotContainer: ChargerRobotContainer() {
@@ -130,14 +109,12 @@ class RobotContainer: ChargerRobotContainer() {
 
         if (isReal() || hasReplaySource()){
             drivetrain.poseEstimator = ThreadedPoseMonitor(
-                OdometryIO(
-                    drivetrain.hardwareData,
-                    TURN_MOTORS,
-                    TURN_ENCODERS,
-                    DRIVE_MOTORS,
-                    gyroIO
-                ),
-                kinematics = drivetrain.kinematics
+                kinematics = drivetrain.kinematics,
+                hardwareData = drivetrain.hardwareData,
+                navX = gyroIO,
+                turnMotors = TURN_MOTORS,
+                absoluteEncoders = TURN_ENCODERS,
+                driveMotors = DRIVE_MOTORS
             )
         }
 
@@ -162,7 +139,7 @@ class RobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureDefaultCommands(){
-        /*
+
         drivetrain.defaultCommand = buildCommand{
             addRequirements(drivetrain)
 
@@ -177,13 +154,11 @@ class RobotContainer: ChargerRobotContainer() {
                 drivetrain.stop()
             }
         }
-
-         */
     }
 
 
     private fun configureBindings(){
-        /*
+
         val resetAimToAngle = runOnceCommand{ DriverController.targetHeading = null}
 
         fun targetAngle(heading: Angle) = runOnceCommand{ DriverController.targetHeading = heading }
@@ -194,8 +169,6 @@ class RobotContainer: ChargerRobotContainer() {
             pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle)
             pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle)
         }
-
-         */
 
     }
 
