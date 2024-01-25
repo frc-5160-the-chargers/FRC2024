@@ -31,6 +31,7 @@ class ModuleOdometryIO(
     private val driveMotorEncoder = driveMotor.getEncoder()
     private val turnMotorEncoder = turnMotor.getEncoder()
 
+    // used for pushing to log and replay mode
     private val logInputs = LoggableInputsProvider(
         "MultiThreadedOdometry/$moduleName",
         runBeforeInputUpdate = OdometryThread.ODOMETRY_LOCK::lock,
@@ -74,9 +75,10 @@ class ModuleOdometryIO(
                 (it.ofUnit(rotations) / hardwareData.driveGearRatio * wheelRadius) - wheelPositionOffset
             }
             .toList()
-            // filters invalid values; this can include NaNs, infinity values, or values that deviate too much
+            // filters invalid values; this can include NaNs, infinity values, or values that deviate too much from the previous value
             .filter{ value: Distance ->
                 var isValid = true
+
                 if (
                     value.siValue == Double.POSITIVE_INFINITY ||
                     value.siValue == Double.NEGATIVE_INFINITY ||
@@ -89,6 +91,7 @@ class ModuleOdometryIO(
                 }else{
                     previousWheelPosition = value
                 }
+
                 return@filter isValid
             }
             // finally, clears the queue
@@ -153,5 +156,7 @@ class ModuleOdometryIO(
                 )
             }
         }
+
     }
+
 }

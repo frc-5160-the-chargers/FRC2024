@@ -18,6 +18,7 @@ import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.utils.Precision
 import frc.chargers.utils.within
+import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
 import org.littletonrobotics.junction.Logger.recordOutput
 
 

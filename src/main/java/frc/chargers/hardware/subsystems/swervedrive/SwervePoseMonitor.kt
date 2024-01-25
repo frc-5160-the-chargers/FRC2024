@@ -33,7 +33,7 @@ import org.littletonrobotics.junction.Logger.*
  */
 public class SwervePoseMonitor(
     private val drivetrain: EncoderHolonomicDrivetrain,
-    poseSuppliers: List<VisionPoseSupplier>,
+    private val visionPoseSuppliers: MutableList<VisionPoseSupplier>,
     startingPose: UnitPose2d = UnitPose2d()
 ): SubsystemBase(), RobotPoseMonitor {
 
@@ -44,7 +44,7 @@ public class SwervePoseMonitor(
         vararg poseSuppliers: VisionPoseSupplier,
     ): this(
         drivetrain,
-        poseSuppliers.toList(),
+        poseSuppliers.toMutableList(),
         startingPose
     )
 
@@ -58,7 +58,7 @@ public class SwervePoseMonitor(
     }
 
     override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier){
-        this.poseSuppliers.addAll(visionSystems)
+        this.visionPoseSuppliers.addAll(visionSystems)
     }
 
 
@@ -67,7 +67,6 @@ public class SwervePoseMonitor(
         VecBuilder.fill(0.003, 0.003, 0.00001),
     ).also{ it.resetPose(startingPose.inUnit(meters)) }
 
-    private val poseSuppliers = poseSuppliers.toMutableList()
     private val previousDistances: Array<Distance>
     private var lastGyroHeading = Angle(0.0)
     private var wheelDeltas = ModulePositionGroup()
@@ -130,27 +129,27 @@ public class SwervePoseMonitor(
             /*
             Sends all pose data to the pose estimator.
              */
-            if (poseSuppliers.size > 0){
-                visionUpdates.clear()
-                poseSuppliers.forEach{
-                    val measurement = it.robotPoseEstimate
-                    if (measurement != null){
-                        val stdDevVector = NomadApriltagUtil.calculateVisionUncertainty(
-                            measurement.value.x.siValue,
-                            heading.asRotation2d(),
-                            it.cameraYaw.asRotation2d(),
+            visionUpdates.clear()
+
+            for (visionPoseSupplier in visionPoseSuppliers){
+                for (poseEstimate in visionPoseSupplier.robotPoseEstimates){
+                    val stdDevVector = NomadApriltagUtil.calculateVisionUncertainty(
+                        poseEstimate.value.x.siValue,
+                        heading.asRotation2d(),
+                        visionPoseSupplier.cameraYaw.asRotation2d(),
+                    )
+
+                    visionUpdates.add(
+                        TimestampedVisionUpdate(
+                            poseEstimate.timestamp.inUnit(seconds),
+                            poseEstimate.value.inUnit(meters),
+                            stdDevVector
                         )
-                        visionUpdates.add(
-                            TimestampedVisionUpdate(
-                                measurement.timestamp.inUnit(seconds),
-                                measurement.value.inUnit(meters),
-                                stdDevVector
-                            )
-                        )
-                    }
+                    )
                 }
-                if (visionUpdates.size != 0) poseEstimator.addVisionData(visionUpdates)
             }
+
+            if (visionUpdates.size != 0) poseEstimator.addVisionData(visionUpdates)
 
             /*
             Records the robot's pose on the field and in AdvantageScope.

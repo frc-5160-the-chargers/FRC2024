@@ -9,6 +9,7 @@ import frc.robot.hardware.subsystems.odometry.OdometryThread
  * Handles the timestamps required for multi-threaded odometry.
  */
 class OdometryTimestampsIO {
+    // used for pushing to log and replay mode
     private val logInputs = LoggableInputsProvider(
         "MultiThreadedOdometry",
         runBeforeInputUpdate = OdometryThread.ODOMETRY_LOCK::lock,

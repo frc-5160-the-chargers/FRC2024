@@ -171,10 +171,10 @@ public class ChargerLimelight(
         override val cameraYaw: Angle
     ): VisionPoseSupplier {
 
-        override val robotPoseEstimate: Measurement<UnitPose2d>?
-            by logInputs.nullableValue(default = Measurement(UnitPose2d(), Time(0.0))){
+        override val robotPoseEstimates: List<Measurement<UnitPose2d>>
+            by logInputs.valueList(default = Measurement(UnitPose2d(), Time(0.0))){
                 if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != aprilTagPipelineIndex) {
-                    return@nullableValue null
+                    return@valueList listOf()
                 }
 
                 val allianceColor: DriverStation.Alliance =
@@ -200,13 +200,15 @@ public class ChargerLimelight(
                     }
                 }
 
-                return@nullableValue Measurement(
-                    value = UnitPose2d(
-                        poseArray[0].ofUnit(meters),
-                        poseArray[1].ofUnit(meters),
-                        poseArray[5].ofUnit(degrees)
-                    ),
-                    timestamp = fpgaTimestamp() - poseArray[6].ofUnit(milli.seconds)
+                return@valueList listOf(
+                    Measurement(
+                        value = UnitPose2d(
+                            poseArray[0].ofUnit(meters),
+                            poseArray[1].ofUnit(meters),
+                            poseArray[5].ofUnit(degrees)
+                        ),
+                        timestamp = fpgaTimestamp() - (poseArray[6].ofUnit(milli.seconds))
+                    )
                 )
             }
     }

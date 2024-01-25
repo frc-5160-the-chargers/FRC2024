@@ -10,6 +10,7 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.framework.ChargerRobot
 import frc.external.frc6328.MechanicalAdvantagePoseEstimator
+import frc.external.frc6328.MechanicalAdvantagePoseEstimator.TimestampedVisionUpdate
 import frc.external.frc6995.NomadApriltagUtil
 import frc.chargers.hardware.sensors.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
@@ -29,7 +30,7 @@ import org.littletonrobotics.junction.Logger.recordOutput
  */
 public class DifferentialPoseMonitor(
     private val drivetrain: EncoderDifferentialDrivetrain,
-    private val poseSuppliers: MutableList<VisionPoseSupplier> = mutableListOf(),
+    private val visionPoseSuppliers: MutableList<VisionPoseSupplier> = mutableListOf(),
     startingPose: UnitPose2d = UnitPose2d()
 ): SubsystemBase(), RobotPoseMonitor {
     public constructor(
@@ -45,7 +46,7 @@ public class DifferentialPoseMonitor(
     override val robotPose: UnitPose2d get() = poseEstimator.latestPose.ofUnit(meters)
 
     override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier) {
-        poseSuppliers.addAll(visionSystems)
+        visionPoseSuppliers.addAll(visionSystems)
     }
 
     override fun resetPose(pose: UnitPose2d){
@@ -64,7 +65,7 @@ public class DifferentialPoseMonitor(
     private var previousDistanceL = drivetrain.leftWheelTravel * drivetrain.wheelTravelPerMotorRadian
     private var previousDistanceR = drivetrain.leftWheelTravel * drivetrain.wheelTravelPerMotorRadian
     private var previousGyroHeading = drivetrain.gyro?.heading ?: Angle(0.0)
-    private val visionUpdates: MutableList<MechanicalAdvantagePoseEstimator.TimestampedVisionUpdate> = mutableListOf()
+    private val visionUpdates: MutableList<TimestampedVisionUpdate> = mutableListOf()
 
 
     override fun periodic(){
@@ -92,27 +93,27 @@ public class DifferentialPoseMonitor(
 
         poseEstimator.addDriveData(fpgaTimestamp().inUnit(seconds),twist)
 
-        if (poseSuppliers.size > 0){
-            visionUpdates.clear()
-            poseSuppliers.forEach{
-                val measurement = it.robotPoseEstimate
-                if (measurement != null){
-                    val stdDevVector = NomadApriltagUtil.calculateVisionUncertainty(
-                        measurement.value.x.siValue,
-                        heading.asRotation2d(),
-                        it.cameraYaw.asRotation2d(),
+        visionUpdates.clear()
+
+        for (visionPoseSupplier in visionPoseSuppliers){
+            for (poseEstimate in visionPoseSupplier.robotPoseEstimates){
+                val stdDevVector = NomadApriltagUtil.calculateVisionUncertainty(
+                    poseEstimate.value.x.siValue,
+                    heading.asRotation2d(),
+                    visionPoseSupplier.cameraYaw.asRotation2d(),
+                )
+
+                visionUpdates.add(
+                    TimestampedVisionUpdate(
+                        poseEstimate.timestamp.inUnit(seconds),
+                        poseEstimate.value.inUnit(meters),
+                        stdDevVector
                     )
-                    visionUpdates.add(
-                        MechanicalAdvantagePoseEstimator.TimestampedVisionUpdate(
-                            measurement.timestamp.inUnit(seconds),
-                            measurement.value.inUnit(meters),
-                            stdDevVector
-                        )
-                    )
-                }
+                )
             }
-            if (visionUpdates.size != 0) poseEstimator.addVisionData(visionUpdates)
         }
+
+        if (visionUpdates.size != 0) poseEstimator.addVisionData(visionUpdates)
 
 
         ChargerRobot.FIELD.robotPose = poseEstimator.latestPose

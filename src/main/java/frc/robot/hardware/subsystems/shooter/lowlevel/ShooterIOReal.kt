@@ -1,10 +1,12 @@
-package frc.robot.hardware.subsystems.shooter
+package frc.robot.hardware.subsystems.shooter.lowlevel
 
 import com.batterystaple.kmeasure.quantities.*
 import edu.wpi.first.wpilibj.DigitalInput
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.motorcontrol.setVoltage
+import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
+import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterLog
 
 
 @Suppress("unused")

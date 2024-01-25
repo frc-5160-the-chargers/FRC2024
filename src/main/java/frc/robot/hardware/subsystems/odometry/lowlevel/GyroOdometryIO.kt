@@ -19,7 +19,7 @@ class GyroOdometryIO(navX: ChargerNavX) {
         }
     }
 
-
+    // used for pushing to log and replay mode
     private val logInputs = LoggableInputsProvider(
         "MultiThreadedOdometry/gyro",
         runBeforeInputUpdate = OdometryThread.ODOMETRY_LOCK::lock,
@@ -32,7 +32,7 @@ class GyroOdometryIO(navX: ChargerNavX) {
     val gyroReadings by logInputs.quantityList{
         gyroReadingsQueue
             .stream()
-            .map{ it.ofUnit(degrees) - navX.getHeadingOffset() }
+            .map { it.ofUnit(degrees) - navX.getHeadingOffset() }
             .toList()
             .also{ gyroReadingsQueue.clear() }
     }

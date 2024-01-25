@@ -1,6 +1,7 @@
 package frc.robot.hardware.subsystems.odometry
 
 import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
@@ -18,6 +19,7 @@ import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.subsystems.swervedrive.SwerveEncoders
 import frc.chargers.hardware.subsystems.swervedrive.SwerveMotors
 import frc.chargers.utils.a
+import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
@@ -26,6 +28,7 @@ import frc.robot.hardware.subsystems.odometry.lowlevel.GyroOdometryIO
 import frc.robot.hardware.subsystems.odometry.lowlevel.ModuleOdometryIO
 import frc.robot.hardware.subsystems.odometry.lowlevel.OdometryTimestampsIO
 import org.littletonrobotics.junction.Logger
+import kotlin.math.PI
 
 
 @Suppress("unused")
@@ -33,7 +36,7 @@ class ThreadedPoseMonitor(
     startingPose: UnitPose2d = UnitPose2d(),
 
     kinematics: SwerveDriveKinematics,
-    hardwareData: SwerveHardwareData,
+    private val hardwareData: SwerveHardwareData,
 
     private val navX: ChargerNavX,
 
@@ -91,7 +94,7 @@ class ThreadedPoseMonitor(
 
     private var currentModulePositions = Array(4){SwerveModulePosition()}
 
-
+    private val indexOutOfBoundsAlert = Alert.warning(text = "It looks like the amount of timestamps recorded is greater than the amount of readings.")
 
 
 
@@ -117,31 +120,47 @@ class ThreadedPoseMonitor(
     override fun periodic(){
         val timestamps = timestampsSource.timestamps
 
-        repeat(timestamps.size){ i ->
-            currentModulePositions = a[
-                SwerveModulePosition(
-                    topLeftOdoSource.wheelPositions[i].inUnit(meters),
-                    topLeftOdoSource.wheelDirections[i].asRotation2d()
-                ),
-                SwerveModulePosition(
-                    topRightOdoSource.wheelPositions[i].inUnit(meters),
-                    topRightOdoSource.wheelDirections[i].asRotation2d()
-                ),
-                SwerveModulePosition(
-                    bottomLeftOdoSource.wheelPositions[i].inUnit(meters),
-                    bottomLeftOdoSource.wheelDirections[i].asRotation2d()
-                ),
-                SwerveModulePosition(
-                    bottomRightOdoSource.wheelPositions[i].inUnit(meters),
-                    bottomRightOdoSource.wheelDirections[i].asRotation2d()
-                )
-            ]
+        require (timestamps.isNotEmpty()){
+            "There are no timestamps being recorded."
+        }
 
-            poseEstimator.updateWithTime(
-                timestamps[i].inUnit(seconds),
-                gyroOdoSource.gyroReadings[i].asRotation2d(),
-                currentModulePositions
-            )
+        repeat(timestamps.size) { i ->
+            try{
+                currentModulePositions = a[
+                    SwerveModulePosition(
+                        topLeftOdoSource.wheelPositions[i].inUnit(meters),
+                        topLeftOdoSource.wheelDirections[i].asRotation2d()
+                    ),
+                    SwerveModulePosition(
+                        topRightOdoSource.wheelPositions[i].inUnit(meters),
+                        topRightOdoSource.wheelDirections[i].asRotation2d()
+                    ),
+                    SwerveModulePosition(
+                        bottomLeftOdoSource.wheelPositions[i].inUnit(meters),
+                        bottomLeftOdoSource.wheelDirections[i].asRotation2d()
+                    ),
+                    SwerveModulePosition(
+                        bottomRightOdoSource.wheelPositions[i].inUnit(meters),
+                        bottomRightOdoSource.wheelDirections[i].asRotation2d()
+                    )
+                ]
+
+                if (hardwareData.couplingRatio != null){
+                    currentModulePositions.forEach{
+                        // applies coupling ratio offsets; not tested atm
+                        // rotations is actually Rotation2d.getRotations() and not the kmeasure extension property
+                        it.distanceMeters -= (it.angle.rotations * hardwareData.couplingRatio) * PI * hardwareData.wheelDiameter.inUnit(meters) // * 2 * PI converts to radians, then * wheelDiameter / 2.0 multiplies by wheelRadius for proper pose estimation
+                    }
+                }
+
+                poseEstimator.updateWithTime(
+                    timestamps[i].inUnit(seconds),
+                    gyroOdoSource.gyroReadings[i].asRotation2d(),
+                    currentModulePositions
+                )
+            }catch(_: IndexOutOfBoundsException){
+                indexOutOfBoundsAlert.active = true
+            }
         }
 
 
@@ -150,17 +169,22 @@ class ThreadedPoseMonitor(
 
         This is currently not updated at a high frequency; this might change soon.
          */
-        visionPoseSuppliers.forEach {
-            val measurement = it.robotPoseEstimate
-            if (measurement != null) {
+        for (visionPoseSupplier in visionPoseSuppliers){
+            for (poseEstimate in visionPoseSupplier.robotPoseEstimates){
+                // if vision measurement is more than 20 deg off, reject it
+                if (abs(poseEstimate.value.rotation - gyroOdoSource.gyroReadings.last()) > 20.degrees){
+                    continue
+                }
+
                 val stdDevVector = NomadApriltagUtil.calculateVisionUncertainty(
-                    measurement.value.x.siValue,
+                    poseEstimate.value.x.siValue,
                     navX.heading.asRotation2d(),
-                    it.cameraYaw.asRotation2d(),
+                    visionPoseSupplier.cameraYaw.asRotation2d(), // each pose supplier stores the camera yaw for std dev purposes
                 )
+
                 poseEstimator.addVisionMeasurement(
-                    measurement.value.inUnit(meters),
-                    measurement.timestamp.inUnit(seconds),
+                    poseEstimate.value.inUnit(meters),
+                    poseEstimate.timestamp.inUnit(seconds),
                     stdDevVector
                 )
             }

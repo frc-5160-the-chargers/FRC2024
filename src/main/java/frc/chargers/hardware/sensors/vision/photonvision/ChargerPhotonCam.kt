@@ -96,19 +96,21 @@ public class ChargerPhotonCam(
             setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY)
         }
 
-        override val robotPoseEstimate: Measurement<UnitPose2d>?
-            by logInputs.nullableValue(
+        override val robotPoseEstimates: List<Measurement<UnitPose2d>>
+            by logInputs.valueList(
                 default = Measurement(UnitPose2d(), fpgaTimestamp())
             ){
                 if (isSimulation() || pipelineIndex != aprilTagPipelineIndex) {
-                    null
+                    listOf()
                 }else{
                     when(val signal = update()){
-                        Optional.empty<EstimatedRobotPose>() -> null
+                        Optional.empty<EstimatedRobotPose>() -> listOf()
 
-                        else -> Measurement(
-                            value = UnitPose2d(signal.get().estimatedPose.toPose2d()),
-                            timestamp = signal.get().timestampSeconds.ofUnit(seconds)
+                        else -> listOf(
+                            Measurement(
+                                value = UnitPose2d(signal.get().estimatedPose.toPose2d()),
+                                timestamp = signal.get().timestampSeconds.ofUnit(seconds)
+                            )
                         )
                     }
                 }

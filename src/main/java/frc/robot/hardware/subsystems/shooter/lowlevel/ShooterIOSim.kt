@@ -1,4 +1,4 @@
-package frc.robot.hardware.subsystems.shooter
+package frc.robot.hardware.subsystems.shooter.lowlevel
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*

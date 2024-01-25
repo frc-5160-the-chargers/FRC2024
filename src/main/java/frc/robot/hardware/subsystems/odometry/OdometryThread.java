@@ -12,6 +12,7 @@ package frc.robot.hardware.subsystems.odometry;
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.Notifier;
 import frc.robot.constants.DrivetrainConstantsKt;
 import org.littletonrobotics.junction.Logger;
@@ -22,6 +23,7 @@ import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
 
 /**
  * Provides an interface for asynchronously reading high-frequency measurements to a set of queues.
@@ -38,8 +40,12 @@ public class OdometryThread {
     public static final ReentrantLock ODOMETRY_LOCK = new ReentrantLock();
 
     private List<DoubleSupplier> signals = new ArrayList<>();
+    private List<Supplier<Pose2d>> poseSignals = new ArrayList<>();
+
+
     private List<Queue<Double>> queues = new ArrayList<>();
     private List<Queue<Double>> timestampQueues = new ArrayList<>();
+
 
     private final Notifier notifier;
     private static OdometryThread instance = null;

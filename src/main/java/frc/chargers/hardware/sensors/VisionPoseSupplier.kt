@@ -13,7 +13,7 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
  * vision measurement.
  */
 public interface VisionPoseSupplier{
-    public val robotPoseEstimate: BasicMeasurement<UnitPose2d>?
+    public val robotPoseEstimates: List<BasicMeasurement<UnitPose2d>>
 
     public val cameraYaw: Angle
 }

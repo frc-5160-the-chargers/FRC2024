@@ -1,4 +1,4 @@
-package frc.robot.hardware.subsystems.shooter
+package frc.robot.hardware.subsystems.shooter.lowlevel
 
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.AngularVelocity
