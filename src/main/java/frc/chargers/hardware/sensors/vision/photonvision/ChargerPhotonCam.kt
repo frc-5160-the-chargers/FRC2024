@@ -3,6 +3,7 @@ package frc.chargers.hardware.sensors.vision.photonvision
 
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Distance
+import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
@@ -13,7 +14,6 @@ import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.hardware.sensors.vision.*
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.utils.Measurement
-import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import org.photonvision.EstimatedRobotPose
@@ -23,7 +23,7 @@ import org.photonvision.targeting.PhotonTrackedTarget
 import java.util.*
 
 /**
- * A wrapper over PhotonVision's [PhotonCamera], with support for advantagekit and more integration within ChargerLib.
+ * A wrapper over PhotonVision's [PhotonCamera], with support for AdvantageKit and more integration within ChargerLib.
  */
 public class ChargerPhotonCam(
     name: String,
@@ -52,21 +52,20 @@ public class ChargerPhotonCam(
         logInputs: LoggableInputsProvider
     ): PhotonCameraPipeline<VisionTarget.AprilTag>(index) {
 
-        override val visionData: VisionData<VisionTarget.AprilTag>?
-            by logInputs.nullableValue(default = emptyAprilTagVisionData()){
+        override val visionData: List<VisionTarget.AprilTag>
+            by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
                 val data = latestResult
                 if (!data.hasTargets() || isSimulation()){
-                    return@nullableValue null
+                    return@valueList listOf()
                 }
 
                 val bestTarget = data.bestTarget
                 val otherTargets = data.getTargets()
                 otherTargets.remove(bestTarget)
 
-                return@nullableValue VisionData(
-                    data.timestampSeconds.ofUnit(seconds),
-                    toAprilTagTarget(bestTarget),
-                    otherTargets.map{toAprilTagTarget(it)}
+                return@valueList listOf(
+                    toAprilTagTarget(bestTarget, data.timestampSeconds.ofUnit(seconds)),
+                    *otherTargets.map{toAprilTagTarget(it, data.timestampSeconds.ofUnit(seconds))}.toTypedArray()
                 )
             }
     }
@@ -97,9 +96,7 @@ public class ChargerPhotonCam(
         }
 
         override val robotPoseEstimates: List<Measurement<UnitPose2d>>
-            by logInputs.valueList(
-                default = Measurement(UnitPose2d(), fpgaTimestamp())
-            ){
+            by logInputs.valueList(default = Measurement(UnitPose2d(), Time(0.0))){
                 if (isSimulation() || pipelineIndex != aprilTagPipelineIndex) {
                     listOf()
                 }else{
@@ -128,21 +125,20 @@ public class ChargerPhotonCam(
         logInputs: LoggableInputsProvider
     ): PhotonCameraPipeline<VisionTarget.Object>(index) {
 
-        override val visionData: VisionData<VisionTarget.Object>?
-            by logInputs.nullableValue(default = emptyObjectVisionData()){
+        override val visionData: List<VisionTarget.Object>
+            by logInputs.valueList(default = VisionTarget.Object.Dummy){
                 val data = latestResult
                 if (!data.hasTargets() || isSimulation()){
-                    return@nullableValue null
+                    return@valueList listOf()
                 }
 
                 val bestTarget = data.bestTarget
                 val otherTargets = data.getTargets()
                 otherTargets.remove(bestTarget)
 
-                return@nullableValue VisionData(
-                    data.timestampSeconds.ofUnit(seconds),
-                    toObjectTarget(bestTarget),
-                    otherTargets.map{ toObjectTarget(it) }
+                return@valueList listOf(
+                    toObjectTarget(bestTarget, data.timestampSeconds.ofUnit(seconds)),
+                    *otherTargets.map{ toObjectTarget(it, data.timestampSeconds.ofUnit(seconds)) }.toTypedArray()
                 )
             }
     }
@@ -192,8 +188,9 @@ public class ChargerPhotonCam(
         )
     }
 
-    private fun toAprilTagTarget(target: PhotonTrackedTarget) =
+    private fun toAprilTagTarget(target: PhotonTrackedTarget, timestamp: Time) =
         VisionTarget.AprilTag(
+            timestamp,
             tx = target.yaw,
             ty = target.pitch,
             areaPercent = target.area,
@@ -201,8 +198,9 @@ public class ChargerPhotonCam(
             targetTransformFromCam = UnitTransform3d(target.bestCameraToTarget)
         )
 
-    private fun toObjectTarget(target: PhotonTrackedTarget) =
+    private fun toObjectTarget(target: PhotonTrackedTarget, timestamp: Time) =
         VisionTarget.Object(
+            timestamp,
             tx = target.yaw,
             ty = target.pitch,
             areaPercent = target.area,

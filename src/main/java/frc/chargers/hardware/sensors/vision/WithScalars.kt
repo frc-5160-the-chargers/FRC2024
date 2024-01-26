@@ -14,6 +14,7 @@ fun AprilTagVisionPipeline.withScalars(
 
     fun VisionTarget.AprilTag.withScalar(): VisionTarget.AprilTag =
         VisionTarget.AprilTag(
+            timestamp,
             tx * txScalar,
             ty * tyScalar,
             areaPercent * areaScalar,
@@ -21,16 +22,8 @@ fun AprilTagVisionPipeline.withScalars(
             targetTransformFromCam
         )
 
-    override val visionData: NonLoggableVisionData<VisionTarget.AprilTag>?
-        get(){
-            val unscaledData = this@withScalars.visionData ?: return null
-
-            return VisionData(
-                unscaledData.timestamp,
-                unscaledData.bestTarget.withScalar(),
-                unscaledData.otherTargets.map{ it.withScalar() }
-            )
-        }
+    override val visionData: List<VisionTarget.AprilTag>
+        get() = this@withScalars.visionData.map{ it.withScalar() }
 
     override val bestTarget: VisionTarget.AprilTag?
         get() = this@withScalars.bestTarget?.withScalar() // returns null if bestTarget is null
@@ -48,22 +41,15 @@ fun ObjectVisionPipeline.withScalars(
 
     fun VisionTarget.Object.withScalar(): VisionTarget.Object =
         VisionTarget.Object(
+            timestamp,
             tx * txScalar,
             ty * tyScalar,
             areaPercent * areaScalar,
             classId
         )
 
-    override val visionData: NonLoggableVisionData<VisionTarget.Object>?
-        get(){
-            val unscaledData = this@withScalars.visionData ?: return null
-
-            return VisionData(
-                unscaledData.timestamp,
-                unscaledData.bestTarget.withScalar(),
-                unscaledData.otherTargets.map{ it.withScalar() }
-            )
-        }
+    override val visionData: List<VisionTarget.Object>
+        get() = this@withScalars.visionData.map{ it.withScalar() }
 
     override val bestTarget: VisionTarget.Object?
         get() = this@withScalars.bestTarget?.withScalar() // returns null if bestTarget is null

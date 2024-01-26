@@ -8,9 +8,10 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 /**
  * Represents a vision system that can supply a vision pose estimate.
  *
- * This interface uses the [BasicMeasurement] / Measurement classes
- * to hold the pose, as well as the timestamp; with null representing an invalid(or no)
- * vision measurement.
+ * This interface uses the [BasicMeasurement] class
+ * to hold the pose, as well as the timestamp;
+ * however, most classes implementing this interface should use the
+ * [frc.chargers.utils.Measurement] class instead, which allows for the data to be logged to an AdvantageKit field.
  */
 public interface VisionPoseSupplier{
     public val robotPoseEstimates: List<BasicMeasurement<UnitPose2d>>

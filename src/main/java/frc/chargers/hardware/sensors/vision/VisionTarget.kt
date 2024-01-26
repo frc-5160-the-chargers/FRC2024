@@ -6,84 +6,37 @@ import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.seconds
 import frc.chargers.advantagekitextensions.AdvantageKitLoggable
-import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import org.littletonrobotics.junction.LogTable
-
-
-/**
- * Represents Vision Data(timestamp, best target, and other targets) that can be pushed to AdvantageKit.
- */
-public class VisionData<out R>(
-    timestamp: Time,
-    bestTarget: R,
-    otherTargets: List<R>
-): NonLoggableVisionData<R>(timestamp, bestTarget, otherTargets), AdvantageKitLoggable<VisionData<R>>
-    where R : VisionTarget, R: AdvantageKitLoggable<R>{
-
-    public constructor(
-        timestamp: Time,
-        bestTarget: R,
-        vararg otherTargets: R
-    ): this(
-        timestamp, bestTarget, listOf(*otherTargets)
-    )
-
-
-    override fun pushToLog(table: LogTable, category: String) {
-        table.put("$category/timestampSecs", timestamp.inUnit(seconds))
-        bestTarget.pushToLog(table,"$category/bestTarget")
-        otherTargets.forEachIndexed{ index, target ->
-            target.pushToLog(table,"$category/otherTarget$index")
-        }
-    }
-
-    override fun getFromLog(table: LogTable, category: String): VisionData<R> = VisionData(
-        timestamp = table.get("timestampSecs", fpgaTimestamp().inUnit(seconds)).ofUnit(seconds),
-        bestTarget = bestTarget.getFromLog(table,"$category/bestTarget"),
-        otherTargets = otherTargets.mapIndexed{ index, target ->
-            target.getFromLog(table,"$category/otherTarget$index")
-        }
-    )
-
-}
-
-/**
- * Represents Vision Data without logging functionality.
- * Contains data about the timestamp, best target, and other targets fetched.
- */
-public open class NonLoggableVisionData<out R: VisionTarget>(
-    public val timestamp: Time,
-    public val bestTarget: R,
-    public val otherTargets: List<R>
-){
-    public constructor(
-        timestamp: Time,
-        bestTarget: R,
-        vararg otherTargets: R
-    ): this(timestamp, bestTarget, listOf(*otherTargets))
-
-    public val allTargets: List<R> = otherTargets + listOf(bestTarget)
-}
 
 /**
  * Represents a Vision Result, which contains all the data that is applicable to a single vision target.
  */
 public sealed interface VisionTarget{
 
+    public val timestamp: Time
     public val tx: Double
     public val ty: Double
     public val areaPercent: Double
 
 
     public open class Object(
+        override val timestamp: Time,
         override val tx: Double,
         override val ty: Double,
         override val areaPercent: Double,
         open val classId: String? = null
     ): VisionTarget, AdvantageKitLoggable<Object> {
+
+        /**
+         * Represents dummy vision data for a [VisionTarget.Object]
+         */
+        object Dummy: Object(Time(0.0), 0.0, 0.0, 0.0, null)
+
+
         override fun pushToLog(table: LogTable, category: String) {
             table.apply{
+                put("$category/timestamp", this@Object.timestamp.inUnit(seconds))
                 put("$category/tx", tx)
                 put("$category/ty", ty)
                 put("$category/areaPercent", areaPercent)
@@ -94,6 +47,7 @@ public sealed interface VisionTarget{
 
         override fun getFromLog(table: LogTable, category: String): Object =
             Object(
+                table.get("$category/timestamp", 0.0).ofUnit(seconds),
                 table.get("$category/tx",0.0),
                 table.get("$category/ty",0.0),
                 table.get("$category/areaPercent",0.0),
@@ -106,14 +60,23 @@ public sealed interface VisionTarget{
     }
 
     public open class AprilTag(
+        override val timestamp: Time,
         override val tx: Double,
         override val ty: Double,
         override val areaPercent: Double,
         public val fiducialId: Int,
         public val targetTransformFromCam: UnitTransform3d
     ): VisionTarget, AdvantageKitLoggable<AprilTag>{
+
+        /**
+         * Represents dummy vision data for a [VisionTarget.AprilTag]
+         */
+        object Dummy: AprilTag(Time(0.0), 0.0, 0.0, 0.0, 0, UnitTransform3d())
+
+
         override fun pushToLog(table: LogTable, category: String) {
             table.apply{
+                put("$category/timestamp", this@AprilTag.timestamp.inUnit(seconds))
                 put("$category/tx", tx)
                 put("$category/ty",ty)
                 put("$category/areaPercent",areaPercent)
@@ -124,6 +87,7 @@ public sealed interface VisionTarget{
 
         override fun getFromLog(table: LogTable, category: String): AprilTag {
             return AprilTag(
+                table.get("$category/timestamp", 0.0).ofUnit(seconds),
                 table.get("$category/tx",0.0),
                 table.get("$category/ty",0.0),
                 table.get("$category/areaPercent",0.0),

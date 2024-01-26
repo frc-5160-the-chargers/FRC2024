@@ -2,14 +2,21 @@
 
 Chargerlib as a whole is a library that is built on the idea of abstraction between hardware layers.
 
-A variety of vendors already provide hardware-interface classes for specific pieces of hardware; like the ```CANSparkMax()```, ```CANcoder()``` and ```PhotonCamera()``` classes. However, the methods used to retreive data and call actions on these pieces of hardware usually vary from vendor-to-vendor; this makes it hard to switch between components. For instance, if you had an Arm Subsystem that started off with a CANSparkMax, it would be very hard to switch that motor to a TalonFX.
+A variety of vendors already provide hardware-interface classes for specific pieces of hardware; like the ```CANSparkMax()```, ```CANcoder()``` and ```PhotonCamera()``` classes. 
+However, the methods used to retreive data and call actions on these pieces of hardware usually vary from vendor-to-vendor; this makes it hard to switch between components. 
+For instance, if you had an Arm Subsystem that started off with a CANSparkMax, it would be very hard to switch that motor to a TalonFX.
 
-ChargerLib solves this problem with wrapper classes and interfaces, which abstract away most of the nessecary implementation between classes. 
-Instead of accepting a motor class, you can now accept an interface within your class and call the methods from the interface instead.
+In addition, most vendor classes don't support kmeasure units(due to it being a custom library),
+which means that without wrappers, we will often have to do manual units conversions as well.
 
-Most wrapper classes start with the term "Charger" as a prefix; for instance, ```ChargerCANcoder()```, ```ChargerCANSparkMax()```, and ```ChargerPhotonCam()```.
+ChargerLib solves this problem with wrapper classes and interfaces, which abstract away most of the necessary implementation between classes,
+and return Kmeasure Quantities instead of bare Doubles. 
 
-Disclaimer: the subsystem implementations below are non-advantagekit. To see advantagekit implementations, check the AdvantageKit Wrapper section.
+If you just need a generic use-case motor without any vendor-specific features, you can now simply accept a generic ```EncoderMotorController``` instead.
+
+Most wrapper classes start with the term "Charger" as a prefix; for instance, ```ChargerCANcoder()```, ```ChargerSparkMax()```, and ```ChargerPhotonCam()```.
+
+Disclaimer: the subsystem implementations below are non-advantagekit. To see advantagekit implementations, check the AdvantageKit Wrapper section(tbd).
 
 
 
@@ -33,7 +40,7 @@ For most use cases, you should simply use the ```Encoder``` interface, which ext
 ``` 
 
 Encoder implementing classes: ```ChargerCANcoder(id)``(provides timestamps)` and ```ChargerQuadEncoder(port)```(WPILib encoder wrapper)
-PositionEncoder implementing classes: ```AnalogPotentiometerEncoder(port)``` and ```ChargerDutyCycleEncoder(id)```
+PositionEncoder implementing classes: ```ChargerPotentiometer(port)``` and ```ChargerDutyCycleEncoder(id)```
 
 
 # Motor Controllers
@@ -50,21 +57,26 @@ WPILib already contains the ```MotorController``` interface, which abstracts awa
    val elevatorInstance = Elevator(ChargerSparkMax(6), ....)
 ```
 
-In addition, the 2024 version of ChargerLib includes the ```SmartEncoderMotorController``` interface, which allows you to fetch the temperature(```motor.tempCelsius```), applied current(```motor.appliedCurrent```) and applied voltage(```motor.appliedVoltage```) of the motor. Because Kmeasure does not support temperature units, the temperature unit returned is in degrees celsius.
+In addition, the 2024 version of ChargerLib includes the ```SmartEncoderMotorController``` interface,
+which allows you to fetch the temperature(```motor.tempCelsius```; a Double because Kmeasure does not support temperature units), 
+applied current(```motor.appliedCurrent```) and applied voltage(```motor.appliedVoltage```) of the motor,
+and provides support for closed loop control via ```setAngularPosition``` and ```setAngularVelocity```.
 
 Implementing classes of SmartEncoderMotorController:
 ```ChargerSparkMax(id)```, ```ChargerSparkFlex(id)```, ```ChargerTalonFX(id)```
 
-Implementing classes of EncoderMotorController:
+Implementing classes of only EncoderMotorController:
 ```ChargerTalonSRX(id)```
 
 
 
 # Gyroscopes, HeadingProvider and IMU
 
-A basic class that can return the heading of the robot is represented as a ```HeadingProvider```, which is accessed using the ```heading``` property:
+A basic class that can return the heading of the robot is represented as a ```HeadingProvider```, 
+which is accessed using the ```heading``` property:
 
 ```kotlin
+// drivetrains can provide heading via encoder readings
 val headingProvider: HeadingProvider = EncoderDifferentialDrivetrain(....)
 val headingProviderTwo: HeadingProvider = ChargerNavX()
 
@@ -72,7 +84,8 @@ val heading: Angle get() = headingProviderTwo.heading
 ```
 
 A heading provider that can be zeroed is represented using the  ```ZeroableHeadingProvider``` interface, 
-which has the ```zeroHeading()``` function.
+which has the ```zeroHeading(angle: Angle)``` function. When called without a specified angle, 
+this function will set the angle to 0 degrees.
 
 In addition, there are the ```ThreeAxisGyroscope```, ```ThreeAxisAccelerometer``` and ```ThreeAxisSpeedometer``` classes, 
 which measure angle, acceleration and velocity, respectively, in all 3 axes. For instance:
@@ -81,15 +94,15 @@ which measure angle, acceleration and velocity, respectively, in all 3 axes. For
 val navX = ChargerNavX()
 val gyroscope: ThreeAxisGyroscope = navX.gyroscope
 
-println(gyroscope.yaw) // Angle
+println(gyroscope.yaw + gyroscope.pitch + gyroscope.roll) // Angle
 
 val accelerometer: ThreeAxisAccelerometer = navX.accelerometer
 
-println(accelerometer.xAcceleration) // Acceleration
+println(accelerometer.xAcceleration + accelerometer.yAcceleration + ...) // Acceleration
 
 val speedometer: ThreeAxisSpeedometer = navX.speedometer
 
-println(accelerometer.xVelocity) // Velocity
+println(accelerometer.xVelocity + accelerometer.yVelocity + ...) // Velocity
 ```
 
 These interfaces are usually subclassed properties of overarching IMU classes.
@@ -97,25 +110,26 @@ These interfaces are usually subclassed properties of overarching IMU classes.
 
 HeadingProvider implementing classes: drivetrain subsystems, ```ChargerPigeon2()```, ```ChargerNavX()```
 
-```ChargerPigeon2(id)``` has subclassed ThreeAxisGyroscope and ThreeAxisAccelerometer impls.
+```ChargerPigeon2(id)``` has subclassed ThreeAxisGyroscope and ThreeAxisAccelerometer implementations.
 In addition, it supports fetching yaw rate, pitch rate and roll rate as well.
 
 ```ChargerNavX()```  has subclassed ThreeAxisGyroscope, ThreeAxisAccelerometer and ThreeAxisSpeedometer impls.
 
 
 # Vision
-Note: most of this is untested on the real robot as of 2024; bug fixes might be coming soon.
-
 Instead of providing abstractions per vision camera, ChargerLib provides the nessecary abstractions for every vision pipeline.
 
-Tracked vision targets are represented with the ```VisionResult``` sealed class. At the moment, there are 3 supported ```VisionResult```s:
+Fetched data from a vision camera is represented as the ```VisionTarget``` class.
+At the moment, there are 2 different kinds of vision targets: 
 
-A. ```VisionResult.Generic(tx: Double, ty: Double, areaPercent: Double)```, which represents a Generic vision target(I.E a color target or a (now removed) retroreflective target).
+A. ```VisionTarget.Object(tx: Double, ty: Double, areaPercent: Double, classId: String?)```,
+which represents a generic object or gamepiece detected by a vision camera, regardless of implementation(color or ML pipelines).
 
-B. ```VisionResult.AprilTag(tx, ty, areaPercent, id: Int, targetTransformFromCam: UnitTransform3d)```, which represents an AprilTag vision target. The id represents the fiducial ID of the tag.
+B. ```VisionResult.AprilTag(tx: Double, ty: Double, areaPercent: Double, fiducialId: Int, targetTransformFromCam: UnitTransform3d)```, 
+which represents an AprilTag vision target. Note: UnitTransform3d is simply a Transform3d with units support.
 
-C. ```VisionResult.ML(tx, ty, areaPercent, id: Int)```, which represents a ML vision target. The id represents the classified ID of the target.
 
+A group of vision data, associated with a timestamp, is represented using the ```VisionData<R```
 
 ```NonLoggableVisionData<R: VisionResult>``` represents a compendium of many ```VisionResult```'s(vision targets), where there is data on the best target, other targets found, and the timestamp of the results. On the other hand, ```VisionData<R: VisionResult>``` is vision data that can be logged to AdvantageKit(see more in the AdvantageKit section).
 

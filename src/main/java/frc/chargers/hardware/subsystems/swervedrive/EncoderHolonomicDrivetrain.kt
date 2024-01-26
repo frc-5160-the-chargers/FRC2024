@@ -497,10 +497,7 @@ public class EncoderHolonomicDrivetrain(
             powers.rotationPower epsilonEquals 0.0
 
         if (DriverStation.isDisabled() || speedsAreZero){
-            topLeft.halt()
-            topRight.halt()
-            bottomLeft.halt()
-            bottomRight.halt()
+            stop()
             return
         }
 

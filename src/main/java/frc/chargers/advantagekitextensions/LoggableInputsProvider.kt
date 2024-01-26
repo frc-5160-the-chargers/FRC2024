@@ -751,20 +751,22 @@ public class LoggableInputsProvider(
 
         override val inputsProcessor = object: LoggableInputs{
             override fun toLog(table: LogTable) {
+                // utility to view whether there is values at all; not used for replay purposes
+                table.put("$name/hasValues", field.isNotEmpty())
                 var counter = 1
-                table.put("$name/totalItems", field.size.toLong())
+                table.put("$name/totalValues", field.size)
                 for (item in field){
-                    item.pushToLog(table, "$name/Item#$counter")
+                    item.pushToLog(table, "$name/Value#$counter")
                     counter++
                 }
             }
 
             override fun fromLog(table: LogTable) {
-                val totalItems = table.get("$name/totalItems", 0)
+                val totalItems = table.get("$name/totalValues", 0)
                 val newField = mutableListOf<T>()
-                for (i in 1..totalItems){
+                for (counter in 1..totalItems + 1){
                     newField.add(
-                        default.getFromLog(table, "$name/Item#$i")
+                        default.getFromLog(table, "$name/Value#$counter")
                     )
                 }
                 field = newField
@@ -783,11 +785,27 @@ public class LoggableInputsProvider(
     }
 
 
+
+    public fun <E: Enum<E>> enum(
+        default: E,
+        getValue: () -> E
+    ): ReadOnlyLoggableInput<E> = PropertyDelegateProvider { _, property ->
+        AutoLoggedEnum(property.name, default, getValue)
+    }
+
+    public fun <E: Enum<E>> enum(
+        default: E,
+        getValue: () -> E,
+        setValue: (E) -> Unit
+    ): ReadWriteLoggableInput<E> = PropertyDelegateProvider { _, property ->
+        AutoLoggedEnum(property.name, default, getValue, setValue)
+    }
+
     private inner class AutoLoggedEnum <E: Enum<E>>(
         val name: String,
         val default: E,
         val get: () -> E,
-        val set: (E) -> Unit
+        val set: (E) -> Unit = {}
     ): ReadWriteProperty<Any?, E>, AutoLoggedItem(){
         private var field = default
 
@@ -814,14 +832,24 @@ public class LoggableInputsProvider(
 
 
 
+    public fun <T: WPISerializable> value(
+        default: T,
+        getValue: () -> T
+    ): ReadOnlyLoggableInput<T> =
+        PropertyDelegateProvider{_, variable -> AutoLoggedWPISerializable(variable.name,default, getValue)}
 
-
+    public fun <T: WPISerializable> value(
+        default: T,
+        getValue: () -> T,
+        setValue: (T) -> Unit
+    ): ReadWriteLoggableInput<T> =
+        PropertyDelegateProvider{ _, variable -> AutoLoggedWPISerializable(variable.name, default, getValue, setValue)}
 
     private inner class AutoLoggedWPISerializable <T: WPISerializable>(
         val name: String,
         val default: T,
         val get: () -> T,
-        val set: (T) -> Unit
+        val set: (T) -> Unit = {}
     ): ReadWriteProperty<Any?, T>, AutoLoggedItem(){
         private var field = default
 
@@ -845,9 +873,4 @@ public class LoggableInputsProvider(
             field = get()
         }
     }
-
-
-
-
-
 }

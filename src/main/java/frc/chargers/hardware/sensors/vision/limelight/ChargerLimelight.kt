@@ -19,7 +19,7 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 
 
 /**
- * A wrapper around the Limelight, with advantagekit support,
+ * A wrapper around the Limelight, with AdvantageKit support,
  * optimized for usage within ChargerLib.
  */
 public class ChargerLimelight(
@@ -118,46 +118,42 @@ public class ChargerLimelight(
         logInputs: LoggableInputsProvider
     ): LimelightPipeline<VisionTarget.AprilTag>(index) {
 
-        override val visionData: VisionData<VisionTarget.AprilTag>?
-            by logInputs.nullableValue(default = emptyAprilTagVisionData()){ getApriltagData() }
+        override val visionData: List<VisionTarget.AprilTag>
+            by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
+                if (isSimulation() || !hasTargets()) {
+                    return@valueList listOf()
+                }else if (getCurrentPipelineIndex(name).toInt() != index){
+                    println("The current pipeline index for the limelight is incorrect. You must call reset() on the pipeline.")
+                    return@valueList listOf()
+                }
 
-        private fun getApriltagData(): VisionData<VisionTarget.AprilTag>?{
-            if (isSimulation() || !hasTargets()) {
-                return null
-            }else if (getCurrentPipelineIndex(name).toInt() != index){
-                println("The current pipeline index for the limelight is incorrect. You must call reset() on the pipeline.")
-                return null
-            }
-
-            if (useJsonDump){
-                val allTargets = jsonResults.targets_Fiducials.map{
-                    VisionTarget.AprilTag(
-                        tx = it.tx,
-                        ty = it.ty,
-                        areaPercent = it.ta,
-                        fiducialId = it.fiducialID.toInt(),
-                        // converts it to a UnitTransform3d.
-                        targetTransformFromCam = it.targetPose_CameraSpace.ofUnit(meters) - UnitPose3d()
+                if (useJsonDump){
+                    val latency = jsonResults.latency_capture.ofUnit(milli.seconds)
+                    return@valueList jsonResults.targets_Fiducials.map{
+                        VisionTarget.AprilTag(
+                            timestamp = fpgaTimestamp() - latency,
+                            tx = it.tx,
+                            ty = it.ty,
+                            areaPercent = it.ta,
+                            fiducialId = it.fiducialID.toInt(),
+                            // converts it to a UnitTransform3d.
+                            targetTransformFromCam = it.targetPose_CameraSpace.ofUnit(meters) - UnitPose3d()
+                        )
+                    }
+                }else{
+                    val latency = (getLatency_Capture(name) + getLatency_Pipeline(name)).ofUnit(milli.seconds)
+                    return@valueList listOf(
+                        VisionTarget.AprilTag(
+                            fpgaTimestamp() - latency,
+                            getTX(name),
+                            getTY(name),
+                            getTA(name),
+                            getFiducialID(name).toInt(),
+                            getTargetPose3d_CameraSpace(name).ofUnit(meters) - UnitPose3d()
+                        )
                     )
-                }.toMutableList()
-                val bestTarget = allTargets.removeAt(0)
-                val latency = jsonResults.latency_capture.ofUnit(milli.seconds)
-
-                return VisionData(fpgaTimestamp() - latency, bestTarget, allTargets)
-            }else{
-                val latency = (getLatency_Capture(name) + getLatency_Pipeline(name)).ofUnit(milli.seconds)
-                return VisionData(
-                    fpgaTimestamp() - latency,
-                    VisionTarget.AprilTag(
-                        getTX(name),
-                        getTY(name),
-                        getTA(name),
-                        getFiducialID(name).toInt(),
-                        getTargetPose3d_CameraSpace(name).ofUnit(meters) - UnitPose3d()
-                    )
-                )
+                }
             }
-        }
     }
 
 
@@ -229,45 +225,40 @@ public class ChargerLimelight(
         logInputs: LoggableInputsProvider
     ): LimelightPipeline<VisionTarget.Object>(index){
 
-        override val visionData: VisionData<VisionTarget.Object>?
-                by logInputs.nullableValue(default = emptyObjectVisionData()){ getMLData() }
+        override val visionData: List<VisionTarget.Object>
+            by logInputs.valueList<VisionTarget.Object>(default = VisionTarget.Object.Dummy) {
+                if (isSimulation() || !hasTargets()) {
+                    return@valueList listOf()
+                }else if (getCurrentPipelineIndex(name).toInt() != index){
+                    println("The current pipeline index for the limelight is incorrect. You must call reset() on the pipeline.")
+                    return@valueList listOf()
+                }
 
-        private fun getMLData(): VisionData<VisionTarget.Object>? {
-            if (isSimulation() || !hasTargets()) {
-                return null
-            }else if (getCurrentPipelineIndex(name).toInt() != index){
-                println("The current pipeline index for the limelight is incorrect. You must call reset() on the pipeline.")
-                return null
-            }
-
-            if (useJsonDump){
-                val allTargets = jsonResults.targets_Detector.map{
-                    VisionTarget.Object(
-                        tx = it.tx,
-                        ty = it.ty,
-                        areaPercent = it.ta,
-                        classId = if (isMachineLearning) it.classID.toString() else null
+                val latency: Time
+                if (useJsonDump){
+                    latency = jsonResults.latency_capture.ofUnit(milli.seconds)
+                    return@valueList jsonResults.targets_Detector.map{
+                        VisionTarget.Object(
+                            timestamp = fpgaTimestamp() - latency,
+                            tx = it.tx,
+                            ty = it.ty,
+                            areaPercent = it.ta,
+                            classId = if (isMachineLearning) it.classID.toString() else null
+                        )
+                    }
+                }else{
+                    latency = (getLatency_Capture(name) + getLatency_Pipeline(name)).ofUnit(milli.seconds)
+                    return@valueList listOf(
+                        VisionTarget.Object(
+                            fpgaTimestamp() - latency,
+                            getTX(name),
+                            getTY(name),
+                            getTA(name),
+                            if (isMachineLearning) getNeuralClassID(name).toString() else null
+                        )
                     )
-                }.toMutableList()
-                val bestTarget = allTargets.removeAt(0)
-                val latency = jsonResults.latency_capture.ofUnit(milli.seconds)
-
-                return VisionData(fpgaTimestamp() - latency, bestTarget, allTargets)
-            }else{
-                val latency = (getLatency_Capture(name) + getLatency_Pipeline(name)).ofUnit(milli.seconds)
-
-                return VisionData(
-                    fpgaTimestamp() - latency,
-                    VisionTarget.Object(
-                        getTX(name),
-                        getTY(name),
-                        getTA(name),
-                        if (isMachineLearning) getNeuralClassID(name).toString() else null
-                    )
-                )
+                }
             }
-        }
-
     }
 
 

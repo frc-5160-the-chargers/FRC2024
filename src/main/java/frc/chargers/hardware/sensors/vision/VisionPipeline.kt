@@ -19,12 +19,11 @@ public typealias ObjectVisionPipeline = VisionPipeline<VisionTarget.Object>
 public interface VisionPipeline<R: VisionTarget> {
 
     /**
-     * Fetches the full vision data of the [VisionPipeline]; These are all from the exact same timestamp.
-     * A null value represents the vision data being invalid/the pipeline having no available targets.
+     * Fetches the full vision data of the [VisionPipeline]. This list includes all valid vision targets
      *
      * This is intended to be used as a getter variable.
      */
-    public val visionData: NonLoggableVisionData<R>?
+    public val visionData: List<R>
 
     /**
      * Camera constants specific to the overarching vision camera.
@@ -52,11 +51,18 @@ public interface VisionPipeline<R: VisionTarget> {
 
     /**
      * Fetches the current best target of the [VisionPipeline].
-     *
-     * The values fetched here are not nessecarily from the exact same timestamp.
      */
     public val bestTarget: R?
-        get() = visionData?.bestTarget
+        get(){
+            // fetches vision data once
+            val data = visionData
+
+            return if (data.isEmpty()){
+                null
+            }else{
+                visionData[0]
+            }
+        }
 
     /**
      * Calculates the horizontal distance to a target, utilizing the pitch and height of the target.
@@ -84,6 +90,5 @@ public interface VisionPipeline<R: VisionTarget> {
             sqrt(horizontalDistance.siValue.pow(2) + targetHeight.siValue.pow(2.0))
         )
     }
-
 }
 
