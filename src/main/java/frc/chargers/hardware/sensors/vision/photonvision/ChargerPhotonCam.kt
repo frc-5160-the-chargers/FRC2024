@@ -11,11 +11,13 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout
 import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.wpilibj.RobotBase.*
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.vision.*
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import org.littletonrobotics.junction.Logger
 import org.photonvision.EstimatedRobotPose
 import org.photonvision.PhotonCamera
 import org.photonvision.PhotonPoseEstimator
@@ -39,13 +41,20 @@ public class ChargerPhotonCam(
         allIndexes.add(index)
     }
 
+
+    init{
+        ChargerRobot.runPeriodically{
+            Logger.recordOutput("PhotonCamera$name/pipelineIndex", pipelineIndex)
+        }
+    }
+
     /**
      * Represents a photonvision pipeline that can detect AprilTags.
      */
     public inner class AprilTagPipeline(
         index: Int,
         /**
-         * The namespace of which the Limelight Pipeline logs to:
+         * The namespace of which the Photon Camera Pipeline logs to:
          * Ensure that this namespace is the same across real and sim equivalents.
          * @see LoggableInputsProvider
          */
@@ -55,7 +64,7 @@ public class ChargerPhotonCam(
         override val visionData: List<VisionTarget.AprilTag>
             by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
                 val data = latestResult
-                if (!data.hasTargets() || isSimulation()){
+                if (!data.hasTargets() || isSimulation() || pipelineIndex != index){
                     return@valueList listOf()
                 }
 
@@ -71,6 +80,9 @@ public class ChargerPhotonCam(
     }
 
 
+    /**
+     * Represents the pose estimation component of an apriltag pipeline.
+     */
     public inner class AprilTagPoseEstimator(
         /**
          * The pipeline index where apriltag pose estimation takes place.
@@ -118,7 +130,7 @@ public class ChargerPhotonCam(
     public inner class ObjectPipeline(
         index: Int,
         /**
-         * The namespace of which the Limelight Pipeline logs to:
+         * The namespace of which the Photon camera Pipeline logs to:
          * Ensure that this namespace is the same across real and sim equivalents.
          * @see LoggableInputsProvider
          */
@@ -128,7 +140,7 @@ public class ChargerPhotonCam(
         override val visionData: List<VisionTarget.Object>
             by logInputs.valueList(default = VisionTarget.Object.Dummy){
                 val data = latestResult
-                if (!data.hasTargets() || isSimulation()){
+                if (!data.hasTargets() || isSimulation() || pipelineIndex != index){
                     return@valueList listOf()
                 }
 

@@ -10,12 +10,12 @@ import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.vision.*
-import frc.chargers.hardware.sensors.vision.photonvision.ChargerPhotonCam.AprilTagPipeline
 import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import org.littletonrobotics.junction.Logger
 
 
 /**
@@ -73,6 +73,9 @@ public class ChargerLimelight(
     init{
         this.useJsonDump = useJsonDump
         limelights.add(this)
+        ChargerRobot.runPeriodically{
+            Logger.recordOutput("Limelight/pipelineIndex", getCurrentPipelineIndex(name))
+        }
     }
 
     public companion object{
@@ -108,7 +111,7 @@ public class ChargerLimelight(
      * Note: this class does not provide pose estimation. Use [ChargerLimelight.AprilTagPoseEstimator]
      * with the SAME pipeline index as this class instead.
      */
-    public inner class ApriltagPipeline(
+    public inner class AprilTagPipeline(
         index: Int,
         /**
          * The namespace of which the Limelight Pipeline logs to:
@@ -120,10 +123,7 @@ public class ChargerLimelight(
 
         override val visionData: List<VisionTarget.AprilTag>
             by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
-                if (isSimulation() || !hasTargets()) {
-                    return@valueList listOf()
-                }else if (getCurrentPipelineIndex(name).toInt() != index){
-                    println("The current pipeline index for the limelight is incorrect. You must call reset() on the pipeline.")
+                if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != index) {
                     return@valueList listOf()
                 }
 
@@ -157,6 +157,9 @@ public class ChargerLimelight(
     }
 
 
+    /**
+     * Represents the pose estimation component of an apriltag pipeline.
+     */
     public inner class AprilTagPoseEstimator(
         /**
          * The pipeline index where apriltag pose estimation takes place.
@@ -227,10 +230,7 @@ public class ChargerLimelight(
 
         override val visionData: List<VisionTarget.Object>
             by logInputs.valueList<VisionTarget.Object>(default = VisionTarget.Object.Dummy) {
-                if (isSimulation() || !hasTargets()) {
-                    return@valueList listOf()
-                }else if (getCurrentPipelineIndex(name).toInt() != index){
-                    println("The current pipeline index for the limelight is incorrect. You must call reset() on the pipeline.")
+                if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != index) {
                     return@valueList listOf()
                 }
 
