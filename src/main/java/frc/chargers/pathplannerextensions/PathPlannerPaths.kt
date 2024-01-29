@@ -14,7 +14,7 @@ object PathPlannerPaths{
 
     fun fromChoreoTrajectoryGroup(name: String): List<PathPlannerPath>{
         val files = File(Filesystem.getDeployDirectory(), "choreo")
-            .listFiles { file -> file.name.matches(("$name\\.\\d+\\.traj").toRegex()).also{ println(file.name) } }
+            .listFiles { file -> file.name.matches(("$name\\.\\d+\\.traj").toRegex()) }
             ?: error("It seems that you do not have a trajectory group with the name $name.")
 
         if (files.isEmpty()){

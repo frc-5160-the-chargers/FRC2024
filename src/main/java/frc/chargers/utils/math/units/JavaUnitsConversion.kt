@@ -60,6 +60,7 @@ private typealias WPIVelocityUnit = WPIRate<WPIDistanceUnit>
 private typealias WPIAccelerationUnit = WPIRate<WPIVelocityUnit>
 private typealias WPIAngularVelocityUnit = WPIRate<WPIAngleUnit>
 private typealias WPIAngularAccelerationUnit = WPIRate<WPIAngularVelocityUnit>
+private typealias WPIVoltageRateUnit = WPIRate<WPIVoltageUnit>
 
 
 
@@ -68,6 +69,13 @@ fun Measure<WPIVelocityUnit>.toKmeasure(): Velocity = Velocity(baseUnitMagnitude
 
 @JvmName("toWPIVelocity")
 fun Velocity.toWPI(): Measure<WPIVelocityUnit> = Units.MetersPerSecond.of(siValue)
+
+
+@JvmName("toKmeasureVoltageRate")
+fun Measure<WPIVoltageRateUnit>.toKmeasure(): VoltageRate = VoltageRate(baseUnitMagnitude())
+
+@JvmName("toWPIVoltageRate")
+fun VoltageRate.toWPI(): Measure<WPIVoltageRateUnit> = Units.Volts.per(Units.Second).of(siValue)
 
 
 

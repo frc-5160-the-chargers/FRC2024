@@ -13,6 +13,7 @@ import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.advantagekitextensions.recordOutput
 import frc.chargers.constants.SwerveControlData
@@ -29,6 +30,9 @@ import frc.chargers.hardware.subsystems.swervedrive.module.*
 import frc.chargers.hardware.subsystems.swervedrive.module.lowlevel.*
 import frc.chargers.pathplannerextensions.asPathPlannerConstants
 import frc.chargers.utils.math.inputModulus
+import frc.chargers.utils.math.units.VoltageRate
+import frc.chargers.utils.math.units.toKmeasure
+import frc.chargers.utils.math.units.toWPI
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitTranslation2d
@@ -469,12 +473,6 @@ public class EncoderHolonomicDrivetrain(
         ).toArray()
     ).rotationSpeed)
 
-    /*
-    topLeft.setDirectionalPower(output, -45.degrees)
-    topRight.setDirectionalPower(-output, 45.degrees)
-    bottomLeft.setDirectionalPower(output, 45.degrees)
-    bottomRight.setDirectionalPower(-output, -45.degrees)
-     */
 
 
     /**
@@ -504,6 +502,66 @@ public class EncoderHolonomicDrivetrain(
         openLoopRotationOverride = null
         closedLoopRotationOverride = null
     }
+
+
+    /**
+     * Creates a [SysIdRoutine] for characterizing a drivetrain's drive motors.
+     */
+    public fun getDriveSysIdRoutine(
+        quasistaticRampRate: VoltageRate? = null,
+        dynamicStepVoltage: Voltage? = null,
+        timeout: Time? = null
+    ): SysIdRoutine = SysIdRoutine(
+        SysIdRoutine.Config(
+            quasistaticRampRate?.toWPI(), dynamicStepVoltage?.toWPI(), timeout?.toWPI(),
+        ) { recordOutput("Drivetrain(Swerve)/DriveSysIDState", it.toString()) },
+        SysIdRoutine.Mechanism(
+            {
+                topLeft.turnVoltage = it.toKmeasure()
+                topRight.turnVoltage = it.toKmeasure()
+                bottomLeft.turnVoltage = it.toKmeasure()
+                bottomRight.turnVoltage = it.toKmeasure()
+
+                topLeft.driveVoltage = 0.volts
+                topRight.driveVoltage = 0.volts
+                bottomLeft.driveVoltage = 0.volts
+                bottomRight.driveVoltage = 0.volts
+            },
+            null, // no need for log consumer since data is recorded by advantagekit
+            this
+        )
+    )
+
+    /**
+     * Creates a [SysIdRoutine] for characterizing a drivetrain's turn(azimuth) motors.
+     */
+    public fun getAzimuthSysIdRoutine(
+        quasistaticRampRate: VoltageRate? = null,
+        dynamicStepVoltage: Voltage? = null,
+        timeout: Time? = null
+    ): SysIdRoutine = SysIdRoutine(
+        SysIdRoutine.Config(
+            quasistaticRampRate?.toWPI(), dynamicStepVoltage?.toWPI(), timeout?.toWPI(),
+        ) { recordOutput("Drivetrain(Swerve)/AzimuthSysIDState", it.toString()) },
+        SysIdRoutine.Mechanism(
+            {
+                topLeft.turnVoltage = it.toKmeasure()
+                topRight.turnVoltage = it.toKmeasure()
+                bottomLeft.turnVoltage = it.toKmeasure()
+                bottomRight.turnVoltage = it.toKmeasure()
+
+                topLeft.driveVoltage = 0.volts
+                topRight.driveVoltage = 0.volts
+                bottomLeft.driveVoltage = 0.volts
+                bottomRight.driveVoltage = 0.volts
+            },
+            null, // no need for log consumer since data is recorded by advantagekit
+            this
+        )
+    )
+
+
+
 
 
     /**

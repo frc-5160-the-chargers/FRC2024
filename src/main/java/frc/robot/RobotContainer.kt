@@ -5,7 +5,6 @@
 package frc.robot
 
 import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.Scalar
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
@@ -21,6 +20,7 @@ import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.constants.DashboardTuner
@@ -79,7 +79,7 @@ class RobotContainer: ChargerRobotContainer() {
         println(DriverStationSim.getAllianceStationId())
 
         if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
-            DriverStationSim.setAllianceStationId(AllianceStationID.Blue1);
+            DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
         }
 
 
@@ -188,4 +188,10 @@ class RobotContainer: ChargerRobotContainer() {
                 +AutoBuilder.followPath(it)
             }
         }
+
+
+
+
+    override val testCommand: Command =
+        drivetrain.getDriveSysIdRoutine().quasistatic(SysIdRoutine.Direction.kForward)
 }
