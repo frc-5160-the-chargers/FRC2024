@@ -56,22 +56,23 @@ public interface RobotPoseMonitor: HeadingProvider {
 
             val headingData = fileReader.readLine()
 
-            val startIndex = headingData.indexOf("\"heading\": ")
+            val startIndex = headingData.indexOf(":")
             val endIndex = headingData.indexOf(",")
 
             if (startIndex == -1 || endIndex == -1){
                 error("") // causes code to jump to exception block
             }
 
+
             resetPose(
                 // pose2d wrapper w/ units support
                 UnitPose2d(
                     translation.ofUnit(meters),
-                    headingData.substring(startIndex, endIndex).toDouble().ofUnit(radians)
+                    headingData.substring(startIndex+2, endIndex).toDouble().ofUnit(radians)
                 )
             )
         }catch(e: Throwable){
-            error("It looks like there is no heading data to be found in your path file.")
+            throw e
         }
     }
 

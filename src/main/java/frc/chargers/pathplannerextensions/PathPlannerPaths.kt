@@ -12,12 +12,15 @@ object PathPlannerPaths{
     fun fromPathFiles(vararg fileNames: String): List<PathPlannerPath> =
         fileNames.map{ name -> PathPlannerPath.fromPathFile(name) }
 
-
     fun fromChoreoTrajectoryGroup(name: String): List<PathPlannerPath>{
         val files = File(Filesystem.getDeployDirectory(), "choreo")
-            .listFiles { file -> file.name.toRegex().matches("$name\\.\\d+\\.traj") }
+            .listFiles { file -> file.name.matches(("$name\\.\\d+\\.traj").toRegex()).also{ println(file.name) } }
             ?: error("It seems that you do not have a trajectory group with the name $name.")
 
-        return files.map{ file -> PathPlannerPath.fromChoreoTrajectory(file.name) }
+        if (files.isEmpty()){
+            error("It seems that you do not have a trajectory group with the name $name.")
+        }
+
+        return files.map{ file -> PathPlannerPath.fromChoreoTrajectory(file.nameWithoutExtension) }
     }
 }
