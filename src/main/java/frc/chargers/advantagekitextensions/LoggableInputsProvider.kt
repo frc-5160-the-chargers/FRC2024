@@ -764,7 +764,7 @@ public class LoggableInputsProvider(
             override fun fromLog(table: LogTable) {
                 val totalItems = table.get("$name/totalValues", 0)
                 val newField = mutableListOf<T>()
-                for (counter in 1..totalItems + 1){
+                for (counter in 1 ..< totalItems + 1){
                     newField.add(
                         default.getFromLog(table, "$name/Value#$counter")
                     )

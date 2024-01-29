@@ -23,8 +23,8 @@ class ModuleOdometryIO(
     moduleName: String,
     // all wrappers inherit their base class(CANSparkMax)
     private val hardwareData: SwerveHardwareData,
-    turnMotor: ChargerSparkMax,
-    driveMotor: ChargerSparkMax,
+    private val turnMotor: ChargerSparkMax,
+    private val driveMotor: ChargerSparkMax,
     absoluteEncoder: PositionEncoder,
 ) {
     private val wheelRadius = hardwareData.wheelDiameter / 2.0
@@ -55,6 +55,11 @@ class ModuleOdometryIO(
     // initialies previous wheel positions and directions to 0
     private var previousWheelPosition = Distance(0.0)
     private var previousWheelDirection = Angle(0.0)
+
+    fun burnMotorFlashes(){
+        turnMotor.burnFlash()
+        driveMotor.burnFlash()
+    }
 
     init{
         println("kStatus2(turn motor): " + turnMotor.setPeriodicFramePeriod(

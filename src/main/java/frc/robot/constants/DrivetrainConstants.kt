@@ -2,6 +2,7 @@ package frc.robot.constants
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
+import com.ctre.phoenix6.signals.SensorDirectionValue
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.constants.SwerveAzimuthControl
 import frc.chargers.constants.SwerveControlData
@@ -10,6 +11,7 @@ import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
+import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.chargers.pathplannerextensions.PathConstraints
@@ -24,6 +26,12 @@ val PATHFIND_CONSTRAINTS = PathConstraints(
     AngularAcceleration(2.0)
 )
 
+val OPEN_LOOP_ROTATION_PID = PIDConstants(0.3,0,0)
+val CLOSED_LOOP_ROTATION_PID = PIDConstants(0.3,0,0)
+
+val OPEN_LOOP_TRANSLATION_PID = PIDConstants(0.3,0,0)
+val CLOSED_LOOP_TRANSLATION_PID = PIDConstants(0.3,0,0)
+
 
 val DRIVE_CONTROL_DATA = if (isReal()){
     SwerveControlData(
@@ -33,31 +41,32 @@ val DRIVE_CONTROL_DATA = if (isReal()){
         ),
         velocityPID = PIDConstants(0.1,0.0,0.0),
         velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
-        robotRotationPID = PIDConstants(0.5, 0.0, 0.0), // for pathplanner
-        robotTranslationPID = PIDConstants(0.5,0.0,0.0) // for pathplanner
+        robotRotationPID = CLOSED_LOOP_ROTATION_PID, // for pathplanner
+        robotTranslationPID = CLOSED_LOOP_TRANSLATION_PID // for pathplanner
     )
 }else{
     SwerveControlData(
         azimuthControl = SwerveAzimuthControl.ProfiledPID(
-            PIDConstants(13.0,0,0.2),
+            PIDConstants(15.0,0,0.2),
             motionProfile = AngularTrapezoidProfile(
-                maxVelocity = 10.0.radians / 1.seconds,
-                maxAcceleration = 8.radians / 1.seconds / 1.seconds,
+                maxVelocity = 13.0.radians / 1.seconds,
+                maxAcceleration = 10.radians / 1.seconds / 1.seconds,
             )
         ),
+        openLoopDiscretizationRate = 3.1,
         velocityPID = PIDConstants(0.2,0.0,0.0),
         velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
-        robotRotationPID = PIDConstants(0.5, 0.0, 0.0), // for pathplanner
-        robotTranslationPID = PIDConstants(0.5,0.0,0.0) // for pathplanner
+        robotRotationPID = CLOSED_LOOP_ROTATION_PID, // for pathplanner
+        robotTranslationPID = CLOSED_LOOP_TRANSLATION_PID // for pathplanner
     )
 }
 
 
 val TURN_MOTORS = sparkMaxSwerveMotors(
-    topLeftId = 29,
-    topRightId = 31,
-    bottomLeftId = 22,
-    bottomRightId = 4
+    topLeft = ChargerSparkMax(29){inverted = true},
+    topRight = ChargerSparkMax(31){inverted = true},
+    bottomLeft = ChargerSparkMax(22),
+    bottomRight = ChargerSparkMax(4)
 ){
     smartCurrentLimit = SmartCurrentLimit(30.amps)
     voltageCompensationNominalVoltage = 12.volts
@@ -66,16 +75,20 @@ val TURN_MOTORS = sparkMaxSwerveMotors(
 }
 
 val TURN_ENCODERS = swerveCANcoders(
-    topLeftId = 44,
-    topRightId = 42,
-    bottomLeftId = 43,
-    bottomRightId = 45,
+    topLeft = ChargerCANcoder(44){
+         sensorDirection = SensorDirectionValue.Clockwise_Positive
+    },
+    topRight = ChargerCANcoder(42){
+        sensorDirection = SensorDirectionValue.Clockwise_Positive
+    },
+    bottomLeft = ChargerCANcoder(43),
+    bottomRight = ChargerCANcoder(45),
     useAbsoluteSensor = true
 ).withOffsets(
-    topLeftZero = 0.602.radians,
-    topRightZero = 1.81.radians,
-    bottomLeftZero = 1.48.radians,
-    bottomRightZero = 2.936.radians
+    topLeftZero = 2.134.radians,
+    topRightZero = 3.438.radians,
+    bottomLeftZero = 1.5.radians,
+    bottomRightZero = 2.938.radians
 )
 
 val DRIVE_MOTORS = sparkMaxSwerveMotors(

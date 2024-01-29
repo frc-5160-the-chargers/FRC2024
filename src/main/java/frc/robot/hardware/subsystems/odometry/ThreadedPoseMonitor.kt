@@ -12,7 +12,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
-import frc.chargers.hardware.sensors.RobotPoseMonitor
+import frc.chargers.hardware.subsystems.robotposition.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX
@@ -20,6 +20,7 @@ import frc.chargers.hardware.subsystems.swervedrive.SwerveEncoders
 import frc.chargers.hardware.subsystems.swervedrive.SwerveMotors
 import frc.chargers.utils.a
 import frc.chargers.wpilibextensions.Alert
+import frc.chargers.wpilibextensions.delay
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
@@ -82,6 +83,16 @@ class ThreadedPoseMonitor(
     private val gyroOdoSource = GyroOdometryIO(navX)
 
     private val timestampsSource = OdometryTimestampsIO()
+
+
+    init{
+        // waits, then burns flashes for motors
+        delay(0.02.seconds)
+        topLeftOdoSource.burnMotorFlashes()
+        topRightOdoSource.burnMotorFlashes()
+        bottomLeftOdoSource.burnMotorFlashes()
+        bottomRightOdoSource.burnMotorFlashes()
+    }
 
 
 

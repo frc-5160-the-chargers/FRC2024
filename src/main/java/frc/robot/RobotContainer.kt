@@ -5,10 +5,15 @@
 package frc.robot
 
 import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.Scalar
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
+import com.batterystaple.kmeasure.units.meters
 import com.kauailabs.navx.frc.AHRS
+import com.pathplanner.lib.auto.AutoBuilder
+import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.hal.AllianceStationID
+import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isReal
@@ -20,14 +25,16 @@ import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.constants.SwerveHardwareData
+import frc.chargers.controls.pid.PIDConstants
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.sensors.imu.ChargerNavX
-import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
+import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.chargers.hardware.subsystems.swervedrive.RotationOverride
+import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
-import frc.robot.hardware.subsystems.odometry.ThreadedPoseMonitor
-import org.littletonrobotics.junction.Logger.hasReplaySource
 import org.littletonrobotics.junction.Logger.recordOutput
 
 
@@ -42,19 +49,18 @@ class RobotContainer: ChargerRobotContainer() {
     ).apply{ zeroHeading() }
 
 
+    /*
     private val limelight = ChargerLimelight(
         useJsonDump = false,
         lensHeight = LIMELIGHT_LENS_HEIGHT,
         mountAngle = LIMELIGHT_MOUNT_ANGLE
     )
 
-    /*
     private val apriltagIO: AprilTagVisionPipeline =
         limelight.ApriltagPipeline(
             index = 1,
             logInputs = LoggableInputsProvider("LimelightApriltagVision") // logs to the "LimelightApriltagVision" namespace
         )
-
      */
 
     private val drivetrain = EncoderHolonomicDrivetrain(
@@ -68,24 +74,17 @@ class RobotContainer: ChargerRobotContainer() {
         gyro = if (isReal()) gyroIO else null,
     )
 
-    /*
-    private val shooter = Shooter(
-        ShooterIOSim(
-            DCMotor.getNEO(1),
-            DCMotor.getNEO(1),
-            DCMotor.getNEO(1), // sim motors,
-            1.0, 1.0, 1.0
-        ),
-        PIDConstants(0.3,0,0)
-    )
-
-     */
-
 
     init{
+        println(DriverStationSim.getAllianceStationId())
+
         if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
-            DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
+            DriverStationSim.setAllianceStationId(AllianceStationID.Blue1);
         }
+
+
+
+        println(DriverStationSim.getAllianceStationId())
         DriverStation.silenceJoystickConnectionWarning(true)
         recordOutput("Tuning Mode", DashboardTuner.tuningMode)
         LiveWindow.disableAllTelemetry()
@@ -93,21 +92,13 @@ class RobotContainer: ChargerRobotContainer() {
         configureBindings()
         configureDefaultCommands()
 
-        /*
-        /*
-        PPHolonomicDriveController.setRotationTargetOverride {
-            Optional.of(Rotation2d.fromDegrees(90.0))
-        }
 
-         */
         IMUSimulation.configure(
             headingSupplier = { drivetrain.heading },
             chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
 
-         */
-
-
+        /*
         if (isReal() || hasReplaySource()){
             drivetrain.poseEstimator = ThreadedPoseMonitor(
                 kinematics = drivetrain.kinematics,
@@ -119,8 +110,8 @@ class RobotContainer: ChargerRobotContainer() {
             )
         }
 
+         */
 
-        /*
         PathPlannerLogging.setLogCurrentPoseCallback {
             recordOutput("Pathplanner/currentPose", Pose2d.struct, it)
         }
@@ -135,8 +126,6 @@ class RobotContainer: ChargerRobotContainer() {
             recordOutput("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
             recordOutput("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
         }
-
-         */
     }
 
     private fun configureDefaultCommands(){
@@ -146,7 +135,8 @@ class RobotContainer: ChargerRobotContainer() {
 
             loop{
                 drivetrain.swerveDrive(
-                    DriverController.swerveOutput(drivetrain.heading),
+                    // custom getter property; acts as a function
+                    DriverController.swerveOutput,
                     fieldRelative = true
                 )
             }
@@ -155,83 +145,47 @@ class RobotContainer: ChargerRobotContainer() {
                 drivetrain.stop()
             }
         }
+
     }
 
 
     private fun configureBindings(){
 
-        val resetAimToAngle = runOnceCommand{ DriverController.targetHeading = null}
-
-        fun targetAngle(heading: Angle) = runOnceCommand{ DriverController.targetHeading = heading }
-
-        DriverController.apply{
-            pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle)
-            pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle)
-            pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle)
-            pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle)
+        fun resetAimToAngle() = runOnceCommand(drivetrain){
+            drivetrain.clearRotationOverrides()
         }
 
-    }
-
-
-    override val autonomousCommand: Command
-        get() = runOnceCommand{}
-
-
-
-    /*
-    val autoChooser = LoggedDashboardChooser<Command>("Auto Command").apply{
-        addDefaultOption("Taxi", basicTaxi(drivetrain))
-    }
-
-
-    override val autonomousCommand: Command
-        get() = buildCommand {
-            loopFor(3.seconds, drivetrain){
-                drivetrain.velocityDrive(Velocity(1.0), Velocity(0.0), AngularVelocity(0.0))
-            }
-
-
-
-
-            val testPath = PathPlannerPath.fromPathFile("New Path")
-
-            runOnce(drivetrain){
-                drivetrain.poseEstimator.resetPose(testPath.previewStartingHolonomicPose.ofUnit(meters))
-            }
-
-            +AutoBuilder.followPath(testPath)
-        }
-
-    override val testCommand: Command
-        get() = runOnceCommand(drivetrain){
-            drivetrain.poseEstimator.zeroPose()
-            println("Pose zeroed. New pose: " + drivetrain.poseEstimator.robotPose)
-            gyroIO.zeroHeading()
-            println("Gyro zeroed. New gyro heading: " + gyroIO.heading)
-        }
-
-     */
-
-    /*
-    val motor = ChargerSparkMax(29).apply{
-        this.getEncoder().position = 0.0
-        restoreFactoryDefaults()
-    }
-    override val autonomousCommand: Command
-        get() = buildCommand {
-            loop{
-                /*
-                motor.setAngularPosition(
-                    90.degrees,
+        fun targetAngle(heading: Angle) = runOnceCommand(drivetrain){
+            drivetrain.setOpenLoopRotationOverride(
+                RotationOverride.AimToAngleOpenLoop(
+                    drivetrain,
+                    heading,
                     PIDConstants(0.3,0,0),
                 )
-                 */
-                motor.set(0.3)
-                recordOutput("Testing/motorPosition", motor.encoder.angularPosition.inUnit(degrees))
-            }
+            )
         }
 
-     */
+        DriverController.apply{
+            pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
+            pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
+            pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
+            pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
+        }
+    }
 
+
+    override val autonomousCommand: Command
+        get() = buildCommand {
+            val trajGroupName = "5pAutoLeft"
+
+            runOnce {
+                drivetrain.poseEstimator.resetToChoreoTrajectory(trajGroupName)
+            }
+
+            val paths = PathPlannerPaths.fromChoreoTrajectoryGroup(trajGroupName)
+
+            paths.forEach{
+                +AutoBuilder.followPath(it)
+            }
+        }
 }

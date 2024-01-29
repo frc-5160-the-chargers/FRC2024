@@ -9,16 +9,16 @@ import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.Precision
 import frc.chargers.wpilibextensions.Alert
+import frc.robot.constants.OPEN_LOOP_TRANSLATION_PID
 import org.littletonrobotics.junction.Logger
 
-val DEFAULT_AIMING_PID = PIDConstants(0.2,0,0)
 val AIM_PRECISION = Precision.Within(Scalar(0.02))
 private val noTargetFoundAlert = Alert.warning(text = "A command is attempting to aim to an apriltag, but none can be found.")
 
 
 fun aimToApriltag(
     targetId: Int? = null,
-    aimingPID: PIDConstants = DEFAULT_AIMING_PID,
+    aimingPID: PIDConstants = OPEN_LOOP_TRANSLATION_PID,
     /**
      * A lambda that fetches the forward power that the drivetrain will drive for
      * while aiming PID is happening.

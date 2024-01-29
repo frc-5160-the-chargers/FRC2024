@@ -10,6 +10,7 @@ import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.robot.constants.OPEN_LOOP_TRANSLATION_PID
 import frc.robot.constants.PATHFIND_CONSTRAINTS
 import frc.robot.hardware.subsystems.shooter.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -49,7 +50,7 @@ enum class AimToTargetGoal(
 
 fun aimToTarget(
     target: AimToTargetGoal,
-    aimingPID: PIDConstants = DEFAULT_AIMING_PID,
+    aimingPID: PIDConstants = OPEN_LOOP_TRANSLATION_PID,
     pathfind: Boolean = true,
 
     drivetrain: EncoderHolonomicDrivetrain,

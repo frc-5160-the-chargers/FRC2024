@@ -16,14 +16,14 @@ public typealias ObjectVisionPipeline = VisionPipeline<VisionTarget.Object>
  *
  * In a multi-pipeline vision system, this interface should represent 1 pipeline.
  */
-public interface VisionPipeline<R: VisionTarget> {
+public interface VisionPipeline<T: VisionTarget> {
 
     /**
      * Fetches the full vision data of the [VisionPipeline]. This list includes all valid vision targets
      *
      * This is intended to be used as a getter variable.
      */
-    public val visionData: List<R>
+    public val visionData: List<T>
 
     /**
      * Camera constants specific to the overarching vision camera.
@@ -52,7 +52,7 @@ public interface VisionPipeline<R: VisionTarget> {
     /**
      * Fetches the current best target of the [VisionPipeline].
      */
-    public val bestTarget: R?
+    public val bestTarget: T?
         get(){
             // fetches vision data once
             val data = visionData
@@ -69,7 +69,7 @@ public interface VisionPipeline<R: VisionTarget> {
      */
     public fun distanceToTarget(
         targetHeight: Distance,
-        target: R? = bestTarget
+        target: T? = bestTarget
     ): Distance? = if (target != null){
         PhotonUtils.calculateDistanceToTargetMeters(
             cameraConstants.lensHeight.inUnit(meters),
@@ -84,7 +84,7 @@ public interface VisionPipeline<R: VisionTarget> {
     /**
      * Calculates the diagonal distance to the target.
      */
-    public fun diagonalDistanceToTarget(targetHeight: Distance, target: R? = bestTarget): Distance? {
+    public fun diagonalDistanceToTarget(targetHeight: Distance, target: T? = bestTarget): Distance? {
         val horizontalDistance = distanceToTarget(targetHeight, target) ?: return null
         return Distance(
             sqrt(horizontalDistance.siValue.pow(2) + targetHeight.siValue.pow(2.0))

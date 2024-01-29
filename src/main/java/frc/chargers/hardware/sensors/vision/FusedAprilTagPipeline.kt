@@ -20,8 +20,8 @@ class FusedAprilTagPipeline(
         pipelines.toList()
     )
 
-    /**
-     * 2 constructors due to the way that varargs interact with default variables
+    /*
+    2 constructors are necessary due to the way that varargs interact with default variables
      */
     constructor(
         shouldAverageBestTargets: Boolean,

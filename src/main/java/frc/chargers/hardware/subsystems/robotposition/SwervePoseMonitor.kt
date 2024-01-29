@@ -1,5 +1,5 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
-package frc.chargers.hardware.subsystems.swervedrive
+package frc.chargers.hardware.subsystems.robotposition
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.meters
@@ -13,9 +13,9 @@ import frc.external.frc6328.MechanicalAdvantagePoseEstimator.TimestampedVisionUp
 import frc.external.frc6995.NomadApriltagUtil
 import frc.chargers.advantagekitextensions.recordLatency
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.hardware.sensors.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
+import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.ofUnit
@@ -54,6 +54,8 @@ public class SwervePoseMonitor(
         poseEstimator.resetPose(pose.inUnit(meters))
         if (drivetrain.gyro is ZeroableHeadingProvider){
             drivetrain.gyro.zeroHeading(pose.rotation)
+        }else if (drivetrain.gyro == null){
+            println(poseEstimator.latestPose)
         }
     }
 

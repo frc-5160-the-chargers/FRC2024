@@ -10,10 +10,10 @@ import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.commands.AimingConfig
-import frc.robot.commands.DEFAULT_AIMING_PID
 import frc.robot.commands.apriltag.AimToTargetGoal
 import frc.robot.commands.apriltag.aimToTarget
 import frc.robot.commands.grabGamepiece
+import frc.robot.constants.OPEN_LOOP_TRANSLATION_PID
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
 import frc.robot.hardware.subsystems.shooter.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -21,7 +21,7 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 
 @Suppress("unused")
 fun twoPieceAmpWithVision(
-    aimingPID: PIDConstants = DEFAULT_AIMING_PID,
+    aimingPID: PIDConstants = OPEN_LOOP_TRANSLATION_PID,
     apriltagDetector: AprilTagVisionPipeline,
     gamepieceDetector: ObjectVisionPipeline,
 

@@ -60,14 +60,20 @@ public inline fun swerveCANcoders(
     }
 }
 
-
+/**
+ * A utility class that holds absolute encoders for a holonomic drivetrain.
+ */
 public data class SwerveEncoders <out E: PositionEncoder> (
     val topLeft: E,
     val topRight: E,
     val bottomLeft: E,
     val bottomRight: E
 ){
-
+    /**
+     * Creates an instance of a [SwerveEncoders] object
+     *
+     * with the specified offsets.
+     */
     public fun withOffsets(
         topLeftZero: Angle,
         topRightZero: Angle,
@@ -80,6 +86,9 @@ public data class SwerveEncoders <out E: PositionEncoder> (
         bottomRight = bottomRight.withOffset(bottomRightZero),
     )
 
+    /**
+     * A utility function that performs a predicate on each motor stored within the class.
+     */
     public fun forEach(predicate: (E) -> Unit){
         predicate(topLeft)
         predicate(topRight)
@@ -87,6 +96,11 @@ public data class SwerveEncoders <out E: PositionEncoder> (
         predicate(bottomRight)
     }
 
+    /**
+     * A utility function that checks if the encoders specified are a specific type.
+     *
+     * Takes advantage of reified generics to accomplish this.
+     */
     public inline fun <reified T: PositionEncoder> containsEncoders(): Boolean =
         topLeft is T && topRight is T && bottomLeft is T && bottomRight is T
 

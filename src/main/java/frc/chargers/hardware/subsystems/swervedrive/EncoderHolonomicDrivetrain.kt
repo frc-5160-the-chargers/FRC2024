@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused")
+@file:Suppress("RedundantVisibilityModifier", "unused", "MemberVisibilityCanBePrivate")
 package frc.chargers.hardware.subsystems.swervedrive
 
 import com.batterystaple.kmeasure.interop.average
@@ -19,15 +19,15 @@ import frc.chargers.constants.SwerveControlData
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.hardware.motorcontrol.EncoderMotorController
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
-import frc.chargers.hardware.sensors.RobotPoseMonitor
+import frc.chargers.hardware.subsystems.robotposition.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.gyroscopes.*
 import frc.chargers.hardware.subsystems.differentialdrive.DifferentialDrivetrain
+import frc.chargers.hardware.subsystems.robotposition.SwervePoseMonitor
 import frc.chargers.hardware.subsystems.swervedrive.module.*
 import frc.chargers.hardware.subsystems.swervedrive.module.lowlevel.*
 import frc.chargers.pathplannerextensions.asPathPlannerConstants
-import frc.chargers.utils.math.equations.epsilonEquals
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
@@ -101,6 +101,11 @@ public fun EncoderHolonomicDrivetrain(
                 topRight.inverted = !topRight.inverted
                 bottomLeft.inverted = !bottomLeft.inverted
                 bottomRight.inverted = !bottomRight.inverted
+
+                println("Top left inverted: " + topLeft.inverted)
+                println("Top right inverted: " + topRight.inverted)
+                println("bottom left inverted: " + bottomLeft.inverted)
+                println("bottom right inverted: " + bottomRight.inverted)
             }
         }
 
@@ -254,22 +259,24 @@ public class EncoderHolonomicDrivetrain(
 
     private val distanceOffset: Distance = averageEncoderPosition() * wheelRadius
 
+
+    // stores a nullable function, that returns a nullable double/angular velocity
+    // (with null indicating no rotation override)
+    private var openLoopRotationOverride: (() -> Double?)? = null
+    private var closedLoopRotationOverride: (() -> AngularVelocity?)? = null
+
     /*
     OPEN_LOOP indicates percent-out(power) based drive,
     while CLOSED_LOOP uses PID and feedforward for velocity-based driving.
      */
     private enum class ControlMode{
-        OPEN_LOOP,CLOSED_LOOP
+        OPEN_LOOP, CLOSED_LOOP
     }
     private var currentControlMode: ControlMode = ControlMode.CLOSED_LOOP
+    private var hasCalledDriveFunction: Boolean = false
 
-    /*
-    // offsets stored for coupling ratios; these theoretically improve the accuracy of the drivetrain
-    private var couplingOffsetTL = Angle(0.0)
-    private var couplingOffsetTR = Angle(0.0)
-    private var couplingOffsetBL = Angle(0.0)
-    private var couplingOffsetBR = Angle(0.0)
-     */
+
+
 
     init{
         AutoBuilder.configureHolonomic(
@@ -291,7 +298,7 @@ public class EncoderHolonomicDrivetrain(
                 when (val alliance = DriverStation.getAlliance()){
                     Optional.empty<DriverStation.Alliance>() -> false
 
-                    else -> alliance.get() == DriverStation.Alliance.Red
+                    else -> (alliance.get() == DriverStation.Alliance.Red).also{println(it)}
                 }
             },
             this
@@ -346,7 +353,7 @@ public class EncoderHolonomicDrivetrain(
     )
 
 
-    /**g
+    /**
      * The distance the robot has traveled in total.
      */
     public val distanceTraveled: Distance get() =
@@ -455,12 +462,48 @@ public class EncoderHolonomicDrivetrain(
             topRightSpeed = -hardwareData.maxModuleSpeed,
             bottomLeftSpeed = hardwareData.maxModuleSpeed,
             bottomRightSpeed = -hardwareData.maxModuleSpeed,
-            topLeftAngle = -45.degrees,
+            topLeftAngle = (-45).degrees,
             topRightAngle = 45.degrees,
             bottomLeftAngle = 45.degrees,
-            bottomRightAngle = -45.degrees
+            bottomRightAngle = (-45).degrees
         ).toArray()
     ).rotationSpeed)
+
+    /*
+    topLeft.setDirectionalPower(output, -45.degrees)
+    topRight.setDirectionalPower(-output, 45.degrees)
+    bottomLeft.setDirectionalPower(output, 45.degrees)
+    bottomRight.setDirectionalPower(-output, -45.degrees)
+     */
+
+
+    /**
+     * Sets an open loop rotation override for the drivetrain.
+     *
+     * This override is called when the function [swerveDrive] is called;
+     * this does not impact closed-loop control modes(such as [velocityDrive]).
+     */
+    public fun setOpenLoopRotationOverride(overrideSupplier: () -> Double?){
+        openLoopRotationOverride = overrideSupplier
+    }
+
+    /**
+     * Sets a closed loop rotation override for the drivetrain.
+     *
+     * This override is called when the function [velocityDrive] is called;
+     * this does not impact open-loop control modes(such as [swerveDrive]).
+     */
+    public fun setClosedLoopRotationOverride(overrideSupplier: () -> AngularVelocity?){
+        closedLoopRotationOverride = overrideSupplier
+    }
+
+    /**
+     * Clears all rotation overrides related to the drivetrain.
+     */
+    public fun clearRotationOverrides(){
+        openLoopRotationOverride = null
+        closedLoopRotationOverride = null
+    }
 
 
     /**
@@ -491,12 +534,9 @@ public class EncoderHolonomicDrivetrain(
         powers: ChassisPowers,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
-        val speedsAreZero: Boolean =
-            powers.xPower epsilonEquals 0.0 &&
-            powers.yPower epsilonEquals 0.0 &&
-            powers.rotationPower epsilonEquals 0.0
+        hasCalledDriveFunction = true
 
-        if (DriverStation.isDisabled() || speedsAreZero){
+        if (DriverStation.isDisabled()){
             stop()
             return
         }
@@ -504,12 +544,22 @@ public class EncoderHolonomicDrivetrain(
         currentControlMode = ControlMode.OPEN_LOOP
 
         var speeds = powers.toChassisSpeeds(maxLinearVelocity,maxRotationalVelocity)
+        // ?.let only calls the block if the override is not null
+        openLoopRotationOverride?.let{ overrideFunc ->
+            val overrideResult = overrideFunc()
+            if (overrideResult != null){
+                speeds.omegaRadiansPerSecond = overrideResult * maxRotationalVelocity.siValue
+            }
+        }
         if (fieldRelative) speeds = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading.asRotation2d())
-        if (abs(powers.rotationPower) > 0.05){
+        recordOutput("Drivetrain(Swerve)/speedsBeforeDiscretize", ChassisSpeeds.struct, speeds)
+        if (abs(speeds.omegaRadiansPerSecond * maxRotationalVelocity.siValue) > 0.05){
             // extension function defined in chargerlib
             speeds = speeds.discretize(driftRate = controlData.openLoopDiscretizationRate)
         }
-        recordOutput("Drivetrain(Swerve)/openLoopSpeeds", speeds)
+        recordOutput("Drivetrain(Swerve)/openLoopSpeeds", ChassisSpeeds.struct, speeds)
+
+
 
         val stateArray = kinematics.toSwerveModuleStates(speeds)
 
@@ -519,8 +569,6 @@ public class EncoderHolonomicDrivetrain(
             bottomLeftState = stateArray[2],
             bottomRightState = stateArray[3]
         )
-
-        currentControlMode = ControlMode.CLOSED_LOOP
     }
 
 
@@ -552,24 +600,31 @@ public class EncoderHolonomicDrivetrain(
         speeds: ChassisSpeeds,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
-        val speedsAreZero = speeds.vxMetersPerSecond epsilonEquals 0.0 &&
-                speeds.vyMetersPerSecond epsilonEquals 0.0 &&
-                speeds.omegaRadiansPerSecond epsilonEquals 0.0
+        hasCalledDriveFunction = true
 
-        if (DriverStation.isDisabled() || speedsAreZero){
-            topLeft.halt()
-            topRight.halt()
-            bottomLeft.halt()
-            bottomRight.halt()
+        if (DriverStation.isDisabled()){
+            stop()
             return
         }
+
         currentControlMode = ControlMode.CLOSED_LOOP
-        var newSpeeds: ChassisSpeeds =
-            if (fieldRelative) ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading.asRotation2d()) else speeds
+
+        var newSpeeds: ChassisSpeeds = speeds
+        // ?.let only calls the block if the override is not null
+        closedLoopRotationOverride?.let{ overrideFunc ->
+            val overrideResult = overrideFunc()
+            if (overrideResult != null){
+                newSpeeds.omegaRadiansPerSecond = overrideResult.siValue
+            }
+        }
+        if (fieldRelative){
+            newSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(newSpeeds, heading.asRotation2d())
+        }
         if (abs(speeds.omegaRadiansPerSecond / maxRotationalVelocity.siValue) > 0.05){
             // extension function defined in chargerlib
             newSpeeds = newSpeeds.discretize(driftRate = controlData.closedLoopDiscretizationRate)
         }
+
         val stateArray = kinematics.toSwerveModuleStates(newSpeeds)
         currentModuleStates = ModuleStateGroup(
             topLeftState = stateArray[0],
@@ -577,7 +632,6 @@ public class EncoderHolonomicDrivetrain(
             bottomLeftState = stateArray[2],
             bottomRightState = stateArray[3]
         )
-        currentControlMode = ControlMode.CLOSED_LOOP
     }
 
 
@@ -604,8 +658,8 @@ public class EncoderHolonomicDrivetrain(
      */
     public fun stopInX(){
         topLeft.setDirectionalPower(0.0,45.degrees)
-        topRight.setDirectionalPower(0.0,-45.degrees)
-        bottomLeft.setDirectionalPower(0.0,-45.degrees)
+        topRight.setDirectionalPower(0.0, (-45).degrees)
+        bottomLeft.setDirectionalPower(0.0, (-45).degrees)
         bottomRight.setDirectionalPower(0.0,45.degrees)
     }
 
@@ -641,6 +695,38 @@ public class EncoderHolonomicDrivetrain(
         recordOutput("Drivetrain(Swerve)/CurrentModuleStates", SwerveModuleState.struct, *currentModuleStates.toArray())
         recordOutput("Drivetrain(Swerve)/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
         recordOutput("Drivetrain(Swerve)/OverallVelocityMetersPerSec",velocity.inUnit(meters/seconds))
+
+        // if the drivetrain has not called a drive function yet the previous loop,
+        // rotate the drivetrain regardless.
+        if (!hasCalledDriveFunction){
+
+            when(currentControlMode){
+                ControlMode.CLOSED_LOOP -> {
+                    closedLoopRotationOverride?.let{overrideFunc ->
+                        val output = overrideFunc()
+                        if (output != null){
+                            topLeft.setDirectionalVelocity(-output, 45.degrees)
+                            topRight.setDirectionalVelocity(output, -45.degrees)
+                            bottomLeft.setDirectionalVelocity(output, 45.degrees)
+                            bottomRight.setDirectionalVelocity(-output, -45.degrees)
+                        }
+                    }
+                }
+
+                ControlMode.OPEN_LOOP -> {
+                    openLoopRotationOverride?.let{overrideFunc ->
+                        val output = overrideFunc()
+                        if (output != null){
+                            topLeft.setDirectionalPower(output, 135.degrees)
+                            topRight.setDirectionalPower(output, 45.degrees)
+                            bottomLeft.setDirectionalPower(output, -135.degrees)
+                            bottomRight.setDirectionalPower(output, -45.degrees)
+                        }
+                    }
+                }
+            }
+        }
+        hasCalledDriveFunction = false
     }
 
 

@@ -217,22 +217,20 @@ public open class ChargerRobot(
      */
     override fun robotPeriodic() {
         try{
-            recordLatency("TotalLoopTimeMeasured"){
-                recordLatency("LoggedRobot/PeriodicRunnableLoopTime/RegularPriority"){
-                    periodicRunnables.forEach{
-                        it()
-                    }
+            recordLatency("LoggedRobot/PeriodicRunnableLoopTime/RegularPriority"){
+                periodicRunnables.forEach{
+                    it()
                 }
-                // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
-                // commands, running already-scheduled commands, removing finished or interrupted commands,
-                // and running subsystem periodic() methods.  This must be called from the robot's periodic
-                // block in order for anything in the Command-based framework to work.
-                CommandScheduler.getInstance().run()
-                recordOutput("RemainingRamMB", Runtime.getRuntime().freeMemory() / 1024 / 1024)
-                recordLatency("LoggedRobot/PeriodicRunnableLoopTime/LowPriority"){
-                    lowPriorityPeriodicRunnables.forEach{
-                        it()
-                    }
+            }
+            // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
+            // commands, running already-scheduled commands, removing finished or interrupted commands,
+            // and running subsystem periodic() methods.  This must be called from the robot's periodic
+            // block in order for anything in the Command-based framework to work.
+            CommandScheduler.getInstance().run()
+            recordOutput("RemainingRamMB", Runtime.getRuntime().freeMemory() / 1024 / 1024)
+            recordLatency("LoggedRobot/PeriodicRunnableLoopTime/LowPriority"){
+                lowPriorityPeriodicRunnables.forEach{
+                    it()
                 }
             }
         }catch(e: Exception){

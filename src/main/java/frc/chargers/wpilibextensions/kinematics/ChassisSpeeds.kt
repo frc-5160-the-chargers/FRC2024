@@ -40,12 +40,12 @@ public val ChassisSpeeds.rotationSpeed: AngularVelocity
  */
 public fun ChassisSpeeds.discretize(dt: Time? = null, driftRate: Double = 1.0): ChassisSpeeds {
     val period = dt ?: ChargerRobot.LOOP_PERIOD
-    val futureRobotPose = Pose2d(
+    val desiredDeltaPose = Pose2d(
         vxMetersPerSecond * period.inUnit(seconds),
         vyMetersPerSecond * period.inUnit(seconds),
         Rotation2d.fromRadians(omegaRadiansPerSecond * period.inUnit(seconds) * driftRate)
     )
-    val twistForPose: Twist2d = Pose2d().log(futureRobotPose)
+    val twistForPose: Twist2d = Pose2d().log(desiredDeltaPose)
     return ChassisSpeeds(
         twistForPose.dx / period.inUnit(seconds),
         twistForPose.dy / period.inUnit(seconds),

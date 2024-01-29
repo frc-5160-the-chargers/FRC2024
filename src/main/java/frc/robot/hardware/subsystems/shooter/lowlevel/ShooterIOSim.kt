@@ -36,7 +36,7 @@ class ShooterIOSim(
     )
 
     init{
-        ChargerRobot.runPeriodically( addToFront = true ) {
+        ChargerRobot.runPeriodically(addToFront = true) {
             leftIntakeSim.update(0.02)
             rightIntakeSim.update(0.02)
             pivotSim.update(0.02)
