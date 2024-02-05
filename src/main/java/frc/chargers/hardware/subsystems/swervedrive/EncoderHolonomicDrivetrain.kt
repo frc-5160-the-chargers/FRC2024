@@ -8,6 +8,7 @@ import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
+import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
@@ -15,16 +16,15 @@ import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
-import frc.chargers.advantagekitextensions.recordOutput
 import frc.chargers.constants.SwerveControlData
 import frc.chargers.constants.SwerveHardwareData
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.EncoderMotorController
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.subsystems.robotposition.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.gyroscopes.*
-import frc.chargers.hardware.subsystems.differentialdrive.DifferentialDrivetrain
 import frc.chargers.hardware.subsystems.robotposition.SwervePoseMonitor
 import frc.chargers.hardware.subsystems.swervedrive.module.*
 import frc.chargers.hardware.subsystems.swervedrive.module.lowlevel.*
@@ -36,11 +36,12 @@ import frc.chargers.utils.math.units.toWPI
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitTranslation2d
+import frc.chargers.wpilibextensions.geometry.twodimensional.asAngle
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
 import frc.chargers.wpilibextensions.kinematics.*
+import frc.external.frc6328.SwerveSetpointGenerator
 import org.littletonrobotics.junction.Logger.*
 import java.util.Optional
-import kotlin.math.abs
 import kotlin.math.pow
 
 
@@ -246,37 +247,54 @@ public fun EncoderHolonomicDrivetrain(
  * Note: TrackWidth is the horizontal length of the robot, while wheelBase is the vertical length of the robot.
  */
 public class EncoderHolonomicDrivetrain(
-    public val topLeft: SwerveModule,
-    public val topRight: SwerveModule,
-    public val bottomLeft: SwerveModule,
-    public val bottomRight: SwerveModule,
+    private val topLeft: SwerveModule,
+    private val topRight: SwerveModule,
+    private val bottomLeft: SwerveModule,
+    private val bottomRight: SwerveModule,
     public val hardwareData: SwerveHardwareData,
     public val controlData: SwerveControlData,
     public val gyro: HeadingProvider? = null,
     startingPose: UnitPose2d = UnitPose2d(),
     vararg poseSuppliers: VisionPoseSupplier,
-): SubsystemBase(), HeadingProvider, DifferentialDrivetrain {
+): SubsystemBase(), HeadingProvider {
     /* Private Implementation */
     private val wheelRadius = hardwareData.wheelDiameter / 2.0
+
     private val moduleArray = arrayOf(topLeft,topRight,bottomLeft,bottomRight)
+
+    private val moduleLocations = listOf(
+        UnitTranslation2d(hardwareData.trackWidth/2,hardwareData.wheelBase/2),
+        UnitTranslation2d(hardwareData.trackWidth/2,-hardwareData.wheelBase/2),
+        UnitTranslation2d(-hardwareData.trackWidth/2,hardwareData.wheelBase/2),
+        UnitTranslation2d(-hardwareData.trackWidth/2,-hardwareData.wheelBase/2)
+    )
+
+    private val constraints = SwerveSetpointGenerator.ModuleLimits(
+        hardwareData.maxModuleSpeed.siValue,
+        hardwareData.maxModuleAcceleration.siValue,
+        hardwareData.maxModuleRotationSpeed.siValue
+    )
+
     private fun averageEncoderPosition() = moduleArray.map{it.wheelTravel}.average()
 
     private val distanceOffset: Distance = averageEncoderPosition() * wheelRadius
 
-
     private var rotationOverride: RotationOverride = { null }
 
-    /*
-    OPEN_LOOP indicates percent-out(power) based drive,
-    while CLOSED_LOOP uses PID and feedforward for velocity-based driving.
-     */
     private enum class ControlMode{
-        OPEN_LOOP, CLOSED_LOOP
+        OPEN_LOOP,  // Represents open-loop control with no feedforward / PID
+        CLOSED_LOOP, // Represents closed-loop control with feedforward & PID: this is far more accurate than open loop in terms of velocity
+        NONE // Represents no control at all; this mode should be set when the drivetrain is not calling one of the drive functions.
     }
-    private var currentControlMode: ControlMode = ControlMode.CLOSED_LOOP
-    private var hasCalledDriveFunction: Boolean = false
 
+    private var currentControlMode: ControlMode = ControlMode.NONE
 
+    private var goal: ChassisSpeeds = ChassisSpeeds()
+
+    private var setpoint: SwerveSetpointGenerator.Setpoint = SwerveSetpointGenerator.Setpoint(
+        ChassisSpeeds(),
+        Array(4){SwerveModuleState()}
+    )
 
 
     init{
@@ -346,11 +364,15 @@ public class EncoderHolonomicDrivetrain(
     /**
      * The kinematics class for the drivetrain.
      */
-    public val kinematics: SwerveDriveKinematics = SwerveDriveKinematics(
-        UnitTranslation2d(hardwareData.trackWidth/2,hardwareData.wheelBase/2).inUnit(meters),
-        UnitTranslation2d(hardwareData.trackWidth/2,-hardwareData.wheelBase/2).inUnit(meters),
-        UnitTranslation2d(-hardwareData.trackWidth/2,hardwareData.wheelBase/2).inUnit(meters),
-        UnitTranslation2d(-hardwareData.trackWidth/2,-hardwareData.wheelBase/2).inUnit(meters)
+    public val kinematics: SwerveDriveKinematics = SwerveDriveKinematics(*moduleLocations.map{ it.inUnit(meters) }.toTypedArray())
+
+
+    /**
+     * A class that generates swerve setpoints for the drivetrain.
+     */
+    public val setpointGenerator: SwerveSetpointGenerator = SwerveSetpointGenerator(
+        kinematics,
+        moduleLocations.map{ it.inUnit(meters) }.toTypedArray()
     )
 
 
@@ -374,64 +396,22 @@ public class EncoderHolonomicDrivetrain(
      * The current [ChassisSpeeds] of the robot.
      */
     public val currentSpeeds: ChassisSpeeds
-        get() = kinematics.toChassisSpeeds(*currentModuleStates.toArray())
+        get() = setpoint.chassisSpeeds
 
 
     /**
-     * A getter/setter variable that can either fetch the current speeds
-     * of each swerve module,
-     * or can set the desired speeds of each swerve module.
-     * It is recommended that the [swerveDrive] and [velocityDrive] functions are used instead.
+     * Fetches an array of [SwerveModulePosition]s,
+     * which store the distance traveled and the angle of each swerve module.
+     *
+     * Order is: TL, TR, BL, BR
      */
-    public var currentModuleStates: ModuleStateGroup
-        get() = ModuleStateGroup(
-            topLeftState = topLeft.getModuleState(wheelRadius),
-            topRightState = topRight.getModuleState(wheelRadius),
-            bottomLeftState = bottomLeft.getModuleState(wheelRadius),
-            bottomRightState = bottomRight.getModuleState(wheelRadius)
-        ).also{
-            recordOutput("Drivetrain(Swerve)/CurrentModuleStates", SwerveModuleState.struct, it.topLeftState, it.topRightState, it.bottomLeftState, it.bottomRightState)
-        }
-        set(ms){
-            ms.desaturate(hardwareData.maxModuleSpeed)
-            if (currentControlMode == ControlMode.CLOSED_LOOP){
-                topLeft.setDirectionalVelocity(ms.topLeftSpeed / wheelRadius,ms.topLeftAngle)
-                topRight.setDirectionalVelocity(ms.topRightSpeed / wheelRadius,ms.topRightAngle)
-                bottomLeft.setDirectionalVelocity(ms.bottomLeftSpeed / wheelRadius,ms.bottomLeftAngle)
-                bottomRight.setDirectionalVelocity(ms.bottomRightSpeed / wheelRadius,ms.bottomRightAngle)
-            }else{
-                topLeft.setDirectionalPower((ms.topLeftSpeed / hardwareData.maxModuleSpeed).siValue, ms.topLeftAngle)
-                topRight.setDirectionalPower((ms.topRightSpeed / hardwareData.maxModuleSpeed).siValue, ms.topRightAngle)
-                bottomLeft.setDirectionalPower((ms.bottomLeftSpeed / hardwareData.maxModuleSpeed).siValue, ms.bottomLeftAngle)
-                bottomRight.setDirectionalPower((ms.bottomRightSpeed / hardwareData.maxModuleSpeed).siValue, ms.bottomRightAngle)
-            }
-            // chargerlib functions for recording Kmeasure outputs in ascope; see frc.chargers.advantagekitextensions
-            recordOutput("Drivetrain(Swerve)/TopLeftModule/LinearVel", topLeft.speed * wheelRadius)
-            recordOutput("Drivetrain(Swerve)/TopRightModule/LinearVel", topRight.speed * wheelRadius)
-            recordOutput("Drivetrain(Swerve)/BottomLeftModule/LinearVel", bottomLeft.speed * wheelRadius)
-            recordOutput("Drivetrain(Swerve)/BottomRightModule/LinearVel", bottomRight.speed * wheelRadius)
-
-            recordOutput("Drivetrain(Swerve)/DesiredModuleStates", SwerveModuleState.struct, ms.topLeftState,ms.topRightState,ms.bottomLeftState,ms.bottomRightState)
-        }
-
-
-    /**
-     * Gets the current module positions of each swerve module.
-     * Returns a [ModulePositionGroup] object,
-     * a wrapper around 4 SwerveModulePosition objects with units support.
-     */
-    public val currentModulePositions: ModulePositionGroup
-        get() = ModulePositionGroup(
-            topLeftDistance = topLeft.wheelTravel.inUnit(radians) * wheelRadius,
-            topRightDistance = topRight.wheelTravel.inUnit(radians) * wheelRadius,
-            bottomLeftDistance = bottomLeft.wheelTravel.inUnit(radians) * wheelRadius,
-            bottomRightDistance = bottomRight.wheelTravel.inUnit(radians) * wheelRadius,
-            topLeftAngle = topLeft.direction,
-            topRightAngle = topRight.direction,
-            bottomLeftAngle = bottomLeft.direction,
-            bottomRightAngle = bottomRight.direction
+    public val modulePositions: List<SwerveModulePosition>
+        get() = listOf(
+            topLeft.getModulePosition(wheelRadius),
+            topRight.getModulePosition(wheelRadius),
+            bottomLeft.getModulePosition(wheelRadius),
+            bottomRight.getModulePosition(wheelRadius)
         )
-
 
     /**
      * The max linear velocity of the drivetrain, calculated by simulating
@@ -471,16 +451,19 @@ public class EncoderHolonomicDrivetrain(
     ).rotationSpeed)
 
 
-
+    /**
+     * Sets a rotation override for the drivetrain.
+     */
     public fun setRotationOverride(rotationOverride: RotationOverride){
         this.rotationOverride = rotationOverride
     }
 
+    /**
+     * Removes a rotation override for the drivetrain.
+     */
     public fun removeRotationOverride(){
         this.rotationOverride = { null }
     }
-
-
 
     /**
      * Creates a [SysIdRoutine] for characterizing a drivetrain's drive motors.
@@ -494,16 +477,9 @@ public class EncoderHolonomicDrivetrain(
             quasistaticRampRate?.toWPI(), dynamicStepVoltage?.toWPI(), timeout?.toWPI(),
         ) { recordOutput("Drivetrain(Swerve)/DriveSysIDState", it.toString()) },
         SysIdRoutine.Mechanism(
-            {
-                topLeft.turnVoltage = it.toKmeasure()
-                topRight.turnVoltage = it.toKmeasure()
-                bottomLeft.turnVoltage = it.toKmeasure()
-                bottomRight.turnVoltage = it.toKmeasure()
-
-                topLeft.driveVoltage = 0.volts
-                topRight.driveVoltage = 0.volts
-                bottomLeft.driveVoltage = 0.volts
-                bottomRight.driveVoltage = 0.volts
+            { voltage ->
+                setDriveVoltages(List(4){ voltage.toKmeasure() })
+                setTurnDirections(List(4){ Angle(0.0) })
             },
             null, // no need for log consumer since data is recorded by advantagekit
             this
@@ -522,16 +498,9 @@ public class EncoderHolonomicDrivetrain(
             quasistaticRampRate?.toWPI(), dynamicStepVoltage?.toWPI(), timeout?.toWPI(),
         ) { recordOutput("Drivetrain(Swerve)/AzimuthSysIDState", it.toString()) },
         SysIdRoutine.Mechanism(
-            {
-                topLeft.turnVoltage = it.toKmeasure()
-                topRight.turnVoltage = it.toKmeasure()
-                bottomLeft.turnVoltage = it.toKmeasure()
-                bottomRight.turnVoltage = it.toKmeasure()
-
-                topLeft.driveVoltage = 0.volts
-                topRight.driveVoltage = 0.volts
-                bottomLeft.driveVoltage = 0.volts
-                bottomRight.driveVoltage = 0.volts
+            { voltage ->
+                setDriveVoltages(List(4){ Voltage(0.0) })
+                setTurnVoltages(List(4){ voltage.toKmeasure() })
             },
             null, // no need for log consumer since data is recorded by advantagekit
             this
@@ -570,40 +539,11 @@ public class EncoderHolonomicDrivetrain(
         powers: ChassisPowers,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
-        hasCalledDriveFunction = true
-
-        if (DriverStation.isDisabled()){
-            stop()
-            return
-        }
-
         currentControlMode = ControlMode.OPEN_LOOP
-
-        var speeds = powers.toChassisSpeeds(maxLinearVelocity,maxRotationalVelocity)
-
-        val overrideResult: RotationOverrideResult? = rotationOverride(this)
-        if (overrideResult != null){
-            speeds.omegaRadiansPerSecond = overrideResult.openLoopRotation * maxRotationalVelocity.siValue
+        goal = powers.toChassisSpeeds(maxLinearVelocity, maxRotationalVelocity)
+        if (fieldRelative){
+            goal = ChassisSpeeds.fromFieldRelativeSpeeds(goal, heading.asRotation2d())
         }
-
-        if (fieldRelative) speeds = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading.asRotation2d())
-        recordOutput("Drivetrain(Swerve)/speedsBeforeDiscretize", ChassisSpeeds.struct, speeds)
-        if (abs(speeds.omegaRadiansPerSecond * maxRotationalVelocity.siValue) > 0.05){
-            // extension function defined in chargerlib
-            speeds = speeds.discretize(driftRate = controlData.openLoopDiscretizationRate)
-        }
-        recordOutput("Drivetrain(Swerve)/openLoopSpeeds", ChassisSpeeds.struct, speeds)
-
-
-
-        val stateArray = kinematics.toSwerveModuleStates(speeds)
-
-        currentModuleStates = ModuleStateGroup(
-            topLeftState = stateArray[0],
-            topRightState = stateArray[1],
-            bottomLeftState = stateArray[2],
-            bottomRightState = stateArray[3]
-        )
     }
 
 
@@ -635,76 +575,58 @@ public class EncoderHolonomicDrivetrain(
         speeds: ChassisSpeeds,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
-        hasCalledDriveFunction = true
-
-        if (DriverStation.isDisabled()){
-            stop()
-            return
-        }
-
         currentControlMode = ControlMode.CLOSED_LOOP
-
-        var newSpeeds: ChassisSpeeds = speeds
-
-        val overrideResult = rotationOverride(this)
-        if (overrideResult != null){
-            newSpeeds.omegaRadiansPerSecond = overrideResult.closedLoopRotation.siValue
+        goal = if (fieldRelative){
+            ChassisSpeeds.fromFieldRelativeSpeeds(goal, heading.asRotation2d())
+        }else{
+            speeds
         }
-
-        if (fieldRelative){
-            newSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(newSpeeds, heading.asRotation2d())
-        }
-        if (abs(speeds.omegaRadiansPerSecond / maxRotationalVelocity.siValue) > 0.05){
-            // extension function defined in chargerlib
-            newSpeeds = newSpeeds.discretize(driftRate = controlData.closedLoopDiscretizationRate)
-        }
-
-        val stateArray = kinematics.toSwerveModuleStates(newSpeeds)
-        currentModuleStates = ModuleStateGroup(
-            topLeftState = stateArray[0],
-            topRightState = stateArray[1],
-            bottomLeftState = stateArray[2],
-            bottomRightState = stateArray[3]
-        )
     }
 
 
     /**
-     * Drives the swerve drivetrain in the same way as a differential drive.
-     *
-     * This is useful for backwards compatability and other cases(such as vision aiming using rotation).
+     * Sets driving voltages for each module.
      */
-    override fun tankDrive(leftPower: Double, rightPower: Double) {
-        topLeft.setDirectionalPower(leftPower, 0.degrees)
-        bottomLeft.setDirectionalPower(leftPower, 0.degrees)
-        topRight.setDirectionalPower(rightPower, 0.degrees)
-        bottomRight.setDirectionalPower(rightPower, 0.degrees)
+    public fun setDriveVoltages(voltages: List<Voltage>){
+        currentControlMode = ControlMode.NONE
+        require(voltages.size == 4){ "You must have 4 drive voltage parameters." }
+
+        topLeft.driveVoltage = voltages[0]
+        topRight.driveVoltage = voltages[1]
+        bottomLeft.driveVoltage = voltages[2]
+        bottomRight.driveVoltage = voltages[3]
     }
 
 
-    override fun curvatureDrive(power: Double, steering: Double, allowTurnInPlace: Boolean) {
-        // if rotation override is null, or the value produced from it is null,
-        // don't override rotation.
-        // ?. propagates null values forward; for instance, if x was a Double? and x?.toInt() was called, then the result would be null if x == null, else an Int.
-        // ?: redirects a statement if it is null.
-        val compensatedSteering = rotationOverride(this)?.openLoopRotation ?: steering
-        super.curvatureDrive(power, compensatedSteering, allowTurnInPlace)
+
+    public fun setTurnVoltages(voltages: List<Voltage>){
+        currentControlMode = ControlMode.NONE
+        require(voltages.size == 4){ "You must have 4 turn voltage parameters." }
+
+        topLeft.turnVoltage = voltages[0]
+        topRight.turnVoltage = voltages[1]
+        bottomLeft.turnVoltage = voltages[2]
+        bottomRight.turnVoltage = voltages[3]
     }
 
-    override fun arcadeDrive(power: Double, rotation: Double, squareInputs: Boolean) {
-        // if rotation override is null, or the value produced from it is null,
-        // don't override rotation
-        // ?: propagates null values forward; for instance, if x was a Double? and x?.toInt() was called, then the result would be null if x == null, else an Int.
-        // ?: redirects a statement if it is null.
-        val compensatedRot = rotationOverride(this)?.openLoopRotation ?: rotation
-        super.arcadeDrive(power, compensatedRot, squareInputs)
+
+    public fun setTurnDirections(directions: List<Angle>){
+        currentControlMode = ControlMode.NONE
+        require(directions.size == 4){ "You must have 4 turn direction parameters." }
+
+        topLeft.setDirection(directions[0])
+        topRight.setDirection(directions[1])
+        bottomLeft.setDirection(directions[2])
+        bottomRight.setDirection(directions[3])
     }
 
 
     /**
      * Stops the drivetrain.
      */
-    override fun stop(){
+    public fun stop(){
+        // prevents driving anywhere else
+        currentControlMode = ControlMode.NONE
         topLeft.halt()
         topRight.halt()
         bottomLeft.halt()
@@ -715,6 +637,8 @@ public class EncoderHolonomicDrivetrain(
      * Stops the drivetrain in an X.
      */
     public fun stopInX(){
+        // prevents driving anywhere else
+        currentControlMode = ControlMode.NONE
         topLeft.setDirectionalPower(0.0,45.degrees)
         topRight.setDirectionalPower(0.0, (-45).degrees)
         bottomLeft.setDirectionalPower(0.0, (-45).degrees)
@@ -727,13 +651,9 @@ public class EncoderHolonomicDrivetrain(
      */
     public fun stallForwards(){
         if (abs(controlData.velocityFF.kS) > 0.05.volts){
-            // subtracts 0.05 volts from the stall voltage to correct for inaccuracies with kS constant.
-            topLeft.driveVoltage = controlData.velocityFF.kS - 0.05.volts
-            topRight.driveVoltage = controlData.velocityFF.kS - 0.05.volts
-            bottomLeft.driveVoltage = controlData.velocityFF.kS - 0.05.volts
-            bottomRight.driveVoltage = controlData.velocityFF.kS - 0.05.volts
+            setDriveVoltages(List(4){ controlData.velocityFF.kS - 0.05.volts })
         }else{
-            stop()
+            setDriveVoltages(List(4){ controlData.velocityFF.kS })
         }
     }
 
@@ -743,13 +663,9 @@ public class EncoderHolonomicDrivetrain(
      */
     public fun stallBackwards(){
         if (abs(controlData.velocityFF.kS) > 0.05.volts){
-            // adds 0.05 volts from the stall voltage to correct for inaccuracies with kS constant.
-            topLeft.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
-            topRight.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
-            bottomLeft.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
-            bottomRight.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
+            setDriveVoltages(List(4){ -controlData.velocityFF.kS + 0.05.volts })
         }else{
-            stop()
+            setDriveVoltages(List(4){ -controlData.velocityFF.kS })
         }
     }
 
@@ -758,34 +674,68 @@ public class EncoderHolonomicDrivetrain(
      * Called periodically in the subsystem.
      */
     override fun periodic() {
-        recordOutput("Drivetrain(Swerve)/CurrentModuleStates", SwerveModuleState.struct, *currentModuleStates.toArray())
         recordOutput("Drivetrain(Swerve)/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
-        recordOutput("Drivetrain(Swerve)/OverallVelocityMetersPerSec",velocity.inUnit(meters/seconds))
+        recordOutput("Drivetrain(Swerve)/OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
 
-        // if the drivetrain has not called a drive function yet the previous loop,
-        // rotate the drivetrain regardless.
-        if (!hasCalledDriveFunction) {
-            val output = rotationOverride(this)
-            if (output != null) {
-                when (currentControlMode) {
-                    ControlMode.CLOSED_LOOP -> {
-                        topLeft.setDirectionalVelocity(output.closedLoopRotation, 135.degrees)
-                        topRight.setDirectionalVelocity(output.closedLoopRotation, 45.degrees)
-                        bottomLeft.setDirectionalVelocity(output.closedLoopRotation, -135.degrees)
-                        bottomRight.setDirectionalVelocity(output.closedLoopRotation, -45.degrees)
-                    }
+        if (DriverStation.isDisabled()) {
+            stop()
+            return
+        }else if (currentControlMode == ControlMode.NONE){
+            return
+        }
 
-                    ControlMode.OPEN_LOOP -> {
-                        topLeft.setDirectionalPower(output.openLoopRotation, 135.degrees)
-                        topRight.setDirectionalPower(output.openLoopRotation, 45.degrees)
-                        bottomLeft.setDirectionalPower(output.openLoopRotation, -135.degrees)
-                        bottomRight.setDirectionalPower(output.openLoopRotation, -45.degrees)
-                    }
+        when (currentControlMode) {
+            ControlMode.CLOSED_LOOP -> {
+                goal = goal.discretize(driftRate = controlData.closedLoopDiscretizationRate)
+                val output = rotationOverride(this)
+                if (output != null) {
+                    goal.omegaRadiansPerSecond = output.closedLoopRotation.siValue
                 }
             }
+
+            ControlMode.OPEN_LOOP -> {
+                goal = goal.discretize(driftRate = controlData.openLoopDiscretizationRate)
+                val output = rotationOverride(this)
+                if (output != null) {
+                    goal.omegaRadiansPerSecond = output.openLoopRotation
+                }
+            }
+
+            else -> {}
         }
-        hasCalledDriveFunction = false
+
+        setpoint = setpointGenerator.generateSetpoint(
+            constraints,
+            setpoint,
+            goal,
+            ChargerRobot.LOOP_PERIOD.inUnit(seconds)
+        )
+
+        recordOutput("Drivetrain(Swerve)/DesiredModuleStates", SwerveModuleState.struct, *setpoint.moduleStates)
+        recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Setpoint)", ChassisSpeeds.struct, setpoint.chassisSpeeds)
+        recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Goal)", ChassisSpeeds.struct, goal)
+
+        when (currentControlMode) {
+            ControlMode.CLOSED_LOOP -> {
+                moduleArray.forEachIndexed { i, module ->
+                    module.setDirectionalVelocity(
+                        setpoint.moduleStates[i].speedMetersPerSecond.ofUnit(meters / seconds) / wheelRadius,
+                        setpoint.moduleStates[i].angle.asAngle()
+                    )
+                }
+            }
+
+            ControlMode.OPEN_LOOP -> {
+                moduleArray.forEachIndexed { i, module ->
+                    module.setDirectionalPower(
+                        setpoint.moduleStates[i].speedMetersPerSecond / hardwareData.maxModuleSpeed.siValue,
+                        setpoint.moduleStates[i].angle.asAngle()
+                    )
+                }
+            }
+
+            else -> {}
+        }
+
     }
-
-
 }

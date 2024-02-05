@@ -9,6 +9,7 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
 import com.kauailabs.navx.frc.AHRS
+import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.geometry.Pose2d
@@ -31,6 +32,7 @@ import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import org.littletonrobotics.junction.Logger.recordOutput
@@ -179,11 +181,8 @@ class RobotContainer: ChargerRobotContainer() {
 
     override val autonomousCommand: Command
         get() = buildCommand {
+            /*
             val motor = TURN_MOTORS.topLeft
-
-            runOnce(drivetrain){
-                //motor.inverted = !motor.inverted
-            }
 
             loop(drivetrain){
                 motor.setAngularPosition(
@@ -195,12 +194,10 @@ class RobotContainer: ChargerRobotContainer() {
                 )
             }
 
-            onEnd{
-                //motor.inverted = !motor.inverted
-            }
+             */
 
 
-            /*
+
             val trajGroupName = "5pAutoLeft"
 
             runOnce {
@@ -213,7 +210,6 @@ class RobotContainer: ChargerRobotContainer() {
                 +AutoBuilder.followPath(it)
             }
 
-             */
         }
 
     override val testCommand: Command =

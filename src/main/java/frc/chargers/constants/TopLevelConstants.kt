@@ -2,10 +2,7 @@
 package frc.chargers.constants
 
 import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.grams
-import com.batterystaple.kmeasure.units.kilo
-import com.batterystaple.kmeasure.units.meters
-import com.batterystaple.kmeasure.units.seconds
+import com.batterystaple.kmeasure.units.*
 
 /*
 Note: @PublishedApi makes internal values accessible to inline functions.
@@ -15,6 +12,10 @@ without making them public explicitly.
 
 @PublishedApi
 internal val DEFAULT_MAX_MODULE_SPEED: Velocity = 4.5.ofUnit(meters / seconds)
+
+@PublishedApi
+internal val DEFAULT_MAX_MODULE_ROTATION_SPEED: AngularVelocity = 1080.ofUnit(degrees / seconds)
+
 
 @PublishedApi
 internal const val DEFAULT_GEAR_RATIO: Double = 1.0

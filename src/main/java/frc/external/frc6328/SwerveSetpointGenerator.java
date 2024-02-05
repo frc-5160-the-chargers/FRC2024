@@ -29,7 +29,7 @@ public class SwerveSetpointGenerator {
     }
 
 
-    public record SwerveSetpoint(ChassisSpeeds chassisSpeeds, SwerveModuleState[] moduleStates) {}
+    public record Setpoint(ChassisSpeeds chassisSpeeds, SwerveModuleState[] moduleStates) {}
 
     public record ModuleLimits(double maxDriveVelocity, double maxDriveAcceleration, double maxSteeringVelocity) {}
 
@@ -196,9 +196,9 @@ public class SwerveSetpointGenerator {
      * @return A Setpoint object that satisfies all of the KinematicLimits while converging to
      *     desiredState quickly.
      */
-    public SwerveSetpoint generateSetpoint(
+    public Setpoint generateSetpoint(
             final ModuleLimits limits,
-            final SwerveSetpoint prevSetpoint,
+            final Setpoint prevSetpoint,
             ChassisSpeeds desiredState,
             double dt) {
         final Translation2d[] modules = moduleLocations;
@@ -399,6 +399,6 @@ public class SwerveSetpointGenerator {
                 retStates[i].speedMetersPerSecond *= -1.0;
             }
         }
-        return new SwerveSetpoint(retSpeeds, retStates);
+        return new Setpoint(retSpeeds, retStates);
     }
 }

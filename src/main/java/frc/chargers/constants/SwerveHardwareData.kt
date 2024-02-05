@@ -1,9 +1,7 @@
 @file:Suppress("unused")
 package frc.chargers.constants
 
-import com.batterystaple.kmeasure.quantities.Length
-import com.batterystaple.kmeasure.quantities.MomentOfInertia
-import com.batterystaple.kmeasure.quantities.Velocity
+import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.inches
 
 /**
@@ -19,6 +17,8 @@ data class SwerveHardwareData(
     val turnInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_TURN_INERTIA,
     val driveInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_DRIVE_INERTIA,
     val maxModuleSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
+    val maxModuleAcceleration: Acceleration = DEFAULT_MAX_MODULE_SPEED / Time(1.0) * 5.0,
+    val maxModuleRotationSpeed: AngularVelocity = DEFAULT_MAX_MODULE_ROTATION_SPEED,
     val wheelDiameter: Length,
     val trackWidth: Length,
     val wheelBase: Length
@@ -30,6 +30,8 @@ data class SwerveHardwareData(
          */
         fun mk4iL2(
             maxModuleSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
+            maxModuleAcceleration: Acceleration = DEFAULT_MAX_MODULE_SPEED / Time(1.0) * 5.0,
+            maxModuleRotationSpeed: AngularVelocity = DEFAULT_MAX_MODULE_ROTATION_SPEED,
             useCouplingRatio: Boolean = true,
             trackWidth: Length,
             wheelBase: Length,
@@ -43,6 +45,8 @@ data class SwerveHardwareData(
             turnInertiaMoment,
             driveInertiaMoment,
             maxModuleSpeed,
+            maxModuleAcceleration,
+            maxModuleRotationSpeed,
             4.inches,
             trackWidth,
             wheelBase
@@ -54,6 +58,8 @@ data class SwerveHardwareData(
          */
         fun mk4iL3(
             maxModuleSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
+            maxModuleAcceleration: Acceleration = DEFAULT_MAX_MODULE_SPEED / Time(1.0) * 5.0,
+            maxModuleRotationSpeed: AngularVelocity = DEFAULT_MAX_MODULE_ROTATION_SPEED,
             useCouplingRatio: Boolean = true,
             trackWidth: Length,
             wheelBase: Length,
@@ -67,6 +73,8 @@ data class SwerveHardwareData(
             turnInertiaMoment,
             driveInertiaMoment,
             maxModuleSpeed,
+            maxModuleAcceleration,
+            maxModuleRotationSpeed,
             4.inches,
             trackWidth,
             wheelBase
@@ -79,6 +87,8 @@ data class SwerveHardwareData(
         fun mk4iL1(
             maxModuleSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
             useCouplingRatio: Boolean = true,
+            maxModuleAcceleration: Acceleration = DEFAULT_MAX_MODULE_SPEED / Time(1.0) * 5.0,
+            maxModuleRotationSpeed: AngularVelocity = DEFAULT_MAX_MODULE_ROTATION_SPEED,
             turnInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_TURN_INERTIA,
             driveInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_DRIVE_INERTIA,
             trackWidth: Length,
@@ -91,6 +101,8 @@ data class SwerveHardwareData(
             turnInertiaMoment,
             driveInertiaMoment,
             maxModuleSpeed,
+            maxModuleAcceleration,
+            maxModuleRotationSpeed,
             4.inches,
             trackWidth,
             wheelBase
