@@ -1,4 +1,4 @@
-package frc.robot.commands.apriltag
+package frc.robot.commands
 
 import com.batterystaple.kmeasure.quantities.Scalar
 import edu.wpi.first.wpilibj2.command.Command
@@ -16,7 +16,7 @@ val AIM_PRECISION = Precision.Within(Scalar(0.02))
 private val noTargetFoundAlert = Alert.warning(text = "A command is attempting to aim to an apriltag, but none can be found.")
 
 
-fun aimToApriltag(
+fun aimToAprilTag(
     targetId: Int? = null,
     aimingPID: PIDConstants = OPEN_LOOP_TRANSLATION_PID,
     /**

@@ -209,7 +209,7 @@ public class ChargerSparkFlex(
             .also{ previousTemp = it }
 
     override val appliedVoltage: Voltage
-        get() = (get() * busVoltage.ofUnit(volts))
+        get() = (appliedOutput * busVoltage.ofUnit(volts))
             .revertIfInvalid(previousVoltage)
             .also{ previousVoltage = it }
 

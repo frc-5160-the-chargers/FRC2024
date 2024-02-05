@@ -1,7 +1,6 @@
 @file:Suppress("unused")
-package frc.robot.commands.apriltag
+package frc.robot.commands
 
-import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj.DriverStation
@@ -19,7 +18,7 @@ import java.util.*
 
 
 
-enum class AimToTargetGoal(
+enum class DriveToTargetLocation(
     // no need for red alliance pose; flip is manually applied
     val path: PathPlannerPath,
     val blueAllianceApriltagId: Int,
@@ -48,8 +47,8 @@ enum class AimToTargetGoal(
     )
 }
 
-fun aimToTarget(
-    target: AimToTargetGoal,
+fun driveToTarget(
+    target: DriveToTargetLocation,
     aimingPID: PIDConstants = OPEN_LOOP_TRANSLATION_PID,
     pathfind: Boolean = true,
 
@@ -57,23 +56,20 @@ fun aimToTarget(
     visionIO: AprilTagVisionPipeline,
     shooter: Shooter,
 ): Command = buildCommand {
+
+    runOnce{
+        visionIO.requireAndReset()
+    }
+
     runParallelUntilAllFinish {
-        runSequentially{
-            runOnce(shooter){ shooter.setPivotPosition(target.shooterAngle) }
-
-            loopUntil({ shooter.hasHitPivotTarget }, shooter){
-                shooter.setPivotPosition(target.shooterAngle)
-            }
-
-            runOnce(shooter){ shooter.setPivotVoltage(0.volts) }
-        }
+        +shooter.setAngleCommand(target.shooterAngle)
 
         runSequentially{
             if (pathfind){
                 AutoBuilder.pathfindThenFollowPath(target.path, PATHFIND_CONSTRAINTS)
             }
 
-            +aimToApriltag(
+            +aimToAprilTag(
                 if (DriverStation.getAlliance() == Optional.of(DriverStation.Alliance.Red)) {
                     target.redAllianceApriltagId
                 } else {
@@ -84,5 +80,9 @@ fun aimToTarget(
                 visionIO = visionIO
             )
         }
+    }
+
+    runOnce{
+        visionIO.removeRequirement()
     }
 }

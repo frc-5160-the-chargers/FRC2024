@@ -2,19 +2,32 @@
 package frc.chargers.hardware.subsystems.differentialdrive
 
 import edu.wpi.first.wpilibj.drive.DifferentialDrive
+import edu.wpi.first.wpilibj.motorcontrol.MotorController
 import edu.wpi.first.wpilibj2.command.Subsystem
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 
+public fun DifferentialDrivetrain(
+    leftMotors: List<MotorController>,
+    rightMotors: List<MotorController>,
+    invertMotors: Boolean = false
+) = DifferentialDrivetrain{ leftPower, rightPower ->
+
+    val invert = if (invertMotors) -1.0 else 1.0
+    leftMotors.forEach { it.set(leftPower * invert) }
+    rightMotors.forEach { it.set(rightPower * invert) }
+
+}
+
+
 /**
- * An interface used to control differential drivetrains.
- * A differential drivetrain is one based on two sides that move independently.
- * This is similar to how a tank drives, although it must not
- * necessarily be controlled using "tank controls."
+ * A interface that controls a differential drivetrain.
  *
- *  The Kit of Parts drivetrain each team receives is a differential drivetrain.
+ * This interface is a functional interface; which means that you can instantiate an anonymous implementation of it
+ * to easily represent any kind of differential drive.
  *
- * See [here](https://docs.wpilib.org/en/stable/docs/software/hardware-apis/motors/wpi-drive-classes.html) for more on differential drivetrains, and particularly
- * [here](https://docs.wpilib.org/en/stable/docs/software/hardware-apis/motors/wpi-drive-classes.html#drive-modes) for an explanation of the various drive modes.
+ * For instance:
+ * ```
+ * val drivetrain = DifferentialDrivetrain{ leftPower, rightPower -> leftMotors.set(leftPower); rightMotors.set(rightPower) }
  */
 public fun interface DifferentialDrivetrain : Subsystem {
     /**
@@ -22,7 +35,6 @@ public fun interface DifferentialDrivetrain : Subsystem {
      * @param leftPower the power of the left side of the drivetrain (from [-1..1]).
      * @param rightPower the power of the right side of the drivetrain (from [-1..1]).
      */
-
     public fun tankDrive(leftPower: Double, rightPower: Double)
 
     /**
@@ -30,8 +42,8 @@ public fun interface DifferentialDrivetrain : Subsystem {
      * @param power the power with which to drive forward (from [-1..1]).
      * @param rotation the power with which to rotate (proportional to the angular velocity, or how quickly the heading changes). (Must be from [-1..1]).
      */
-    public fun arcadeDrive(power: Double, rotation: Double = 0.0){
-        val wheelSpeeds = DifferentialDrive.arcadeDriveIK(power,rotation, true)
+    public fun arcadeDrive(power: Double, rotation: Double = 0.0, squareInputs: Boolean = true){
+        val wheelSpeeds = DifferentialDrive.arcadeDriveIK(power,rotation, squareInputs)
         tankDrive(wheelSpeeds.left,wheelSpeeds.right)
     }
 
@@ -43,8 +55,8 @@ public fun interface DifferentialDrivetrain : Subsystem {
      * Changing this value is can be thought of as changing how far a car's steering wheel is turned.
      * (Must be from [-1..1]).
      */
-    public fun curvatureDrive(power: Double, steering: Double){
-        val wheelSpeeds = DifferentialDrive.curvatureDriveIK(power,steering, true)
+    public fun curvatureDrive(power: Double, steering: Double, allowTurnInPlace: Boolean = true){
+        val wheelSpeeds = DifferentialDrive.curvatureDriveIK(power,steering, allowTurnInPlace)
         tankDrive(wheelSpeeds.left,wheelSpeeds.right)
     }
 
@@ -58,14 +70,14 @@ public fun interface DifferentialDrivetrain : Subsystem {
     /**
      * Calls [arcadeDrive] with a [ChassisPowers].
      */
-    public fun arcadeDrive(chassisPowers: ChassisPowers) {
-        arcadeDrive(power = chassisPowers.xPower, rotation = chassisPowers.rotationPower)
+    public fun arcadeDrive(chassisPowers: ChassisPowers, squareInputs: Boolean = true) {
+        arcadeDrive(power = chassisPowers.xPower, rotation = chassisPowers.rotationPower, squareInputs)
     }
 
     /**
      * Calls [curvatureDrive] with a [ChassisPowers].
      */
-    public fun curvatureDrive(chassisPowers: ChassisPowers) {
-        curvatureDrive(power = chassisPowers.xPower, steering = chassisPowers.rotationPower)
+    public fun curvatureDrive(chassisPowers: ChassisPowers, allowTurnInPlace: Boolean = true) {
+        curvatureDrive(power = chassisPowers.xPower, steering = chassisPowers.rotationPower, allowTurnInPlace)
     }
 }

@@ -26,7 +26,21 @@ public open class ModuleStateGroup(
     public var bottomRightAngle: Angle = Angle(0.0)
 ) {
 
-    
+    public operator fun get(index: Int): SwerveModuleState =
+        when (index){
+            0 -> topLeftState
+            1 -> topRightState
+            2 -> bottomLeftState
+            3 -> bottomRightState
+            else -> error("Invalid index for module state group.")
+        }
+
+    public constructor(
+        vararg states: SwerveModuleState
+    ): this(
+        states[0], states[1], states[2], states[3]
+    )
+
     public constructor(
         topLeftState: SwerveModuleState,
         topRightState: SwerveModuleState,

@@ -23,7 +23,7 @@ public interface VisionPipeline<T: VisionTarget> {
      *
      * This is intended to be used as a getter variable.
      */
-    public val visionData: List<T>
+    public val visionTargets: List<T>
 
     /**
      * Camera constants specific to the overarching vision camera.
@@ -55,12 +55,12 @@ public interface VisionPipeline<T: VisionTarget> {
     public val bestTarget: T?
         get(){
             // fetches vision data once
-            val data = visionData
+            val data = visionTargets
 
             return if (data.isEmpty()){
                 null
             }else{
-                visionData[0]
+                visionTargets[0]
             }
         }
 

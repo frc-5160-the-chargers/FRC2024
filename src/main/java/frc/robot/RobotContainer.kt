@@ -9,7 +9,6 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
 import com.kauailabs.navx.frc.AHRS
-import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.geometry.Pose2d
@@ -30,9 +29,8 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
+import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.hardware.subsystems.swervedrive.RotationOverride
-import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import org.littletonrobotics.junction.Logger.recordOutput
@@ -41,7 +39,6 @@ import org.littletonrobotics.junction.Logger.recordOutput
 class RobotContainer: ChargerRobotContainer() {
 
 
-    // Subsystems/components
 
     private val gyroIO = ChargerNavX(
         useFusedHeading = false,
@@ -63,6 +60,7 @@ class RobotContainer: ChargerRobotContainer() {
         )
      */
 
+
     private val drivetrain = EncoderHolonomicDrivetrain(
         turnMotors = TURN_MOTORS,
         turnEncoders = TURN_ENCODERS,
@@ -70,6 +68,7 @@ class RobotContainer: ChargerRobotContainer() {
         turnGearbox = DCMotor.getNEO(1),
         driveGearbox = DCMotor.getNEO(1),
         controlData = DRIVE_CONTROL_DATA,
+        useOnboardPID = false,
         hardwareData = SwerveHardwareData.mk4iL2(trackWidth = 32.inches, wheelBase = 32.inches),
         gyro = if (isReal()) gyroIO else null,
     )
@@ -86,6 +85,7 @@ class RobotContainer: ChargerRobotContainer() {
 
         println(DriverStationSim.getAllianceStationId())
         DriverStation.silenceJoystickConnectionWarning(true)
+        DashboardTuner.tuningMode = true
         recordOutput("Tuning Mode", DashboardTuner.tuningMode)
         LiveWindow.disableAllTelemetry()
 
@@ -93,10 +93,13 @@ class RobotContainer: ChargerRobotContainer() {
         configureDefaultCommands()
 
 
+
         IMUSimulation.configure(
             headingSupplier = { drivetrain.heading },
             chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
+
+
 
         /*
         if (isReal() || hasReplaySource()){
@@ -111,6 +114,7 @@ class RobotContainer: ChargerRobotContainer() {
         }
 
          */
+
 
         PathPlannerLogging.setLogCurrentPoseCallback {
             recordOutput("Pathplanner/currentPose", Pose2d.struct, it)
@@ -148,17 +152,16 @@ class RobotContainer: ChargerRobotContainer() {
 
     }
 
-
     private fun configureBindings(){
 
+
         fun resetAimToAngle() = runOnceCommand(drivetrain){
-            drivetrain.clearRotationOverrides()
+            drivetrain.removeRotationOverride()
         }
 
         fun targetAngle(heading: Angle) = runOnceCommand(drivetrain){
-            drivetrain.setOpenLoopRotationOverride(
-                RotationOverride.AimToAngleOpenLoop(
-                    drivetrain,
+            drivetrain.setRotationOverride(
+                AimToAngleRotationOverride(
                     heading,
                     PIDConstants(0.3,0,0),
                 )
@@ -171,11 +174,33 @@ class RobotContainer: ChargerRobotContainer() {
             pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
             pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
         }
-    }
 
+    }
 
     override val autonomousCommand: Command
         get() = buildCommand {
+            val motor = TURN_MOTORS.topLeft
+
+            runOnce(drivetrain){
+                //motor.inverted = !motor.inverted
+            }
+
+            loop(drivetrain){
+                motor.setAngularPosition(
+                    90.degrees,
+                    PIDConstants(0.3,0,0),
+                    turnEncoder = TURN_ENCODERS.topLeft,
+                    motorToEncoderRatio = 150.0 / 7.0,
+                    continuousWrap = true,
+                )
+            }
+
+            onEnd{
+                //motor.inverted = !motor.inverted
+            }
+
+
+            /*
             val trajGroupName = "5pAutoLeft"
 
             runOnce {
@@ -187,10 +212,9 @@ class RobotContainer: ChargerRobotContainer() {
             paths.forEach{
                 +AutoBuilder.followPath(it)
             }
+
+             */
         }
-
-
-
 
     override val testCommand: Command =
         drivetrain.getDriveSysIdRoutine().quasistatic(SysIdRoutine.Direction.kForward)

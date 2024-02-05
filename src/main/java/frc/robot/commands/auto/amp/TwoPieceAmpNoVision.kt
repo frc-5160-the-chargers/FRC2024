@@ -6,7 +6,9 @@ import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.commands.grabGamepiece
+import frc.robot.commands.auto.basicTaxi
+import frc.robot.commands.runGroundIntake
+import frc.robot.constants.PATHFIND_CONSTRAINTS
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
 import frc.robot.hardware.subsystems.shooter.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -17,33 +19,46 @@ fun twoPieceAmpNoVision(
     shooter: Shooter,
     groundIntake: GroundIntake,
 ): Command = buildCommand {
+    addRequirements(drivetrain, shooter, groundIntake)
+
     +onePieceAmp(shooter)
 
-    runParallelUntilAllFinish{
-        +shooter.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+    runParallelUntilOneFinishes{
+        +runGroundIntake(
+            shooter,
+            groundIntake,
+            indefinite = true
+        )
 
-        +AutoBuilder.followPath(PathPlannerPath.fromPathFile("2pAmpGrab"))
+
+        runSequentially{
+            +AutoBuilder.followPath(PathPlannerPath.fromPathFile("2pAmpGrab"))
+
+            if (shooter.canDetectGamepieces){
+                loopUntil( {shooter.hasGamepiece} ){
+                    drivetrain.swerveDrive(-0.15,0.0, 0.0, fieldRelative = false)
+                }
+            }
+        }
     }
 
-    +grabGamepiece(
-        drivetrain = drivetrain,
-        shooter = shooter,
-        groundIntake = groundIntake,
-    )
+
 
     runParallelUntilAllFinish{
-        +AutoBuilder.followPath(PathPlannerPath.fromPathFile("2pAmpScore"))
+        +AutoBuilder.pathfindThenFollowPath(PathPlannerPath.fromPathFile("2pAmpScore"), PATHFIND_CONSTRAINTS)
 
-        +shooter.setAngleCommand(PivotAngle.IDLE)
+        +shooter.setAngleCommand(PivotAngle.AMP)
     }
 
     loopFor(1.seconds){
-        shooter.spin(0.3)
+        shooter.setSpeed(0.3)
     }
 
     runOnce{
-        shooter.spin(0.0)
-        shooter.setPivotPercentOut(0.0)
-        groundIntake.spin(0.0)
+        shooter.setSpeed(0.0)
     }
+
+    +basicTaxi(
+        drivetrain, shooter = shooter, groundIntake = groundIntake
+    )
 }

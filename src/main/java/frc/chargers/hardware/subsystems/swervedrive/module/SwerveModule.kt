@@ -4,6 +4,7 @@ package frc.chargers.hardware.subsystems.swervedrive.module
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Length
+import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import frc.chargers.hardware.subsystems.swervedrive.module.lowlevel.ModuleIO
@@ -33,7 +34,7 @@ public interface SwerveModule: ModuleIO {
     public fun getModulePosition(wheelRadius: Length): SwerveModulePosition
 
     public fun halt(){
-        setDirectionalPower(0.0, direction)
+        turnVoltage = 0.volts
+        driveVoltage = 0.volts
     }
-
 }

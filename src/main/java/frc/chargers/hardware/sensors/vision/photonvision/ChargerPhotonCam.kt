@@ -2,13 +2,11 @@
 package frc.chargers.hardware.sensors.vision.photonvision
 
 import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.Distance
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.meters
+import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
-import edu.wpi.first.apriltag.AprilTagFieldLayout
-import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.wpilibj.RobotBase.*
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.framework.ChargerRobot
@@ -21,16 +19,19 @@ import org.littletonrobotics.junction.Logger
 import org.photonvision.EstimatedRobotPose
 import org.photonvision.PhotonCamera
 import org.photonvision.PhotonPoseEstimator
-import org.photonvision.targeting.PhotonTrackedTarget
 import java.util.*
 
 /**
  * A wrapper over PhotonVision's [PhotonCamera], with support for AdvantageKit and more integration within ChargerLib.
+ *
+ * Note: The robot transform to camera is represented like this:
+ *
+ * x is forward, y is left, z is up.
+ * Rotation: x is roll, y is pitch, z is yaw.
  */
 public class ChargerPhotonCam(
     name: String,
-    public val lensHeight: Distance,
-    public val mountAngle: Angle
+    public val robotToCamera: UnitTransform3d
 ): PhotonCamera(name) {
     private var required: Boolean = false
 
@@ -61,21 +62,16 @@ public class ChargerPhotonCam(
         logInputs: LoggableInputsProvider
     ): PhotonCameraPipeline<VisionTarget.AprilTag>(index) {
 
-        override val visionData: List<VisionTarget.AprilTag>
+        override val visionTargets: List<VisionTarget.AprilTag>
             by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
                 val data = latestResult
                 if (!data.hasTargets() || isSimulation() || pipelineIndex != index){
                     return@valueList listOf()
                 }
 
-                val bestTarget = data.bestTarget
-                val otherTargets = data.getTargets()
-                otherTargets.remove(bestTarget)
-
-                return@valueList listOf(
-                    toAprilTagTarget(bestTarget, data.timestampSeconds.ofUnit(seconds)),
-                    *otherTargets.map{toAprilTagTarget(it, data.timestampSeconds.ofUnit(seconds))}.toTypedArray()
-                )
+                return@valueList data
+                    .getTargets()
+                    .map{ toAprilTagTarget(it, data.timestampSeconds.ofUnit(seconds)) }
             }
     }
 
@@ -89,13 +85,10 @@ public class ChargerPhotonCam(
          * This should be equivalent to the pipeline index of the corresponding [AprilTagPipeline].
          */
         aprilTagPipelineIndex: Int,
-        robotToCamera: UnitTransform3d,
         logInputs: LoggableInputsProvider,
-
-        fieldTags: AprilTagFieldLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
         strategy: PoseStrategy = PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
     ): PhotonPoseEstimator(
-        fieldTags,
+        ChargerRobot.APRILTAG_LAYOUT,
         strategy,
         this@ChargerPhotonCam,
         robotToCamera.inUnit(meters)
@@ -137,21 +130,16 @@ public class ChargerPhotonCam(
         logInputs: LoggableInputsProvider
     ): PhotonCameraPipeline<VisionTarget.Object>(index) {
 
-        override val visionData: List<VisionTarget.Object>
+        override val visionTargets: List<VisionTarget.Object>
             by logInputs.valueList(default = VisionTarget.Object.Dummy){
                 val data = latestResult
                 if (!data.hasTargets() || isSimulation() || pipelineIndex != index){
                     return@valueList listOf()
                 }
 
-                val bestTarget = data.bestTarget
-                val otherTargets = data.getTargets()
-                otherTargets.remove(bestTarget)
-
-                return@valueList listOf(
-                    toObjectTarget(bestTarget, data.timestampSeconds.ofUnit(seconds)),
-                    *otherTargets.map{ toObjectTarget(it, data.timestampSeconds.ofUnit(seconds)) }.toTypedArray()
-                )
+                return@valueList data
+                    .getTargets()
+                    .map{ toObjectTarget(it, data.timestampSeconds.ofUnit(seconds)) }
             }
     }
 
@@ -195,27 +183,9 @@ public class ChargerPhotonCam(
 
         override val cameraConstants = VisionCameraConstants(
             "Photon Camera " + this@ChargerPhotonCam.name,
-            this@ChargerPhotonCam.lensHeight,
-            this@ChargerPhotonCam.mountAngle
+            this@ChargerPhotonCam.robotToCamera.z,
+            this@ChargerPhotonCam.robotToCamera.rotation.y.ofUnit(radians)
         )
     }
 
-    private fun toAprilTagTarget(target: PhotonTrackedTarget, timestamp: Time) =
-        VisionTarget.AprilTag(
-            timestamp,
-            tx = target.yaw,
-            ty = target.pitch,
-            areaPercent = target.area,
-            fiducialId = target.fiducialId,
-            targetTransformFromCam = UnitTransform3d(target.bestCameraToTarget)
-        )
-
-    private fun toObjectTarget(target: PhotonTrackedTarget, timestamp: Time) =
-        VisionTarget.Object(
-            timestamp,
-            tx = target.yaw,
-            ty = target.pitch,
-            areaPercent = target.area,
-            classId = null // photonvision does not support class id's so far.
-        )
 }

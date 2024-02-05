@@ -59,10 +59,7 @@ class Shooter(
         io.setPivotVoltage(0.volts)
         io.spin(0.volts, 0.volts)
     }
-
-
-
-
+    
     fun setPivotPosition(target: PivotAngle){
         setPivotPosition(target.angle)
         recordOutput("Shooter/pivotAngleTarget", target)
@@ -95,22 +92,19 @@ class Shooter(
             )
         }
     }
-
-
-
-
+    
     fun setPivotVoltage(voltage: Voltage) = io.setPivotVoltage(voltage)
 
-    fun setPivotPercentOut(percentOut: Double) = io.setPivotVoltage(percentOut * 11.volts)
+    fun setPivotSpeed(percentOut: Double) = io.setPivotVoltage(percentOut * 11.volts)
 
 
 
 
-    fun spin(power: Double){
-        spin(power * 12.volts)
+    fun setSpeed(percentOut: Double){
+        setVoltage(percentOut * 12.volts)
     }
 
-    fun spin(voltage: Voltage){
+    fun setVoltage(voltage: Voltage){
         if (io.hasGamepiece && RobotBase.isReal()){
             io.spin(0.volts, 0.volts)
         }else{

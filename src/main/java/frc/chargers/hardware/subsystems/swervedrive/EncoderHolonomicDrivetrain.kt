@@ -264,10 +264,7 @@ public class EncoderHolonomicDrivetrain(
     private val distanceOffset: Distance = averageEncoderPosition() * wheelRadius
 
 
-    // stores a nullable function, that returns a nullable double/angular velocity
-    // (with null indicating no rotation override)
-    private var openLoopRotationOverride: (() -> Double?)? = null
-    private var closedLoopRotationOverride: (() -> AngularVelocity?)? = null
+    private var rotationOverride: RotationOverride = { null }
 
     /*
     OPEN_LOOP indicates percent-out(power) based drive,
@@ -475,33 +472,14 @@ public class EncoderHolonomicDrivetrain(
 
 
 
-    /**
-     * Sets an open loop rotation override for the drivetrain.
-     *
-     * This override is called when the function [swerveDrive] is called;
-     * this does not impact closed-loop control modes(such as [velocityDrive]).
-     */
-    public fun setOpenLoopRotationOverride(overrideSupplier: () -> Double?){
-        openLoopRotationOverride = overrideSupplier
+    public fun setRotationOverride(rotationOverride: RotationOverride){
+        this.rotationOverride = rotationOverride
     }
 
-    /**
-     * Sets a closed loop rotation override for the drivetrain.
-     *
-     * This override is called when the function [velocityDrive] is called;
-     * this does not impact open-loop control modes(such as [swerveDrive]).
-     */
-    public fun setClosedLoopRotationOverride(overrideSupplier: () -> AngularVelocity?){
-        closedLoopRotationOverride = overrideSupplier
+    public fun removeRotationOverride(){
+        this.rotationOverride = { null }
     }
 
-    /**
-     * Clears all rotation overrides related to the drivetrain.
-     */
-    public fun clearRotationOverrides(){
-        openLoopRotationOverride = null
-        closedLoopRotationOverride = null
-    }
 
 
     /**
@@ -602,13 +580,12 @@ public class EncoderHolonomicDrivetrain(
         currentControlMode = ControlMode.OPEN_LOOP
 
         var speeds = powers.toChassisSpeeds(maxLinearVelocity,maxRotationalVelocity)
-        // ?.let only calls the block if the override is not null
-        openLoopRotationOverride?.let{ overrideFunc ->
-            val overrideResult = overrideFunc()
-            if (overrideResult != null){
-                speeds.omegaRadiansPerSecond = overrideResult * maxRotationalVelocity.siValue
-            }
+
+        val overrideResult: RotationOverrideResult? = rotationOverride(this)
+        if (overrideResult != null){
+            speeds.omegaRadiansPerSecond = overrideResult.openLoopRotation * maxRotationalVelocity.siValue
         }
+
         if (fieldRelative) speeds = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading.asRotation2d())
         recordOutput("Drivetrain(Swerve)/speedsBeforeDiscretize", ChassisSpeeds.struct, speeds)
         if (abs(speeds.omegaRadiansPerSecond * maxRotationalVelocity.siValue) > 0.05){
@@ -668,13 +645,12 @@ public class EncoderHolonomicDrivetrain(
         currentControlMode = ControlMode.CLOSED_LOOP
 
         var newSpeeds: ChassisSpeeds = speeds
-        // ?.let only calls the block if the override is not null
-        closedLoopRotationOverride?.let{ overrideFunc ->
-            val overrideResult = overrideFunc()
-            if (overrideResult != null){
-                newSpeeds.omegaRadiansPerSecond = overrideResult.siValue
-            }
+
+        val overrideResult = rotationOverride(this)
+        if (overrideResult != null){
+            newSpeeds.omegaRadiansPerSecond = overrideResult.closedLoopRotation.siValue
         }
+
         if (fieldRelative){
             newSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(newSpeeds, heading.asRotation2d())
         }
@@ -693,11 +669,35 @@ public class EncoderHolonomicDrivetrain(
     }
 
 
+    /**
+     * Drives the swerve drivetrain in the same way as a differential drive.
+     *
+     * This is useful for backwards compatability and other cases(such as vision aiming using rotation).
+     */
     override fun tankDrive(leftPower: Double, rightPower: Double) {
-        topLeft.setDirectionalPower(leftPower,0.0.degrees)
-        bottomLeft.setDirectionalPower(leftPower,0.0.degrees)
-        topRight.setDirectionalPower(rightPower,0.0.degrees)
-        bottomRight.setDirectionalPower(rightPower,0.0.degrees)
+        topLeft.setDirectionalPower(leftPower, 0.degrees)
+        bottomLeft.setDirectionalPower(leftPower, 0.degrees)
+        topRight.setDirectionalPower(rightPower, 0.degrees)
+        bottomRight.setDirectionalPower(rightPower, 0.degrees)
+    }
+
+
+    override fun curvatureDrive(power: Double, steering: Double, allowTurnInPlace: Boolean) {
+        // if rotation override is null, or the value produced from it is null,
+        // don't override rotation.
+        // ?. propagates null values forward; for instance, if x was a Double? and x?.toInt() was called, then the result would be null if x == null, else an Int.
+        // ?: redirects a statement if it is null.
+        val compensatedSteering = rotationOverride(this)?.openLoopRotation ?: steering
+        super.curvatureDrive(power, compensatedSteering, allowTurnInPlace)
+    }
+
+    override fun arcadeDrive(power: Double, rotation: Double, squareInputs: Boolean) {
+        // if rotation override is null, or the value produced from it is null,
+        // don't override rotation
+        // ?: propagates null values forward; for instance, if x was a Double? and x?.toInt() was called, then the result would be null if x == null, else an Int.
+        // ?: redirects a statement if it is null.
+        val compensatedRot = rotationOverride(this)?.openLoopRotation ?: rotation
+        super.arcadeDrive(power, compensatedRot, squareInputs)
     }
 
 
@@ -726,11 +726,15 @@ public class EncoderHolonomicDrivetrain(
      * Stalls the drivetrain motors in the forward direction, using the kS constant provided in the control scheme.
      */
     public fun stallForwards(){
-        // subtracts 0.05 volts from the stall voltage to correct for inaccuracies with kS constant.
-        topLeft.driveVoltage = controlData.velocityFF.kS - 0.05.volts
-        topRight.driveVoltage = controlData.velocityFF.kS - 0.05.volts
-        bottomLeft.driveVoltage = controlData.velocityFF.kS - 0.05.volts
-        bottomRight.driveVoltage = controlData.velocityFF.kS - 0.05.volts
+        if (abs(controlData.velocityFF.kS) > 0.05.volts){
+            // subtracts 0.05 volts from the stall voltage to correct for inaccuracies with kS constant.
+            topLeft.driveVoltage = controlData.velocityFF.kS - 0.05.volts
+            topRight.driveVoltage = controlData.velocityFF.kS - 0.05.volts
+            bottomLeft.driveVoltage = controlData.velocityFF.kS - 0.05.volts
+            bottomRight.driveVoltage = controlData.velocityFF.kS - 0.05.volts
+        }else{
+            stop()
+        }
     }
 
 
@@ -738,11 +742,15 @@ public class EncoderHolonomicDrivetrain(
      * Stalls the drivetrain motors in the backward direction, using the kS constant provided in the control scheme.
      */
     public fun stallBackwards(){
-        // adds 0.05 volts from the stall voltage to correct for inaccuracies with kS constant.
-        topLeft.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
-        topRight.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
-        bottomLeft.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
-        bottomRight.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
+        if (abs(controlData.velocityFF.kS) > 0.05.volts){
+            // adds 0.05 volts from the stall voltage to correct for inaccuracies with kS constant.
+            topLeft.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
+            topRight.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
+            bottomLeft.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
+            bottomRight.driveVoltage = -controlData.velocityFF.kS + 0.05.volts
+        }else{
+            stop()
+        }
     }
 
 
@@ -756,30 +764,22 @@ public class EncoderHolonomicDrivetrain(
 
         // if the drivetrain has not called a drive function yet the previous loop,
         // rotate the drivetrain regardless.
-        if (!hasCalledDriveFunction){
-
-            when(currentControlMode){
-                ControlMode.CLOSED_LOOP -> {
-                    closedLoopRotationOverride?.let{overrideFunc ->
-                        val output = overrideFunc()
-                        if (output != null){
-                            topLeft.setDirectionalVelocity(-output, 45.degrees)
-                            topRight.setDirectionalVelocity(output, -45.degrees)
-                            bottomLeft.setDirectionalVelocity(output, 45.degrees)
-                            bottomRight.setDirectionalVelocity(-output, -45.degrees)
-                        }
+        if (!hasCalledDriveFunction) {
+            val output = rotationOverride(this)
+            if (output != null) {
+                when (currentControlMode) {
+                    ControlMode.CLOSED_LOOP -> {
+                        topLeft.setDirectionalVelocity(output.closedLoopRotation, 135.degrees)
+                        topRight.setDirectionalVelocity(output.closedLoopRotation, 45.degrees)
+                        bottomLeft.setDirectionalVelocity(output.closedLoopRotation, -135.degrees)
+                        bottomRight.setDirectionalVelocity(output.closedLoopRotation, -45.degrees)
                     }
-                }
 
-                ControlMode.OPEN_LOOP -> {
-                    openLoopRotationOverride?.let{overrideFunc ->
-                        val output = overrideFunc()
-                        if (output != null){
-                            topLeft.setDirectionalPower(output, 135.degrees)
-                            topRight.setDirectionalPower(output, 45.degrees)
-                            bottomLeft.setDirectionalPower(output, -135.degrees)
-                            bottomRight.setDirectionalPower(output, -45.degrees)
-                        }
+                    ControlMode.OPEN_LOOP -> {
+                        topLeft.setDirectionalPower(output.openLoopRotation, 135.degrees)
+                        topRight.setDirectionalPower(output.openLoopRotation, 45.degrees)
+                        bottomLeft.setDirectionalPower(output.openLoopRotation, -135.degrees)
+                        bottomRight.setDirectionalPower(output.openLoopRotation, -45.degrees)
                     }
                 }
             }

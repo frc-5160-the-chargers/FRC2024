@@ -8,13 +8,19 @@ import frc.chargers.utils.math.equations.epsilonEquals
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.robot.constants.DRIVER_CONTROLLER_PORT
 import org.littletonrobotics.junction.Logger.recordOutput
+import org.littletonrobotics.junction.networktables.LoggedDashboardBoolean
 import kotlin.math.pow
 
 
 object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
+
+
+    val shouldInvertTranslation = LoggedDashboardBoolean("DriverController/shouldInvertTranslation")
+
+
     /* Top-Level constants */
-    private const val DEFAULT_DEADBAND = 0.1
+    private const val DEFAULT_DEADBAND = 0.2
 
 
     /* Public API */
@@ -52,30 +58,29 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     private val forwardAxis =
         InputAxis{ leftY }
             .applyDefaults()
-            //.applyMultiplier(if (isReal()) -1.0 else 1.0)
+            .withModifier{ if (shouldInvertTranslation.get()) -1.0 * it else it }
             .withModifier{ it * getScaleRate() }
 
     private val strafeAxis =
         InputAxis{ leftX }
-            //.applyMultiplier(if (isReal()) -1.0 else 1.0)
+            .applyDeadband(0.3)
+            .withModifier{ if (shouldInvertTranslation.get()) -1.0 * it else it }
             .withModifier{ it * getScaleRate() }
 
     private val rotationAxis =
         InputAxis{ rightX }
             .applyDefaults()
             .square()
-            .applyEquation( Polynomial(0.1,0.0,0.4,0.0) )
+            .applyEquation( Polynomial(-0.1,0.0,-0.4,0.0) )
 
 
     private val turboAxis =
-        InputAxis{ leftTriggerAxis }
-            .applyDefaults()
+        InputAxis{ rightTriggerAxis }
             .mapToRange(1.0..2.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
 
     private val precisionAxis =
         InputAxis{ leftTriggerAxis }
-            .applyDefaults()
             .mapToRange(1.0..4.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
             .withModifier{ 1.0 / it }
@@ -90,9 +95,13 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
         val turbo = turboAxis()
         val precision = precisionAxis()
 
-        recordOutput("Drivetrain(Swerve)/xPower", forward * turbo * precision)
-        recordOutput("Drivetrain(Swerve)/yPower", strafe * turbo * precision)
-        recordOutput("Drivetrain(Swerve)/rotation output", rotation * precision)
+        recordOutput("DriverController/TurboOutput", turbo)
+        recordOutput("DriverController/PrecisionOutput", precision)
+
+
+        recordOutput("DriverController/xPower", forward)
+        recordOutput("DriverController/yPower", strafe)
+        recordOutput("DriverController/rotation", rotation)
 
         return ChassisPowers(
             xPower = forward * turbo * precision,

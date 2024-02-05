@@ -3,6 +3,7 @@ package frc.robot.constants
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix6.signals.SensorDirectionValue
+import com.revrobotics.CANSparkLowLevel
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.constants.SwerveAzimuthControl
 import frc.chargers.constants.SwerveControlData
@@ -66,12 +67,16 @@ val TURN_MOTORS = sparkMaxSwerveMotors(
     topLeft = ChargerSparkMax(29){inverted = true},
     topRight = ChargerSparkMax(31){inverted = true},
     bottomLeft = ChargerSparkMax(22),
-    bottomRight = ChargerSparkMax(4)
+    bottomRight = ChargerSparkMax(4){ inverted = true }
 ){
     smartCurrentLimit = SmartCurrentLimit(30.amps)
     voltageCompensationNominalVoltage = 12.volts
     openLoopRampRate = 48.0
     closedLoopRampRate = 48.0
+}.apply{
+    forEach{
+        it.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus0, 10)
+    }
 }
 
 val TURN_ENCODERS = swerveCANcoders(
@@ -85,10 +90,10 @@ val TURN_ENCODERS = swerveCANcoders(
     bottomRight = ChargerCANcoder(45),
     useAbsoluteSensor = true
 ).withOffsets(
-    topLeftZero = 2.134.radians,
-    topRightZero = 3.438.radians,
-    bottomLeftZero = 1.5.radians,
-    bottomRightZero = 2.938.radians
+    topLeftZero = 0.973.radians,
+    topRightZero = 2.881.radians,
+    bottomLeftZero = 1.477.radians,
+    bottomRightZero = 6.004.radians
 )
 
 val DRIVE_MOTORS = sparkMaxSwerveMotors(
@@ -101,5 +106,9 @@ val DRIVE_MOTORS = sparkMaxSwerveMotors(
     voltageCompensationNominalVoltage = 12.volts
     openLoopRampRate = 48.0
     closedLoopRampRate = 48.0
+}.apply{
+    forEach{
+        it.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus0, 10)
+    }
 }
 

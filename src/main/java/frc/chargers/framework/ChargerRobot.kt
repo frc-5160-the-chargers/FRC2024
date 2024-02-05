@@ -5,6 +5,8 @@ import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.pathfinding.Pathfinding
+import edu.wpi.first.apriltag.AprilTagFieldLayout
+import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
@@ -78,6 +80,11 @@ public open class ChargerRobot(
          * The [Field2d] that belongs to the robot.
          */
         public val FIELD: Field2d = Field2d()
+
+        /**
+         * The current' year's apriltag field layout.
+         */
+        public val APRILTAG_LAYOUT: AprilTagFieldLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField()
 
 
 

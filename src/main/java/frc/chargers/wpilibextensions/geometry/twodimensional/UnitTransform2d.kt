@@ -3,6 +3,7 @@ package frc.chargers.wpilibextensions.geometry.twodimensional
 
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Distance
+import com.batterystaple.kmeasure.quantities.hypot
 import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.geometry.Transform2d
 import frc.chargers.advantagekitextensions.AdvantageKitLoggable
@@ -56,6 +57,9 @@ public data class UnitTransform2d(
      * @see Transform2d.getY
      */
     public val y: Distance get() = siValue.y.meters
+
+
+    public val norm: Distance get() = hypot(x, y)
 
 
     /**

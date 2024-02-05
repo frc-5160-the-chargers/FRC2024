@@ -73,6 +73,9 @@ public interface SmartEncoderMotorController: EncoderMotorController{
     ){
         val positionError = motorToEncoderRatio * (target - turnEncoder.angularPosition)
 
+
+        println("Target position: " + (encoder.angularPosition + positionError))
+
         setAngularPosition(
             encoder.angularPosition + positionError,
             pidConstants,

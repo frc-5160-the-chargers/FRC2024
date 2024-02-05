@@ -176,10 +176,4 @@ public class RioPIDSwerveModule(
             wheelTravel.inUnit(radians) * wheelRadius.inUnit(meters),
             direction.asRotation2d()
         )
-
-    override fun halt() {
-        driveVoltage = 0.0.volts
-        setDirection(direction)
-    }
-
 }

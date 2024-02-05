@@ -6,6 +6,7 @@ import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.degrees
+import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.volts
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
@@ -63,8 +64,8 @@ internal class SparkPIDHandler(
         if (continuousWrap != isCurrentlyWrapping){
             if (continuousWrap){
                 innerController.positionPIDWrappingEnabled = true
-                innerController.positionPIDWrappingMinInput = -180.degrees.siValue
-                innerController.positionPIDWrappingMaxInput = 180.degrees.siValue
+                innerController.positionPIDWrappingMinInput = -180.degrees.inUnit(rotations)
+                innerController.positionPIDWrappingMaxInput = 180.degrees.inUnit(rotations)
             }else{
                 innerController.positionPIDWrappingEnabled = false
             }
@@ -74,9 +75,9 @@ internal class SparkPIDHandler(
 
         innerController.setReference(
             if (isCurrentlyWrapping){
-                target.inputModulus((-180).degrees..180.degrees).siValue
+                target.inputModulus((-180).degrees..180.degrees).inUnit(rotations)
             }else{
-                target.siValue
+                target.inUnit(rotations)
             },
             com.revrobotics.CANSparkBase.ControlType.kPosition,
             0,
@@ -88,6 +89,8 @@ internal class SparkPIDHandler(
                 target, pidConstants, continuousWrap, extraVoltage, encoderAdaptor
             )
         }
+
+
     }
 
 }

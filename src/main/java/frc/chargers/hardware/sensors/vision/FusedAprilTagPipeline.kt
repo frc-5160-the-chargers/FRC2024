@@ -50,9 +50,9 @@ class FusedAprilTagPipeline(
     /**
      * Fetches Vision target data from all pipelines, then compiles it into a single list.
      */
-    override val visionData: List<VisionTarget.AprilTag>
+    override val visionTargets: List<VisionTarget.AprilTag>
         get(){
-            val allData = pipelines.map { it.visionData }
+            val allData = pipelines.map { it.visionTargets }
             val resultingData = mutableListOf<VisionTarget.AprilTag>()
             for (data in allData){
                 resultingData.addAll(data)

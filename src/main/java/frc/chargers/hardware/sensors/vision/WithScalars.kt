@@ -22,8 +22,8 @@ fun AprilTagVisionPipeline.withScalars(
             targetTransformFromCam
         )
 
-    override val visionData: List<VisionTarget.AprilTag>
-        get() = this@withScalars.visionData.map{ it.withScalar() }
+    override val visionTargets: List<VisionTarget.AprilTag>
+        get() = this@withScalars.visionTargets.map{ it.withScalar() }
 
     override val bestTarget: VisionTarget.AprilTag?
         get() = this@withScalars.bestTarget?.withScalar() // returns null if bestTarget is null
@@ -48,8 +48,8 @@ fun ObjectVisionPipeline.withScalars(
             classId
         )
 
-    override val visionData: List<VisionTarget.Object>
-        get() = this@withScalars.visionData.map{ it.withScalar() }
+    override val visionTargets: List<VisionTarget.Object>
+        get() = this@withScalars.visionTargets.map{ it.withScalar() }
 
     override val bestTarget: VisionTarget.Object?
         get() = this@withScalars.bestTarget?.withScalar() // returns null if bestTarget is null

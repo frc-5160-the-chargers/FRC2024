@@ -14,6 +14,7 @@ import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
+import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import org.littletonrobotics.junction.Logger
 
@@ -25,8 +26,7 @@ import org.littletonrobotics.junction.Logger
 public class ChargerLimelight(
     @JvmField public val name: String = "limelight",
     useJsonDump: Boolean = false,
-    public val lensHeight: Distance,
-    public val mountAngle: Angle
+    public val robotToCam: UnitTransform3d
 ){
     // used to manage requirements for the limelight.
     private var required: Boolean = false
@@ -121,7 +121,7 @@ public class ChargerLimelight(
         logInputs: LoggableInputsProvider
     ): LimelightPipeline<VisionTarget.AprilTag>(index) {
 
-        override val visionData: List<VisionTarget.AprilTag>
+        override val visionTargets: List<VisionTarget.AprilTag>
             by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
                 if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != index) {
                     return@valueList listOf()
@@ -228,7 +228,7 @@ public class ChargerLimelight(
         logInputs: LoggableInputsProvider
     ): LimelightPipeline<VisionTarget.Object>(index){
 
-        override val visionData: List<VisionTarget.Object>
+        override val visionTargets: List<VisionTarget.Object>
             by logInputs.valueList<VisionTarget.Object>(default = VisionTarget.Object.Dummy) {
                 if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != index) {
                     return@valueList listOf()
@@ -304,8 +304,8 @@ public class ChargerLimelight(
 
         override val cameraConstants = VisionCameraConstants(
             "Limelight " + this@ChargerLimelight.name,
-            this@ChargerLimelight.lensHeight,
-            this@ChargerLimelight.mountAngle
+            this@ChargerLimelight.robotToCam.z,
+            this@ChargerLimelight.robotToCam.rotation.y.ofUnit(radians)
         )
     }
 }

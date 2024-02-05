@@ -99,10 +99,6 @@ public class OnboardPIDSwerveModule private constructor( // Do not use this cons
             direction.asRotation2d()
         )
 
-    override fun halt() {
-        setDirectionalPower(0.0,direction)
-    }
-
     override fun setDirection(direction: Angle) {
         if (controlData.azimuthControl is SwerveAzimuthControl.ProfiledPID){
             currentProfileState = controlData.azimuthControl.motionProfile.calculate(

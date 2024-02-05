@@ -25,10 +25,6 @@ public class ModuleIOReal(
 ): ModuleIO {
     private val startingWheelTravel = driveMotor.encoder.angularPosition
 
-    private var turnAppliedVoltage = Voltage(0.0)
-
-    private var driveAppliedVoltage = Voltage(0.0)
-
     private val batteryVoltageIssueAlert = Alert.warning(
         text = "It seems that the battery voltage from the Robot controller is being reported as extremely low(possibly 0)."
     )
@@ -37,18 +33,16 @@ public class ModuleIOReal(
 
 
     override var turnVoltage: Voltage by logInputs.quantity(
-        getValue = {turnAppliedVoltage},
+        getValue = {if (turnMotor is SmartEncoderMotorController) turnMotor.appliedVoltage else 0.volts},
         setValue = {
-            turnAppliedVoltage = it.coerceIn(getVoltageRange())
-            turnMotor.setVoltage(turnAppliedVoltage)
+            turnMotor.setVoltage(it.coerceIn(getVoltageRange()))
         }
     )
 
     override var driveVoltage: Voltage by logInputs.quantity(
-        getValue = {driveAppliedVoltage},
+        getValue = {if (driveMotor is SmartEncoderMotorController) driveMotor.appliedVoltage else 0.volts},
         setValue = {
-            driveAppliedVoltage = it.coerceIn(getVoltageRange())
-            driveMotor.setVoltage(driveAppliedVoltage)
+            driveMotor.setVoltage(it.coerceIn(getVoltageRange()))
         }
     )
 
