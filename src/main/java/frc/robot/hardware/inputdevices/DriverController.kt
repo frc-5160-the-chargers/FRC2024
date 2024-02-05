@@ -39,7 +39,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     private val driveScalar =
         InputAxis{ leftX.pow(2) + leftY.pow(2) }
             .square()
-            .applyMultiplier(0.8)
+            .applyMultiplier(0.6)
 
     private fun getScaleRate(): Double{
         val baseValue = driveScalar.getBaseValue()

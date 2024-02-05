@@ -54,7 +54,7 @@ val DRIVE_CONTROL_DATA = if (isReal()){
                 maxAcceleration = 10.radians / 1.seconds / 1.seconds,
             )
         ),
-        openLoopDiscretizationRate = 3.1,
+        openLoopDiscretizationRate = 4.0,
         velocityPID = PIDConstants(0.2,0.0,0.0),
         velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
         robotRotationPID = CLOSED_LOOP_ROTATION_PID, // for pathplanner

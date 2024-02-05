@@ -686,19 +686,19 @@ public class EncoderHolonomicDrivetrain(
 
         when (currentControlMode) {
             ControlMode.CLOSED_LOOP -> {
-                goal = goal.discretize(driftRate = controlData.closedLoopDiscretizationRate)
                 val output = rotationOverride(this)
                 if (output != null) {
                     goal.omegaRadiansPerSecond = output.closedLoopRotation.siValue
                 }
+                goal = goal.discretize(driftRate = controlData.closedLoopDiscretizationRate)
             }
 
             ControlMode.OPEN_LOOP -> {
-                goal = goal.discretize(driftRate = controlData.openLoopDiscretizationRate)
                 val output = rotationOverride(this)
                 if (output != null) {
-                    goal.omegaRadiansPerSecond = output.openLoopRotation
+                    goal.omegaRadiansPerSecond = output.openLoopRotation * maxRotationalVelocity.siValue
                 }
+                goal = goal.discretize(driftRate = controlData.openLoopDiscretizationRate)
             }
 
             else -> {}

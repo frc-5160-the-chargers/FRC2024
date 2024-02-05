@@ -5,9 +5,11 @@
 package frc.robot
 
 import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
+import com.batterystaple.kmeasure.units.seconds
 import com.kauailabs.navx.frc.AHRS
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.util.PathPlannerLogging
@@ -71,7 +73,11 @@ class RobotContainer: ChargerRobotContainer() {
         driveGearbox = DCMotor.getNEO(1),
         controlData = DRIVE_CONTROL_DATA,
         useOnboardPID = false,
-        hardwareData = SwerveHardwareData.mk4iL2(trackWidth = 32.inches, wheelBase = 32.inches),
+        hardwareData = SwerveHardwareData.mk4iL2(
+            maxModuleSpeed = 4.5.meters / 1.seconds,
+            maxModuleAcceleration = 25.meters / 1.seconds / 1.seconds,
+            trackWidth = 32.inches, wheelBase = 32.inches
+        ),
         gyro = if (isReal()) gyroIO else null,
     )
 
@@ -142,7 +148,7 @@ class RobotContainer: ChargerRobotContainer() {
             loop{
                 drivetrain.swerveDrive(
                     // custom getter property; acts as a function
-                    DriverController.swerveOutput,
+                    0.1, 0.1, 0.0,
                     fieldRelative = true
                 )
             }
