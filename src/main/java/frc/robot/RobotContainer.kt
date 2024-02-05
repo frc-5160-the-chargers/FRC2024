@@ -145,7 +145,7 @@ class RobotContainer: ChargerRobotContainer() {
             addRequirements(drivetrain)
 
             loop{
-                drivetrain.velocityDrive(Velocity(2.0), Velocity(0.0), AngularVelocity(0.0))
+                drivetrain.swerveDrive(DriverController.swerveOutput)
             }
 
             onEnd{

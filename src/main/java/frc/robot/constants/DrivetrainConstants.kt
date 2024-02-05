@@ -54,7 +54,7 @@ val DRIVE_CONTROL_DATA = if (isReal()){
                 maxAcceleration = 10.radians / 1.seconds / 1.seconds,
             )
         ),
-        openLoopDiscretizationRate = 4.2,
+        openLoopDiscretizationRate = 4.4,
         velocityPID = PIDConstants(0.2,0.0,0.0),
         velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
         robotRotationPID = CLOSED_LOOP_ROTATION_PID, // for pathplanner
@@ -67,7 +67,7 @@ val TURN_MOTORS = sparkMaxSwerveMotors(
     topLeft = ChargerSparkMax(29){inverted = true},
     topRight = ChargerSparkMax(31){inverted = true},
     bottomLeft = ChargerSparkMax(22),
-    bottomRight = ChargerSparkMax(4){ inverted = true }
+    bottomRight = ChargerSparkMax(4){inverted = true}
 ){
     smartCurrentLimit = SmartCurrentLimit(30.amps)
     voltageCompensationNominalVoltage = 12.volts
