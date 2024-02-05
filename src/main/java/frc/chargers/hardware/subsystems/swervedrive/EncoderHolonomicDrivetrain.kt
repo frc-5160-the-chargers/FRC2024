@@ -577,7 +577,7 @@ public class EncoderHolonomicDrivetrain(
     ){
         currentControlMode = ControlMode.CLOSED_LOOP
         goal = if (fieldRelative){
-            ChassisSpeeds.fromFieldRelativeSpeeds(goal, heading.asRotation2d())
+            ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading.asRotation2d())
         }else{
             speeds
         }

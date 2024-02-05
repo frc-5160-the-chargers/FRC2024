@@ -4,8 +4,7 @@
 @file:Suppress("unused")
 package frc.robot
 
-import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.div
+import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
@@ -146,11 +145,7 @@ class RobotContainer: ChargerRobotContainer() {
             addRequirements(drivetrain)
 
             loop{
-                drivetrain.swerveDrive(
-                    // custom getter property; acts as a function
-                    0.1, 0.1, 0.0,
-                    fieldRelative = true
-                )
+                drivetrain.velocityDrive(Velocity(2.0), Velocity(0.0), AngularVelocity(0.0))
             }
 
             onEnd{
@@ -204,6 +199,7 @@ class RobotContainer: ChargerRobotContainer() {
 
 
 
+            /*
             val trajGroupName = "5pAutoLeft"
 
             runOnce {
@@ -216,6 +212,32 @@ class RobotContainer: ChargerRobotContainer() {
                 +AutoBuilder.followPath(it)
             }
 
+             */
+
+
+            runOnce(drivetrain){
+                drivetrain.poseEstimator.zeroPose()
+            }
+
+            loopFor(Time(3.0), drivetrain){
+                drivetrain.velocityDrive(Velocity(2.0), Velocity(0.0), AngularVelocity(0.0))
+            }
+
+            loopFor(Time(3.0), drivetrain){
+                drivetrain.stop()
+            }
+
+            runOnce(drivetrain){
+                drivetrain.poseEstimator.zeroPose()
+            }
+
+            loopFor(Time(3.0), drivetrain){
+                drivetrain.velocityDrive(Velocity(2.0), Velocity(2.0), AngularVelocity(0.0))
+            }
+
+            loop(drivetrain){
+                drivetrain.stop()
+            }
         }
 
     override val testCommand: Command =
