@@ -149,12 +149,12 @@ public class ChargerPhotonCam(
         init{
             ensureIndexValid(index)
             // only reset pipeline if there is currently 1 pipeline index or less.
-            if (allIndexes.size <= 1){
-                resetPipeline()
+            if (allIndexes.size < 1){
+                reset()
             }
         }
 
-        private fun resetPipeline(){
+        final override fun reset(){
             // property access syntax(was getPipelineIndex() and setPipelineIndex())
             if (pipelineIndex != index){
                 pipelineIndex = index
@@ -162,23 +162,6 @@ public class ChargerPhotonCam(
             }else{
                 println("Photon Camera with name $name is on a pipeline with index $index")
             }
-        }
-
-        override fun requireAndReset(){
-            if (required){
-                error("A Photon Camera with name '$name' has been required in 2 different places. \n " +
-                        "Make sure to call pipeline.isRequired = false at the end of all commands!"
-                )
-            }
-            required = true
-            resetPipeline()
-        }
-
-        override fun removeRequirement(){
-            if (!required){
-                println("A requirement was removed from a PhotonCamera; however, this requirement was never set in the first place.")
-            }
-            required = false
         }
 
         override val cameraConstants = VisionCameraConstants(

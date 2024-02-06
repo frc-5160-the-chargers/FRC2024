@@ -6,6 +6,7 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig
+import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
@@ -418,18 +419,12 @@ public class EncoderHolonomicDrivetrain(
      * driving each swerve module at their maximum potential,
      * then calculating the output using the kinematics object.
      */
-    public val maxLinearVelocity: Velocity = abs(kinematics.toChassisSpeeds(
-        *ModuleStateGroup(
-            topLeftSpeed = hardwareData.maxModuleSpeed,
-            topRightSpeed = hardwareData.maxModuleSpeed,
-            bottomLeftSpeed = hardwareData.maxModuleSpeed,
-            bottomRightSpeed = hardwareData.maxModuleSpeed,
-            topLeftAngle = Angle(0.0),
-            topRightAngle = Angle(0.0),
-            bottomLeftAngle = Angle(0.0),
-            bottomRightAngle = Angle(0.0)
-        ).toArray()
-    ).xVelocity)
+    public val maxLinearVelocity: Velocity =
+        abs(
+            kinematics.toChassisSpeeds(
+                *Array(4){ SwerveModuleState(hardwareData.maxModuleSpeed.siValue, Rotation2d(0.0)) } ,
+            ).xVelocity
+        )
 
 
     /**
@@ -437,18 +432,14 @@ public class EncoderHolonomicDrivetrain(
      * driving each swerve module at their maximum potential(with each being oriented at a 45 or -45 degrees angle),
      * then calculating the output using the kinematics object.
      */
-    public val maxRotationalVelocity: AngularVelocity = abs(kinematics.toChassisSpeeds(
-        *ModuleStateGroup(
-            topLeftSpeed = hardwareData.maxModuleSpeed,
-            topRightSpeed = -hardwareData.maxModuleSpeed,
-            bottomLeftSpeed = hardwareData.maxModuleSpeed,
-            bottomRightSpeed = -hardwareData.maxModuleSpeed,
-            topLeftAngle = (-45).degrees,
-            topRightAngle = 45.degrees,
-            bottomLeftAngle = 45.degrees,
-            bottomRightAngle = (-45).degrees
-        ).toArray()
-    ).rotationSpeed)
+    public val maxRotationalVelocity: AngularVelocity = abs(
+        kinematics.toChassisSpeeds(
+            SwerveModuleState(hardwareData.maxModuleSpeed.siValue, Rotation2d.fromDegrees(-45.0)),
+            SwerveModuleState(-hardwareData.maxModuleSpeed.siValue, Rotation2d.fromDegrees(45.0)),
+            SwerveModuleState(hardwareData.maxModuleSpeed.siValue, Rotation2d.fromDegrees(45.0)),
+            SwerveModuleState(-hardwareData.maxModuleSpeed.siValue, Rotation2d.fromDegrees(-45.0))
+        ).rotationSpeed
+    )
 
 
     /**

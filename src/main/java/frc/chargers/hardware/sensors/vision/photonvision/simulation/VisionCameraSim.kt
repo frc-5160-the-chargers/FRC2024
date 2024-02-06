@@ -150,9 +150,9 @@ class VisionCameraSim(
                 previousRobotToCam.rotation.y.ofUnit(radians)
             )
 
-        override fun requireAndReset() {}
-
-        override fun removeRequirement() {}
+        override fun reset() {
+            println("Sim camera pipeline has been reset.")
+        }
     }
 
     override fun periodic(){

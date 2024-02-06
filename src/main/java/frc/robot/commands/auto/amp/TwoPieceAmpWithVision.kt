@@ -1,5 +1,6 @@
 package frc.robot.commands.auto.amp
 
+/*
 import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Velocity
 import com.batterystaple.kmeasure.units.seconds
@@ -12,7 +13,7 @@ import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.commands.DriveToTargetLocation
+import frc.robot.commands.FieldLocation
 import frc.robot.commands.aimToAprilTag
 import frc.robot.commands.auto.basicTaxi
 import frc.robot.commands.runGroundIntake
@@ -83,9 +84,9 @@ fun twoPieceAmpWithVision(
     val tagId: Int = when (DriverStation.getAlliance().getOrNull()){
         null -> 0
 
-        DriverStation.Alliance.Red -> DriveToTargetLocation.AMP.blueAllianceApriltagId
+        DriverStation.Alliance.Red -> FieldLocation.AMP.blueAllianceApriltagId
 
-        DriverStation.Alliance.Blue -> DriveToTargetLocation.AMP.blueAllianceApriltagId
+        DriverStation.Alliance.Blue -> FieldLocation.AMP.blueAllianceApriltagId
     }
 
     // performs necessary aiming
@@ -112,3 +113,5 @@ fun twoPieceAmpWithVision(
     }
 
 }
+
+ */

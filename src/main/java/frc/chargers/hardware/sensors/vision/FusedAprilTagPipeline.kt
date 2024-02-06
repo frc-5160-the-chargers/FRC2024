@@ -104,15 +104,9 @@ class FusedAprilTagPipeline(
             )
         }
 
-    override fun requireAndReset() {
+    override fun reset() {
         pipelines.forEach{
-            it.requireAndReset()
-        }
-    }
-
-    override fun removeRequirement() {
-        pipelines.forEach{
-            it.removeRequirement()
+            it.reset()
         }
     }
 

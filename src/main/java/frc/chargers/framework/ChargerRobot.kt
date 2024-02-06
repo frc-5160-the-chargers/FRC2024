@@ -129,7 +129,10 @@ public open class ChargerRobot(
             // inits robotContainer
             robotContainer = getRobotContainer()
             robotContainer.robotInit()
-            AutoLogOutputManager.addPackage("frc.frc.chargers")
+
+            // adds package directories for auto log output
+            AutoLogOutputManager.addPackage("frc.chargers")
+            AutoLogOutputManager.addPackage("frc.robot")
 
             Pathfinding.setPathfinder(LocalADStarAK())
 

@@ -271,35 +271,18 @@ public class ChargerLimelight(
         init{
             ensureIndexValid(index)
             // if there is only 1 current index; reset the pipeline as the camera is likely only running on 1 index;
-            if (allIndexes.size <= 1){
-                resetPipeline()
+            if (allIndexes.size < 1){
+                reset()
             }
         }
 
-        private fun resetPipeline(){
+        final override fun reset(){
             if (getCurrentPipelineIndex(name).toInt() != index){
                 setPipelineIndex(name, index)
                 println("Limelight with name $name has had it's pipeline reset to $index")
             }else{
                 println("Limelight with name $name is already on index $index.")
             }
-        }
-
-        override fun requireAndReset(){
-            if (required){
-                error("A Limelight with name '$name' has been required in 2 different places. \n " +
-                        "Make sure to call pipeline.isRequired = false at the end of all commands!"
-                )
-            }
-            required = true
-            resetPipeline()
-        }
-
-        override fun removeRequirement(){
-            if (!required){
-                println("A requirement was removed; however, this requirement was never set in the first place.")
-            }
-            required = false
         }
 
         override val cameraConstants = VisionCameraConstants(

@@ -36,6 +36,8 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
+import frc.robot.hardware.subsystems.shooter.Shooter
+import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOSim
 import org.littletonrobotics.junction.Logger.recordOutput
 
 
@@ -62,6 +64,16 @@ class RobotContainer: ChargerRobotContainer() {
             logInputs = LoggableInputsProvider("LimelightApriltagVision") // logs to the "LimelightApriltagVision" namespace
         )
      */
+
+    private val shooter = Shooter(
+        ShooterIOSim(
+            DCMotor.getNEO(1),
+            DCMotor.getNEO(1),
+            DCMotor.getNEO(1),
+            1.0, 1.0, 1.0
+        ),
+        PIDConstants(0.3,0,0),
+    )
 
 
     private val drivetrain = EncoderHolonomicDrivetrain(

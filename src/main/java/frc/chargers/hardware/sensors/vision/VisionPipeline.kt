@@ -17,7 +17,6 @@ public typealias ObjectVisionPipeline = VisionPipeline<VisionTarget.Object>
  * In a multi-pipeline vision system, this interface should represent 1 pipeline.
  */
 public interface VisionPipeline<T: VisionTarget> {
-
     /**
      * Fetches the full vision data of the [VisionPipeline]. This list includes all valid vision targets
      *
@@ -31,19 +30,11 @@ public interface VisionPipeline<T: VisionTarget> {
     public val cameraConstants: VisionCameraConstants
 
     /**
-     * Requires the overarching vision camera of the pipeline,
-     * and performs any proper initialization needed; depending on the camera type.
-     * This method should ```always``` be called before you use the vision pipeline.
+     * Resets the overarching vision camera; configuring the correct settings for this pipeline to return proper results.
      *
-     * Initialization can include: resetting the pipeline index/mode, performing crosshair offsets, etc.
+     * This often includes changing the pipeline index of the camera to the appropriate value.
      */
-    public fun requireAndReset()
-
-    /**
-     * Removes the requirement of the overarching vision camera
-     * of the pipeline.
-     */
-    public fun removeRequirement()
+    public fun reset()
 
 
 

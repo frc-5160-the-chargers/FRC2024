@@ -7,12 +7,12 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase
 
 class GroundIntake: SubsystemBase() {
 
-    fun spin(voltage: Voltage){
+    fun setVoltage(voltage: Voltage){
         println("Not yet implemented: voltage set is $voltage")
     }
 
-    fun spin(power: Double){
-        spin(power * 12.volts)
+    fun setSpeed(power: Double){
+        setVoltage(power * 12.volts)
     }
 
 

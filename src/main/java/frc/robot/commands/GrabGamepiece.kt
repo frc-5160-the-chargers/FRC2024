@@ -1,28 +1,24 @@
 @file:Suppress("unused")
 package frc.robot.commands
 
-import com.batterystaple.kmeasure.quantities.Scalar
-import com.batterystaple.kmeasure.units.seconds
-import com.batterystaple.kmeasure.units.volts
+import com.pathplanner.lib.auto.AutoBuilder
+import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
+import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.constants.OPEN_LOOP_TRANSLATION_PID
+import frc.robot.constants.PATHFIND_CONSTRAINTS
+import frc.robot.constants.PID
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
 import frc.robot.hardware.subsystems.shooter.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
-private val GROUND_INTAKE_DEFAULT_VOLTAGE = 8.volts
-private val SHOOTER_INTAKE_DEFAULT_VOLTAGE = -5.volts
-
-private const val DEFAULT_DRIVE_POWER = 0.0
 
 
 fun grabGamepiece(
-    drivePower: Double = DEFAULT_DRIVE_POWER,
-    visionPipeline: ObjectVisionPipeline,
+    path: PathPlannerPath? = null,
+    noteDetector: ObjectVisionPipeline,
 
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
@@ -30,44 +26,52 @@ fun grabGamepiece(
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, groundIntake)
 
-    +shooter.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
-
     runOnce{
-        visionPipeline.requireAndReset()
-    }
+        noteDetector.reset()
 
-    val aimController by getOnceDuringRun{
-        SuperPIDController(
-            OPEN_LOOP_TRANSLATION_PID,
-            getInput = { Scalar(visionPipeline.bestTarget?.tx ?: 0.0) },
-            target = Scalar(0.0),
-            outputRange = Scalar(-0.5)..Scalar(0.5)
+        drivetrain.setRotationOverride(
+            AimToObjectRotationOverride(
+                noteDetector,
+                PID.CAMERA_YAW_TO_ROTATIONAL_VELOCITY
+            )
         )
     }
 
-    fun spinIntakesAndDrive(strafe: Double = 0.0){
-        drivetrain.swerveDrive(drivePower, strafe, 0.0)
-        groundIntake.spin(GROUND_INTAKE_DEFAULT_VOLTAGE)
-        shooter.setVoltage(SHOOTER_INTAKE_DEFAULT_VOLTAGE)
-    }
+    runParallelUntilFirstCommandFinishes{
+        runSequentially{
+            if (path != null){
+                AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS)
+            }
 
-    fun shooterHasGamepiece() = shooter.hasGamepiece
+            // fieldRelative = false because rotation override makes drivetrain aim to gamepiece;
+            // this means that driving back while field relative is not true will directly grab the gamepiece
+            loopWhile( { shooter.canDetectGamepieces && !shooter.hasGamepiece } ){
+                drivetrain.swerveDrive(-0.15,0.0,0.0, fieldRelative = false)
+            }
+        }
 
-    if (shooter.canDetectGamepieces){
-        loopUntil(::shooterHasGamepiece){
-            spinIntakesAndDrive(strafe = aimController.calculateOutput().siValue)
+        runSequentially{
+            +shooter.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+
+            if (shooter.canDetectGamepieces){
+                loopUntil( {shooter.hasGamepiece} ){
+                    shooter.setSpeed(0.2)
+                    groundIntake.setSpeed(0.7)
+                }
+            }else{
+                loop{
+                    shooter.setSpeed(0.2)
+                    groundIntake.setSpeed(0.7)
+                }
+            }
         }
-    }else{
-        loopFor(3.seconds){
-            spinIntakesAndDrive(strafe = aimController.calculateOutput().siValue)
-        }
+
     }
 
     runOnce{
-        visionPipeline.removeRequirement()
         drivetrain.stop()
-        groundIntake.spin(0.0)
-        shooter.setPivotVoltage(0.volts)
+        drivetrain.removeRotationOverride()
         shooter.setSpeed(0.0)
+        groundIntake.setSpeed(0.0)
     }
 }

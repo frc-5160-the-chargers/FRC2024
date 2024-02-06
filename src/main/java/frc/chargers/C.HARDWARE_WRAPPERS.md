@@ -122,43 +122,30 @@ Instead of providing abstractions per vision camera, ChargerLib provides the nes
 Fetched data from a vision camera is represented as the ```VisionTarget``` class.
 At the moment, there are 2 different kinds of vision targets: 
 
-A. ```VisionTarget.Object(tx: Double, ty: Double, areaPercent: Double, classId: String?)```,
+A. ```VisionTarget.Object(timestamp: Time, tx: Double, ty: Double, areaPercent: Double, classId: String?)```,
 which represents a generic object or gamepiece detected by a vision camera, regardless of implementation(color or ML pipelines).
 
-B. ```VisionResult.AprilTag(tx: Double, ty: Double, areaPercent: Double, fiducialId: Int, targetTransformFromCam: UnitTransform3d)```, 
+B. ```VisionTarget.AprilTag(timestamp: Time, tx: Double, ty: Double, areaPercent: Double, fiducialId: Int, targetTransformFromCam: UnitTransform3d)```, 
 which represents an AprilTag vision target. Note: UnitTransform3d is simply a Transform3d with units support.
-
-
-A group of vision data, associated with a timestamp, is represented using the ```VisionData<R```
-
-```NonLoggableVisionData<R: VisionResult>``` represents a compendium of many ```VisionResult```'s(vision targets), where there is data on the best target, other targets found, and the timestamp of the results. On the other hand, ```VisionData<R: VisionResult>``` is vision data that can be logged to AdvantageKit(see more in the AdvantageKit section).
-
-The interface ```VisionPipeline<R: VisionResult>``` represents a vision pipeline that can fetch ```VisionResult```s and ```VisionData<R>``` of a certain type.
 
 Nessecary implementing methods and properties include:
 
-A. ```val visionData: NonLoggableVisionData<R>?```: represents the current vision results/targets obtained.
+A. ```val visionTargets: List<T: VisionTarget>```: represents the current vision results/targets obtained.
 
-B. ```val index: Int```: the pipeline index of the VisionPipeline.
+B. ```val cameraConstants: VisionCameraConstants```: holds constants related to the vision camera.
 
-C. ```val lensHeight: Distance```: self explanatory; used for distance to target calculation.
-
-D. ```val mountAngle: Angle```: self explanatory; used for distance to target calculation.
-
-E. ```fun require()```: Requires the overarching vision camera, preventing other places from requiring it at the same time. Recommended to call at the start of commands.
-
-F. ```fun removeRequirement()```: Removes the requirement of the overarching vision camera. This MUST BE CALLED at the end of all commands.
-
-G. ```fun reset()```: resets the vision pipeline. This usually involves resetting the pipeline index of the overarching vision camera, but it can do other things. Recommended to call at the initialize() block of commands and the init{} block of subsystems.
-
+C. ```fun reset()```: resets the vision pipeline. 
+                    This usually involves resetting the pipeline index of the overarching vision camera, 
+                    but it can do other things. 
+                    Recommended to call at the initialize() block of commands and the init{} block of subsystems(the constructor).
 
 Implemented methods:
 
 A. ```val bestTarget: R?```: Simply fetches the best result from the visionData getter, returning null if no targets are present.
 
-A. ```fun distanceToTarget(targetHeight: Distance)```: calculates the horizontal distance to target using the lens height and mount angle.
+A. ```fun distanceToTarget(target: VisionTarget)```: calculates the horizontal distance to target using the lens height and mount angle.
 
-B. ```fun diagonalDistanceToTarget(targetHeight: Distance)```: calculates the diagonal distance to target using the lens height and mount angle.
+B. ```fun diagonalDistanceToTarget(target: VisionTarget)```: calculates the diagonal distance to target using the lens height and mount angle.
 
 Example usage:
 
@@ -167,17 +154,12 @@ val ll = ChargerLimelight(LENS_HEIGHT, MOUNT_ANGLE)
 var apriltagPipeline: VisionPipeline<VisionResult.AprilTag> = ll.ApriltagPipeline(6, ....)
 
 apriltagPipeline.reset()
-apriltagPipeline.require()
 
 println(apriltagPipeline.bestTarget?.tx)
-println(apriltagPipeline.visionData?.otherTargets?.get(1)?.targetTransformFromCam)
+println(apriltagPipeline.visionTargets[1].targetTransformFromCam)
 
 var apriltagPipeline = ChargerPhotonCam("5160 photon cam", ....).ApriltagPipeline(5, ....)
-
-apriltagPipeline.removeRequirement()
 ```
-
-Finally, a simpler ```Classifier<T>``` interface exists for purely neural classifier pipelines. This contains the same reset(), require() and removeRequirement() functions as VisionPipeline; however, it only has 1 getter(itemType: T).
 
 # Pose Estimation
 
@@ -187,8 +169,12 @@ In addition, the interface must provide the camera yaw as well,
 in order to calculate proper standard deviations.
 
 On the other hand, robot pose estimators are represented using the ```RobotPoseMonitor``` interface.
-This interface's ```robotPose``` property is not nullable; in addition, it has the ```resetPose(UnitPose2d)```
-and the ```resetPose()``` functions to zero/reset the pose of the robot, and has the ```addPose
+This interface's ```robotPose``` property is not nullable. 
+
+More information:
+
+1. To reset the pose of the estimator, call ```resetPose(UnitPose2d)``` and the ```resetPose()``` functions.
+2. To add vision pose suppliers, call the ```addPoseSuppliers(vararg visionSystems: VisionPoseSupplier)``` method.
 
 
 # Configuration of Motors, Encoders, and other hardware

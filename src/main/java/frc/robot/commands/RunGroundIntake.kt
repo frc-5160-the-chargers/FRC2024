@@ -13,14 +13,14 @@ fun runGroundIntake(
 ): Command = buildCommand {
     fun setPower(){
         shooter.setSpeed(-0.2)
-        groundIntake.spin(0.7)
+        groundIntake.setSpeed(0.7)
     }
 
     addRequirements(shooter, groundIntake)
 
     +shooter.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
 
-    if (indefinite){
+    if (indefinite || !shooter.canDetectGamepieces){
         loop{
             setPower()
         }
