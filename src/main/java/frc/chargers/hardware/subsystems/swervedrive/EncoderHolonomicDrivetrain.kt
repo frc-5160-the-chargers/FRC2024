@@ -293,7 +293,7 @@ public class EncoderHolonomicDrivetrain(
 
     private var setpoint: SwerveSetpointGenerator.Setpoint = SwerveSetpointGenerator.Setpoint(
         ChassisSpeeds(),
-        Array(4){SwerveModuleState()}
+        Array(4){ SwerveModuleState() }
     )
 
 
@@ -540,7 +540,12 @@ public class EncoderHolonomicDrivetrain(
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
         currentControlMode = ControlMode.OPEN_LOOP
-        goal = powers.toChassisSpeeds(maxLinearVelocity, maxRotationalVelocity)
+        goal = ChassisSpeeds(
+            powers.xPower * maxLinearVelocity.siValue,
+            powers.yPower * maxLinearVelocity.siValue,
+            powers.rotationPower * maxRotationalVelocity.siValue
+        )
+        recordOutput("Drivetrain(Swerve)/BareGoal", ChassisSpeeds.struct, goal)
         if (fieldRelative){
             goal = ChassisSpeeds.fromFieldRelativeSpeeds(goal, heading.asRotation2d())
         }
@@ -581,6 +586,7 @@ public class EncoderHolonomicDrivetrain(
         }else{
             speeds
         }
+        recordOutput("Drivetrain(Swerve)/BareGoal", ChassisSpeeds.struct, goal)
     }
 
 

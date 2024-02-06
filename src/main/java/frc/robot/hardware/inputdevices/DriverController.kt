@@ -10,6 +10,7 @@ import frc.robot.constants.DRIVER_CONTROLLER_PORT
 import org.littletonrobotics.junction.Logger.recordOutput
 import org.littletonrobotics.junction.networktables.LoggedDashboardBoolean
 import kotlin.math.pow
+import kotlin.math.sqrt
 
 
 object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
@@ -37,8 +38,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
 
     private val driveScalar =
-        InputAxis{ leftX.pow(2) + leftY.pow(2) }
-            .square()
+        InputAxis{ sqrt(leftX.pow(2) + leftY.pow(2)) }
             .applyMultiplier(0.6)
 
     private fun getScaleRate(): Double{

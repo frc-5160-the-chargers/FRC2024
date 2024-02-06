@@ -4,8 +4,6 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.wpilibextensions.kinematics
 
-import com.batterystaple.kmeasure.quantities.*
-import edu.wpi.first.math.kinematics.ChassisSpeeds
 import frc.chargers.advantagekitextensions.AdvantageKitLoggable
 import org.littletonrobotics.junction.LogTable
 import kotlin.math.abs
@@ -18,19 +16,10 @@ public data class ChassisPowers(
     var yPower: Double = 0.0,
     var rotationPower: Double = 0.0
 ): AdvantageKitLoggable<ChassisPowers> {
-    public fun toChassisSpeeds(
-        maxLinearVelocity: Velocity,
-        maxRotationalVelocity: AngularVelocity
-    ): ChassisSpeeds = ChassisSpeeds(
-        xPower * maxLinearVelocity,
-        yPower * maxLinearVelocity,
-        rotationPower * maxRotationalVelocity
-    )
-
     /**
      * Measures whether 2 [ChassisPowers] are roughly equal.
      */
-    public infix fun roughlyEquals(other: ChassisPowers): Boolean =
+    public infix fun epsilonEquals(other: ChassisPowers): Boolean =
         abs(xPower - other.xPower) <= 0.01
             && abs(yPower - other.yPower) <= 0.01
             && abs(rotationPower - other.rotationPower) <= 0.01
