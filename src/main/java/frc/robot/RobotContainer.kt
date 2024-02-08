@@ -10,7 +10,6 @@ import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.kauailabs.navx.frc.AHRS
-import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.geometry.Pose2d
@@ -33,7 +32,6 @@ import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -69,8 +67,7 @@ class RobotContainer: ChargerRobotContainer() {
         ShooterIOSim(
             DCMotor.getNEO(1),
             DCMotor.getNEO(1),
-            DCMotor.getNEO(1),
-            1.0, 1.0, 1.0
+            1.0, 1.0
         ),
         PIDConstants(0.3,0,0),
     )
@@ -178,7 +175,7 @@ class RobotContainer: ChargerRobotContainer() {
             drivetrain.setRotationOverride(
                 AimToAngleRotationOverride(
                     heading,
-                    PIDConstants(0.3,0,0),
+                    PIDConstants(3.5,0,0),
                 )
             )
         }

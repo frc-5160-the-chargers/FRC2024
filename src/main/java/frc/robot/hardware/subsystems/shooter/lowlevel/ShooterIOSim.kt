@@ -10,22 +10,19 @@ import frc.chargers.framework.ChargerRobot
 
 @Suppress("unused")
 class ShooterIOSim(
-    leftSimMotors: DCMotor,
-    rightSimMotors: DCMotor,
+    topSimMotors: DCMotor,
     pivotMotors: DCMotor,
 
-    leftGearRatio: Double,
-    rightGearRatio: Double,
+    topGearRatio: Double,
     pivotGearRatio: Double
 ): ShooterIO {
-
-    private val leftIntakeSim = DCMotorSim(leftSimMotors, leftGearRatio, 0.004)
-    private val rightIntakeSim = DCMotorSim(rightSimMotors, rightGearRatio, 0.004)
+    private val intakeSims = listOf(
+        DCMotorSim(topSimMotors, topGearRatio, 0.004)
+    )
 
     private val pivotSim = DCMotorSim(pivotMotors, pivotGearRatio, 0.010)
 
-    private var _leftIntakeVoltage = Voltage(0.0)
-    private var _rightIntakeVoltage = Voltage(0.0)
+    private var _intakeVoltages: Array<Voltage> = intakeSims.map{ Voltage(0.0) }.toTypedArray() // 1 voltage value per sim
     private var _pivotVoltage = Voltage(0.0)
 
     private val pivotController = SuperPIDController(
@@ -37,8 +34,10 @@ class ShooterIOSim(
 
     init{
         ChargerRobot.runPeriodically(addToFront = true) {
-            leftIntakeSim.update(0.02)
-            rightIntakeSim.update(0.02)
+            intakeSims.forEachIndexed{ index, motorSim ->
+                motorSim.update(0.02)
+                motorSim.setInputVoltage(intakeVoltages[index].inUnit(volts))
+            }
             pivotSim.update(0.02)
         }
     }
@@ -47,32 +46,21 @@ class ShooterIOSim(
     override val hasGamepiece by ShooterLog.boolean{ false }
     override val hasBeamBreakSensor by ShooterLog.boolean{ false }
 
-    override val leftIntakeVoltage by ShooterLog.quantity { _leftIntakeVoltage }
-    override val rightIntakeVoltage by ShooterLog.quantity { _rightIntakeVoltage }
-
-    override val leftIntakeSpeed by ShooterLog.quantity{
-        leftIntakeSim.angularVelocityRadPerSec.ofUnit(radians / seconds)
+    override val intakeVoltages by ShooterLog.quantityList { _intakeVoltages.toList() }
+    override val intakeSpeeds by ShooterLog.quantityList {
+        intakeSims.map{ it.angularVelocityRadPerSec.ofUnit(radians/seconds) / topGearRatio }
     }
-    override val rightIntakeSpeed by ShooterLog.quantity{
-        rightIntakeSim.angularVelocityRadPerSec.ofUnit(radians / seconds)
+    override val intakeCurrents by ShooterLog.quantityList {
+        intakeSims.map{ it.currentDrawAmps.ofUnit(amps) }
     }
-
-    override val leftIntakeCurrent by ShooterLog.quantity{
-        leftIntakeSim.currentDrawAmps.ofUnit(amps)
-    }
-    override val rightIntakeCurrent by ShooterLog.quantity{
-        rightIntakeSim.currentDrawAmps.ofUnit(amps)
+    override val intakeTemps by ShooterLog.doubleList {
+        intakeSims.map{ 0.0 }
     }
 
-    override val leftIntakeTemp by ShooterLog.double{0.0}
-    override val rightIntakeTemp by ShooterLog.double{0.0}
 
-
-    override fun spin(leftVoltage: Voltage, rightVoltage: Voltage) {
-        _leftIntakeVoltage = leftVoltage
-        _rightIntakeVoltage = rightVoltage
-        leftIntakeSim.setInputVoltage(_leftIntakeVoltage.inUnit(volts))
-        rightIntakeSim.setInputVoltage(_rightIntakeVoltage.inUnit(volts))
+    override fun setVoltage(voltage: Voltage) {
+        _intakeVoltages[0] = voltage
+        intakeSims[0].setInputVoltage(voltage.inUnit(volts))
     }
 
 

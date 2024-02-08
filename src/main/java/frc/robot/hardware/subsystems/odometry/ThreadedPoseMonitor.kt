@@ -35,16 +35,12 @@ import kotlin.math.PI
 @Suppress("unused")
 class ThreadedPoseMonitor(
     startingPose: UnitPose2d = UnitPose2d(),
-
     kinematics: SwerveDriveKinematics,
     private val hardwareData: SwerveHardwareData,
-
     private val navX: ChargerNavX,
-
     turnMotors: SwerveMotors<ChargerSparkMax>,
     driveMotors: SwerveMotors<ChargerSparkMax>,
     absoluteEncoders: SwerveEncoders<PositionEncoder>,
-
     private val visionPoseSuppliers: MutableList<VisionPoseSupplier> = mutableListOf()
 ): SubsystemBase(), RobotPoseMonitor {
 
@@ -118,6 +114,8 @@ class ThreadedPoseMonitor(
             currentModulePositions,
             pose.siValue
         )
+
+        navX.zeroHeading(pose.rotation)
     }
 
     override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier){

@@ -1,4 +1,4 @@
-package frc.robot.commands.auto.amp
+package frc.robot.commands.auto
 
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.wpilibj2.command.Command
@@ -12,7 +12,7 @@ fun onePieceAmp(
 ): Command = buildCommand{
     +shooter.setAngleCommand(PivotAngle.AMP)
 
-    loopFor(1.seconds, shooter){
+    loopFor(0.5.seconds, shooter){
         shooter.setSpeed(0.5)
     }
 

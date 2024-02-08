@@ -31,7 +31,7 @@ fun basicTaxi(
         runOnce{
             shooter?.setSpeed(0.0)
             shooter?.setPivotSpeed(0.0)
-            groundIntake?.spin(0.0)
+            groundIntake?.setSpeed(0.0)
         }
 
         runParallelUntilAllFinish{
@@ -75,7 +75,7 @@ fun pathplannerTaxi(
         runOnce{
             shooter?.setSpeed(0.0)
             shooter?.setPivotSpeed(0.0)
-            groundIntake?.spin(0.0)
+            groundIntake?.setSpeed(0.0)
         }
 
         runParallelUntilAllFinish{

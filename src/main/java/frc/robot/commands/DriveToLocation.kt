@@ -1,6 +1,7 @@
 @file:Suppress("unused")
 package frc.robot.commands
 
+import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Scalar
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
@@ -27,7 +28,7 @@ private val AIM_PRECISION = Precision.Within(Scalar(0.02))
 enum class FieldLocation(
     val blueAllianceApriltagId: Int,
     val redAllianceApriltagId: Int,
-    val shooterAngle: PivotAngle,
+    val shooterAngle: Angle,
 ){
     SOURCE_LEFT(
         blueAllianceApriltagId = 2,
@@ -51,7 +52,7 @@ enum class FieldLocation(
 /**
  * Aims to a location on the field, and paths to there if applicable.
  */
-fun aimToLocation(
+fun driveToLocation(
     target: FieldLocation,
     path: PathPlannerPath? = null,
 
@@ -59,8 +60,6 @@ fun aimToLocation(
     apriltagVision: AprilTagVisionPipeline,
     shooter: Shooter,
 ): Command = buildCommand {
-    addRequirements(drivetrain, shooter)
-
     val targetId = when (DriverStation.getAlliance().getOrNull()){
         DriverStation.Alliance.Blue, null -> target.blueAllianceApriltagId
 
@@ -99,9 +98,15 @@ fun aimToLocation(
     fun hasFinishedAiming(): Boolean {
         val aimingError = aimingController.error
         Logger.recordOutput("AimToLocation/aimingError", aimingError.siValue)
-        return aimingError in AIM_PRECISION.allowableError
+        return aimingError in AIM_PRECISION.allowableError || aimingController.atSetpoint
     }
 
+
+    addRequirements(drivetrain, shooter)
+
+    runOnce{
+        apriltagVision.reset()
+    }
 
     runParallelUntilAllFinish {
         +shooter.setAngleCommand(target.shooterAngle)
@@ -111,10 +116,6 @@ fun aimToLocation(
                 +AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS)
             }
 
-            runOnce{
-                apriltagVision.reset()
-            }
-
             loopWhile({ canFindTarget() && !hasFinishedAiming() }){
                 drivetrain.swerveDrive(
                     xPower = 0.0,
@@ -122,12 +123,10 @@ fun aimToLocation(
                     rotationPower = 0.0
                 )
             }
-
-            runOnce{
-                drivetrain.stop()
-            }
         }
-
     }
 
+    runOnce{
+        drivetrain.stop()
+    }
 }

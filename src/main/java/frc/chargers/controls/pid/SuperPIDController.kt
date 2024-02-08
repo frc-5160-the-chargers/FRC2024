@@ -137,6 +137,12 @@ public open class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*
     override val error: Quantity<I>
         get() = Quantity(pidController.positionError)
 
+    /**
+     * Determines if the controller is at it's setpoint.
+     */
+    public val atSetpoint: Boolean
+        get() = pidController.atSetpoint()
+
 
     override var target: Quantity<I>
         get() = Quantity(pidController.setpoint)

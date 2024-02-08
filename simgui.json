@@ -10,6 +10,7 @@
   },
   "NTProvider": {
     "types": {
+      "/AdvantageKit/RealOutputs/Shooter/MechanismCanvas": "Mechanism2d",
       "/AdvantageKit/RealOutputs/Shooter/mechanism2d": "Mechanism2d",
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Auto Command": "String Chooser",
@@ -78,8 +79,7 @@
             }
           },
           "open": true
-        },
-        "open": true
+        }
       },
       "PathPlanner": {
         "double[]##v_/PathPlanner/currentPose": {
@@ -91,6 +91,9 @@
         "open": true
       },
       "SmartDashboard": {
+        "Shooter": {
+          "open": true
+        },
         "TunableValues": {
           "open": true
         },

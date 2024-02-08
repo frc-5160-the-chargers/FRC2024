@@ -18,19 +18,12 @@ interface ShooterIO {
     val hasGamepiece: Boolean
     val hasBeamBreakSensor: Boolean
 
-    val leftIntakeVoltage: Voltage
-    val rightIntakeVoltage: Voltage
+    val intakeVoltages: List<Voltage>
+    val intakeSpeeds: List<AngularVelocity>
+    val intakeCurrents: List<Current>
+    val intakeTemps: List<Double>
 
-    val leftIntakeSpeed: AngularVelocity
-    val rightIntakeSpeed: AngularVelocity
-
-    val leftIntakeCurrent: Current
-    val rightIntakeCurrent: Current
-
-    val leftIntakeTemp: Double
-    val rightIntakeTemp: Double
-
-    fun spin(leftVoltage: Voltage, rightVoltage: Voltage)
+    fun setVoltage(voltage: Voltage)
 
 
     val pivotVoltage: Voltage

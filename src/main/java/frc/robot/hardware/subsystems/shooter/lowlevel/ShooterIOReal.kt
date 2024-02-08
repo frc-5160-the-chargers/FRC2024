@@ -1,6 +1,7 @@
 package frc.robot.hardware.subsystems.shooter.lowlevel
 
 import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DigitalInput
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
@@ -12,38 +13,36 @@ class ShooterIOReal(
     private val beamBreakSensor: DigitalInput? = null,
     private val pivotOffset: Angle = Angle(0.0),
 
-    private val leftMotor: SmartEncoderMotorController,
-    private val rightMotor: SmartEncoderMotorController,
+    private val topMotor: SmartEncoderMotorController,
     private val pivotMotor: SmartEncoderMotorController,
 
-    private val leftGearRatio: Double,
-    private val rightGearRatio: Double,
+    private val intakeGearRatio: Double,
     private val pivotGearRatio: Double,
 ): ShooterIO {
     override val hasGamepiece by ShooterLog.boolean{ beamBreakSensor?.get() ?: false }
-
     override val hasBeamBreakSensor by ShooterLog.boolean{ beamBreakSensor != null }
 
-
-    // ShooterLog delegates handle calling updateInputs() and processInputs() automatically
-    override val leftIntakeVoltage by ShooterLog.quantity{ leftMotor.appliedVoltage }
-    override val rightIntakeVoltage by ShooterLog.quantity{ rightMotor.appliedVoltage }
-
-    override val leftIntakeSpeed by ShooterLog.quantity{ leftMotor.encoder.angularVelocity / leftGearRatio }
-    override val rightIntakeSpeed by ShooterLog.quantity{ rightMotor.encoder.angularVelocity / rightGearRatio }
-
-    override val leftIntakeCurrent by ShooterLog.quantity{ leftMotor.appliedCurrent }
-    override val rightIntakeCurrent by ShooterLog.quantity{ rightMotor.appliedCurrent }
-
-
-    override val leftIntakeTemp by ShooterLog.double{ leftMotor.tempCelsius }
-    override val rightIntakeTemp by ShooterLog.double{ rightMotor.tempCelsius }
-
-    override fun spin(leftVoltage: Voltage, rightVoltage: Voltage) {
-        // extension functions that accept voltages instead of doubles
-        leftMotor.setVoltage(leftVoltage)
-        rightMotor.setVoltage(rightVoltage)
+    override val intakeVoltages by ShooterLog.quantityList{
+        listOf(topMotor.appliedVoltage)
     }
+
+    override val intakeSpeeds by ShooterLog.quantityList{
+        listOf(topMotor.encoder.angularVelocity / intakeGearRatio)
+    }
+
+    override val intakeCurrents by ShooterLog.quantityList{
+        listOf(topMotor.appliedCurrent)
+    }
+
+    override val intakeTemps by ShooterLog.doubleList{
+        listOf(topMotor.tempCelsius)
+    }
+
+    override fun setVoltage(voltage: Voltage) {
+        topMotor.setVoltage(voltage.inUnit(volts))
+    }
+
+
 
     override val pivotVoltage by ShooterLog.quantity{ pivotMotor.appliedVoltage }
     override val pivotPosition by ShooterLog.quantity{ (pivotMotor.encoder.angularPosition / pivotGearRatio) - pivotOffset }

@@ -1,6 +1,7 @@
 @file:Suppress("unused")
 package frc.robot.commands
 
+import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
@@ -18,7 +19,7 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 
 fun grabGamepiece(
     path: PathPlannerPath? = null,
-    noteDetector: ObjectVisionPipeline,
+    noteDetector: ObjectVisionPipeline? = null,
 
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
@@ -26,30 +27,38 @@ fun grabGamepiece(
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, groundIntake)
 
-    runOnce{
-        noteDetector.reset()
+    if (noteDetector != null){
+        runOnce{
+            noteDetector.reset()
 
-        drivetrain.setRotationOverride(
-            AimToObjectRotationOverride(
-                noteDetector,
-                PID.CAMERA_YAW_TO_ROTATIONAL_VELOCITY
+            drivetrain.setRotationOverride(
+                AimToObjectRotationOverride(
+                    noteDetector,
+                    PID.CAMERA_YAW_TO_ROTATIONAL_VELOCITY
+                )
             )
-        )
+        }
     }
 
     runParallelUntilFirstCommandFinishes{
+        // parallel #1
         runSequentially{
             if (path != null){
                 AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS)
             }
 
-            // fieldRelative = false because rotation override makes drivetrain aim to gamepiece;
-            // this means that driving back while field relative is not true will directly grab the gamepiece
-            loopWhile( { shooter.canDetectGamepieces && !shooter.hasGamepiece } ){
-                drivetrain.swerveDrive(-0.15,0.0,0.0, fieldRelative = false)
+            if (noteDetector != null){
+                // fieldRelative = false because rotation override makes drivetrain aim to gamepiece;
+                // this means that driving back while field relative is not true will directly grab the gamepiece
+                loopWhile( { shooter.canDetectGamepieces && !shooter.hasGamepiece } ){
+                    drivetrain.swerveDrive(-0.15,0.0,0.0, fieldRelative = false)
+                }
             }
+
+            waitFor(0.5.seconds) // waits a little to allow intakes to continue spinning for a while
         }
 
+        // parallel #2
         runSequentially{
             +shooter.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
 
@@ -65,7 +74,6 @@ fun grabGamepiece(
                 }
             }
         }
-
     }
 
     runOnce{

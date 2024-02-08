@@ -9,10 +9,11 @@ import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
+import edu.wpi.first.math.geometry.Pose3d
+import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj.util.Color
 import edu.wpi.first.wpilibj.util.Color8Bit
 import edu.wpi.first.wpilibj2.command.Command
@@ -24,36 +25,40 @@ import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.utils.Precision
 import frc.chargers.utils.within
+import frc.chargers.wpilibextensions.geometry.threedimensional.Rotation3d
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
 import org.littletonrobotics.junction.AutoLogOutput
-import org.littletonrobotics.junction.Logger
 import org.littletonrobotics.junction.Logger.recordOutput
 
 
-enum class PivotAngle(val angle: Angle){
-    AMP(0.degrees),
-    SOURCE(0.degrees),
-    SPEAKER(0.degrees),
-    IDLE(0.degrees),
-    GROUND_INTAKE_HANDOFF(0.degrees)
+
+object PivotAngle{
+    val AMP: Angle = 0.degrees
+
+    val SOURCE: Angle = 0.degrees
+
+    val SPEAKER: Angle = 0.degrees
+
+    val IDLE: Angle = 0.degrees
+
+    val GROUND_INTAKE_HANDOFF: Angle = 0.degrees
 }
 
 
 class Shooter(
     private val io: ShooterIO,
     private val pivotPID: PIDConstants,
-    // SetpointSupplier.Default indicates no motion profile
+    // null indicates no motion profile
     private val pivotProfile: AngularMotionProfile? = null,
     private val pivotFF: ArmFFEquation = ArmFFEquation(0.0,0.0,0.0),
     private val pivotPrecision: Precision.Within<AngleDimension> = Precision.Within(0.5.degrees)
 ): SubsystemBase() {
-    private var targetPosition: Angle? = null
     private var motionProfileSetpoint = AngularMotionProfileState(io.pivotPosition)
+
 
     @get:AutoLogOutput
     val hasHitPivotTarget: Boolean get() {
-        val currentPosition = targetPosition ?: return true
-        return currentPosition.within(pivotPrecision)
+        return io.pivotPosition.within(pivotPrecision)
     }
 
     val hasGamepiece: Boolean get() = io.hasGamepiece
@@ -63,12 +68,10 @@ class Shooter(
 
     @AutoLogOutput
     val mechanismCanvas = Mechanism2d(3.0, 3.0)
-
     val pivotVisualizer: MechanismLigament2d
 
     init{
         val root = mechanismCanvas.getRoot("PivotingShooter", 2.0, 0.0)
-
 
         val staticJoint = root.append(
             MechanismLigament2d(
@@ -97,12 +100,7 @@ class Shooter(
 
     fun setIdle(){
         io.setPivotVoltage(0.volts)
-        io.spin(0.volts, 0.volts)
-    }
-    
-    fun setPivotPosition(target: PivotAngle){
-        setPivotPosition(target.angle)
-        recordOutput("Shooter/pivotAngleTarget", target)
+        io.setVoltage(0.volts)
     }
 
     fun setPivotPosition(position: Angle){
@@ -137,7 +135,7 @@ class Shooter(
 
     fun setPivotSpeed(percentOut: Double) = io.setPivotVoltage(percentOut * 11.volts)
 
-    fun setAngleCommand(target: PivotAngle): Command =
+    fun setAngleCommand(target: Angle): Command =
         buildCommand{
             runOnce(this@Shooter){ setPivotPosition(target) }
 
@@ -156,16 +154,21 @@ class Shooter(
 
     fun setVoltage(voltage: Voltage){
         if (io.hasGamepiece && RobotBase.isReal()){
-            io.spin(0.volts, 0.volts)
+            io.setVoltage(0.volts)
         }else{
-            io.spin(voltage, -voltage)
+            io.setVoltage(voltage)
         }
     }
 
 
     override fun periodic(){
         pivotVisualizer.angle = io.pivotPosition.inUnit(degrees)
-
-        io.setPivotVoltage(5.volts)
+        recordOutput(
+            "Shooter/PivotPosition3d",
+            Pose3d(
+                Translation3d(0.0,0.0,0.0),
+                Rotation3d(0.degrees, io.pivotPosition, 0.degrees)
+            )
+        )
     }
 }
