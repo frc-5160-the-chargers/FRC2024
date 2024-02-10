@@ -13,7 +13,11 @@ fun onePieceSpeaker(
     +shooter.setAngleCommand(PivotAngle.SPEAKER)
 
     loopFor(0.5.seconds, shooter){
-        shooter.setSpeed(0.8)
+        shooter.outtake(0.8)
+    }
+
+    runOnce{
+        shooter.setIdle()
     }
 
     if (revertShooterPositionOnEnd){

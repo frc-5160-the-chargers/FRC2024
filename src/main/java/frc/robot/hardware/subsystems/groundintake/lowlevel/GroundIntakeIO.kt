@@ -1,4 +1,4 @@
-package frc.robot.hardware.subsystems.groundintake
+package frc.robot.hardware.subsystems.groundintake.lowlevel
 
 import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Current
@@ -13,5 +13,5 @@ interface GroundIntakeIO {
     val measuredCurrents: List<Current>
     val measuredSpeeds: List<AngularVelocity>
 
-    fun setVoltage(voltage: Voltage)
+    fun intake(voltage: Voltage)
 }

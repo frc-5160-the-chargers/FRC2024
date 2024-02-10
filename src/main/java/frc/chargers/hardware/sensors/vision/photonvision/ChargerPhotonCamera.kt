@@ -29,7 +29,7 @@ import java.util.*
  * x is forward, y is left, z is up.
  * Rotation: x is roll, y is pitch, z is yaw.
  */
-public class ChargerPhotonCam(
+public class ChargerPhotonCamera(
     name: String,
     public val robotToCamera: UnitTransform3d
 ): PhotonCamera(name) {
@@ -90,11 +90,11 @@ public class ChargerPhotonCam(
     ): PhotonPoseEstimator(
         ChargerRobot.APRILTAG_LAYOUT,
         strategy,
-        this@ChargerPhotonCam,
+        this@ChargerPhotonCamera,
         robotToCamera.inUnit(meters)
     ), VisionPoseSupplier {
         override val cameraYaw: Angle
-            get() = Angle(robotToCameraTransform.rotation.z)
+            get() = Angle(robotToCamera.rotation.z)
 
         init{
             setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY)
@@ -165,9 +165,9 @@ public class ChargerPhotonCam(
         }
 
         override val cameraConstants = VisionCameraConstants(
-            "Photon Camera " + this@ChargerPhotonCam.name,
-            this@ChargerPhotonCam.robotToCamera.z,
-            this@ChargerPhotonCam.robotToCamera.rotation.y.ofUnit(radians)
+            "Photon Camera " + this@ChargerPhotonCamera.name,
+            this@ChargerPhotonCamera.robotToCamera.z,
+            this@ChargerPhotonCamera.robotToCamera.rotation.y.ofUnit(radians)
         )
     }
 

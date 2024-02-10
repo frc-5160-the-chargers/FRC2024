@@ -1,24 +1,18 @@
-package frc.robot.hardware.subsystems.groundintake
+package frc.robot.hardware.subsystems.groundintake.lowlevel
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
-import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
-import frc.chargers.constants.DEFAULT_GEAR_RATIO
 import frc.chargers.framework.ChargerRobot
 
 @Suppress("unused")
 class GroundIntakeIOSim(
-    topSimMotor: DCMotor,
-    gearRatio: Double = DEFAULT_GEAR_RATIO
+    private vararg val motorSims: DCMotorSim
 ): GroundIntakeIO {
-    private val motorSims = listOf(
-        DCMotorSim(topSimMotor, gearRatio, 0.04)
-    )
-
+    // must be array to allow mutability but no adding values
     private val _appliedVoltages = motorSims.map{ Voltage(0.0) }.toTypedArray()
 
     init{
@@ -40,7 +34,10 @@ class GroundIntakeIOSim(
         motorSims.map{ it.currentDrawAmps.ofUnit(amps) }
     }
 
-    override fun setVoltage(voltage: Voltage) {
+    override fun intake(voltage: Voltage) {
         _appliedVoltages[0] = voltage
+        if (_appliedVoltages.size > 1){
+            _appliedVoltages[1] = -voltage
+        }
     }
 }

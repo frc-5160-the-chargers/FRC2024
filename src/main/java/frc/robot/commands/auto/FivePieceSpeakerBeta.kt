@@ -30,12 +30,12 @@ fun fivePieceSpeakerBeta(
     fun runShooting(speed: Double): Command = buildCommand {
         +shooter.setAngleCommand(PivotAngle.SPEAKER)
 
-        loopFor(1.seconds){
-            shooter.setSpeed(speed)
+        loopFor(0.5.seconds){
+            shooter.outtake(speed)
         }
 
         runOnce{
-            shooter.setSpeed(0.0)
+            shooter.setIdle()
         }
     }
 
@@ -93,8 +93,8 @@ fun fivePieceSpeakerBeta(
 
     runOnce{
         drivetrain.stop()
-        shooter.setSpeed(0.0)
-        groundIntake.setSpeed(0.0)
+        shooter.intake(0.0)
+        groundIntake.intake(0.0)
     }
 
     +basicTaxi(drivetrain)

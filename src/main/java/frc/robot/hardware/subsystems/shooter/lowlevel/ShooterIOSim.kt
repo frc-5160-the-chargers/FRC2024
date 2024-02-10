@@ -2,7 +2,6 @@ package frc.robot.hardware.subsystems.shooter.lowlevel
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
-import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.controls.pid.SuperPIDController
@@ -10,18 +9,9 @@ import frc.chargers.framework.ChargerRobot
 
 @Suppress("unused")
 class ShooterIOSim(
-    topSimMotors: DCMotor,
-    pivotMotors: DCMotor,
-
-    topGearRatio: Double,
-    pivotGearRatio: Double
+    private val intakeSims: List<DCMotorSim>,
+    private val pivotSim: DCMotorSim
 ): ShooterIO {
-    private val intakeSims = listOf(
-        DCMotorSim(topSimMotors, topGearRatio, 0.004)
-    )
-
-    private val pivotSim = DCMotorSim(pivotMotors, pivotGearRatio, 0.010)
-
     private var _intakeVoltages: Array<Voltage> = intakeSims.map{ Voltage(0.0) }.toTypedArray() // 1 voltage value per sim
     private var _pivotVoltage = Voltage(0.0)
 
@@ -46,9 +36,11 @@ class ShooterIOSim(
     override val hasGamepiece by ShooterLog.boolean{ false }
     override val hasBeamBreakSensor by ShooterLog.boolean{ false }
 
-    override val intakeVoltages by ShooterLog.quantityList { _intakeVoltages.toList() }
+    override val intakeVoltages by ShooterLog.quantityList {
+        _intakeVoltages.toList()
+    }
     override val intakeSpeeds by ShooterLog.quantityList {
-        intakeSims.map{ it.angularVelocityRadPerSec.ofUnit(radians/seconds) / topGearRatio }
+        intakeSims.map{ it.angularVelocityRadPerSec.ofUnit(radians/seconds) }
     }
     override val intakeCurrents by ShooterLog.quantityList {
         intakeSims.map{ it.currentDrawAmps.ofUnit(amps) }

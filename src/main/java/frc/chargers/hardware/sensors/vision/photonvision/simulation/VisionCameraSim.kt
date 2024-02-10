@@ -41,12 +41,10 @@ private var cam_counter = 1
  */
 class VisionCameraSim(
     private val poseEstimator: RobotPoseMonitor,
-    private val getRobotToCamera: () -> UnitTransform3d,
+    private val robotToCamera: UnitTransform3d,
     private val simCameraProperties: SimCameraProperties = SimCameraProperties(),
 ): SubsystemBase() {
     private val allVisionSystems: LinkedHashSet<VisionSystemSim> = linkedSetOf()
-
-    private var previousRobotToCam = getRobotToCamera()
 
 
     inner class AprilTagPipeline(
@@ -99,11 +97,11 @@ class VisionCameraSim(
         ChargerRobot.APRILTAG_LAYOUT,
         strategy,
         PhotonCamera("Sim Camera pipeline #$cam_counter"),
-        previousRobotToCam.inUnit(meters)
+        robotToCamera.inUnit(meters)
     ), VisionPoseSupplier {
         
         override val cameraYaw: Angle
-            get() = Angle(previousRobotToCam.rotation.z)
+            get() = Angle(robotToCamera.rotation.z)
 
         init{
             setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY)
@@ -139,15 +137,15 @@ class VisionCameraSim(
         )
 
         init{
-            visionSystemSim.addCamera(CAM_SIM, previousRobotToCam.inUnit(meters))
+            visionSystemSim.addCamera(CAM_SIM, robotToCamera.inUnit(meters))
             allVisionSystems.add(visionSystemSim)
         }
 
         override val cameraConstants: VisionCameraConstants
             get() = VisionCameraConstants(
                 cameraName,
-                previousRobotToCam.z,
-                previousRobotToCam.rotation.y.ofUnit(radians)
+                robotToCamera.z,
+                robotToCamera.rotation.y.ofUnit(radians)
             )
 
         override fun reset() {
@@ -156,21 +154,10 @@ class VisionCameraSim(
     }
 
     override fun periodic(){
-        // updates robot to camera periodically
-        val currentRobotToCam = getRobotToCamera()
-
         // updates vision systems and adjusts camera poses
         allVisionSystems.forEach{ visionSystemSim ->
             visionSystemSim.update(poseEstimator.robotPose.inUnit(meters))
-
-            if (currentRobotToCam != previousRobotToCam){
-                visionSystemSim.cameraSims.forEach{camSim ->
-                    visionSystemSim.adjustCamera(camSim, currentRobotToCam.inUnit(meters))
-                }
-            }
         }
-
-        previousRobotToCam = currentRobotToCam
     }
 
 

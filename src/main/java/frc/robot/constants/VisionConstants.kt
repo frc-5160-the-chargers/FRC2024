@@ -1,11 +1,9 @@
 package frc.robot.constants
 
-import com.batterystaple.kmeasure.units.degrees
-import com.batterystaple.kmeasure.units.meters
-import frc.chargers.controls.pid.PIDConstants
+import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 
-val LIMELIGHT_LENS_HEIGHT = 0.0.meters
+val ROBOT_TO_LIMELIGHT = UnitTransform3d()
 
-val LIMELIGHT_MOUNT_ANGLE = 0.degrees
+val ROBOT_TO_APRILTAG_PHOTON_CAM = UnitTransform3d()
 
-val AIM_TO_APRILTAG_PID = PIDConstants(0.2,0.0,0.0)
+val ROBOT_TO_ML_PHOTON_CAM = UnitTransform3d()

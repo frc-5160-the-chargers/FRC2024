@@ -13,7 +13,11 @@ fun onePieceAmp(
     +shooter.setAngleCommand(PivotAngle.AMP)
 
     loopFor(0.5.seconds, shooter){
-        shooter.setSpeed(0.5)
+        shooter.outtake(0.3)
+    }
+
+    runOnce{
+        shooter.setIdle()
     }
 
     if (revertShooterPositionOnEnd){

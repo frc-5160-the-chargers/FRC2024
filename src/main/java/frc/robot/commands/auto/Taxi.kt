@@ -29,9 +29,9 @@ fun basicTaxi(
 
         // stops subsystems
         runOnce{
-            shooter?.setSpeed(0.0)
+            shooter?.intake(0.0)
             shooter?.setPivotSpeed(0.0)
-            groundIntake?.setSpeed(0.0)
+            groundIntake?.intake(0.0)
         }
 
         runParallelUntilAllFinish{
@@ -73,9 +73,8 @@ fun pathplannerTaxi(
 
         // stops subsystems
         runOnce{
-            shooter?.setSpeed(0.0)
-            shooter?.setPivotSpeed(0.0)
-            groundIntake?.setSpeed(0.0)
+            shooter?.setIdle()
+            groundIntake?.setIdle()
         }
 
         runParallelUntilAllFinish{

@@ -8,25 +8,14 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 
 fun runGroundIntake(
     shooter: Shooter,
-    groundIntake: GroundIntake,
-    indefinite: Boolean = false
+    groundIntake: GroundIntake
 ): Command = buildCommand {
-    fun setPower(){
-        shooter.setSpeed(-0.2)
-        groundIntake.setSpeed(0.7)
-    }
-
     addRequirements(shooter, groundIntake)
 
     +shooter.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
 
-    if (indefinite || !shooter.canDetectGamepieces){
-        loop{
-            setPower()
-        }
-    }else{
-        loopUntil( { shooter.hasGamepiece } ){
-            setPower()
-        }
+    loop{
+        shooter.intake(-0.2)
+        groundIntake.intake(0.7)
     }
 }

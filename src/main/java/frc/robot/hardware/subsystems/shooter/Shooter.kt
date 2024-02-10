@@ -11,7 +11,6 @@ import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.geometry.Translation3d
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d
 import edu.wpi.first.wpilibj.util.Color
@@ -55,7 +54,6 @@ class Shooter(
 ): SubsystemBase() {
     private var motionProfileSetpoint = AngularMotionProfileState(io.pivotPosition)
 
-
     @get:AutoLogOutput
     val hasHitPivotTarget: Boolean get() {
         return io.pivotPosition.within(pivotPrecision)
@@ -63,7 +61,7 @@ class Shooter(
 
     val hasGamepiece: Boolean get() = io.hasGamepiece
 
-    val canDetectGamepieces: Boolean get() = io.hasBeamBreakSensor
+    val hasBeamBreakSensor: Boolean get() = io.hasBeamBreakSensor
 
 
     @AutoLogOutput
@@ -106,6 +104,7 @@ class Shooter(
     fun setPivotPosition(position: Angle){
         val setpointPosition: Angle
         val feedforward: Voltage
+
         if (pivotProfile != null){
             motionProfileSetpoint = pivotProfile.calculate(
                 0.02.seconds,
@@ -118,7 +117,6 @@ class Shooter(
             setpointPosition = position
             feedforward = 0.volts
         }
-
 
         if (hasHitPivotTarget){
             io.setPivotVoltage(0.volts)
@@ -148,17 +146,33 @@ class Shooter(
 
 
 
-    fun setSpeed(percentOut: Double){
-        setVoltage(percentOut * 12.volts)
+
+
+    fun intake(percentOut: Double){
+        intake(percentOut * 12.volts)
     }
 
-    fun setVoltage(voltage: Voltage){
-        if (io.hasGamepiece && RobotBase.isReal()){
+    fun intake(voltage: Voltage){
+        if (io.hasGamepiece && io.hasBeamBreakSensor){
             io.setVoltage(0.volts)
         }else{
-            io.setVoltage(voltage)
+            io.setVoltage(-voltage)
         }
     }
+
+
+    fun outtake(percentOut: Double){
+        outtake(percentOut * 12.volts)
+    }
+
+    fun outtake(voltage: Voltage){
+        require(voltage >= 0.volts){ "Applied voltage must be > 0.volts. To intake, call intake(voltage) or intake(speed) instead." }
+        io.setVoltage(voltage)
+    }
+
+
+
+
 
 
     override fun periodic(){

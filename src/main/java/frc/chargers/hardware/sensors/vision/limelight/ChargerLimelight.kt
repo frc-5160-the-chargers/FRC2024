@@ -26,7 +26,7 @@ import org.littletonrobotics.junction.Logger
 public class ChargerLimelight(
     @JvmField public val name: String = "limelight",
     useJsonDump: Boolean = false,
-    public val robotToCam: UnitTransform3d
+    public val robotToCamera: UnitTransform3d
 ){
     // used to manage requirements for the limelight.
     private var required: Boolean = false
@@ -166,9 +166,11 @@ public class ChargerLimelight(
          * This should be equivalent to the pipeline index of the corresponding [AprilTagPipeline].
          */
         aprilTagPipelineIndex: Int,
-        logInputs: LoggableInputsProvider,
-        override val cameraYaw: Angle
+        logInputs: LoggableInputsProvider
     ): VisionPoseSupplier {
+
+        override val cameraYaw: Angle
+            get() = Angle(robotToCamera.rotation.z)
 
         override val robotPoseEstimates: List<Measurement<UnitPose2d>>
             by logInputs.valueList(default = Measurement(UnitPose2d(), Time(0.0))){
@@ -287,8 +289,8 @@ public class ChargerLimelight(
 
         override val cameraConstants = VisionCameraConstants(
             "Limelight " + this@ChargerLimelight.name,
-            this@ChargerLimelight.robotToCam.z,
-            this@ChargerLimelight.robotToCam.rotation.y.ofUnit(radians)
+            this@ChargerLimelight.robotToCamera.z,
+            this@ChargerLimelight.robotToCamera.rotation.y.ofUnit(radians)
         )
     }
 }

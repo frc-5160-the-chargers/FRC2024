@@ -27,40 +27,28 @@ val PATHFIND_CONSTRAINTS = PathConstraints(
     AngularAcceleration(2.0)
 )
 
-val OPEN_LOOP_ROTATION_PID = PIDConstants(0.3,0,0)
-val CLOSED_LOOP_ROTATION_PID = PIDConstants(0.3,0,0)
-
-val OPEN_LOOP_TRANSLATION_PID = PIDConstants(0.3,0,0)
-val CLOSED_LOOP_TRANSLATION_PID = PIDConstants(0.3,0,0)
-
-
-val DRIVE_CONTROL_DATA = if (isReal()){
-    SwerveControlData(
-        azimuthControl = SwerveAzimuthControl.PID(
+val DRIVE_CONTROL_DATA = SwerveControlData(
+    azimuthControl = if (isReal()){
+        SwerveAzimuthControl.PID(
             PIDConstants(7.0,0.0,0.2),
             precision = Precision.Within(2.degrees)
-        ),
-        velocityPID = PIDConstants(0.1,0.0,0.0),
-        velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
-        robotRotationPID = CLOSED_LOOP_ROTATION_PID, // for pathplanner
-        robotTranslationPID = CLOSED_LOOP_TRANSLATION_PID // for pathplanner
-    )
-}else{
-    SwerveControlData(
-        azimuthControl = SwerveAzimuthControl.ProfiledPID(
+        )
+    }else{
+        SwerveAzimuthControl.ProfiledPID(
             PIDConstants(15.0,0,0.2),
             motionProfile = AngularTrapezoidProfile(
                 maxVelocity = 13.0.radians / 1.seconds,
                 maxAcceleration = 10.radians / 1.seconds / 1.seconds,
             )
-        ),
-        openLoopDiscretizationRate = 4.4,
-        velocityPID = PIDConstants(0.2,0.0,0.0),
-        velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
-        robotRotationPID = CLOSED_LOOP_ROTATION_PID, // for pathplanner
-        robotTranslationPID = CLOSED_LOOP_TRANSLATION_PID // for pathplanner
-    )
-}
+        )
+    },
+    openLoopDiscretizationRate = 4.4,
+    velocityPID = PIDConstants(0.2,0.0,0.0),
+    velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
+    robotRotationPID = PID.PATH_ROTATION_CONTROL,
+    robotTranslationPID = PID.PATH_TRANSLATION_CONTROL
+)
+
 
 
 val TURN_MOTORS = sparkMaxSwerveMotors(

@@ -13,8 +13,8 @@ import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.Precision
 import frc.chargers.wpilibextensions.Alert
-import frc.robot.constants.OPEN_LOOP_TRANSLATION_PID
 import frc.robot.constants.PATHFIND_CONSTRAINTS
+import frc.robot.constants.PID
 import frc.robot.hardware.subsystems.shooter.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 import org.littletonrobotics.junction.AutoLogOutput
@@ -68,7 +68,7 @@ fun driveToLocation(
 
     val aimingController by getOnceDuringRun {
         SuperPIDController(
-            OPEN_LOOP_TRANSLATION_PID,
+            PID.CAMERA_YAW_TO_OPEN_LOOP_STRAFE,
             getInput = { Scalar(apriltagVision.bestTarget?.tx ?: 0.0) },
             target = Scalar(0.0),
             outputRange = Scalar(-0.5)..Scalar(0.5)

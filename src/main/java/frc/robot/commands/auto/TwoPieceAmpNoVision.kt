@@ -39,11 +39,11 @@ fun twoPieceAmpNoVision(
     }
 
     loopFor(1.seconds){
-        shooter.setSpeed(0.3)
+        shooter.outtake(0.3)
     }
 
     runOnce{
-        shooter.setSpeed(0.0)
+        shooter.setIdle()
     }
 
     +basicTaxi(

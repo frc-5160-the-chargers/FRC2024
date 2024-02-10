@@ -18,11 +18,14 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
+import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
+import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.runOnceCommand
+import frc.chargers.commands.setDefaultRunCommand
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.controls.pid.PIDConstants
@@ -30,48 +33,43 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
+import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
+import frc.chargers.hardware.sensors.vision.FusedAprilTagPipeline
+import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
+import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
+import frc.chargers.hardware.sensors.vision.photonvision.ChargerPhotonCamera
+import frc.chargers.hardware.sensors.vision.photonvision.simulation.VisionCameraSim
 import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
+import frc.robot.hardware.inputdevices.OperatorController
 import frc.robot.hardware.subsystems.shooter.Shooter
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOSim
 import org.littletonrobotics.junction.Logger.recordOutput
+import org.photonvision.simulation.SimCameraProperties
+import org.photonvision.simulation.VisionSystemSim
 
 
 class RobotContainer: ChargerRobotContainer() {
-
-
 
     private val gyroIO = ChargerNavX(
         useFusedHeading = false,
         ahrs = AHRS(SPI.Port.kMXP, ODOMETRY_UPDATE_FREQUENCY_HZ.toInt().toByte())
     ).apply{ zeroHeading() }
 
-
-    /*
-    private val limelight = ChargerLimelight(
-        useJsonDump = false,
-        lensHeight = LIMELIGHT_LENS_HEIGHT,
-        mountAngle = LIMELIGHT_MOUNT_ANGLE
-    )
-
-    private val apriltagIO: AprilTagVisionPipeline =
-        limelight.ApriltagPipeline(
-            index = 1,
-            logInputs = LoggableInputsProvider("LimelightApriltagVision") // logs to the "LimelightApriltagVision" namespace
-        )
-     */
+    private val aprilTagVision: AprilTagVisionPipeline
+    private val noteDetector: ObjectVisionPipeline
 
     private val shooter = Shooter(
         ShooterIOSim(
-            DCMotor.getNEO(1),
-            DCMotor.getNEO(1),
-            1.0, 1.0
+            intakeSims = listOf(
+                DCMotorSim(DCMotor.getNeoVortex(1), 1.0, 0.004)
+            ),
+            pivotSim = DCMotorSim(DCMotor.getNEO(1), 1.0, 0.010)
         ),
         PIDConstants(0.3,0,0),
     )
-
 
     private val drivetrain = EncoderHolonomicDrivetrain(
         turnMotors = TURN_MOTORS,
@@ -91,32 +89,6 @@ class RobotContainer: ChargerRobotContainer() {
 
 
     init{
-        println(DriverStationSim.getAllianceStationId())
-
-        if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
-            DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
-        }
-
-
-
-        println(DriverStationSim.getAllianceStationId())
-        DriverStation.silenceJoystickConnectionWarning(true)
-        DashboardTuner.tuningMode = true
-        recordOutput("Tuning Mode", DashboardTuner.tuningMode)
-        LiveWindow.disableAllTelemetry()
-
-        configureBindings()
-        configureDefaultCommands()
-
-
-
-        IMUSimulation.configure(
-            headingSupplier = { drivetrain.heading },
-            chassisSpeedsSupplier = { drivetrain.currentSpeeds }
-        )
-
-
-
         /*
         if (isReal() || hasReplaySource()){
             drivetrain.poseEstimator = ThreadedPoseMonitor(
@@ -128,28 +100,72 @@ class RobotContainer: ChargerRobotContainer() {
                 driveMotors = DRIVE_MOTORS
             )
         }
-
          */
 
 
-        PathPlannerLogging.setLogCurrentPoseCallback {
-            recordOutput("Pathplanner/currentPose", Pose2d.struct, it)
+        // handles logging for vision cameras
+        val leftCamLog = LoggableInputsProvider("AprilTagCamLeft")
+        val rightCamLog = LoggableInputsProvider("AprilTagCamRight")
+        val noteDetectorLog = LoggableInputsProvider("ObjectDetector")
+
+        if (isReal()){
+            val limelight = ChargerLimelight(useJsonDump = false, robotToCamera = ROBOT_TO_LIMELIGHT)
+            val photonArducam = ChargerPhotonCamera(name = "AprilTag Arducam", robotToCamera = ROBOT_TO_APRILTAG_PHOTON_CAM)
+            val photonWebcam = ChargerPhotonCamera(name = "ML Webcam", robotToCamera = ROBOT_TO_APRILTAG_PHOTON_CAM)
+
+            aprilTagVision = FusedAprilTagPipeline(
+                shouldAverageBestTargets = false,
+                limelight.AprilTagPipeline(index = 0, leftCamLog),
+                photonArducam.AprilTagPipeline(index = 0, rightCamLog)
+            )
+            noteDetector = photonWebcam.ObjectPipeline(index = 0, noteDetectorLog)
+
+            drivetrain.poseEstimator.addPoseSuppliers(
+                limelight.AprilTagPoseEstimator(aprilTagPipelineIndex = 0, leftCamLog),
+                photonArducam.AprilTagPoseEstimator(aprilTagPipelineIndex = 0, rightCamLog)
+            )
+        }else{
+            val limelightSim = VisionCameraSim(drivetrain.poseEstimator, ROBOT_TO_LIMELIGHT, SimCameraProperties.LL2_640_480())
+            val photonArducamSim = VisionCameraSim(drivetrain.poseEstimator, ROBOT_TO_APRILTAG_PHOTON_CAM, SimCameraProperties.PI4_LIFECAM_640_480())
+            val photonWebcamSim = VisionCameraSim(drivetrain.poseEstimator, ROBOT_TO_ML_PHOTON_CAM, SimCameraProperties.PI4_LIFECAM_640_480())
+
+            aprilTagVision = FusedAprilTagPipeline(
+                shouldAverageBestTargets = false,
+                limelightSim.AprilTagPipeline(leftCamLog),
+                photonArducamSim.AprilTagPipeline(rightCamLog)
+            )
+
+            val mlTargetField = VisionSystemSim("ML Vision System")
+            noteDetector = photonWebcamSim.ObjectPipeline(noteDetectorLog, mlTargetField)
+
+            drivetrain.poseEstimator.addPoseSuppliers(
+                limelightSim.AprilTagPoseEstimator(leftCamLog),
+                photonArducamSim.AprilTagPoseEstimator(rightCamLog)
+            )
         }
 
-        // Logging callback for target robot pose
-        PathPlannerLogging.setLogTargetPoseCallback {
-            ChargerRobot.FIELD.getObject("PathplannerTargetPose").pose = it
-            recordOutput("Pathplanner/targetPose", Pose2d.struct, it)
-
-            val currPose = drivetrain.poseEstimator.robotPose.inUnit(meters)
-            recordOutput("Pathplanner/deviationFromTargetPose/xMeters", it.x - currPose.x)
-            recordOutput("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
-            recordOutput("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
+        if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
+            DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
         }
+
+        println(DriverStationSim.getAllianceStationId())
+        DriverStation.silenceJoystickConnectionWarning(true)
+        DashboardTuner.tuningMode = true
+        recordOutput("Tuning Mode", DashboardTuner.tuningMode)
+        LiveWindow.disableAllTelemetry()
+
+        configureBindings()
+        configureDefaultCommands()
+
+        IMUSimulation.configure(
+            headingSupplier = { drivetrain.heading },
+            chassisSpeedsSupplier = { drivetrain.currentSpeeds }
+        )
+
+        configurePPLogging()
     }
 
     private fun configureDefaultCommands(){
-
         drivetrain.defaultCommand = buildCommand{
             addRequirements(drivetrain)
 
@@ -162,11 +178,17 @@ class RobotContainer: ChargerRobotContainer() {
             }
         }
 
+        shooter.setDefaultRunCommand{
+            val speed = OperatorController.rightX
+            if (speed >= 0.0){
+                shooter.outtake(speed)
+            }else{
+                shooter.intake(speed)
+            }
+        }
     }
 
     private fun configureBindings(){
-
-
         fun resetAimToAngle() = runOnceCommand(drivetrain){
             drivetrain.removeRotationOverride()
         }
@@ -186,8 +208,26 @@ class RobotContainer: ChargerRobotContainer() {
             pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
             pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
         }
-
     }
+
+    private fun configurePPLogging(){
+        PathPlannerLogging.setLogCurrentPoseCallback {
+            recordOutput("Pathplanner/currentPose", Pose2d.struct, it)
+        }
+
+        // Logging callback for target robot pose
+        PathPlannerLogging.setLogTargetPoseCallback {
+            ChargerRobot.FIELD.getObject("PathplannerTargetPose").pose = it
+            recordOutput("Pathplanner/targetPose", Pose2d.struct, it)
+
+            val currPose = drivetrain.poseEstimator.robotPose.inUnit(meters)
+            recordOutput("Pathplanner/deviationFromTargetPose/xMeters", it.x - currPose.x)
+            recordOutput("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
+            recordOutput("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
+        }
+    }
+
+
 
     override val autonomousCommand: Command
         get() = buildCommand {
@@ -222,31 +262,6 @@ class RobotContainer: ChargerRobotContainer() {
             }
 
              */
-
-
-            runOnce(drivetrain){
-                drivetrain.poseEstimator.zeroPose()
-            }
-
-            loopFor(Time(3.0), drivetrain){
-                drivetrain.velocityDrive(Velocity(2.0), Velocity(0.0), AngularVelocity(0.0))
-            }
-
-            loopFor(Time(3.0), drivetrain){
-                drivetrain.stop()
-            }
-
-            runOnce(drivetrain){
-                drivetrain.poseEstimator.zeroPose()
-            }
-
-            loopFor(Time(3.0), drivetrain){
-                drivetrain.velocityDrive(Velocity(2.0), Velocity(2.0), AngularVelocity(0.0))
-            }
-
-            loop(drivetrain){
-                drivetrain.stop()
-            }
         }
 
     override val testCommand: Command =

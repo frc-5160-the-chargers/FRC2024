@@ -4,15 +4,20 @@ import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIO
 
 class GroundIntake(io: GroundIntakeIO): SubsystemBase(), GroundIntakeIO by io { // implements GroundIntakeIO to inherit necessary functions from io layer
-    fun setSpeed(power: Double){
-        setVoltage(power * 12.volts)
+    fun intake(power: Double){
+        intake(power * 12.volts)
+    }
+
+    fun setIdle(){
+        intake(0.0)
     }
 
     override fun periodic(){
         if (DriverStation.isDisabled()){
-            setVoltage(0.volts)
+            intake(0.volts)
         }
     }
 }

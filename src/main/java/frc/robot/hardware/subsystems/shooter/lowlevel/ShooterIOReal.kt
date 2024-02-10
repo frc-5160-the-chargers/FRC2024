@@ -14,35 +14,38 @@ class ShooterIOReal(
     private val pivotOffset: Angle = Angle(0.0),
 
     private val topMotor: SmartEncoderMotorController,
+    private val bottomMotor: SmartEncoderMotorController? = null,
     private val pivotMotor: SmartEncoderMotorController,
 
     private val intakeGearRatio: Double,
     private val pivotGearRatio: Double,
 ): ShooterIO {
+    private val allIntakeMotors = mutableListOf(topMotor).apply{
+        if (bottomMotor != null){
+            add(bottomMotor)
+        }
+    }
+
     override val hasGamepiece by ShooterLog.boolean{ beamBreakSensor?.get() ?: false }
     override val hasBeamBreakSensor by ShooterLog.boolean{ beamBreakSensor != null }
 
     override val intakeVoltages by ShooterLog.quantityList{
-        listOf(topMotor.appliedVoltage)
+        allIntakeMotors.map{ it.appliedVoltage }
     }
-
     override val intakeSpeeds by ShooterLog.quantityList{
-        listOf(topMotor.encoder.angularVelocity / intakeGearRatio)
+        allIntakeMotors.map{ it.encoder.angularVelocity / intakeGearRatio }
     }
-
     override val intakeCurrents by ShooterLog.quantityList{
-        listOf(topMotor.appliedCurrent)
+        allIntakeMotors.map{ it.appliedCurrent }
     }
-
     override val intakeTemps by ShooterLog.doubleList{
-        listOf(topMotor.tempCelsius)
+        allIntakeMotors.map{ it.tempCelsius }
     }
 
     override fun setVoltage(voltage: Voltage) {
         topMotor.setVoltage(voltage.inUnit(volts))
+        bottomMotor?.setVoltage(-voltage.inUnit(volts))
     }
-
-
 
     override val pivotVoltage by ShooterLog.quantity{ pivotMotor.appliedVoltage }
     override val pivotPosition by ShooterLog.quantity{ (pivotMotor.encoder.angularPosition / pivotGearRatio) - pivotOffset }
