@@ -46,15 +46,15 @@ class VisionCameraSim(
 ): SubsystemBase() {
     private val allVisionSystems: LinkedHashSet<VisionSystemSim> = linkedSetOf()
 
-
     inner class AprilTagPipeline(
         /**
          * The namespace of which to log to.
          *
          * Keep this the same between real and sim variants!
          */
-        logInputs: LoggableInputsProvider
-    ): SimVisionPipelineBase<VisionTarget.AprilTag>(APRILTAG_FIELD_SIM){
+        logInputs: LoggableInputsProvider,
+        poseStrategy: PhotonPoseEstimator.PoseStrategy = PhotonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR
+    ): SimVisionPipelineBase<VisionTarget.AprilTag>(APRILTAG_FIELD_SIM), VisionPoseSupplier {
         override val visionTargets: List<VisionTarget.AprilTag>
             by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
                 val result = CAM_SIM.camera.latestResult
@@ -66,7 +66,35 @@ class VisionCameraSim(
                     // see VisionTargetConversion.kt
                     .map{ target -> toAprilTagTarget(target, result.timestampSeconds.ofUnit(seconds)) }
             }
+
+
+        val poseEstimator = PhotonPoseEstimator(
+            ChargerRobot.APRILTAG_LAYOUT,
+            poseStrategy,
+            CAM_SIM.camera,
+            robotToCamera.inUnit(meters)
+        ).apply{
+            setMultiTagFallbackStrategy(PhotonPoseEstimator.PoseStrategy.LOWEST_AMBIGUITY)
+        }
+
+        override val cameraYaw: Angle
+            get() = Angle(robotToCamera.rotation.z)
+
+        override val robotPoseEstimates: List<Measurement<UnitPose2d>>
+            by logInputs.valueList(default = Measurement(UnitPose2d(), Time(0.0))){
+                when(val signal = poseEstimator.update()){
+                    Optional.empty<EstimatedRobotPose>() -> listOf()
+
+                    else -> listOf(
+                        Measurement(
+                            value = UnitPose2d(signal.get().estimatedPose.toPose2d()),
+                            timestamp = signal.get().timestampSeconds.ofUnit(seconds)
+                        )
+                    )
+                }
+            }
     }
+
 
     inner class ObjectPipeline(
         /**
@@ -88,45 +116,11 @@ class VisionCameraSim(
                     .map{ target -> toObjectTarget(target, result.timestampSeconds.ofUnit(seconds)) }
             }
     }
-    
-    
-    inner class AprilTagPoseEstimator(
-        logInputs: LoggableInputsProvider,
-        strategy: PoseStrategy = PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR
-    ): PhotonPoseEstimator(
-        ChargerRobot.APRILTAG_LAYOUT,
-        strategy,
-        PhotonCamera("Sim Camera pipeline #$cam_counter"),
-        robotToCamera.inUnit(meters)
-    ), VisionPoseSupplier {
-        
-        override val cameraYaw: Angle
-            get() = Angle(robotToCamera.rotation.z)
-
-        init{
-            setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY)
-        }
-
-        override val robotPoseEstimates: List<Measurement<UnitPose2d>>
-            by logInputs.valueList(default = Measurement(UnitPose2d(), Time(0.0))){
-                when(val signal = update()){
-                    Optional.empty<EstimatedRobotPose>() -> listOf()
-
-                    else -> listOf(
-                        Measurement(
-                            value = UnitPose2d(signal.get().estimatedPose.toPose2d()),
-                            timestamp = signal.get().timestampSeconds.ofUnit(seconds)
-                        )
-                    )
-                }
-            }
-    }
 
 
     abstract inner class SimVisionPipelineBase <T: VisionTarget>(
         visionSystemSim: VisionSystemSim,
     ): VisionPipeline<T> {
-
         private val cameraName = "Sim Camera Pipeline #$cam_counter".also{ cam_counter++ }
 
         // every single pipeline has its own camera
@@ -153,12 +147,12 @@ class VisionCameraSim(
         }
     }
 
+
+
     override fun periodic(){
         // updates vision systems and adjusts camera poses
         allVisionSystems.forEach{ visionSystemSim ->
             visionSystemSim.update(poseEstimator.robotPose.inUnit(meters))
         }
     }
-
-
 }

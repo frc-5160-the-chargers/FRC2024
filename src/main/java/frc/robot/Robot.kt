@@ -6,7 +6,7 @@ import frc.chargers.framework.RobotConfig
 import frc.external.frc254.CrashTracker
 
 val ROBOT = ChargerRobot(
-    getRobotContainer = { RobotContainer() },
+    getRobotContainer = { CompetitionRobotContainer() },
     config = RobotConfig(
         isReplay = false,
         tuningMode = false,
@@ -17,7 +17,6 @@ val ROBOT = ChargerRobot(
                 println("An error occurred; however, it was not logged to a crash tracker due to simulation.")
             }
         },
-        logFilePath = "C:\\Users\\Daniel_Chen\\Downloads\\Log_24-01-20_15-47-16.wpilog",
         hardwareConfigRetryLimit = 3
     )
 )

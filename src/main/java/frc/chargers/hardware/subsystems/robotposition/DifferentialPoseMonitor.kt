@@ -2,6 +2,7 @@
 package frc.chargers.hardware.subsystems.robotposition
 
 import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
@@ -97,6 +98,12 @@ public class DifferentialPoseMonitor(
 
         for (visionPoseSupplier in visionPoseSuppliers){
             for (poseEstimate in visionPoseSupplier.robotPoseEstimates){
+                val poseDelta = poseEstimate.value - robotPose
+                if (poseDelta.translation.norm > 1.meters || abs(poseDelta.rotation) > 90.degrees){
+                    println("Pose reading ignored!")
+                    continue
+                }
+
                 val stdDevVector = NomadApriltagUtil.calculateVisionUncertainty(
                     poseEstimate.value.x.siValue,
                     heading.asRotation2d(),

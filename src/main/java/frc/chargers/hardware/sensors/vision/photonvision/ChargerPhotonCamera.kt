@@ -50,7 +50,8 @@ public class ChargerPhotonCamera(
     }
 
     /**
-     * Represents a photonvision pipeline that can detect AprilTags.
+     * Represents a photonvision pipeline that can detect AprilTags,
+     * and report the pose of the robot.
      */
     public inner class AprilTagPipeline(
         index: Int,
@@ -59,9 +60,10 @@ public class ChargerPhotonCamera(
          * Ensure that this namespace is the same across real and sim equivalents.
          * @see LoggableInputsProvider
          */
-        logInputs: LoggableInputsProvider
-    ): PhotonCameraPipeline<VisionTarget.AprilTag>(index) {
-
+        logInputs: LoggableInputsProvider,
+        usePoseEstimation: Boolean,
+        poseEstimationStrategy: PhotonPoseEstimator.PoseStrategy = PhotonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR
+    ): PhotonCameraPipeline<VisionTarget.AprilTag>(index), VisionPoseSupplier {
         override val visionTargets: List<VisionTarget.AprilTag>
             by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
                 val data = latestResult
@@ -73,39 +75,25 @@ public class ChargerPhotonCamera(
                     .getTargets()
                     .map{ toAprilTagTarget(it, data.timestampSeconds.ofUnit(seconds)) }
             }
-    }
 
+        val poseEstimator = PhotonPoseEstimator(
+            ChargerRobot.APRILTAG_LAYOUT,
+            poseEstimationStrategy,
+            this@ChargerPhotonCamera,
+            robotToCamera.inUnit(meters)
+        ).apply{
+            setMultiTagFallbackStrategy(PhotonPoseEstimator.PoseStrategy.LOWEST_AMBIGUITY)
+        }
 
-    /**
-     * Represents the pose estimation component of an apriltag pipeline.
-     */
-    public inner class AprilTagPoseEstimator(
-        /**
-         * The pipeline index where apriltag pose estimation takes place.
-         * This should be equivalent to the pipeline index of the corresponding [AprilTagPipeline].
-         */
-        aprilTagPipelineIndex: Int,
-        logInputs: LoggableInputsProvider,
-        strategy: PoseStrategy = PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-    ): PhotonPoseEstimator(
-        ChargerRobot.APRILTAG_LAYOUT,
-        strategy,
-        this@ChargerPhotonCamera,
-        robotToCamera.inUnit(meters)
-    ), VisionPoseSupplier {
         override val cameraYaw: Angle
             get() = Angle(robotToCamera.rotation.z)
 
-        init{
-            setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY)
-        }
-
         override val robotPoseEstimates: List<Measurement<UnitPose2d>>
             by logInputs.valueList(default = Measurement(UnitPose2d(), Time(0.0))){
-                if (isSimulation() || pipelineIndex != aprilTagPipelineIndex) {
+                if (isSimulation() || pipelineIndex != index || !usePoseEstimation) {
                     listOf()
                 }else{
-                    when(val signal = update()){
+                    when(val signal = poseEstimator.update()){
                         Optional.empty<EstimatedRobotPose>() -> listOf()
 
                         else -> listOf(
@@ -129,7 +117,6 @@ public class ChargerPhotonCamera(
          */
         logInputs: LoggableInputsProvider
     ): PhotonCameraPipeline<VisionTarget.Object>(index) {
-
         override val visionTargets: List<VisionTarget.Object>
             by logInputs.valueList(default = VisionTarget.Object.Dummy){
                 val data = latestResult
@@ -170,5 +157,4 @@ public class ChargerPhotonCamera(
             this@ChargerPhotonCamera.robotToCamera.rotation.y.ofUnit(radians)
         )
     }
-
 }

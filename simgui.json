@@ -15,10 +15,23 @@
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Auto Command": "String Chooser",
       "/SmartDashboard/Field": "Field2d",
-      "/SmartDashboard/PivotingShooter": "Mechanism2d"
+      "/SmartDashboard/PivotingShooter": "Mechanism2d",
+      "/SmartDashboard/VisionSystemSim-AprilTags/Sim Field": "Field2d",
+      "/SmartDashboard/VisionSystemSim-ML Vision System/Sim Field": "Field2d"
     },
     "windows": {
       "/SmartDashboard/Field": {
+        "bottom": 1476,
+        "height": 8.210550308227539,
+        "left": 150,
+        "right": 2961,
+        "top": 79,
+        "width": 16.541748046875,
+        "window": {
+          "visible": true
+        }
+      },
+      "/SmartDashboard/VisionSystemSim-AprilTags/Sim Field": {
         "bottom": 1476,
         "height": 8.210550308227539,
         "left": 150,
@@ -34,6 +47,33 @@
   "NetworkTables": {
     "transitory": {
       "AdvantageKit": {
+        "AprilTagCamLeft": {
+          "open": true,
+          "robotPoseEstimates": {
+            "open": true
+          },
+          "visionTargets": {
+            "Value#1": {
+              "open": true
+            },
+            "open": true
+          }
+        },
+        "AprilTagCamRight": {
+          "open": true,
+          "robotPoseEstimates": {
+            "open": true
+          },
+          "visionTargets": {
+            "Value#1": {
+              "open": true
+            },
+            "Value#2": {
+              "open": true
+            },
+            "open": true
+          }
+        },
         "Drivetrain(Swerve)": {
           "BottomLeftModule": {
             "open": true
@@ -79,7 +119,8 @@
             }
           },
           "open": true
-        }
+        },
+        "open": true
       },
       "PathPlanner": {
         "double[]##v_/PathPlanner/currentPose": {

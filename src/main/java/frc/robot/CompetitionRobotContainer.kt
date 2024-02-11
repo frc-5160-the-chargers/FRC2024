@@ -51,7 +51,7 @@ import org.photonvision.simulation.SimCameraProperties
 import org.photonvision.simulation.VisionSystemSim
 
 
-class RobotContainer: ChargerRobotContainer() {
+class CompetitionRobotContainer: ChargerRobotContainer() {
 
     private val gyroIO = ChargerNavX(
         useFusedHeading = false,
@@ -63,9 +63,7 @@ class RobotContainer: ChargerRobotContainer() {
 
     private val shooter = Shooter(
         ShooterIOSim(
-            intakeSims = listOf(
-                DCMotorSim(DCMotor.getNeoVortex(1), 1.0, 0.004)
-            ),
+            topMotorSim = DCMotorSim(DCMotor.getNeoVortex(1), 1.0, 0.004),
             pivotSim = DCMotorSim(DCMotor.getNEO(1), 1.0, 0.010)
         ),
         PIDConstants(0.3,0,0),
@@ -111,37 +109,36 @@ class RobotContainer: ChargerRobotContainer() {
         if (isReal()){
             val limelight = ChargerLimelight(useJsonDump = false, robotToCamera = ROBOT_TO_LIMELIGHT)
             val photonArducam = ChargerPhotonCamera(name = "AprilTag Arducam", robotToCamera = ROBOT_TO_APRILTAG_PHOTON_CAM)
-            val photonWebcam = ChargerPhotonCamera(name = "ML Webcam", robotToCamera = ROBOT_TO_APRILTAG_PHOTON_CAM)
+            val photonWebcam = ChargerPhotonCamera(name = "ML Webcam", robotToCamera = ROBOT_TO_ML_PHOTON_CAM)
+
+
 
             aprilTagVision = FusedAprilTagPipeline(
                 shouldAverageBestTargets = false,
-                limelight.AprilTagPipeline(index = 0, leftCamLog),
-                photonArducam.AprilTagPipeline(index = 0, rightCamLog)
+                limelight.AprilTagPipeline(index = 0, leftCamLog, usePoseEstimation = true)
+                    .also{ drivetrain.poseEstimator.addPoseSuppliers(it) },
+                photonArducam.AprilTagPipeline(index = 0, rightCamLog, usePoseEstimation = true)
+                    .also{ drivetrain.poseEstimator.addPoseSuppliers(it) }
             )
-            noteDetector = photonWebcam.ObjectPipeline(index = 0, noteDetectorLog)
 
-            drivetrain.poseEstimator.addPoseSuppliers(
-                limelight.AprilTagPoseEstimator(aprilTagPipelineIndex = 0, leftCamLog),
-                photonArducam.AprilTagPoseEstimator(aprilTagPipelineIndex = 0, rightCamLog)
-            )
+            noteDetector = photonWebcam.ObjectPipeline(index = 0, noteDetectorLog)
         }else{
             val limelightSim = VisionCameraSim(drivetrain.poseEstimator, ROBOT_TO_LIMELIGHT, SimCameraProperties.LL2_640_480())
             val photonArducamSim = VisionCameraSim(drivetrain.poseEstimator, ROBOT_TO_APRILTAG_PHOTON_CAM, SimCameraProperties.PI4_LIFECAM_640_480())
             val photonWebcamSim = VisionCameraSim(drivetrain.poseEstimator, ROBOT_TO_ML_PHOTON_CAM, SimCameraProperties.PI4_LIFECAM_640_480())
 
+            val mlTargetField = VisionSystemSim("ML Vision System")
+
+
             aprilTagVision = FusedAprilTagPipeline(
                 shouldAverageBestTargets = false,
-                limelightSim.AprilTagPipeline(leftCamLog),
+                limelightSim.AprilTagPipeline(leftCamLog)
+                    .also{ drivetrain.poseEstimator.addPoseSuppliers(it) },
                 photonArducamSim.AprilTagPipeline(rightCamLog)
+                    .also{ drivetrain.poseEstimator.addPoseSuppliers(it) }
             )
 
-            val mlTargetField = VisionSystemSim("ML Vision System")
             noteDetector = photonWebcamSim.ObjectPipeline(noteDetectorLog, mlTargetField)
-
-            drivetrain.poseEstimator.addPoseSuppliers(
-                limelightSim.AprilTagPoseEstimator(leftCamLog),
-                photonArducamSim.AprilTagPoseEstimator(rightCamLog)
-            )
         }
 
         if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){

@@ -68,7 +68,8 @@ public class SwerveSetpointGenerator {
 
     private boolean epsilonEquals(ChassisSpeeds speeds, ChassisSpeeds other){
         return epsilonEquals(speeds.vxMetersPerSecond, other.vxMetersPerSecond)
-                && epsilonEquals(speeds.vyMetersPerSecond, other.vyMetersPerSecond);
+                && epsilonEquals(speeds.vyMetersPerSecond, other.vyMetersPerSecond)
+                && epsilonEquals(speeds.omegaRadiansPerSecond, other.omegaRadiansPerSecond);
     }
 
     /**
@@ -201,6 +202,7 @@ public class SwerveSetpointGenerator {
             final Setpoint prevSetpoint,
             ChassisSpeeds desiredState,
             double dt) {
+
         final Translation2d[] modules = moduleLocations;
 
         SwerveModuleState[] desiredModuleState = kinematics.toSwerveModuleStates(desiredState);

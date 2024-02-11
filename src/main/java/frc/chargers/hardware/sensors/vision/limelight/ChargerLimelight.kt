@@ -24,7 +24,7 @@ import org.littletonrobotics.junction.Logger
  * optimized for usage within ChargerLib.
  */
 public class ChargerLimelight(
-    @JvmField public val name: String = "limelight",
+    @JvmField public val name: String = "",
     useJsonDump: Boolean = false,
     public val robotToCamera: UnitTransform3d
 ){
@@ -106,10 +106,8 @@ public class ChargerLimelight(
 
 
     /**
-     * Represents a Limelight pipeline that can detect AprilTags.
-     *
-     * Note: this class does not provide pose estimation. Use [ChargerLimelight.AprilTagPoseEstimator]
-     * with the SAME pipeline index as this class instead.
+     * Represents a Limelight pipeline that can detect AprilTags,
+     * and report the pose of the robot.
      */
     public inner class AprilTagPipeline(
         index: Int,
@@ -118,8 +116,9 @@ public class ChargerLimelight(
          * Ensure that this namespace is the same across real and sim equivalents.
          * @see LoggableInputsProvider
          */
-        logInputs: LoggableInputsProvider
-    ): LimelightPipeline<VisionTarget.AprilTag>(index) {
+        logInputs: LoggableInputsProvider,
+        usePoseEstimation: Boolean
+    ): LimelightPipeline<VisionTarget.AprilTag>(index), VisionPoseSupplier {
 
         override val visionTargets: List<VisionTarget.AprilTag>
             by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
@@ -154,27 +153,14 @@ public class ChargerLimelight(
                     )
                 }
             }
-    }
 
-
-    /**
-     * Represents the pose estimation component of an apriltag pipeline.
-     */
-    public inner class AprilTagPoseEstimator(
-        /**
-         * The pipeline index where apriltag pose estimation takes place.
-         * This should be equivalent to the pipeline index of the corresponding [AprilTagPipeline].
-         */
-        aprilTagPipelineIndex: Int,
-        logInputs: LoggableInputsProvider
-    ): VisionPoseSupplier {
 
         override val cameraYaw: Angle
             get() = Angle(robotToCamera.rotation.z)
 
         override val robotPoseEstimates: List<Measurement<UnitPose2d>>
             by logInputs.valueList(default = Measurement(UnitPose2d(), Time(0.0))){
-                if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != aprilTagPipelineIndex) {
+                if (!usePoseEstimation || isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != index) {
                     return@valueList listOf()
                 }
 
@@ -288,7 +274,7 @@ public class ChargerLimelight(
         }
 
         override val cameraConstants = VisionCameraConstants(
-            "Limelight " + this@ChargerLimelight.name,
+            "Limelight " + if (this@ChargerLimelight.name == "") "(No Name)" else this@ChargerLimelight.name,
             this@ChargerLimelight.robotToCamera.z,
             this@ChargerLimelight.robotToCamera.rotation.y.ofUnit(radians)
         )

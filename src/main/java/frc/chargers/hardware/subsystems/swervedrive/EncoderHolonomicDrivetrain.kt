@@ -708,6 +708,7 @@ public class EncoderHolonomicDrivetrain(
             ChargerRobot.LOOP_PERIOD.inUnit(seconds)
         )
 
+        recordOutput("Drivetrain(Swerve)/rawKinematicsStates", SwerveModuleState.struct, *kinematics.toSwerveModuleStates(goal))
         recordOutput("Drivetrain(Swerve)/DesiredModuleStates", SwerveModuleState.struct, *setpoint.moduleStates)
         recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Setpoint)", ChassisSpeeds.struct, setpoint.chassisSpeeds)
         recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Goal)", ChassisSpeeds.struct, goal)

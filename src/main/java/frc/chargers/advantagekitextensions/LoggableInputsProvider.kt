@@ -750,15 +750,27 @@ public class LoggableInputsProvider(
         private var field: List<T> = listOf()
 
         override val inputsProcessor = object: LoggableInputs{
+
+            private var previousNumItems = 0
+
             override fun toLog(table: LogTable) {
-                // utility to view whether there is values at all; not used for replay purposes
-                table.put("$name/hasValues", field.isNotEmpty())
                 var counter = 1
                 table.put("$name/totalValues", field.size)
                 for (item in field){
                     item.pushToLog(table, "$name/Value#$counter")
+                    table.put("$name/Value#$counter/ISPRESENT", true)
                     counter++
                 }
+
+                // if the num items in previous loop was greater, log the values that are still hanging around
+                // as not present.
+                if (previousNumItems > field.size){
+                    for (i in field.size+1..previousNumItems){
+                        table.put("$name/Value#$i/ISPRESENT", false)
+                    }
+                }
+
+                previousNumItems = field.size
             }
 
             override fun fromLog(table: LogTable) {

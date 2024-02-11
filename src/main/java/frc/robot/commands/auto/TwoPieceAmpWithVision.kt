@@ -25,7 +25,7 @@ fun twoPieceAmpWithVision(
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, groundIntake)
 
-    +onePieceAmp(shooter)
+    +shooter.shootInAmp(0.3, 0.5.seconds)
 
     runOnce{
         drivetrain.poseEstimator.resetToPathplannerTrajectory("2pAmpGrab")
@@ -43,13 +43,7 @@ fun twoPieceAmpWithVision(
         drivetrain, apriltagVision, shooter
     )
 
-    loopFor(1.seconds){
-        shooter.outtake(0.3)
-    }
-
-    runOnce{
-        shooter.setIdle()
-    }
+    shooter.shootInAmp(0.3, 0.5.seconds)
 
     +basicTaxi(
         drivetrain, shooter = shooter, groundIntake = groundIntake

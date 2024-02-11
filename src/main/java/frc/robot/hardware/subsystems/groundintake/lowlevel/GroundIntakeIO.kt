@@ -8,10 +8,17 @@ import frc.chargers.advantagekitextensions.LoggableInputsProvider
 
 val GroundIntakeLog = LoggableInputsProvider("GroundIntake")
 
+/**
+ * Standard order for lists is top motor, then bottom motor(if available).
+ */
 interface GroundIntakeIO {
-    val measuredVoltages: List<Voltage>
-    val measuredCurrents: List<Current>
-    val measuredSpeeds: List<AngularVelocity>
+    val intakeVoltages: List<Voltage>
+    val intakeCurrents: List<Current>
+    val intakeSpeeds: List<AngularVelocity>
+
+    val conveyorVoltage: Voltage
+    val conveyorCurrent: Current
+    val conveyorSpeed: AngularVelocity
 
     fun intake(voltage: Voltage)
 }

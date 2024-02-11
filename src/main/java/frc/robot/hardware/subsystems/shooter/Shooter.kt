@@ -2,15 +2,13 @@
 package frc.robot.hardware.subsystems.shooter
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.Voltage
-import com.batterystaple.kmeasure.quantities.inUnit
-import com.batterystaple.kmeasure.quantities.times
+import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.geometry.Translation3d
+import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d
 import edu.wpi.first.wpilibj.util.Color
@@ -38,7 +36,7 @@ object PivotAngle{
 
     val SPEAKER: Angle = 0.degrees
 
-    val IDLE: Angle = 0.degrees
+    val STOWED: Angle = 0.degrees
 
     val GROUND_INTAKE_HANDOFF: Angle = 0.degrees
 }
@@ -133,18 +131,6 @@ class Shooter(
 
     fun setPivotSpeed(percentOut: Double) = io.setPivotVoltage(percentOut * 11.volts)
 
-    fun setAngleCommand(target: Angle): Command =
-        buildCommand{
-            runOnce(this@Shooter){ setPivotPosition(target) }
-
-            loopUntil({ hasHitPivotTarget }, this@Shooter){
-                setPivotPosition(target)
-            }
-
-            runOnce(this@Shooter){ setPivotVoltage(0.volts) }
-        }
-
-
 
 
 
@@ -172,6 +158,61 @@ class Shooter(
 
 
 
+    fun setAngleCommand(target: Angle): Command =
+        buildCommand{
+            runOnce(this@Shooter){ setPivotPosition(target) }
+
+            loopUntil({ hasHitPivotTarget }, this@Shooter){
+                setPivotPosition(target)
+            }
+
+            runOnce(this@Shooter){ setPivotVoltage(0.volts) }
+        }
+
+    fun shootInSpeaker(
+        percentOut: Double,
+        time: Time = 0.3.seconds,
+        stowOnEnd: Boolean = false
+    ): Command = buildCommand {
+        +setAngleCommand(PivotAngle.SPEAKER)
+
+        loopFor(time, this@Shooter) {
+            outtake(percentOut)
+        }
+
+        runOnce {
+            setIdle()
+        }
+
+        if (stowOnEnd) {
+            +setAngleCommand(PivotAngle.STOWED)
+        }
+    }
+
+    fun shootInAmp(
+        percentOut: Double,
+        time: Time = 0.3.seconds,
+        stowOnEnd: Boolean = false
+    ): Command = buildCommand {
+        +setAngleCommand(PivotAngle.AMP)
+
+        loopFor(time, this@Shooter) {
+            outtake(percentOut)
+        }
+
+        runOnce {
+            setIdle()
+        }
+
+        if (stowOnEnd) {
+            +setAngleCommand(PivotAngle.STOWED)
+        }
+    }
+
+
+
+
+
 
 
 
@@ -179,10 +220,15 @@ class Shooter(
         pivotVisualizer.angle = io.pivotPosition.inUnit(degrees)
         recordOutput(
             "Shooter/PivotPosition3d",
+            Pose3d.struct,
             Pose3d(
                 Translation3d(0.0,0.0,0.0),
-                Rotation3d(0.degrees, io.pivotPosition, 0.degrees)
+                Rotation3d(0.degrees, 0.degrees, 0.degrees)
             )
         )
+
+        if (DriverStation.isDisabled()){
+            setIdle()
+        }
     }
 }

@@ -10,34 +10,59 @@ import frc.chargers.framework.ChargerRobot
 
 @Suppress("unused")
 class GroundIntakeIOSim(
-    private vararg val motorSims: DCMotorSim
+    private val topMotorSim: DCMotorSim,
+    private val bottomMotorSim: DCMotorSim? = null,
+    private val conveyorMotorSim: DCMotorSim,
+    private val conveyorVoltageMultiplier: Double = 1.0
 ): GroundIntakeIO {
+    private val intakeSims: List<DCMotorSim> = mutableListOf(topMotorSim).apply{
+        if (bottomMotorSim != null){
+            add(bottomMotorSim)
+        }
+    }
+
     // must be array to allow mutability but no adding values
-    private val _appliedVoltages = motorSims.map{ Voltage(0.0) }.toTypedArray()
+    private val _intakeVoltages = intakeSims.map{ 0.volts }.toTypedArray()
+    private var _conveyorVoltage = 0.volts
 
     init{
         ChargerRobot.runPeriodically(addToFront = true) {
-            motorSims.forEachIndexed{index, motorSim ->
+            intakeSims.forEach { motorSim ->
                 motorSim.update(0.02)
-                motorSim.setInputVoltage(_appliedVoltages[index].inUnit(volts))
             }
+            conveyorMotorSim.update(0.02)
         }
     }
 
-    override val measuredVoltages by GroundIntakeLog.quantityList{
-        _appliedVoltages.toList()
+    override val intakeVoltages by GroundIntakeLog.quantityList{
+        _intakeVoltages.toList()
     }
-    override val measuredSpeeds by GroundIntakeLog.quantityList{
-        motorSims.map{ it.angularVelocityRadPerSec.ofUnit(radians/ seconds) }
+    override val intakeSpeeds by GroundIntakeLog.quantityList{
+        intakeSims.map{ it.angularVelocityRadPerSec.ofUnit(radians/ seconds) }
     }
-    override val measuredCurrents by GroundIntakeLog.quantityList{
-        motorSims.map{ it.currentDrawAmps.ofUnit(amps) }
+    override val intakeCurrents by GroundIntakeLog.quantityList{
+        intakeSims.map{ it.currentDrawAmps.ofUnit(amps) }
+    }
+
+
+    override val conveyorCurrent by GroundIntakeLog.quantity{
+        conveyorMotorSim.currentDrawAmps.ofUnit(amps)
+    }
+    override val conveyorSpeed by GroundIntakeLog.quantity{
+        conveyorMotorSim.angularVelocityRadPerSec.ofUnit(radians/seconds)
+    }
+    override val conveyorVoltage by GroundIntakeLog.quantity{
+        _conveyorVoltage
     }
 
     override fun intake(voltage: Voltage) {
-        _appliedVoltages[0] = voltage
-        if (_appliedVoltages.size > 1){
-            _appliedVoltages[1] = -voltage
+        _intakeVoltages[0] = voltage
+        topMotorSim.setInputVoltage(voltage.inUnit(volts))
+        if (bottomMotorSim != null){
+            _intakeVoltages[1] = -voltage
+            bottomMotorSim.setInputVoltage(-voltage.inUnit(volts))
         }
+        _conveyorVoltage = voltage * conveyorVoltageMultiplier
+        conveyorMotorSim.setInputVoltage(_conveyorVoltage.siValue)
     }
 }

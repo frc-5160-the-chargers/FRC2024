@@ -1,13 +1,11 @@
 package frc.robot.commands.auto
 
-import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.commands.grabGamepiece
-import frc.robot.constants.PATHFIND_CONSTRAINTS
+import frc.robot.commands.runGroundIntake
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
 import frc.robot.hardware.subsystems.shooter.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -24,27 +22,21 @@ fun twoPieceAmpNoVision(
         drivetrain.poseEstimator.resetToPathplannerTrajectory("2pAmpGrab")
     }
 
-    +onePieceAmp(shooter)
+    +shooter.shootInAmp(0.3)
 
-    +grabGamepiece(
-        path = PathPlannerPath.fromPathFile("2pAmpGrab"),
-        noteDetector = null,
-        drivetrain, shooter, groundIntake
-    )
+    runParallelUntilFirstCommandFinishes{
+        +AutoBuilder.followPath(PathPlannerPath.fromPathFile("2pAmpGrab"))
 
-    runParallelUntilAllFinish{
-        +AutoBuilder.pathfindThenFollowPath(PathPlannerPath.fromPathFile("2pAmpScore"), PATHFIND_CONSTRAINTS)
+        +runGroundIntake(shooter, groundIntake)
+    }
+
+    runParallelUntilFirstCommandFinishes{
+        +AutoBuilder.followPath(PathPlannerPath.fromPathFile("2pAmpScore"))
 
         +shooter.setAngleCommand(PivotAngle.AMP)
     }
 
-    loopFor(1.seconds){
-        shooter.outtake(0.3)
-    }
-
-    runOnce{
-        shooter.setIdle()
-    }
+    +shooter.shootInAmp(0.3)
 
     +basicTaxi(
         drivetrain, shooter = shooter, groundIntake = groundIntake

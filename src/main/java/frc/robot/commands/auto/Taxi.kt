@@ -36,7 +36,7 @@ fun basicTaxi(
 
         runParallelUntilAllFinish{
             if (shooter != null){
-                +shooter.setAngleCommand(PivotAngle.IDLE)
+                +shooter.setAngleCommand(PivotAngle.STOWED)
             }
 
             // primary drive function
@@ -79,7 +79,7 @@ fun pathplannerTaxi(
 
         runParallelUntilAllFinish{
             if (shooter != null){
-                +shooter.setAngleCommand(PivotAngle.IDLE)
+                +shooter.setAngleCommand(PivotAngle.STOWED)
             }
 
             // follows path
