@@ -14,10 +14,7 @@ import kotlin.math.sqrt
 
 
 object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
-
-
-
-    val shouldInvertTranslation = LoggedDashboardBoolean("DriverController/shouldInvertTranslation")
+    var isSimXboxController = false
 
 
     /* Top-Level constants */
@@ -58,13 +55,13 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     private val forwardAxis =
         InputAxis{ leftY }
             .applyDefaults()
-            .withModifier{ if (shouldInvertTranslation.get()) -1.0 * it else it }
+            .withModifier{ if (isSimXboxController) -1.0 * it else it }
             .withModifier{ it * getScaleRate() }
 
     private val strafeAxis =
         InputAxis{ leftX }
             .applyDeadband(0.3)
-            .withModifier{ if (shouldInvertTranslation.get()) -1.0 * it else it }
+            .withModifier{ if (isSimXboxController) -1.0 * it else it }
             .withModifier{ it * getScaleRate() }
 
     private val rotationAxis =

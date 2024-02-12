@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+import frc.chargers.commands.InstantCommand
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -41,6 +42,7 @@ import frc.chargers.hardware.sensors.vision.photonvision.ChargerPhotonCamera
 import frc.chargers.hardware.sensors.vision.photonvision.simulation.VisionCameraSim
 import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.robot.commands.enableAimToSpeaker
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorController
@@ -194,16 +196,23 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             drivetrain.setRotationOverride(
                 AimToAngleRotationOverride(
                     heading,
-                    PIDConstants(3.5,0,0),
+                    PID.ANGLE_TO_ROTATIONAL_VELOCITY,
                 )
             )
         }
 
         DriverController.apply{
+            isSimXboxController = true
             pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
             pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
             pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
             pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
+
+            povUp().whileTrue(enableAimToSpeaker(drivetrain, aprilTagVision)).onFalse(
+                InstantCommand{
+                    drivetrain.removeRotationOverride()
+                }
+            )
         }
     }
 

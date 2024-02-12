@@ -4,6 +4,7 @@ package frc.chargers.hardware.subsystems.swervedrive
 import com.batterystaple.kmeasure.dimensions.AngleDimension
 import com.batterystaple.kmeasure.dimensions.ScalarDimension
 import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.controller.PIDController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
@@ -17,6 +18,7 @@ import frc.chargers.utils.Precision
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.ofUnit
+import org.littletonrobotics.junction.Logger.recordOutput
 import kotlin.math.PI
 
 /**
@@ -135,7 +137,7 @@ class AimToAprilTagRotationOverride(
      * when no targets are found.
      */
     private val aimToTagPoseIfNotFound: Boolean = false,
-    angleToVelocityPID: PIDConstants = cameraYawToVelocityPID,
+    angleToVelocityPID: PIDConstants = PIDConstants(cameraYawToVelocityPID.kP * 3.0, 0, cameraYawToVelocityPID.kD * 3.0),
     poseAimPrecision: Precision<AngleDimension> = Precision.AllowOvershoot
 ): RotationOverride {
     private val visionAimController = PIDController(cameraYawToVelocityPID.kP, cameraYawToVelocityPID.kI, cameraYawToVelocityPID.kD).apply{
@@ -148,6 +150,7 @@ class AimToAprilTagRotationOverride(
         if (poseAimPrecision is Precision.Within){
             this.setTolerance( (poseAimPrecision.allowableError.endInclusive - poseAimPrecision.allowableError.start).siValue )
         }
+        enableContinuousInput(0.0, 2 * PI)
     }
 
     val atSetpoint: Boolean get() = visionAimController.atSetpoint()
@@ -170,7 +173,12 @@ class AimToAprilTagRotationOverride(
                 continue
             }
 
-            val output = visionAimController.calculate(visionTarget.tx, 0.0)
+            val output = -visionAimController.calculate(visionTarget.tx, 0.0)
+
+
+            recordOutput("AimToAprilTag/cameraAim/controllerError", visionAimController.positionError)
+            recordOutput("AimToAprilTag/cameraAim/controllerOutput", output)
+
 
             // refreshes the pose aim controller
             poseAimController.calculate(0.0)
@@ -184,19 +192,26 @@ class AimToAprilTagRotationOverride(
         visionAimController.calculate(0.0)
 
         if (aimToTagPoseIfNotFound){
-            val drivetrainToTagTransform = (apriltagPose - drivetrain.poseEstimator.robotPose)
+            val drivetrainToTagTranslation = (apriltagPose.translation - drivetrain.poseEstimator.robotPose.translation)
             // calculates the target heading needed to aim to the apriltag pose
-            val targetHeading = atan2(drivetrainToTagTransform.y.inUnit(meters), drivetrainToTagTransform.x.inUnit(meters))
+            val targetHeading = atan2(
+                drivetrainToTagTranslation.y.inUnit(meters),
+                drivetrainToTagTranslation.x.inUnit(meters)
+            )
             // uses pid control to reach that pose
             val output = poseAimController.calculate(
                 drivetrain.heading.siValue, targetHeading.siValue
             )
+
+            recordOutput("AimToAprilTag/poseAim/controllerError", poseAimController.positionError)
+            recordOutput("AimToAprilTag/poseAim/controllerOutput", output)
 
             return RotationOverrideResult(
                 output / drivetrain.maxRotationalVelocity.siValue,
                 AngularVelocity(output)
             )
         }else{
+            println("nope")
             poseAimController.calculate(0.0)
             return null
         }

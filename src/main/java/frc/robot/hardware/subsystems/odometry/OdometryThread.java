@@ -28,8 +28,8 @@ import java.util.function.Supplier;
 /**
  * Provides an interface for asynchronously reading high-frequency measurements to a set of queues.
  * <p>
- * Note: This was originally Mechanical Advantage's OdometryThread; however,
- * this is the only thread we can use because measurements must be synchronous,
+ * Note: This was originally Mechanical Advantage's SparkMaxOdometryThread;
+ * however, we renamed it because this is the only thread we can use, as measurements must be synchronous,
  * and we aren't using falcons for swerve.
  */
 @SuppressWarnings("ALL")
