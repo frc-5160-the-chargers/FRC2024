@@ -5,11 +5,11 @@
 package frc.robot
 
 import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.kauailabs.navx.frc.AHRS
+import com.pathplanner.lib.path.PathPlannerPath
 import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.geometry.Pose2d
@@ -30,7 +30,6 @@ import frc.chargers.commands.setDefaultRunCommand
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
@@ -42,6 +41,8 @@ import frc.chargers.hardware.sensors.vision.photonvision.ChargerPhotonCamera
 import frc.chargers.hardware.sensors.vision.photonvision.simulation.VisionCameraSim
 import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.robot.commands.FieldLocation
+import frc.robot.commands.driveToLocation
 import frc.robot.commands.enableAimToSpeaker
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
@@ -202,17 +203,28 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         DriverController.apply{
-            isSimXboxController = true
-            pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
-            pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
-            pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
-            pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
+            //pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
+            //pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
+            //pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
+            //pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
 
-            povUp().whileTrue(enableAimToSpeaker(drivetrain, aprilTagVision)).onFalse(
+            pointNorthButton.whileTrue(enableAimToSpeaker(drivetrain, aprilTagVision)).onFalse(
                 InstantCommand{
                     drivetrain.removeRotationOverride()
                 }
             )
+
+            pointEastButton.whileTrue(
+                driveToLocation(
+                    FieldLocation.AMP,
+                    PathPlannerPath.fromPathFile("AmpTeleop"),
+                    drivetrain,
+                    aprilTagVision,
+                    shooter
+                )
+            )
+
+
         }
     }
 
@@ -223,7 +235,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
         // Logging callback for target robot pose
         PathPlannerLogging.setLogTargetPoseCallback {
-            ChargerRobot.FIELD.getObject("PathplannerTargetPose").pose = it
+            //ChargerRobot.FIELD.getObject("PathplannerTargetPose").pose = it
             recordOutput("Pathplanner/targetPose", Pose2d.struct, it)
 
             val currPose = drivetrain.poseEstimator.robotPose.inUnit(meters)

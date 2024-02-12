@@ -8,22 +8,22 @@ import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTranslation3d
 
 val ROBOT_TO_LIMELIGHT = UnitTransform3d(
     UnitTranslation3d(
-        0.5.meters, -0.1.meters, 0.5.meters
+        0.25.meters, 0.meters, 1.meters
     ),
     Rotation3d(
         0.degrees,
-        -30.degrees,
+        -35.degrees,
         0.degrees
     )
 )
 
 val ROBOT_TO_APRILTAG_PHOTON_CAM = UnitTransform3d(
     UnitTranslation3d(
-        0.5.meters, 0.1.meters, 0.5.meters
+        0.25.meters, 0.meters, 1.meters
     ),
     Rotation3d(
         0.degrees,
-        -30.degrees,
+        -25.degrees,
         0.degrees
     )
 )

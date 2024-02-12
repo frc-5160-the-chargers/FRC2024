@@ -3,26 +3,30 @@ package frc.robot.commands
 
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Scalar
+import com.batterystaple.kmeasure.quantities.abs
+import com.batterystaple.kmeasure.units.meters
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.pid.SuperPIDController
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.Precision
+import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.Alert
+import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.robot.constants.PATHFIND_CONSTRAINTS
 import frc.robot.constants.PID
 import frc.robot.hardware.subsystems.shooter.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
-import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.jvm.optionals.getOrNull
 
 private val noTargetFoundAlert = Alert.warning(text = "A command is attempting to aim to an apriltag, but none can be found.")
-private val AIM_PRECISION = Precision.Within(Scalar(0.02))
+private val AIM_PRECISION = Precision.Within(Scalar(0.5))
 
 
 enum class FieldLocation(
@@ -59,12 +63,20 @@ fun driveToLocation(
     drivetrain: EncoderHolonomicDrivetrain,
     apriltagVision: AprilTagVisionPipeline,
     shooter: Shooter,
-): Command = buildCommand {
+): Command = buildCommand ( logIndividualCommands = true) {
     val targetId = when (DriverStation.getAlliance().getOrNull()){
         DriverStation.Alliance.Blue, null -> target.blueAllianceApriltagId
 
         DriverStation.Alliance.Red -> target.redAllianceApriltagId
     }
+    val targetPose =
+        ChargerRobot
+            .APRILTAG_LAYOUT
+            .getTagPose(targetId)
+            .orElseThrow()
+            .toPose2d()
+            .ofUnit(meters)
+            .flipWhenNeeded()
 
     val aimingController by getOnceDuringRun {
         SuperPIDController(
@@ -75,12 +87,11 @@ fun driveToLocation(
         )
     }
 
-    @AutoLogOutput(key = "AimToLocation/canFindTarget")
     fun canFindTarget(): Boolean {
         val bestTarget = apriltagVision.bestTarget
 
         return if (bestTarget == null){
-            noTargetFoundAlert.active = true
+            println("NO TARGET FOUND!")
             false
         }else if (targetId != bestTarget.fiducialId){
             Alert.warning(text =
@@ -88,17 +99,23 @@ fun driveToLocation(
                     "but it does not match the id of $targetId. " +
                     "(Found id: " + bestTarget.fiducialId
             ).active = true
+            println("An apriltag command can find an apriltag, " +
+                    "but it does not match the id of $targetId. " +
+                    "(Found id: " + bestTarget.fiducialId)
             false
         }else{
             true
+        }.also{
+            Logger.recordOutput("AimToLocation/canFindTarget", it)
         }
     }
 
-    @AutoLogOutput(key = "AimToLocation/hasFinishedAiming")
     fun hasFinishedAiming(): Boolean {
         val aimingError = aimingController.error
         Logger.recordOutput("AimToLocation/aimingError", aimingError.siValue)
-        return aimingError in AIM_PRECISION.allowableError || aimingController.atSetpoint
+        return aimingError in AIM_PRECISION.allowableError || aimingController.atSetpoint.also{
+            Logger.recordOutput("AimToLocation/hasFinishedAiming", it)
+        }
     }
 
 
@@ -113,15 +130,29 @@ fun driveToLocation(
 
         runSequentially{
             if (path != null){
-                +AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS)
+                runIf(
+                    { abs(drivetrain.poseEstimator.robotPose.y - targetPose.y).also{println(it)} > 1.meters },
+                    onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
+                    onFalse = AutoBuilder.followPath(path)
+                )
             }
 
-            loopWhile({ canFindTarget() && !hasFinishedAiming() }){
+            var aimLoopOccurences by resetDuringRun{0}
+
+            loopUntil({ (!canFindTarget()).also{println(it)} || hasFinishedAiming() }){
+                Logger.recordOutput("AimToLocation/isAiming", true)
+                Logger.recordOutput("AimToLocation/aimLoop#", aimLoopOccurences)
+                aimLoopOccurences++
                 drivetrain.swerveDrive(
                     xPower = 0.0,
-                    yPower = aimingController.calculateOutput().siValue,
-                    rotationPower = 0.0
+                    yPower = -aimingController.calculateOutput().siValue,
+                    rotationPower = 0.0,
+                    fieldRelative = false
                 )
+            }
+
+            runOnce{
+                Logger.recordOutput("AimToLocation/isAiming", false)
             }
         }
     }

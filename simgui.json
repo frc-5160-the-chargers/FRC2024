@@ -20,6 +20,11 @@
       "/SmartDashboard/VisionSystemSim-ML Vision System/Sim Field": "Field2d"
     },
     "windows": {
+      "/AdvantageKit/RealOutputs/Shooter/MechanismCanvas": {
+        "window": {
+          "visible": true
+        }
+      },
       "/SmartDashboard/Field": {
         "bottom": 1476,
         "height": 8.210550308227539,
@@ -102,6 +107,12 @@
         },
         "RealOutputs": {
           "ActiveCommands": {
+            "Subcommands Of: Generic BuildCommand": {
+              "open": true
+            },
+            "open": true
+          },
+          "AimToLocation": {
             "open": true
           },
           "Drivetrain(Swerve)": {

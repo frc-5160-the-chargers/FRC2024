@@ -318,7 +318,7 @@ public class EncoderHolonomicDrivetrain(
                 when (val alliance = DriverStation.getAlliance()){
                     Optional.empty<DriverStation.Alliance>() -> false
 
-                    else -> (alliance.get() == DriverStation.Alliance.Red).also{println(it)}
+                    else -> (alliance.get() == DriverStation.Alliance.Red)
                 }
             },
             this

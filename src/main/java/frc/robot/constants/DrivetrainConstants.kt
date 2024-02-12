@@ -21,8 +21,8 @@ import frc.chargers.utils.Precision
 const val ODOMETRY_UPDATE_FREQUENCY_HZ = 200.0
 
 val PATHFIND_CONSTRAINTS = PathConstraints(
-    Velocity(2.0),
-    Acceleration(2.0),
+    Velocity(4.5),
+    Acceleration(6.0),
     AngularVelocity(2.0),
     AngularAcceleration(2.0)
 )

@@ -4,12 +4,10 @@ package frc.chargers.hardware.subsystems.swervedrive
 import com.batterystaple.kmeasure.dimensions.AngleDimension
 import com.batterystaple.kmeasure.dimensions.ScalarDimension
 import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.controller.PIDController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
-import frc.chargers.controls.motionprofiling.MotionProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
@@ -211,7 +209,6 @@ class AimToAprilTagRotationOverride(
                 AngularVelocity(output)
             )
         }else{
-            println("nope")
             poseAimController.calculate(0.0)
             return null
         }
