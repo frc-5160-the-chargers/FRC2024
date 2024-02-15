@@ -644,30 +644,6 @@ public class EncoderHolonomicDrivetrain(
 
 
     /**
-     * Stalls the drivetrain motors in the forward direction, using the kS constant provided in the control scheme.
-     */
-    public fun stallForwards(){
-        if (abs(controlData.velocityFF.kS) > 0.05.volts){
-            setDriveVoltages(List(4){ controlData.velocityFF.kS - 0.05.volts })
-        }else{
-            setDriveVoltages(List(4){ controlData.velocityFF.kS })
-        }
-    }
-
-
-    /**
-     * Stalls the drivetrain motors in the backward direction, using the kS constant provided in the control scheme.
-     */
-    public fun stallBackwards(){
-        if (abs(controlData.velocityFF.kS) > 0.05.volts){
-            setDriveVoltages(List(4){ -controlData.velocityFF.kS + 0.05.volts })
-        }else{
-            setDriveVoltages(List(4){ -controlData.velocityFF.kS })
-        }
-    }
-
-
-    /**
      * Called periodically in the subsystem.
      */
     override fun periodic() {

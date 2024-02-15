@@ -187,7 +187,7 @@ public open class ChargerRobot(
             for (filePathSuffix in config.filePathOptions){
                 val filePathOption = "/media/$filePathSuffix"
                 if (filePathOption in availablePaths){
-                    addDataReceiver(WPILOGWriter(filePathOption))
+                    //addDataReceiver(WPILOGWriter(filePathOption))
                     noLogHappening = false
                     break
                 }

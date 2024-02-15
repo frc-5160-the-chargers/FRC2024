@@ -133,9 +133,12 @@ public open class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*
 
     /**
      * The error is a signed value representing how far the PID system currently is from the target value.
+     * Note: this error is not the pidController's traditional getPositionError() function;
+     * this is because that function wraps the error within the pid controller's continuous input,
+     * which is not desirable here.
      */
     override val error: Quantity<I>
-        get() = Quantity(pidController.positionError)
+        get() = Quantity<I>(pidController.setpoint) - getInput()
 
     /**
      * Determines if the controller is at it's setpoint.
@@ -159,9 +162,7 @@ public open class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*
         set(value){
             if (value != constants){
                 resetController()
-                pidController.p = value.kP
-                pidController.i = value.kI
-                pidController.d = value.kD
+                pidController.setPID(value.kP, value.kI, value.kD)
             }
         }
 }

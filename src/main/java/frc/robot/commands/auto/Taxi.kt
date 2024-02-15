@@ -3,13 +3,15 @@
 package frc.robot.commands.auto
 
 import com.batterystaple.kmeasure.units.seconds
+import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
-import frc.robot.hardware.subsystems.shooter.PivotAngle
+import frc.robot.hardware.subsystems.pivot.Pivot
+import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 fun basicTaxi(
@@ -18,6 +20,7 @@ fun basicTaxi(
 
     // optional subsystem parameters to zero before taxi
     shooter: Shooter? = null,
+    pivot: Pivot? = null,
     groundIntake: GroundIntake? = null,
 ): Command =
     buildCommand("Taxi Auto"){
@@ -30,13 +33,13 @@ fun basicTaxi(
         // stops subsystems
         runOnce{
             shooter?.intake(0.0)
-            shooter?.setPivotSpeed(0.0)
+            pivot?.setVoltage(0.volts)
             groundIntake?.intake(0.0)
         }
 
         runParallelUntilAllFinish{
-            if (shooter != null){
-                +shooter.setAngleCommand(PivotAngle.STOWED)
+            if (pivot != null){
+                +pivot.setAngleCommand(PivotAngle.STOWED)
             }
 
             // primary drive function
@@ -57,6 +60,7 @@ fun pathplannerTaxi(
 
     // optional subsystem parameters to zero before taxi
     shooter: Shooter? = null,
+    pivot: Pivot? = null,
     groundIntake: GroundIntake? = null,
 ): Command =
     buildCommand("Taxi Auto w/ Path") {
@@ -78,8 +82,8 @@ fun pathplannerTaxi(
         }
 
         runParallelUntilAllFinish{
-            if (shooter != null){
-                +shooter.setAngleCommand(PivotAngle.STOWED)
+            if (pivot != null){
+                +pivot.setAngleCommand(PivotAngle.STOWED)
             }
 
             // follows path

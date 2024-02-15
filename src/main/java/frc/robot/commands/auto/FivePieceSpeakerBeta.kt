@@ -10,9 +10,11 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.robot.commands.enableAimToSpeaker
 import frc.robot.commands.grabGamepiece
+import frc.robot.commands.shootInSpeaker
 import frc.robot.constants.PATHFIND_CONSTRAINTS
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
-import frc.robot.hardware.subsystems.shooter.PivotAngle
+import frc.robot.hardware.subsystems.pivot.Pivot
+import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 
@@ -20,6 +22,7 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 fun fivePieceSpeakerBeta(
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
+    pivot: Pivot,
     groundIntake: GroundIntake,
 
     apriltagVision: AprilTagVisionPipeline,
@@ -30,7 +33,7 @@ fun fivePieceSpeakerBeta(
         grabGamepiece(
             path,
             noteDetector,
-            drivetrain, shooter, groundIntake
+            drivetrain, pivot, shooter, groundIntake
         )
 
 
@@ -39,18 +42,18 @@ fun fivePieceSpeakerBeta(
     val trajGroupName = "5pAutoLeft"
     val paths = PathPlannerPaths.fromChoreoTrajectoryGroup(trajGroupName)
 
-    addRequirements(drivetrain, shooter, groundIntake)
+    addRequirements(drivetrain, shooter, groundIntake, pivot)
 
     runOnce {
         drivetrain.poseEstimator.resetToChoreoTrajectory(trajGroupName)
     }
 
     // note 1
-    +shooter.shootInSpeaker(0.7)
+    +shootInSpeaker(shooter, pivot, 0.7)
 
     // note 2
     +pathAndIntake(paths[0])
-    +shooter.shootInSpeaker(0.9)
+    +shootInSpeaker(shooter, pivot, 0.9)
 
     // note 3
     +pathAndIntake(paths[1])
@@ -58,14 +61,14 @@ fun fivePieceSpeakerBeta(
     runParallelUntilAllFinish{
         +AutoBuilder.pathfindThenFollowPath(paths[2], PATHFIND_CONSTRAINTS)
 
-        +shooter.setAngleCommand(PivotAngle.SPEAKER)
+        +pivot.setAngleCommand(PivotAngle.SPEAKER)
     }
-    +shooter.shootInSpeaker(0.7)
+    +shootInSpeaker(shooter, pivot, 0.7)
 
     // note 4
     +pathAndIntake(paths[3])
     +enableAimToSpeaker(drivetrain, apriltagVision)
-    +shooter.shootInSpeaker(0.7)
+    +shootInSpeaker(shooter, pivot, 0.7)
 
     // note 5
     +pathAndIntake(paths[4])
@@ -73,9 +76,9 @@ fun fivePieceSpeakerBeta(
     runParallelUntilAllFinish{
         +AutoBuilder.pathfindThenFollowPath(paths[2], PATHFIND_CONSTRAINTS)
 
-        +shooter.setAngleCommand(PivotAngle.SPEAKER)
+        +pivot.setAngleCommand(PivotAngle.SPEAKER)
     }
-    +shooter.shootInSpeaker(0.7)
+    +shootInSpeaker(shooter, pivot, 0.7)
 
     runOnce{
         drivetrain.stop()

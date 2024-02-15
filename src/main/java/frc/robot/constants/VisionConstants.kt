@@ -12,7 +12,7 @@ val ROBOT_TO_LIMELIGHT = UnitTransform3d(
     ),
     Rotation3d(
         0.degrees,
-        -35.degrees,
+        -36.degrees,
         0.degrees
     )
 )
@@ -23,7 +23,7 @@ val ROBOT_TO_APRILTAG_PHOTON_CAM = UnitTransform3d(
     ),
     Rotation3d(
         0.degrees,
-        -25.degrees,
+        -36.degrees,
         0.degrees
     )
 )

@@ -5,6 +5,7 @@ import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Scalar
 import com.batterystaple.kmeasure.quantities.abs
 import com.batterystaple.kmeasure.units.meters
+import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj.DriverStation
@@ -20,8 +21,8 @@ import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.robot.constants.PATHFIND_CONSTRAINTS
 import frc.robot.constants.PID
-import frc.robot.hardware.subsystems.shooter.PivotAngle
-import frc.robot.hardware.subsystems.shooter.Shooter
+import frc.robot.hardware.subsystems.pivot.Pivot
+import frc.robot.hardware.subsystems.pivot.PivotAngle
 import org.littletonrobotics.junction.Logger
 import kotlin.jvm.optionals.getOrNull
 
@@ -32,24 +33,24 @@ private val AIM_PRECISION = Precision.Within(Scalar(0.5))
 enum class FieldLocation(
     val blueAllianceApriltagId: Int,
     val redAllianceApriltagId: Int,
-    val shooterAngle: Angle,
+    val pivotAngle: Angle,
 ){
     SOURCE_LEFT(
         blueAllianceApriltagId = 2,
         redAllianceApriltagId = 10,
-        shooterAngle = PivotAngle.SOURCE
+        pivotAngle = PivotAngle.SOURCE
     ), // tbd
 
     SOURCE_RIGHT(
         blueAllianceApriltagId = 1,
         redAllianceApriltagId = 9,
-        shooterAngle = PivotAngle.SOURCE
+        pivotAngle = PivotAngle.SOURCE
     ), // tbd
 
     AMP(
         blueAllianceApriltagId = 6,
         redAllianceApriltagId = 5,
-        shooterAngle = PivotAngle.AMP
+        pivotAngle = PivotAngle.AMP
     )
 }
 
@@ -62,7 +63,7 @@ fun driveToLocation(
 
     drivetrain: EncoderHolonomicDrivetrain,
     apriltagVision: AprilTagVisionPipeline,
-    shooter: Shooter,
+    pivot: Pivot,
 ): Command = buildCommand ( logIndividualCommands = true) {
     val targetId = when (DriverStation.getAlliance().getOrNull()){
         DriverStation.Alliance.Blue, null -> target.blueAllianceApriltagId
@@ -113,33 +114,33 @@ fun driveToLocation(
     fun hasFinishedAiming(): Boolean {
         val aimingError = aimingController.error
         Logger.recordOutput("AimToLocation/aimingError", aimingError.siValue)
-        return aimingError in AIM_PRECISION.allowableError || aimingController.atSetpoint.also{
+        return (aimingError in AIM_PRECISION.allowableError).also{
             Logger.recordOutput("AimToLocation/hasFinishedAiming", it)
         }
     }
 
 
-    addRequirements(drivetrain, shooter)
+    var aimLoopOccurences by resetDuringRun{0}
+
+    addRequirements(drivetrain, pivot)
 
     runOnce{
         apriltagVision.reset()
     }
 
     runParallelUntilAllFinish {
-        +shooter.setAngleCommand(target.shooterAngle)
+        +pivot.setAngleCommand(target.pivotAngle)
 
         runSequentially{
             if (path != null){
                 runIf(
-                    { abs(drivetrain.poseEstimator.robotPose.y - targetPose.y).also{println(it)} > 1.meters },
+                    { abs(drivetrain.poseEstimator.robotPose.translation.norm - targetPose.translation.norm) > 2.meters },
                     onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
                     onFalse = AutoBuilder.followPath(path)
                 )
             }
 
-            var aimLoopOccurences by resetDuringRun{0}
-
-            loopUntil({ (!canFindTarget()).also{println(it)} || hasFinishedAiming() }){
+            loopUntil({ !canFindTarget() || hasFinishedAiming() }){
                 Logger.recordOutput("AimToLocation/isAiming", true)
                 Logger.recordOutput("AimToLocation/aimLoop#", aimLoopOccurences)
                 aimLoopOccurences++
@@ -153,11 +154,11 @@ fun driveToLocation(
 
             runOnce{
                 Logger.recordOutput("AimToLocation/isAiming", false)
+                drivetrain.setDriveVoltages(
+                    listOf(0.volts, 0.volts, 0.volts, 0.volts)
+                )
+                drivetrain.stopInX()
             }
         }
-    }
-
-    runOnce{
-        drivetrain.stop()
     }
 }

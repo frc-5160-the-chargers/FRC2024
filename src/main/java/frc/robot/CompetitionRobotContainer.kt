@@ -11,7 +11,6 @@ import com.batterystaple.kmeasure.units.seconds
 import com.kauailabs.navx.frc.AHRS
 import com.pathplanner.lib.path.PathPlannerPath
 import com.pathplanner.lib.util.PathPlannerLogging
-import edu.wpi.first.hal.AllianceStationID
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
@@ -19,16 +18,16 @@ import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
-import edu.wpi.first.wpilibj.simulation.DriverStationSim
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
-import frc.chargers.commands.InstantCommand
 import frc.chargers.commands.commandbuilder.buildCommand
+import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.constants.SwerveHardwareData
+import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.sensors.imu.ChargerNavX
@@ -47,6 +46,8 @@ import frc.robot.commands.enableAimToSpeaker
 import frc.robot.constants.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorController
+import frc.robot.hardware.subsystems.pivot.Pivot
+import frc.robot.hardware.subsystems.pivot.lowlevel.PivotIOSim
 import frc.robot.hardware.subsystems.shooter.Shooter
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOSim
 import org.littletonrobotics.junction.Logger.recordOutput
@@ -67,9 +68,18 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val shooter = Shooter(
         ShooterIOSim(
             topMotorSim = DCMotorSim(DCMotor.getNeoVortex(1), 1.0, 0.004),
-            pivotSim = DCMotorSim(DCMotor.getNEO(1), 1.0, 0.010)
+        )
+    )
+
+    private val pivot = Pivot(
+        PivotIOSim(
+            DCMotorSim(DCMotor.getNEO(1), 64.0, 0.014)
         ),
-        PIDConstants(0.3,0,0),
+        PIDConstants(10.0,0,0),
+        AngularTrapezoidProfile(
+            maxVelocity = AngularVelocity(3.0),
+            maxAcceleration = AngularAcceleration(5.0)
+        )
     )
 
     private val drivetrain = EncoderHolonomicDrivetrain(
@@ -104,7 +114,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
          */
 
 
-        // handles logging for vision cameras
+        // handles logging & replay for vision cameras
         val leftCamLog = LoggableInputsProvider("AprilTagCamLeft")
         val rightCamLog = LoggableInputsProvider("AprilTagCamRight")
         val noteDetectorLog = LoggableInputsProvider("ObjectDetector")
@@ -144,11 +154,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             noteDetector = photonWebcamSim.ObjectPipeline(noteDetectorLog, mlTargetField)
         }
 
-        if (DriverStationSim.getAllianceStationId() != AllianceStationID.Blue1){
-            DriverStationSim.setAllianceStationId(AllianceStationID.Blue1)
-        }
-
-        println(DriverStationSim.getAllianceStationId())
         DriverStation.silenceJoystickConnectionWarning(true)
         DashboardTuner.tuningMode = true
         recordOutput("Tuning Mode", DashboardTuner.tuningMode)
@@ -209,18 +214,24 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             //pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
 
             pointNorthButton.whileTrue(enableAimToSpeaker(drivetrain, aprilTagVision)).onFalse(
-                InstantCommand{
+                runOnceCommand(drivetrain){
                     drivetrain.removeRotationOverride()
+                }
+            )
+
+            pointSouthButton.whileTrue(
+                loopCommand(drivetrain){
+                    drivetrain.stopInX()
                 }
             )
 
             pointEastButton.whileTrue(
                 driveToLocation(
-                    FieldLocation.AMP,
-                    PathPlannerPath.fromPathFile("AmpTeleop"),
+                    FieldLocation.SOURCE_LEFT,
+                    PathPlannerPath.fromPathFile("SourceLeftTeleop"),
                     drivetrain,
                     aprilTagVision,
-                    shooter
+                    pivot
                 )
             )
 
@@ -282,6 +293,13 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
              */
         }
 
-    override val testCommand: Command =
-        drivetrain.getDriveSysIdRoutine().quasistatic(SysIdRoutine.Direction.kForward)
+    override val testCommand: Command get(){
+        val routine = drivetrain.getDriveSysIdRoutine()
+        return buildCommand {
+            +routine.quasistatic(SysIdRoutine.Direction.kForward)
+            +routine.quasistatic(SysIdRoutine.Direction.kReverse)
+            +routine.dynamic(SysIdRoutine.Direction.kForward)
+            +routine.dynamic(SysIdRoutine.Direction.kReverse)
+        }
+    }
 }

@@ -11,7 +11,9 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.commands.FieldLocation
 import frc.robot.commands.driveToLocation
 import frc.robot.commands.grabGamepiece
+import frc.robot.commands.shootInAmp
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
+import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 
@@ -21,11 +23,12 @@ fun twoPieceAmpWithVision(
     noteDetector: ObjectVisionPipeline,
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
+    pivot: Pivot,
     groundIntake: GroundIntake,
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, groundIntake)
 
-    +shooter.shootInAmp(0.3, 0.5.seconds)
+    +shootInAmp(pivot, shooter,0.3, 0.5.seconds)
 
     runOnce{
         drivetrain.poseEstimator.resetToPathplannerTrajectory("2pAmpGrab")
@@ -34,16 +37,16 @@ fun twoPieceAmpWithVision(
     +grabGamepiece(
         path = PathPlannerPath.fromPathFile("2pAmpGrab"),
         noteDetector = noteDetector,
-        drivetrain, shooter, groundIntake
+        drivetrain, pivot, shooter, groundIntake
     )
 
     +driveToLocation(
         target = FieldLocation.AMP,
         path = PathPlannerPath.fromPathFile("2pAmpScore"),
-        drivetrain, apriltagVision, shooter
+        drivetrain, apriltagVision, pivot
     )
 
-    shooter.shootInAmp(0.3, 0.5.seconds)
+    +shootInAmp(pivot, shooter,0.3, 0.5.seconds)
 
     +basicTaxi(
         drivetrain, shooter = shooter, groundIntake = groundIntake

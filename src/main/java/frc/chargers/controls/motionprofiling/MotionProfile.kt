@@ -16,7 +16,12 @@ typealias LinearMotionProfile = MotionProfile<DistanceDimension, VelocityDimensi
 typealias LinearMotionProfileState = MotionProfileState<DistanceDimension, VelocityDimension>
 
 
-
+/**
+ * Represents a Generic motion profile, that can calculate an intermediate state
+ * between a goal and a setpoint, acheiving smoother and more optimal motion.
+ *
+ * This is most commonly paired with a controller of some kind; like PID or LQR.
+ */
 fun interface MotionProfile <Pos: Dimension<*,*,*,*>, Vel: Dimension<*,*,*,*>>{
     fun calculate(dt: Time, setpoint: MotionProfileState<Pos,Vel>, goal: MotionProfileState<Pos,Vel>): MotionProfileState<Pos,Vel>
 }

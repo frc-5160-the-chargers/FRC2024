@@ -8,8 +8,10 @@ import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.robot.commands.grabGamepiece
+import frc.robot.commands.shootInSpeaker
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
-import frc.robot.hardware.subsystems.shooter.PivotAngle
+import frc.robot.hardware.subsystems.pivot.Pivot
+import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 
@@ -17,6 +19,7 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 fun sixPieceSpeakerBeta(
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
+    pivot: Pivot,
     groundIntake: GroundIntake,
 
     noteDetector: ObjectVisionPipeline
@@ -26,7 +29,7 @@ fun sixPieceSpeakerBeta(
         grabGamepiece(
             path,
             noteDetector,
-            drivetrain, shooter, groundIntake
+            drivetrain, pivot, shooter, groundIntake
         )
 
 
@@ -42,36 +45,36 @@ fun sixPieceSpeakerBeta(
     }
 
     // note 1
-    +shooter.shootInSpeaker(0.7)
+    +shootInSpeaker(shooter, pivot, 0.7)
 
     // note 2
     +pathAndIntake(paths[0])
-    +shooter.shootInSpeaker(0.7)
+    +shootInSpeaker(shooter, pivot, 0.7)
 
     // note 3
     +pathAndIntake(paths[1])
     runParallelUntilAllFinish{
         +AutoBuilder.followPath(paths[2])
 
-        +shooter.setAngleCommand(PivotAngle.SPEAKER)
+        +pivot.setAngleCommand(PivotAngle.SPEAKER)
     }
-    +shooter.shootInSpeaker(0.9)
+    +shootInSpeaker(shooter, pivot, 0.9)
 
     // note 4
     +pathAndIntake(paths[3])
     runParallelUntilAllFinish{
         +AutoBuilder.followPath(paths[4])
 
-        +shooter.setAngleCommand(PivotAngle.SPEAKER)
+        +pivot.setAngleCommand(PivotAngle.SPEAKER)
     }
-    +shooter.shootInSpeaker(0.7)
+    +shootInSpeaker(shooter, pivot, 0.7)
 
     // note 5
     +pathAndIntake(paths[4])
-    +shooter.shootInSpeaker(0.8)
+    +shootInSpeaker(shooter, pivot, 0.8)
 
     +pathAndIntake(paths[5])
-    +shooter.shootInSpeaker(0.9)
+    +shootInSpeaker(shooter, pivot, 0.9)
 
     runOnce{
         drivetrain.stop()

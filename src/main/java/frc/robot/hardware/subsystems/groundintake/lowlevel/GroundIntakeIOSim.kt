@@ -37,20 +37,27 @@ class GroundIntakeIOSim(
     override val intakeVoltages by GroundIntakeLog.quantityList{
         _intakeVoltages.toList()
     }
+
     override val intakeSpeeds by GroundIntakeLog.quantityList{
         intakeSims.map{ it.angularVelocityRadPerSec.ofUnit(radians/ seconds) }
     }
+
     override val intakeCurrents by GroundIntakeLog.quantityList{
         intakeSims.map{ it.currentDrawAmps.ofUnit(amps) }
     }
 
+    override val intakeTemps by GroundIntakeLog.doubleList{
+        intakeSims.map{0.0}
+    }
 
     override val conveyorCurrent by GroundIntakeLog.quantity{
         conveyorMotorSim.currentDrawAmps.ofUnit(amps)
     }
+
     override val conveyorSpeed by GroundIntakeLog.quantity{
         conveyorMotorSim.angularVelocityRadPerSec.ofUnit(radians/seconds)
     }
+
     override val conveyorVoltage by GroundIntakeLog.quantity{
         _conveyorVoltage
     }

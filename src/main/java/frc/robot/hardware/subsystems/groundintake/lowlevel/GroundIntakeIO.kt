@@ -4,6 +4,7 @@ import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Current
 import com.batterystaple.kmeasure.quantities.Voltage
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+import frc.robot.hardware.subsystems.GenericIntakeIO
 
 
 val GroundIntakeLog = LoggableInputsProvider("GroundIntake")
@@ -11,14 +12,9 @@ val GroundIntakeLog = LoggableInputsProvider("GroundIntake")
 /**
  * Standard order for lists is top motor, then bottom motor(if available).
  */
-interface GroundIntakeIO {
-    val intakeVoltages: List<Voltage>
-    val intakeCurrents: List<Current>
-    val intakeSpeeds: List<AngularVelocity>
-
+interface GroundIntakeIO: GenericIntakeIO {
     val conveyorVoltage: Voltage
     val conveyorCurrent: Current
     val conveyorSpeed: AngularVelocity
 
-    fun intake(voltage: Voltage)
 }

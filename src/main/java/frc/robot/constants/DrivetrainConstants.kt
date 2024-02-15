@@ -21,10 +21,10 @@ import frc.chargers.utils.Precision
 const val ODOMETRY_UPDATE_FREQUENCY_HZ = 200.0
 
 val PATHFIND_CONSTRAINTS = PathConstraints(
-    Velocity(4.5),
+    Velocity(4.0),
     Acceleration(6.0),
-    AngularVelocity(2.0),
-    AngularAcceleration(2.0)
+    500.degrees / 1.seconds,
+    650.degrees / 1.seconds / 1.seconds
 )
 
 val DRIVE_CONTROL_DATA = SwerveControlData(
@@ -44,7 +44,11 @@ val DRIVE_CONTROL_DATA = SwerveControlData(
     },
     openLoopDiscretizationRate = 4.4,
     velocityPID = PIDConstants(0.2,0.0,0.0),
-    velocityFF = AngularMotorFFEquation(0.12117,0.13210,0.0),
+    velocityFF = if (isReal()){
+        AngularMotorFFEquation(0.12117,0.13210)
+    }else{
+        AngularMotorFFEquation(0.0081299, 0.13396)
+    },
     robotRotationPID = PID.PATH_ROTATION_CONTROL,
     robotTranslationPID = PID.PATH_TRANSLATION_CONTROL
 )

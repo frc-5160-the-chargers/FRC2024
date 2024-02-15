@@ -11,6 +11,7 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.constants.PATHFIND_CONSTRAINTS
 import frc.robot.constants.PID
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
+import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 
@@ -20,10 +21,11 @@ fun grabGamepiece(
     noteDetector: ObjectVisionPipeline,
 
     drivetrain: EncoderHolonomicDrivetrain,
+    pivot: Pivot,
     shooter: Shooter,
     groundIntake: GroundIntake,
 ): Command = buildCommand {
-    addRequirements(drivetrain, shooter, groundIntake)
+    addRequirements(drivetrain, shooter, groundIntake, pivot)
 
     runOnce{
         noteDetector.reset()
@@ -52,7 +54,7 @@ fun grabGamepiece(
 
         // parallel #2
         +runGroundIntake(
-            shooter, groundIntake
+            shooter, pivot, groundIntake
         )
     }
 

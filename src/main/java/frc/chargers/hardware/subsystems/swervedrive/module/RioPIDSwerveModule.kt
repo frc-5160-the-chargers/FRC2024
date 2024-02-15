@@ -24,9 +24,9 @@ import org.littletonrobotics.junction.Logger.recordOutput
  * with rio PID control.
  */
 public class RioPIDSwerveModule(
-    lowLevel: ModuleIO,
+    io: ModuleIO,
     private val controlData: SwerveControlData
-): SwerveModule, ModuleIO by lowLevel{
+): SwerveModule, ModuleIO by io{
     // ModuleIO by lowLevel makes the lowLevel parameter provide implementation
     // of the ModuleIO interface to the class, reducing boilerplate code
 
@@ -118,12 +118,22 @@ public class RioPIDSwerveModule(
         power: Double,
         direction: Angle
     ){
+        val optimizedPower: Double
+
         if (angleDeltaBetween(this.direction, direction) > 90.0.degrees){
             setDirection(direction + 180.degrees)
-            setPower(-power * cos(turnController.error))
+            optimizedPower = -power * cos(turnController.error)
         }else{
             setDirection(direction)
-            setPower(power * cos(turnController.error))
+            optimizedPower = power * cos(turnController.error)
+        }
+
+        driveVoltage = if (optimizedPower > 0.0){
+            (optimizedPower * 12.volts) + controlData.velocityFF.kS
+        }else if (optimizedPower < 0.0){
+            (optimizedPower * 12.volts) - controlData.velocityFF.kS
+        }else{
+            0.volts
         }
     }
 
@@ -131,13 +141,19 @@ public class RioPIDSwerveModule(
         angularVelocity: AngularVelocity,
         direction: Angle
     ){
+        val optimizedVelocity: AngularVelocity
+
         if (angleDeltaBetween(this.direction, direction) > 90.0.degrees){
             setDirection(direction + 180.degrees)
-            setVelocity(-angularVelocity * cos(turnController.error))
+            optimizedVelocity = -angularVelocity * cos(turnController.error)
         }else{
             setDirection(direction)
-            setVelocity(angularVelocity * cos(turnController.error))
+            optimizedVelocity = angularVelocity * cos(turnController.error)
         }
+
+        velocityController.target = optimizedVelocity
+        // driveVoltage is a setter variable of ModuleIO
+        driveVoltage = velocityController.calculateOutput()
     }
 
     // Note: turnSpeed will only be set if the control scheme includes second order kinematics functionality.
@@ -153,16 +169,6 @@ public class RioPIDSwerveModule(
         recordOutput("$logTab/target", turnController.target.siValue)
         recordOutput("$logTab/controllerErrorRad", turnController.error.inUnit(radians))
         recordOutput("$logTab/controllerOutputVolts", turnController.calculateOutput().inUnit(volts))
-    }
-
-    private fun setVelocity(velocity: AngularVelocity) {
-        velocityController.target = velocity
-        // driveVoltage is a setter variable of ModuleIO
-        driveVoltage = velocityController.calculateOutput()
-    }
-
-    private fun setPower(power: Double) {
-        driveVoltage = power * 12.volts
     }
 
     override fun getModuleState(wheelRadius: Length): SwerveModuleState =

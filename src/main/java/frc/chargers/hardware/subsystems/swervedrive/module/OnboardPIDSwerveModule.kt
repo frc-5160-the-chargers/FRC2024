@@ -25,14 +25,14 @@ import kotlin.math.abs
  * A [SwerveModule] that uses onboard PID.
  */
 public class OnboardPIDSwerveModule private constructor( // Do not use this constructor
-    lowLevel: ModuleIOReal,
+    io: ModuleIOReal,
     private val controlData: SwerveControlData,
     private val turnMotor: SmartEncoderMotorController,
     private val turnEncoder: PositionEncoder,
     private val driveMotor: SmartEncoderMotorController,
     private val driveGearRatio: Double,
     private val turnGearRatio: Double
-): ModuleIO by lowLevel, SwerveModule {
+): ModuleIO by io, SwerveModule {
     // ModuleIO by lowLevel makes the lowLevel parameter provide implementation
     // of the ModuleIO interface to the class, reducing boilerplate code
 
@@ -70,7 +70,15 @@ public class OnboardPIDSwerveModule private constructor( // Do not use this cons
             SwerveModuleState(power,direction.asRotation2d()),
             turnEncoder.angularPosition.asRotation2d()
         )
-        driveVoltage = (modState.speedMetersPerSecond * 12.volts).coerceIn(-12.volts..12.volts)
+        val optimizedPower = modState.speedMetersPerSecond
+
+        driveVoltage = if (optimizedPower > 0.0){
+            (optimizedPower * 12.volts) + controlData.velocityFF.kS
+        }else if (optimizedPower < 0.0){
+            (optimizedPower * 12.volts) - controlData.velocityFF.kS
+        }else{
+            0.volts
+        }
         setDirection(modState.angle.asAngle())
     }
 
@@ -79,6 +87,7 @@ public class OnboardPIDSwerveModule private constructor( // Do not use this cons
             SwerveModuleState(angularVelocity.siValue, direction.asRotation2d()),
             turnEncoder.angularPosition.asRotation2d()
         )
+
         driveMotor.setAngularVelocity(
             AngularVelocity(modState.speedMetersPerSecond),
             drivePIDConstants,

@@ -10,6 +10,7 @@
   },
   "NTProvider": {
     "types": {
+      "/AdvantageKit/RealOutputs/Pivot/MechanismCanvas": "Mechanism2d",
       "/AdvantageKit/RealOutputs/Shooter/MechanismCanvas": "Mechanism2d",
       "/AdvantageKit/RealOutputs/Shooter/mechanism2d": "Mechanism2d",
       "/FMSInfo": "FMSInfo",
@@ -55,6 +56,9 @@
         "AprilTagCamLeft": {
           "open": true,
           "robotPoseEstimates": {
+            "Value#1": {
+              "open": true
+            },
             "open": true
           },
           "visionTargets": {
@@ -65,7 +69,6 @@
           }
         },
         "AprilTagCamRight": {
-          "open": true,
           "robotPoseEstimates": {
             "open": true
           },
@@ -91,8 +94,7 @@
           },
           "TopRightModule": {
             "open": true
-          },
-          "open": true
+          }
         },
         "IMU": {
           "accelerometer": {
@@ -101,6 +103,9 @@
           "altitude(SI value)": {
             "open": true
           }
+        },
+        "Pivot": {
+          "open": true
         },
         "PoseData": {
           "open": true
@@ -128,7 +133,9 @@
             "TopRightModule": {
               "open": true
             }
-          },
+          }
+        },
+        "Shooter": {
           "open": true
         },
         "open": true

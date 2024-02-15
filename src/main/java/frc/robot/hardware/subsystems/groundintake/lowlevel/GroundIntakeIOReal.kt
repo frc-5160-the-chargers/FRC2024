@@ -21,24 +21,30 @@ class GroundIntakeIOReal(
         listOf(topMotor)
     }
 
-
     override val intakeVoltages by GroundIntakeLog.quantityList{
         intakeMotors.map{ it.appliedVoltage }
     }
+
     override val intakeCurrents by GroundIntakeLog.quantityList{
         intakeMotors.map{ it.appliedCurrent }
     }
+
     override val intakeSpeeds by GroundIntakeLog.quantityList{
         intakeMotors.map{ it.encoder.angularVelocity / intakeGearRatio }
     }
 
+    override val intakeTemps by GroundIntakeLog.doubleList{
+        intakeMotors.map{ it.tempCelsius }
+    }
 
     override val conveyorVoltage by GroundIntakeLog.quantity{
         conveyorMotor.appliedVoltage
     }
+
     override val conveyorCurrent by GroundIntakeLog.quantity{
         conveyorMotor.appliedCurrent
     }
+
     override val conveyorSpeed by GroundIntakeLog.quantity{
         conveyorMotor.encoder.angularVelocity / conveyorGearRatio
     }

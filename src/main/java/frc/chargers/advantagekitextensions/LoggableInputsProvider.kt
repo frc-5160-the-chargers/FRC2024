@@ -758,7 +758,10 @@ public class LoggableInputsProvider(
                 table.put("$name/totalValues", field.size)
                 for (item in field){
                     item.pushToLog(table, "$name/Value#$counter")
-                    table.put("$name/Value#$counter/ISPRESENT", true)
+                    // not used for replay; simply used as useful information so that it can be distinguished
+                    // which logged items are actually within the list or not,
+                    // since items that are removed from the list still have their last logged value preserved.
+                    table.put("$name/Value#$counter/IsPresentInList", true)
                     counter++
                 }
 
@@ -766,7 +769,7 @@ public class LoggableInputsProvider(
                 // as not present.
                 if (previousNumItems > field.size){
                     for (i in field.size+1..previousNumItems){
-                        table.put("$name/Value#$i/ISPRESENT", false)
+                        table.put("$name/Value#$i/IsPresentInList", false)
                     }
                 }
 
