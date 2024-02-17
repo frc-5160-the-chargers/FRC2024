@@ -3,12 +3,15 @@ package frc.chargers.constants
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.inches
+import edu.wpi.first.math.system.plant.DCMotor
 
 /**
  * A class that holds Hardware constants for a [frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain].
  * This includes Track width, wheelbase, inertia, turn motor inversion, and max speed.
  */
 data class SwerveHardwareData(
+    val turnMotorType: DCMotor,
+    val driveMotorType: DCMotor,
     val invertTurnMotors: Boolean = false,
     // offsets the encoder readings to theoretically improve odometry accuracy
     val couplingRatio: Double? = null,
@@ -29,6 +32,8 @@ data class SwerveHardwareData(
          * related to MK4i L2 swerve modules.
          */
         fun mk4iL2(
+            turnMotorType: DCMotor,
+            driveMotorType: DCMotor,
             maxModuleSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
             maxModuleAcceleration: Acceleration = DEFAULT_MAX_MODULE_SPEED / Time(1.0) * 5.0,
             maxModuleRotationSpeed: AngularVelocity = DEFAULT_MAX_MODULE_ROTATION_SPEED,
@@ -38,6 +43,8 @@ data class SwerveHardwareData(
             turnInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_TURN_INERTIA,
             driveInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_DRIVE_INERTIA,
         ): SwerveHardwareData = SwerveHardwareData(
+            turnMotorType,
+            driveMotorType,
             invertTurnMotors = true,
             if (useCouplingRatio) 50.0 / 14.0 else null,
             150.0 / 7.0,
@@ -57,6 +64,8 @@ data class SwerveHardwareData(
          * related to MK4i L3 swerve modules.
          */
         fun mk4iL3(
+            turnMotorType: DCMotor,
+            driveMotorType: DCMotor,
             maxModuleSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
             maxModuleAcceleration: Acceleration = DEFAULT_MAX_MODULE_SPEED / Time(1.0) * 5.0,
             maxModuleRotationSpeed: AngularVelocity = DEFAULT_MAX_MODULE_ROTATION_SPEED,
@@ -66,6 +75,8 @@ data class SwerveHardwareData(
             turnInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_TURN_INERTIA,
             driveInertiaMoment: MomentOfInertia = DEFAULT_SWERVE_DRIVE_INERTIA,
         ): SwerveHardwareData = SwerveHardwareData(
+            turnMotorType,
+            driveMotorType,
             invertTurnMotors = true,
             if (useCouplingRatio) 50.0 / 14.0 else null,
             150.0 / 7.0,
@@ -85,6 +96,8 @@ data class SwerveHardwareData(
          * related to MK4i L1 swerve modules.
          */
         fun mk4iL1(
+            turnMotorType: DCMotor,
+            driveMotorType: DCMotor,
             maxModuleSpeed: Velocity = DEFAULT_MAX_MODULE_SPEED,
             useCouplingRatio: Boolean = true,
             maxModuleAcceleration: Acceleration = DEFAULT_MAX_MODULE_SPEED / Time(1.0) * 5.0,
@@ -94,6 +107,8 @@ data class SwerveHardwareData(
             trackWidth: Length,
             wheelBase: Length
         ): SwerveHardwareData = SwerveHardwareData(
+            turnMotorType,
+            driveMotorType,
             invertTurnMotors = true,
             if (useCouplingRatio) 50.0 / 14.0 else null,
             150.0 / 7.0,

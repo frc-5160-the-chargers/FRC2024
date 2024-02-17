@@ -10,12 +10,12 @@ import frc.chargers.utils.math.units.VoltagePerAngularVelocity
 /**
  * Constructs an [ArmFFEquation] with SI value gains.
  */
-fun ArmFFEquation(kS: Double, kG: Double, kV: Double, kA: Double = 0.0) =
+fun ArmFFEquation(kS: Number, kG: Number, kV: Number, kA: Number = 0.0) =
     ArmFFEquation(
-        Voltage(kS),
-        VoltagePerAngle(kG),
-        VoltagePerAngularVelocity(kV),
-        VoltagePerAngularAcceleration(kA)
+        Voltage(kS.toDouble()),
+        VoltagePerAngle(kG.toDouble()),
+        VoltagePerAngularVelocity(kV.toDouble()),
+        VoltagePerAngularAcceleration(kA.toDouble())
     )
 
 class ArmFFEquation(

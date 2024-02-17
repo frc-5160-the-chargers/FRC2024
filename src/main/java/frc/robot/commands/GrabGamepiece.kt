@@ -8,8 +8,8 @@ import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.constants.PATHFIND_CONSTRAINTS
-import frc.robot.constants.PID
+import frc.robot.CAMERA_YAW_TO_ROTATIONAL_VELOCITY_PID
+import frc.robot.PATHFIND_CONSTRAINTS
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -33,7 +33,7 @@ fun grabGamepiece(
         drivetrain.setRotationOverride(
             AimToObjectRotationOverride(
                 noteDetector,
-                PID.CAMERA_YAW_TO_ROTATIONAL_VELOCITY
+                CAMERA_YAW_TO_ROTATIONAL_VELOCITY_PID
             )
         )
     }
@@ -62,6 +62,7 @@ fun grabGamepiece(
         drivetrain.stop()
         drivetrain.removeRotationOverride()
         shooter.setIdle()
+        pivot.setIdle()
         groundIntake.setIdle()
     }
 }

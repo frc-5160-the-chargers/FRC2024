@@ -29,9 +29,6 @@ public class ModuleIOReal(
         text = "It seems that the battery voltage from the Robot controller is being reported as extremely low(possibly 0)."
     )
 
-
-
-
     override var turnVoltage: Voltage by logInputs.quantity(
         getValue = {if (turnMotor is SmartEncoderMotorController) turnMotor.appliedVoltage else 0.volts},
         setValue = {
@@ -45,8 +42,6 @@ public class ModuleIOReal(
             driveMotor.setVoltage(it.coerceIn(getVoltageRange()))
         }
     )
-
-
 
     override val logTab: String = logInputs.namespace
 

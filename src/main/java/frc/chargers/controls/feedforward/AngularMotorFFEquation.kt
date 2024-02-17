@@ -11,11 +11,11 @@ import frc.chargers.utils.math.units.VoltagePerAngularVelocity
 /**
  * Constructs an [AngularMotorFFEquation] with SI value gains.
  */
-fun AngularMotorFFEquation(kS: Double, kV: Double, kA: Double = 0.0) =
+fun AngularMotorFFEquation(kS: Number, kV: Number, kA: Number = 0.0) =
     AngularMotorFFEquation(
-        Voltage(kS),
-        VoltagePerAngularVelocity(kV),
-        VoltagePerAngularAcceleration(kA)
+        Voltage(kS.toDouble()),
+        VoltagePerAngularVelocity(kV.toDouble()),
+        VoltagePerAngularAcceleration(kA.toDouble())
     )
 
 

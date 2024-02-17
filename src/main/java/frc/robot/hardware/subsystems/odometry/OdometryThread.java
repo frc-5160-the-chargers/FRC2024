@@ -14,7 +14,7 @@ package frc.robot.hardware.subsystems.odometry;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.Notifier;
-import frc.robot.constants.DrivetrainConstantsKt;
+import frc.robot.GlobalConstantsKt;
 import org.littletonrobotics.junction.Logger;
 
 import java.util.ArrayList;
@@ -64,7 +64,7 @@ public class OdometryThread {
 
     public void start() {
         if (timestampQueues.size() > 0) {
-            notifier.startPeriodic(1.0 / DrivetrainConstantsKt.ODOMETRY_UPDATE_FREQUENCY_HZ);
+            notifier.startPeriodic(1.0 / GlobalConstantsKt.ODOMETRY_UPDATE_FREQUENCY_HZ);
         }
     }
 

@@ -8,17 +8,12 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
 
 
-class Shooter(
-    private val io: ShooterIO,
-    /**
-     * The time delay of stopping the shooter,
-     * on
-     */
-    private val gamepieceDetectionLoopPeriodDelay: Int = 0
-): SubsystemBase() {
+class Shooter(private val io: ShooterIO): SubsystemBase() {
+
+
     val hasBeamBreakSensor: Boolean get() = io.hasBeamBreakSensor
 
-    val hasGamepiece: Boolean get() = io.hasGamepiece
+    val hasGamepiece: Boolean get() = io.hasNote
 
     fun setIdle(){
         io.intake(0.volts)
@@ -29,7 +24,7 @@ class Shooter(
     }
 
     fun intake(voltage: Voltage){
-        if (io.hasGamepiece && io.hasBeamBreakSensor){
+        if (io.hasNote && io.hasBeamBreakSensor){
             io.intake(0.volts)
         }else{
             io.intake(voltage)

@@ -3,16 +3,17 @@ package frc.robot.hardware.subsystems.shooter.lowlevel
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DigitalInput
-import frc.chargers.constants.DEFAULT_GEAR_RATIO
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 
-
+/**
+ * An implementation of the low level component of the shooter, on the real robot.
+ */
 @Suppress("unused")
 class ShooterIOReal(
     private val beamBreakSensor: DigitalInput? = null,
     private val topMotor: SmartEncoderMotorController,
     private val bottomMotor: SmartEncoderMotorController? = null,
-    private val gearRatio: Double = DEFAULT_GEAR_RATIO,
+    private val gearRatio: Double = 1.0,
 ): ShooterIO {
     private val allMotors = mutableListOf(topMotor).apply{
         if (bottomMotor != null){
@@ -20,7 +21,7 @@ class ShooterIOReal(
         }
     }
 
-    override val hasGamepiece by ShooterLog.boolean{
+    override val hasNote by ShooterLog.boolean{
         beamBreakSensor?.get() ?: false
     }
 

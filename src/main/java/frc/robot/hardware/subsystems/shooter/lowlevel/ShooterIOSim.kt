@@ -5,18 +5,23 @@ import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import frc.chargers.framework.ChargerRobot
 
+/**
+ * An implementation of the low level component of the shooter, within simulation.
+ */
 @Suppress("unused")
 class ShooterIOSim(
     private val topMotorSim: DCMotorSim,
     private val bottomMotorSim: DCMotorSim? = null,
 ): ShooterIO {
-    private val motorSims = mutableListOf(topMotorSim).apply{
-        if (bottomMotorSim != null){
-            add(bottomMotorSim)
-        }
+
+    private val motorSims = if (bottomMotorSim != null){
+        listOf(topMotorSim, bottomMotorSim)
+    }else{
+        listOf(topMotorSim)
     }
 
     private var _intakeVoltages: Array<Voltage> = motorSims.map{ Voltage(0.0) }.toTypedArray() // 1 voltage value per sim
+
 
     init{
         ChargerRobot.runPeriodically(addToFront = true) {
@@ -26,7 +31,7 @@ class ShooterIOSim(
         }
     }
 
-    override val hasGamepiece by ShooterLog.boolean{
+    override val hasNote by ShooterLog.boolean{
         false
     }
 

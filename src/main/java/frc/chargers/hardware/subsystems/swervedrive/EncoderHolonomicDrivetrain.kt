@@ -11,7 +11,6 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
-import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.SubsystemBase
@@ -62,8 +61,6 @@ public fun EncoderHolonomicDrivetrain(
     turnMotors: SwerveMotors<EncoderMotorController>,
     turnEncoders: SwerveEncoders<PositionEncoder> = turnMotors.getEncoders(),
     driveMotors: SwerveMotors<EncoderMotorController>,
-    turnGearbox: DCMotor,
-    driveGearbox: DCMotor,
     hardwareData: SwerveHardwareData,
     controlData: SwerveControlData,
     useOnboardPID: Boolean = false,
@@ -77,25 +74,25 @@ public fun EncoderHolonomicDrivetrain(
             topLeft = RioPIDSwerveModule(
                 ModuleIOSim(
                     topLeftLogInputs,
-                    turnGearbox, driveGearbox, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
+                    hardwareData.turnMotorType, hardwareData.driveMotorType, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
                 ), controlData
             ),
             topRight = RioPIDSwerveModule(
                 ModuleIOSim(
                     topRightLogInputs,
-                    turnGearbox, driveGearbox, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
+                    hardwareData.turnMotorType, hardwareData.driveMotorType, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
                 ), controlData
             ),
             bottomLeft = RioPIDSwerveModule(
                 ModuleIOSim(
                     bottomLeftLogInputs,
-                    turnGearbox, driveGearbox, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
+                    hardwareData.turnMotorType, hardwareData.driveMotorType, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
                 ), controlData
             ),
             bottomRight = RioPIDSwerveModule(
                 ModuleIOSim(
                     bottomRightLogInputs,
-                    turnGearbox, driveGearbox, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
+                    hardwareData.turnMotorType, hardwareData.driveMotorType, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
                 ), controlData
             ),
             hardwareData, controlData, gyro, startingPose, *simPoseSuppliers.toTypedArray()
@@ -684,7 +681,7 @@ public class EncoderHolonomicDrivetrain(
             ChargerRobot.LOOP_PERIOD.inUnit(seconds)
         )
 
-        recordOutput("Drivetrain(Swerve)/rawKinematicsStates", SwerveModuleState.struct, *kinematics.toSwerveModuleStates(goal))
+        recordOutput("Drivetrain(Swerve)/RawKinematicsStates", SwerveModuleState.struct, *kinematics.toSwerveModuleStates(goal))
         recordOutput("Drivetrain(Swerve)/DesiredModuleStates", SwerveModuleState.struct, *setpoint.moduleStates)
         recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Setpoint)", ChassisSpeeds.struct, setpoint.chassisSpeeds)
         recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Goal)", ChassisSpeeds.struct, goal)

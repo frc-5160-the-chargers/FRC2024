@@ -8,8 +8,12 @@ import org.photonvision.simulation.VisionTargetSim
 
 fun VisionTargetSim(
     pose: UnitPose3d,
-    targetModel: TargetModel
-): VisionTargetSim = VisionTargetSim(
-    pose.inUnit(meters),
-    targetModel
-)
+    targetModel: TargetModel,
+    id: Int? = null,
+): VisionTargetSim = if (id == null){
+    VisionTargetSim(pose.inUnit(meters), targetModel)
+}else{
+    VisionTargetSim(pose.inUnit(meters), targetModel, id)
+}
+
+

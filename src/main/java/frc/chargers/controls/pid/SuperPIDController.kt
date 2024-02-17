@@ -165,4 +165,11 @@ public open class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*
                 pidController.setPID(value.kP, value.kI, value.kD)
             }
         }
+
+    /**
+     * Disables self sustain for controllers.
+     */
+    public fun disableSelfSustain(){
+        ChargerRobot.removeFromLoop(::calculateOutput)
+    }
 }

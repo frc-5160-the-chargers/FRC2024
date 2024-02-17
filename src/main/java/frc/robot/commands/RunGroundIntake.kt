@@ -19,5 +19,6 @@ fun runGroundIntake(
     loop{
         shooter.intake(-0.2)
         groundIntake.intake(0.7)
+        pivot.setIdle()
     }
 }

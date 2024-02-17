@@ -11,7 +11,7 @@ import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
-import frc.robot.constants.ODOMETRY_UPDATE_FREQUENCY_HZ
+import frc.robot.ODOMETRY_UPDATE_FREQUENCY_HZ
 import frc.robot.hardware.subsystems.odometry.OdometryThread
 import org.littletonrobotics.junction.Logger
 import kotlin.math.roundToInt
@@ -31,7 +31,7 @@ class ModuleOdometryIO(
     private val driveMotorEncoder = driveMotor.getEncoder()
     private val turnMotorEncoder = turnMotor.getEncoder()
 
-    // used for pushing to log and replay mode
+    // handles logging and replay for wheel odometry of each module
     private val logInputs = LoggableInputsProvider(
         "MultiThreadedOdometry/$moduleName",
         runBeforeInputUpdate = OdometryThread.ODOMETRY_LOCK::lock,

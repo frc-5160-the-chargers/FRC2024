@@ -6,7 +6,8 @@ import frc.chargers.commands.runOnceCommand
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.AimToAprilTagRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.constants.PID
+import frc.robot.ANGLE_TO_ROTATIONAL_VELOCITY_PID
+import frc.robot.CAMERA_YAW_TO_ROTATIONAL_VELOCITY_PID
 import kotlin.jvm.optionals.getOrNull
 
 fun enableAimToSpeaker(
@@ -21,9 +22,9 @@ fun enableAimToSpeaker(
                 7
             },
             apriltagVision,
-            PID.CAMERA_YAW_TO_ROTATIONAL_VELOCITY,
+            CAMERA_YAW_TO_ROTATIONAL_VELOCITY_PID,
             aimToTagPoseIfNotFound = true,
-            angleToVelocityPID = PID.ANGLE_TO_ROTATIONAL_VELOCITY
+            angleToVelocityPID = ANGLE_TO_ROTATIONAL_VELOCITY_PID
         )
     )
 }

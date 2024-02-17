@@ -12,8 +12,8 @@ class GroundIntakeIOReal(
 
     private val conveyorVoltageMultiplier: Double = 1.0,
 
-    private val intakeGearRatio: Double,
-    private val conveyorGearRatio: Double,
+    private val intakeGearRatio: Double = 1.0,
+    private val conveyorGearRatio: Double = 1.0,
 ): GroundIntakeIO {
     private val intakeMotors = if (bottomMotor != null){
         listOf(topMotor, bottomMotor)

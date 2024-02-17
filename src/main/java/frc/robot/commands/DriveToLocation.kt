@@ -15,20 +15,18 @@ import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.utils.Precision
 import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.geometry.ofUnit
-import frc.robot.constants.PATHFIND_CONSTRAINTS
-import frc.robot.constants.PID
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.robot.CAMERA_YAW_TO_OPEN_LOOP_STRAFE_PID
+import frc.robot.NO_TARGET_FOUND_ALERT
+import frc.robot.OPEN_LOOP_STRAFE_PRECISION
+import frc.robot.PATHFIND_CONSTRAINTS
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import org.littletonrobotics.junction.Logger
 import kotlin.jvm.optionals.getOrNull
-
-private val noTargetFoundAlert = Alert.warning(text = "A command is attempting to aim to an apriltag, but none can be found.")
-private val AIM_PRECISION = Precision.Within(Scalar(0.5))
-
 
 enum class FieldLocation(
     val blueAllianceApriltagId: Int,
@@ -70,7 +68,7 @@ fun driveToLocation(
 
         DriverStation.Alliance.Red -> target.redAllianceApriltagId
     }
-    val targetPose =
+    val targetPose: UnitPose2d =
         ChargerRobot
             .APRILTAG_LAYOUT
             .getTagPose(targetId)
@@ -81,7 +79,7 @@ fun driveToLocation(
 
     val aimingController by getOnceDuringRun {
         SuperPIDController(
-            PID.CAMERA_YAW_TO_OPEN_LOOP_STRAFE,
+            CAMERA_YAW_TO_OPEN_LOOP_STRAFE_PID,
             getInput = { Scalar(apriltagVision.bestTarget?.tx ?: 0.0) },
             target = Scalar(0.0),
             outputRange = Scalar(-0.5)..Scalar(0.5)
@@ -93,16 +91,15 @@ fun driveToLocation(
 
         return if (bestTarget == null){
             println("NO TARGET FOUND!")
+            NO_TARGET_FOUND_ALERT.active = true
             false
         }else if (targetId != bestTarget.fiducialId){
-            Alert.warning(text =
-            "An apriltag command can find an apriltag, " +
+            val alertText = "An apriltag command can find an apriltag, " +
                     "but it does not match the id of $targetId. " +
                     "(Found id: " + bestTarget.fiducialId
-            ).active = true
-            println("An apriltag command can find an apriltag, " +
-                    "but it does not match the id of $targetId. " +
-                    "(Found id: " + bestTarget.fiducialId)
+
+            Alert.warning(text = alertText).active = true
+            println(alertText)
             false
         }else{
             true
@@ -114,7 +111,7 @@ fun driveToLocation(
     fun hasFinishedAiming(): Boolean {
         val aimingError = aimingController.error
         Logger.recordOutput("AimToLocation/aimingError", aimingError.siValue)
-        return (aimingError in AIM_PRECISION.allowableError).also{
+        return (aimingError in OPEN_LOOP_STRAFE_PRECISION.allowableError).also{
             Logger.recordOutput("AimToLocation/hasFinishedAiming", it)
         }
     }
@@ -126,6 +123,7 @@ fun driveToLocation(
 
     runOnce{
         apriltagVision.reset()
+        println(targetPose)
     }
 
     runParallelUntilAllFinish {
@@ -134,7 +132,7 @@ fun driveToLocation(
         runSequentially{
             if (path != null){
                 runIf(
-                    { abs(drivetrain.poseEstimator.robotPose.translation.norm - targetPose.translation.norm) > 2.meters },
+                    { (abs(drivetrain.poseEstimator.robotPose.translation.norm - targetPose.translation.norm) > 1.meters).also{ println("Pathfinding?$it") } },
                     onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
                     onFalse = AutoBuilder.followPath(path)
                 )

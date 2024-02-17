@@ -13,11 +13,11 @@ import frc.chargers.utils.math.units.VoltagePerVelocity
 /**
  * Constructs a [LinearMotorFFEquation] with SI value gains.
  */
-fun LinearMotorFFEquation(kS: Double, kV: Double, kA: Double = 0.0) =
+fun LinearMotorFFEquation(kS: Number, kV: Number, kA: Number = 0.0) =
     LinearMotorFFEquation(
-        Voltage(kS),
-        VoltagePerVelocity(kV),
-        VoltagePerAcceleration(kA)
+        Voltage(kS.toDouble()),
+        VoltagePerVelocity(kV.toDouble()),
+        VoltagePerAcceleration(kA.toDouble())
     )
 
 

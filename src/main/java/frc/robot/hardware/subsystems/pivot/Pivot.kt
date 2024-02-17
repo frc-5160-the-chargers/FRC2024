@@ -4,6 +4,7 @@ import com.batterystaple.kmeasure.dimensions.AngleDimension
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
@@ -48,12 +49,6 @@ class Pivot(
     private val feedforward: ArmFFEquation = ArmFFEquation(0.0,0.0,0.0),
     private val precision: Precision.Within<AngleDimension> = Precision.Within(0.5.degrees)
 ): SubsystemBase() {
-    private var motionProfileSetpoint = AngularMotionProfileState(io.position)
-
-    @AutoLogOutput
-    var hasHitPivotTarget: Boolean = true
-        private set
-
 
     @AutoLogOutput
     private val mechanismCanvas = Mechanism2d(3.0, 3.0)
@@ -80,6 +75,14 @@ class Pivot(
             )
         )
     }
+
+
+
+    private var motionProfileSetpoint = AngularMotionProfileState(io.position)
+
+    @AutoLogOutput
+    var hasHitPivotTarget: Boolean = true
+        private set
 
     fun setIdle(){
         io.setVoltage(0.volts)
@@ -109,7 +112,7 @@ class Pivot(
         if (hasHitPivotTarget){
             io.setVoltage(0.volts)
         }else{
-            io.setPosition(
+            io.setPositionSetpoint(
                 setpointPosition,
                 pidConstants,
                 feedforward
@@ -118,6 +121,8 @@ class Pivot(
     }
 
     fun setVoltage(voltage: Voltage) = io.setVoltage(voltage)
+
+    fun setSpeed(speed: Double) = setVoltage(speed * 12.volts)
 
     fun setAngleCommand(target: Angle): Command =
         buildCommand{
@@ -132,8 +137,10 @@ class Pivot(
 
     override fun periodic(){
         pivotVisualizer.angle = io.position.inUnit(degrees)
+
+        // tbd at the moment; haven't gotten 3d mechanisms to work yet
         Logger.recordOutput(
-            "Shooter/PivotPosition3d",
+            "Pivot/Mechanism3dPose",
             Pose3d.struct,
             Pose3d(
                 Translation3d(0.0, 0.0, 0.0),

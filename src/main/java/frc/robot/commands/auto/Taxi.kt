@@ -25,6 +25,10 @@ fun basicTaxi(
 ): Command =
     buildCommand("Taxi Auto"){
         addRequirements(drivetrain)
+        if (shooter != null) addRequirements(shooter)
+        if (pivot != null) addRequirements(pivot)
+        if (groundIntake != null) addRequirements(groundIntake)
+
 
         loopFor(3.seconds){
             drivetrain.swerveDrive(power,0.0,0.0)

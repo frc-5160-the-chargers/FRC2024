@@ -14,6 +14,14 @@ class GroundIntake(io: GroundIntakeIO): SubsystemBase(), GroundIntakeIO by io { 
         intake(0.volts)
     }
 
+    fun intake(){
+        intake(0.5)
+    }
+
+    fun outtake(){
+        intake(-0.3)
+    }
+
     fun intake(percentOut: Double){
         intake(percentOut * 12.volts)
     }

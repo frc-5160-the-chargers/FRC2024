@@ -134,7 +134,7 @@ public class OnboardPIDSwerveModule private constructor( // Do not use this cons
                 currentProfileState.position,
                 turnPIDConstants,
                 extraVoltage = feedforwardOutput,
-                turnEncoder = turnEncoder,
+                absoluteEncoder = turnEncoder,
                 motorToEncoderRatio = turnGearRatio,
                 continuousWrap = true,
             )
@@ -142,7 +142,7 @@ public class OnboardPIDSwerveModule private constructor( // Do not use this cons
             turnMotor.setAngularPosition(
                 direction,
                 turnPIDConstants,
-                turnEncoder = turnEncoder,
+                absoluteEncoder = turnEncoder,
                 motorToEncoderRatio = turnGearRatio,
                 continuousWrap = true,
             )

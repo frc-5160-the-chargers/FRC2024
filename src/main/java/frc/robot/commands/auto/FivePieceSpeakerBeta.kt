@@ -1,17 +1,23 @@
 package frc.robot.commands.auto
 
+import kotlin.math.abs
+import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.units.degrees
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.ConditionalCommand
+import edu.wpi.first.wpilibj2.command.WaitCommand
+import frc.chargers.commands.InstantCommand
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.pathplannerextensions.PathPlannerPaths
+import frc.robot.PATHFIND_CONSTRAINTS
 import frc.robot.commands.enableAimToSpeaker
 import frc.robot.commands.grabGamepiece
 import frc.robot.commands.shootInSpeaker
-import frc.robot.constants.PATHFIND_CONSTRAINTS
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
@@ -20,13 +26,13 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 
 @Suppress("unused")
 fun fivePieceSpeakerBeta(
+    aprilTagVision: AprilTagVisionPipeline,
+    noteDetector: ObjectVisionPipeline,
+
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
     pivot: Pivot,
     groundIntake: GroundIntake,
-
-    apriltagVision: AprilTagVisionPipeline,
-    noteDetector: ObjectVisionPipeline
 ): Command = buildCommand {
     // adds a command that makes the drivebase follow a path, while intaking gamepieces.
     fun pathAndIntake(path: PathPlannerPath): Command =
@@ -36,7 +42,20 @@ fun fivePieceSpeakerBeta(
             drivetrain, pivot, shooter, groundIntake
         )
 
-
+    fun aimToSpeakerIfNecessary(
+        path: PathPlannerPath,
+        shouldDelay: Boolean = false
+    ): Command = ConditionalCommand(
+        if (shouldDelay){
+            enableAimToSpeaker(drivetrain, aprilTagVision).andThen(WaitCommand(0.2))
+        }else{
+            enableAimToSpeaker(drivetrain, aprilTagVision)
+        },
+        InstantCommand{}
+    ){
+        // condition
+        abs(path.allPathPoints.last().rotationTarget.target.degrees - drivetrain.heading.inUnit(degrees)) < 10.0
+    }
 
 
     val trajGroupName = "5pAutoLeft"
@@ -57,7 +76,7 @@ fun fivePieceSpeakerBeta(
 
     // note 3
     +pathAndIntake(paths[1])
-    +enableAimToSpeaker(drivetrain, apriltagVision)
+    +aimToSpeakerIfNecessary(paths[1], shouldDelay = false)
     runParallelUntilAllFinish{
         +AutoBuilder.pathfindThenFollowPath(paths[2], PATHFIND_CONSTRAINTS)
 
@@ -67,12 +86,12 @@ fun fivePieceSpeakerBeta(
 
     // note 4
     +pathAndIntake(paths[3])
-    +enableAimToSpeaker(drivetrain, apriltagVision)
+    +aimToSpeakerIfNecessary(paths[1], shouldDelay = true)
     +shootInSpeaker(shooter, pivot, 0.7)
 
     // note 5
     +pathAndIntake(paths[4])
-    +enableAimToSpeaker(drivetrain, apriltagVision)
+    +aimToSpeakerIfNecessary(paths[1], shouldDelay = false)
     runParallelUntilAllFinish{
         +AutoBuilder.pathfindThenFollowPath(paths[2], PATHFIND_CONSTRAINTS)
 
