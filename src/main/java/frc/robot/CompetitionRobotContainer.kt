@@ -8,6 +8,7 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix6.signals.SensorDirectionValue
 import com.kauailabs.navx.frc.AHRS
+import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.math.geometry.Pose2d
@@ -345,7 +346,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
     override val autonomousCommand: Command
-        get() = AutoChooser.selected
+        get() = buildCommand{
+            +AutoBuilder.followPath(PathPlannerPath.fromPathFile("Test Path"))
+        }
 
 
     override val testCommand: Command get(){

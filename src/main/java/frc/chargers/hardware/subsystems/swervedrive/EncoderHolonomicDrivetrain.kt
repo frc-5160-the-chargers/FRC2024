@@ -44,15 +44,15 @@ import frc.external.frc6328.SwerveSetpointGenerator
 import org.littletonrobotics.junction.Logger.*
 import java.util.Optional
 import kotlin.math.pow
+import kotlin.math.abs
 
+private val topLeftLogInputs = LoggableInputsProvider("Drivetrain(Swerve)/TopLeftModule")
 
-private val topLeftLogInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/TopLeftModule")
+private val topRightLogInputs = LoggableInputsProvider("Drivetrain(Swerve)/TopRightModule")
 
-private val topRightLogInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/TopRightModule")
+private val bottomLeftLogInputs = LoggableInputsProvider("Drivetrain(Swerve)/BottomLeftModule")
 
-private val bottomLeftLogInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/BottomLeftModule")
-
-private val bottomRightLogInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/BottomRightModule")
+private val bottomRightLogInputs = LoggableInputsProvider("Drivetrain(Swerve)/BottomRightModule")
 
 
 /**
@@ -86,11 +86,9 @@ public class EncoderHolonomicDrivetrain(
         driveMotor: EncoderMotorController
     ): ModuleIO = if (RobotBase.isReal()){
         ModuleIOReal(
-            logInputs,
-            useOnboardPID,
-            turnMotor, turnEncoder, driveMotor,
-            hardwareData.turnGearRatio,
-            hardwareData.driveGearRatio
+            logInputs, useOnboardPID, turnMotor,
+            turnEncoder, driveMotor, hardwareData.turnGearRatio,
+            hardwareData.driveGearRatio, hardwareData.couplingRatio
         )
     }else{
         ModuleIOSim(
@@ -196,12 +194,10 @@ public class EncoderHolonomicDrivetrain(
         val optimizedState = SwerveModuleState.optimize(
             state, moduleIO.direction.asRotation2d()
         )
-        /*
+
         optimizedState.speedMetersPerSecond *= abs(
             (optimizedState.angle - moduleIO.direction.asRotation2d()).cos
         )
-
-         */
 
         setDirectionWithModifiers(moduleIO, optimizedState.angle.asAngle())
 

@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj.RobotController
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.constants.DEFAULT_GEAR_RATIO
 import frc.chargers.controls.pid.PIDConstants
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.EncoderMotorController
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
@@ -25,7 +26,10 @@ class ModuleIOReal(
     private val driveMotor: EncoderMotorController,
     private val turnGearRatio: Double = DEFAULT_GEAR_RATIO,
     private val driveGearRatio: Double = DEFAULT_GEAR_RATIO,
+    couplingRatio: Double? = null
 ): ModuleIO() {
+
+    private var couplingOffset = 0.degrees
 
     init{
         if (useOnboardPID){
@@ -33,6 +37,11 @@ class ModuleIOReal(
                 "Your drive and turn motors must have onboard pid control available."
             }
             disableDefaultControllers()
+        }
+        if (couplingRatio != null){
+            ChargerRobot.runPeriodically {
+                couplingOffset -= couplingRatio * direction
+            }
         }
     }
 
@@ -72,7 +81,7 @@ class ModuleIOReal(
     }
 
     override val wheelTravel by logInputs.quantity{
-        (driveMotor.encoder.angularPosition - startingWheelTravel) / driveGearRatio
+        (driveMotor.encoder.angularPosition + couplingOffset - startingWheelTravel) / driveGearRatio
     }
 
     override val driveCurrent by logInputs.quantity{
