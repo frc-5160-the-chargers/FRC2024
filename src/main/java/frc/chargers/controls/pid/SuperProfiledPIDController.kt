@@ -4,14 +4,13 @@ package frc.chargers.controls.pid
 import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.Quantity
-import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.seconds
 import frc.chargers.controls.motionprofiling.MotionProfile
 import frc.chargers.controls.motionprofiling.MotionProfileState
+import frc.chargers.controls.motionprofiling.optimizeForContinuousInput
 import frc.chargers.utils.Precision
-import frc.chargers.utils.math.inputModulus
 import kotlin.internal.LowPriorityInOverloadResolution
 
 
@@ -91,15 +90,13 @@ class SuperProfiledPIDController<PosI: Dimension<*,*,*,*>, VelI: Dimension<*,*,*
         val input = getInput()
         // optimizes continuous input for motion profiles
         if (continuousInputRange != null){
-            val errorBound = (continuousInputRange.endInclusive - continuousInputRange.start) / 2.0
-            val goalMinDistance =
-                (targetState.position - input)
-                    .inputModulus(-errorBound..errorBound)
-            val setpointMinDistance =
-                (setpoint.position - input)
-                    .inputModulus(-errorBound..errorBound)
-            targetState.position = goalMinDistance + input
-            setpoint.position = setpointMinDistance + input
+            // see motionprofiling directory
+            optimizeForContinuousInput(
+                setpoint,
+                targetState,
+                input,
+                continuousInputRange
+            )
         }
 
         // steps the setpoint by 0.02 seconds closer to the goal

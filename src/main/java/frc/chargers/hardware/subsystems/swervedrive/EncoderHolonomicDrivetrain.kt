@@ -17,10 +17,9 @@ import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
-import frc.chargers.constants.SwerveAzimuthControl
-import frc.chargers.constants.SwerveControlData
-import frc.chargers.constants.SwerveHardwareData
+import frc.chargers.constants.*
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
+import frc.chargers.controls.motionprofiling.optimizeForContinuousInput
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.EncoderMotorController
 import frc.chargers.hardware.subsystems.robotposition.RobotPoseMonitor
@@ -44,7 +43,6 @@ import frc.chargers.wpilibextensions.kinematics.*
 import frc.external.frc6328.SwerveSetpointGenerator
 import org.littletonrobotics.junction.Logger.*
 import java.util.Optional
-import kotlin.math.abs
 import kotlin.math.pow
 
 
@@ -97,8 +95,16 @@ public class EncoderHolonomicDrivetrain(
     }else{
         ModuleIOSim(
             logInputs,
-            turnMotorSim = DCMotorSim(hardwareData.turnMotorType, hardwareData.turnGearRatio, 0.004096955),
-            driveMotorSim = DCMotorSim(hardwareData.driveMotorType, hardwareData.driveGearRatio, 0.025)
+            turnMotorSim = DCMotorSim(
+                hardwareData.turnMotorType,
+                hardwareData.turnGearRatio,
+                hardwareData.turnInertiaMoment.inUnit(kilo.grams * (meters * meters))
+            ),
+            driveMotorSim = DCMotorSim(
+                hardwareData.driveMotorType,
+                hardwareData.driveGearRatio,
+                hardwareData.driveInertiaMoment.inUnit(kilo.grams * (meters * meters))
+            )
         )
     }
 
@@ -133,25 +139,37 @@ public class EncoderHolonomicDrivetrain(
     private fun setDirectionWithModifiers(moduleIO: ModuleIO, goal: Angle){
         when (controlData.azimuthControl){
             is SwerveAzimuthControl.ProfiledPID -> {
+                var setpointState = allModuleSetpoints[moduleIO]!!
+                val goalState = AngularMotionProfileState(goal)
+
                 fun calculateSetpoint(): AngularMotionProfileState =
                     controlData.azimuthControl.motionProfile.calculate(
                         ChargerRobot.LOOP_PERIOD,
-                        setpoint = allModuleSetpoints[moduleIO] ?: error("Module IO not found error."),
-                        goal = AngularMotionProfileState(goal)
+                        setpoint = setpointState,
+                        goal = goalState,
                     )
 
-                val setpoint = calculateSetpoint()
-                allModuleSetpoints[moduleIO] = setpoint
-
+                // optimizes profile states for continuous input
+                optimizeForContinuousInput(
+                    setpointState,
+                    goalState,
+                    moduleIO.direction,
+                    continuousInputRange = 0.degrees..360.degrees
+                )
+                // calculates the new setpoint
+                setpointState = calculateSetpoint()
                 // setpoint already incremented; thus,
                 // calculates the future motion profile state instead of the current one
                 val futureSetpoint = calculateSetpoint()
+                // refreshes the data storage for setpoints
+                allModuleSetpoints[moduleIO] = setpointState
 
+                // uses pid control to move to the calculated setpoint, to acheive the target goal.
                 moduleIO.setDirectionSetpoint(
-                    setpoint.position,
+                    allModuleSetpoints[moduleIO]!!.position,
                     controlData.azimuthControl.pidConstants,
                     controlData.azimuthControl.ffEquation.calculatePlantInversion(
-                        setpoint.velocity,
+                        allModuleSetpoints[moduleIO]!!.velocity,
                         futureSetpoint.velocity
                     )
                 )
@@ -178,9 +196,12 @@ public class EncoderHolonomicDrivetrain(
         val optimizedState = SwerveModuleState.optimize(
             state, moduleIO.direction.asRotation2d()
         )
+        /*
         optimizedState.speedMetersPerSecond *= abs(
             (optimizedState.angle - moduleIO.direction.asRotation2d()).cos
         )
+
+         */
 
         setDirectionWithModifiers(moduleIO, optimizedState.angle.asAngle())
 
@@ -236,6 +257,12 @@ public class EncoderHolonomicDrivetrain(
 
 
     init{
+        if (hardwareData.invertTurnMotors && RobotBase.isReal()){
+            turnMotors.forEach{
+                it.inverted = !it.inverted
+            }
+        }
+
         AutoBuilder.configureHolonomic(
             { poseEstimator.robotPose.inUnit(meters) },
             { poseEstimator.resetPose(it.ofUnit(meters)) },

@@ -162,14 +162,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             closedLoopRampRate = 48.0
         },
         controlData = SwerveControlData(
-            azimuthControl = SwerveAzimuthControl.ProfiledPID(
+            azimuthControl = SwerveAzimuthControl.PID(
                 PIDConstants(12.0,0,0.2),
-                motionProfile = AngularTrapezoidProfile(
-                    maxVelocity = 13.0.radians / 1.seconds,
-                    maxAcceleration = 10.radians / 1.seconds / 1.seconds,
-                )
             ),
-            openLoopDiscretizationRate = 4.2,
+            openLoopDiscretizationRate = 4.5,
             velocityPID = PIDConstants(0.2,0.0,0.0),
             velocityFF = if (isReal()){
                 AngularMotorFFEquation(0.12117,0.13210)
