@@ -58,7 +58,7 @@ fun sixPieceSpeakerBeta(
 
 
 
-    val trajGroupName = "6pSpeakerBeta"
+    val trajGroupName = "6pAutoCenter"
     val paths = PathPlannerPaths.fromChoreoTrajectoryGroup(trajGroupName)
 
     addRequirements(drivetrain, shooter, groundIntake)

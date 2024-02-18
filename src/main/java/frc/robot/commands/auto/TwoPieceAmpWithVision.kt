@@ -31,18 +31,18 @@ fun twoPieceAmpWithVision(
     +shootInAmp(pivot, shooter,0.3, 0.5.seconds)
 
     runOnce{
-        drivetrain.poseEstimator.resetToPathplannerTrajectory("2pAmpGrab")
+        drivetrain.poseEstimator.resetToPathplannerTrajectory("AmpGrabG2")
     }
 
     +grabGamepiece(
-        path = PathPlannerPath.fromPathFile("2pAmpGrab"),
+        path = PathPlannerPath.fromPathFile("AmpGrabG2"),
         noteDetector = noteDetector,
         drivetrain, pivot, shooter, groundIntake
     )
 
     +driveToLocation(
         target = FieldLocation.AMP,
-        path = PathPlannerPath.fromPathFile("2pAmpScore"),
+        path = PathPlannerPath.fromPathFile("AmpScoreG2"),
         drivetrain, apriltagVision, pivot
     )
 

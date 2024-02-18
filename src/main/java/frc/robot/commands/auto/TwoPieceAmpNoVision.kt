@@ -22,19 +22,19 @@ fun twoPieceAmpNoVision(
     addRequirements(drivetrain, shooter, groundIntake)
 
     runOnce{
-        drivetrain.poseEstimator.resetToPathplannerTrajectory("2pAmpGrab")
+        drivetrain.poseEstimator.resetToPathplannerTrajectory("AmpGrabG2")
     }
 
     +shootInAmp(pivot, shooter,0.3)
 
     runParallelUntilFirstCommandFinishes{
-        +AutoBuilder.followPath(PathPlannerPath.fromPathFile("2pAmpGrab"))
+        +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpGrabG2"))
 
         +runGroundIntake(shooter, pivot, groundIntake)
     }
 
     runParallelUntilFirstCommandFinishes{
-        +AutoBuilder.followPath(PathPlannerPath.fromPathFile("2pAmpScore"))
+        +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpScoreG2"))
 
         +pivot.setAngleCommand(PivotAngle.AMP)
     }

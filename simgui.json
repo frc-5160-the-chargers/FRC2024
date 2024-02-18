@@ -15,6 +15,7 @@
       "/AdvantageKit/RealOutputs/Shooter/mechanism2d": "Mechanism2d",
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Auto Command": "String Chooser",
+      "/SmartDashboard/Autonomous": "String Chooser",
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/PivotingShooter": "Mechanism2d",
       "/SmartDashboard/VisionSystemSim-AprilTags/Sim Field": "Field2d",
