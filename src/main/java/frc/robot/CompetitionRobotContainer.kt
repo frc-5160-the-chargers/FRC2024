@@ -125,6 +125,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     )
 
+
     private val drivetrain = EncoderHolonomicDrivetrain(
         turnMotors = sparkMaxSwerveMotors(
             ChargerSparkMax(DrivetrainID.TL_TURN){inverted = true},
@@ -346,8 +347,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
 
+
     override val autonomousCommand: Command
         get() = AutoChooser.selected
+
 
     override val testCommand: Command get(){
         val routine = drivetrain.getDriveSysIdRoutine()

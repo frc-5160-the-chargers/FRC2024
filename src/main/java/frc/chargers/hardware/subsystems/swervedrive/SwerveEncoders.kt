@@ -69,6 +69,9 @@ public data class SwerveEncoders <out E: PositionEncoder> (
     val bottomLeft: E,
     val bottomRight: E
 ){
+    public fun toList(): List<E> =
+        listOf(topLeft, topRight, bottomLeft, bottomRight)
+
     /**
      * Creates an instance of a [SwerveEncoders] object
      *

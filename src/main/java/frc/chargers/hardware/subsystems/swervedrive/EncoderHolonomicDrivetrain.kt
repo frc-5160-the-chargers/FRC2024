@@ -13,22 +13,24 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
+import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+import frc.chargers.constants.SwerveAzimuthControl
 import frc.chargers.constants.SwerveControlData
 import frc.chargers.constants.SwerveHardwareData
+import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.EncoderMotorController
-import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.subsystems.robotposition.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.gyroscopes.*
 import frc.chargers.hardware.subsystems.robotposition.SwervePoseMonitor
-import frc.chargers.hardware.subsystems.swervedrive.module.*
-import frc.chargers.hardware.subsystems.swervedrive.module.lowlevel.*
+import frc.chargers.hardware.subsystems.swervedrive.modulelowlevel.*
 import frc.chargers.pathplannerextensions.asPathPlannerConstants
+import frc.chargers.utils.a
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.utils.math.units.VoltageRate
 import frc.chargers.utils.math.units.toKmeasure
@@ -42,6 +44,7 @@ import frc.chargers.wpilibextensions.kinematics.*
 import frc.external.frc6328.SwerveSetpointGenerator
 import org.littletonrobotics.junction.Logger.*
 import java.util.Optional
+import kotlin.math.abs
 import kotlin.math.pow
 
 
@@ -52,187 +55,6 @@ private val topRightLogInputs: LoggableInputsProvider = LoggableInputsProvider("
 private val bottomLeftLogInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/BottomLeftModule")
 
 private val bottomRightLogInputs: LoggableInputsProvider = LoggableInputsProvider("Drivetrain(Swerve)/BottomRightModule")
-
-/**
- * A convenience function used to create an [EncoderHolonomicDrivetrain],
- * that automatically constructs real/sim versions depending on [RobotBase.isReal].
- */
-public fun EncoderHolonomicDrivetrain(
-    turnMotors: SwerveMotors<EncoderMotorController>,
-    turnEncoders: SwerveEncoders<PositionEncoder> = turnMotors.getEncoders(),
-    driveMotors: SwerveMotors<EncoderMotorController>,
-    hardwareData: SwerveHardwareData,
-    controlData: SwerveControlData,
-    useOnboardPID: Boolean = false,
-    gyro: HeadingProvider? = null,
-    startingPose: UnitPose2d = UnitPose2d(),
-    realPoseSuppliers: List<VisionPoseSupplier> = listOf(),
-    simPoseSuppliers: List<VisionPoseSupplier> = listOf()
-): EncoderHolonomicDrivetrain {
-    if (RobotBase.isSimulation()){
-        return EncoderHolonomicDrivetrain(
-            topLeft = RioPIDSwerveModule(
-                ModuleIOSim(
-                    topLeftLogInputs,
-                    hardwareData.turnMotorType, hardwareData.driveMotorType, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
-                ), controlData
-            ),
-            topRight = RioPIDSwerveModule(
-                ModuleIOSim(
-                    topRightLogInputs,
-                    hardwareData.turnMotorType, hardwareData.driveMotorType, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
-                ), controlData
-            ),
-            bottomLeft = RioPIDSwerveModule(
-                ModuleIOSim(
-                    bottomLeftLogInputs,
-                    hardwareData.turnMotorType, hardwareData.driveMotorType, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
-                ), controlData
-            ),
-            bottomRight = RioPIDSwerveModule(
-                ModuleIOSim(
-                    bottomRightLogInputs,
-                    hardwareData.turnMotorType, hardwareData.driveMotorType, hardwareData.turnGearRatio, hardwareData.driveGearRatio, hardwareData.turnInertiaMoment, hardwareData.driveInertiaMoment
-                ), controlData
-            ),
-            hardwareData, controlData, gyro, startingPose, *simPoseSuppliers.toTypedArray()
-        )
-    }else{
-        if (hardwareData.invertTurnMotors){
-            turnMotors.apply{
-                topLeft.inverted = !topLeft.inverted
-                topRight.inverted = !topRight.inverted
-                bottomLeft.inverted = !bottomLeft.inverted
-                bottomRight.inverted = !bottomRight.inverted
-
-                println("Top left inverted: " + topLeft.inverted)
-                println("Top right inverted: " + topRight.inverted)
-                println("bottom left inverted: " + bottomLeft.inverted)
-                println("bottom right inverted: " + bottomRight.inverted)
-            }
-        }
-
-        val topLeft: SwerveModule
-        val topRight: SwerveModule
-        val bottomLeft: SwerveModule
-        val bottomRight: SwerveModule
-
-
-        if (useOnboardPID){
-            // SmartEncoderMotorController is a variant of EncoderMotorController
-            // that allows for closed loop control
-            require(turnMotors.containsMotors<SmartEncoderMotorController>()){
-                "the turning motors of the drivetrain do not support onboard PID control; however, onboard PID control was requested."
-            }
-
-            require(driveMotors.containsMotors<SmartEncoderMotorController>()){
-                "the driving motors of the drivetrain do not support onboard PID control; however, onboard PID control was requested."
-            }
-
-            // casts are safe, as code will error
-            // if motors are not SmartEncoderMotorControllers
-
-            @Suppress("Unchecked_Cast")
-            turnMotors as SwerveMotors<SmartEncoderMotorController>
-
-            @Suppress("Unchecked_Cast")
-            driveMotors as SwerveMotors<SmartEncoderMotorController>
-
-
-            topLeft = OnboardPIDSwerveModule(
-                topLeftLogInputs,
-                controlData,
-                turnMotors.topLeft,
-                turnEncoders.topLeft,
-                driveMotors.topLeft,
-                hardwareData.driveGearRatio, hardwareData.turnGearRatio
-            )
-
-            topRight = OnboardPIDSwerveModule(
-                topRightLogInputs,
-                controlData,
-                turnMotors.topRight,
-                turnEncoders.topRight,
-                driveMotors.topRight,
-                hardwareData.driveGearRatio, hardwareData.turnGearRatio
-            )
-
-            bottomLeft = OnboardPIDSwerveModule(
-                bottomLeftLogInputs,
-                controlData,
-                turnMotors.bottomLeft,
-                turnEncoders.bottomLeft,
-                driveMotors.bottomLeft,
-                hardwareData.driveGearRatio, hardwareData.turnGearRatio
-            )
-
-            bottomRight = OnboardPIDSwerveModule(
-                bottomRightLogInputs,
-                controlData,
-                turnMotors.bottomRight,
-                turnEncoders.bottomRight,
-                driveMotors.bottomRight,
-                hardwareData.driveGearRatio, hardwareData.turnGearRatio
-            )
-
-        }else{
-            topLeft = RioPIDSwerveModule(
-                ModuleIOReal(
-                    topLeftLogInputs,
-                    turnMotor = turnMotors.topLeft,
-                    turnEncoder = turnEncoders.topLeft,
-                    driveMotor = driveMotors.topLeft,
-                    hardwareData.driveGearRatio, hardwareData.turnGearRatio
-                ),
-                controlData
-            )
-
-            topRight = RioPIDSwerveModule(
-                ModuleIOReal(
-                    topRightLogInputs,
-                    turnMotor = turnMotors.topRight,
-                    turnEncoder = turnEncoders.topRight,
-                    driveMotor = driveMotors.topRight,
-                    hardwareData.driveGearRatio, hardwareData.turnGearRatio
-                ),
-                controlData
-            )
-
-            bottomLeft = RioPIDSwerveModule(
-                ModuleIOReal(
-                    bottomLeftLogInputs,
-                    turnMotor = turnMotors.bottomLeft,
-                    turnEncoder = turnEncoders.bottomLeft,
-                    driveMotor = driveMotors.bottomLeft,
-                    hardwareData.driveGearRatio, hardwareData.turnGearRatio
-                ),
-                controlData
-            )
-
-            bottomRight = RioPIDSwerveModule(
-                ModuleIOReal(
-                    bottomRightLogInputs,
-                    turnMotor = turnMotors.bottomRight,
-                    turnEncoder = turnEncoders.bottomRight,
-                    driveMotor = driveMotors.bottomRight,
-                    hardwareData.driveGearRatio, hardwareData.turnGearRatio
-                ),
-                controlData
-            )
-        }
-
-        return EncoderHolonomicDrivetrain(
-            topLeft, topRight, bottomLeft, bottomRight,
-            hardwareData, controlData, gyro, startingPose, *realPoseSuppliers.toTypedArray()
-        )
-    }
-}
-
-
-
-
-
-
 
 
 /**
@@ -245,20 +67,138 @@ public fun EncoderHolonomicDrivetrain(
  * Note: TrackWidth is the horizontal length of the robot, while wheelBase is the vertical length of the robot.
  */
 public class EncoderHolonomicDrivetrain(
-    private val topLeft: SwerveModule,
-    private val topRight: SwerveModule,
-    private val bottomLeft: SwerveModule,
-    private val bottomRight: SwerveModule,
-    public val hardwareData: SwerveHardwareData,
-    public val controlData: SwerveControlData,
+    turnMotors: SwerveMotors<EncoderMotorController>,
+    turnEncoders: SwerveEncoders<PositionEncoder>,
+    driveMotors: SwerveMotors<EncoderMotorController>,
+    private val hardwareData: SwerveHardwareData,
+    private val controlData: SwerveControlData,
+    private val useOnboardPID: Boolean = false,
     public val gyro: HeadingProvider? = null,
     startingPose: UnitPose2d = UnitPose2d(),
-    vararg poseSuppliers: VisionPoseSupplier,
+    poseSuppliers: List<VisionPoseSupplier> = listOf()
 ): SubsystemBase(), HeadingProvider {
+    
     /* Private Implementation */
     private val wheelRadius = hardwareData.wheelDiameter / 2.0
+    
+    private fun generateModuleIO(
+        logInputs: LoggableInputsProvider,
+        turnMotor: EncoderMotorController,
+        turnEncoder: PositionEncoder,
+        driveMotor: EncoderMotorController
+    ): ModuleIO = if (RobotBase.isReal()){
+        ModuleIOReal(
+            logInputs,
+            useOnboardPID,
+            turnMotor, turnEncoder, driveMotor,
+            hardwareData.turnGearRatio,
+            hardwareData.driveGearRatio
+        )
+    }else{
+        ModuleIOSim(
+            logInputs,
+            turnMotorSim = DCMotorSim(hardwareData.turnMotorType, hardwareData.turnGearRatio, 0.004096955),
+            driveMotorSim = DCMotorSim(hardwareData.driveMotorType, hardwareData.driveGearRatio, 0.025)
+        )
+    }
 
-    private val moduleArray = arrayOf(topLeft,topRight,bottomLeft,bottomRight)
+    /**
+     * An array of all the module IOs of the drivetrain.
+     *
+     * Order is always top left, top right, bottom left, bottom right.
+     */
+    private val moduleIOArray = a[
+        generateModuleIO(topLeftLogInputs, turnMotors.topLeft, turnEncoders.topLeft, driveMotors.topLeft),
+        generateModuleIO(topRightLogInputs, turnMotors.topRight, turnEncoders.topRight, driveMotors.topRight),
+        generateModuleIO(bottomLeftLogInputs, turnMotors.bottomLeft, turnEncoders.bottomLeft, driveMotors.bottomLeft),
+        generateModuleIO(bottomRightLogInputs, turnMotors.bottomRight, turnEncoders.bottomRight, driveMotors.bottomRight)
+    ]
+
+    /**
+     * Stores motion profile setpoints for each module, in case it is utilized.
+     */
+    private val allModuleSetpoints: MutableMap<ModuleIO, AngularMotionProfileState> =
+        mutableMapOf(
+            *moduleIOArray.map{
+                // creates pairs per module io
+                it to AngularMotionProfileState()
+            }.toTypedArray()
+        )
+
+    /**
+     * Sets the direction of a module io,
+     * filling out the appropriate pid constants
+     * and applying motion profiling when necessary.
+     */
+    private fun setDirectionWithModifiers(moduleIO: ModuleIO, goal: Angle){
+        when (controlData.azimuthControl){
+            is SwerveAzimuthControl.ProfiledPID -> {
+                fun calculateSetpoint(): AngularMotionProfileState =
+                    controlData.azimuthControl.motionProfile.calculate(
+                        ChargerRobot.LOOP_PERIOD,
+                        setpoint = allModuleSetpoints[moduleIO] ?: error("Module IO not found error."),
+                        goal = AngularMotionProfileState(goal)
+                    )
+
+                val setpoint = calculateSetpoint()
+                allModuleSetpoints[moduleIO] = setpoint
+
+                // setpoint already incremented; thus,
+                // calculates the future motion profile state instead of the current one
+                val futureSetpoint = calculateSetpoint()
+
+                moduleIO.setDirectionSetpoint(
+                    setpoint.position,
+                    controlData.azimuthControl.pidConstants,
+                    controlData.azimuthControl.ffEquation.calculatePlantInversion(
+                        setpoint.velocity,
+                        futureSetpoint.velocity
+                    )
+                )
+            }
+
+            is SwerveAzimuthControl.PID -> {
+                moduleIO.setDirectionSetpoint(
+                    goal,
+                    controlData.azimuthControl.pidConstants
+                )
+            }
+        }
+    }
+
+    /**
+     * Sets the desired state of a singular module IO.
+     */
+    private fun setDesiredState(
+        moduleIO: ModuleIO,
+        state: SwerveModuleState,
+        openLoop: Boolean
+    ){
+        // asAngle converts a Rotation2d to an Angle(kmeasure).
+        val optimizedState = SwerveModuleState.optimize(
+            state, moduleIO.direction.asRotation2d()
+        )
+        optimizedState.speedMetersPerSecond *= abs(
+            (optimizedState.angle - moduleIO.direction.asRotation2d()).cos
+        )
+
+        setDirectionWithModifiers(moduleIO, optimizedState.angle.asAngle())
+
+        if (openLoop){
+            moduleIO.setDriveVoltage(
+                optimizedState.speedMetersPerSecond
+                    / hardwareData.maxModuleSpeed.inUnit(meters / seconds)
+                    * 12.volts
+            )
+        }else{
+            val speed = optimizedState.speedMetersPerSecond.ofUnit(meters / seconds) / wheelRadius
+            moduleIO.setSpeedSetpoint(
+                speed, // converts to an AngularVelocity
+                controlData.velocityPID,
+                controlData.velocityFF(speed) // returns a feedforward voltage
+            )
+        }
+    }
 
     private val moduleLocations = listOf(
         UnitTranslation2d(hardwareData.trackWidth/2,hardwareData.wheelBase/2),
@@ -273,7 +213,7 @@ public class EncoderHolonomicDrivetrain(
         hardwareData.maxModuleRotationSpeed.siValue
     )
 
-    private fun averageEncoderPosition() = moduleArray.map{it.wheelTravel}.average()
+    private fun averageEncoderPosition() = moduleIOArray.map{it.wheelTravel}.average()
 
     private val distanceOffset: Distance = averageEncoderPosition() * wheelRadius
 
@@ -334,7 +274,7 @@ public class EncoderHolonomicDrivetrain(
     public var poseEstimator: RobotPoseMonitor = SwervePoseMonitor(
         drivetrain = this,
         startingPose = startingPose,
-        *poseSuppliers,
+        *poseSuppliers.toTypedArray(),
     )
 
     /**
@@ -362,7 +302,10 @@ public class EncoderHolonomicDrivetrain(
     /**
      * The kinematics class for the drivetrain.
      */
-    public val kinematics: SwerveDriveKinematics = SwerveDriveKinematics(*moduleLocations.map{ it.inUnit(meters) }.toTypedArray())
+    public val kinematics: SwerveDriveKinematics =
+        SwerveDriveKinematics(
+            *moduleLocations.map{ it.inUnit(meters) }.toTypedArray()
+        )
 
 
     /**
@@ -404,12 +347,13 @@ public class EncoderHolonomicDrivetrain(
      * Order is: TL, TR, BL, BR
      */
     public val modulePositions: List<SwerveModulePosition>
-        get() = listOf(
-            topLeft.getModulePosition(wheelRadius),
-            topRight.getModulePosition(wheelRadius),
-            bottomLeft.getModulePosition(wheelRadius),
-            bottomRight.getModulePosition(wheelRadius)
-        )
+        get() = moduleIOArray.map{
+            SwerveModulePosition(
+                (it.wheelTravel * wheelRadius).inUnit(meters),
+                it.direction.asRotation2d()
+            )
+        }
+
 
     /**
      * The max linear velocity of the drivetrain, calculated by simulating
@@ -585,33 +529,37 @@ public class EncoderHolonomicDrivetrain(
         currentControlMode = ControlMode.NONE
         require(voltages.size == 4){ "You must have 4 drive voltage parameters." }
 
-        topLeft.driveVoltage = voltages[0]
-        topRight.driveVoltage = voltages[1]
-        bottomLeft.driveVoltage = voltages[2]
-        bottomRight.driveVoltage = voltages[3]
+        moduleIOArray.forEachIndexed{ index, moduleIO ->
+            moduleIO.setDriveVoltage(voltages[index])
+        }
     }
 
 
-
+    /**
+     * Sets turn voltages for each module.
+     * The standard order is top left, top right, bottom left, bottom right.
+     */
     public fun setTurnVoltages(voltages: List<Voltage>){
         currentControlMode = ControlMode.NONE
         require(voltages.size == 4){ "You must have 4 turn voltage parameters." }
 
-        topLeft.turnVoltage = voltages[0]
-        topRight.turnVoltage = voltages[1]
-        bottomLeft.turnVoltage = voltages[2]
-        bottomRight.turnVoltage = voltages[3]
+        moduleIOArray.forEachIndexed{ index, moduleIO ->
+            moduleIO.setTurnVoltage(voltages[index])
+        }
     }
 
 
+    /**
+     * Sets azimuth directions for each module.
+     * The standard order is top left, top right, bottom left, bottom right.
+     */
     public fun setTurnDirections(directions: List<Angle>){
         currentControlMode = ControlMode.NONE
         require(directions.size == 4){ "You must have 4 turn direction parameters." }
 
-        topLeft.setDirection(directions[0])
-        topRight.setDirection(directions[1])
-        bottomLeft.setDirection(directions[2])
-        bottomRight.setDirection(directions[3])
+        moduleIOArray.forEachIndexed{ index, moduleIO ->
+            setDirectionWithModifiers(moduleIO, directions[index])
+        }
     }
 
 
@@ -621,10 +569,10 @@ public class EncoderHolonomicDrivetrain(
     public fun stop(){
         // prevents driving anywhere else
         currentControlMode = ControlMode.NONE
-        topLeft.halt()
-        topRight.halt()
-        bottomLeft.halt()
-        bottomRight.halt()
+        moduleIOArray.forEach{
+            it.setDriveVoltage(0.volts)
+            it.setTurnVoltage(0.volts)
+        }
     }
 
     /**
@@ -633,10 +581,12 @@ public class EncoderHolonomicDrivetrain(
     public fun stopInX(){
         // prevents driving anywhere else
         currentControlMode = ControlMode.NONE
-        topLeft.setDirectionalPower(0.0,45.degrees)
-        topRight.setDirectionalPower(0.0, (-45).degrees)
-        bottomLeft.setDirectionalPower(0.0, (-45).degrees)
-        bottomRight.setDirectionalPower(0.0,45.degrees)
+        setTurnDirections(
+            listOf(45.degrees, (-45).degrees, (-45).degrees, 45.degrees)
+        )
+        moduleIOArray.forEach{
+            it.setDriveVoltage(0.volts)
+        }
     }
 
 
@@ -681,32 +631,18 @@ public class EncoderHolonomicDrivetrain(
             ChargerRobot.LOOP_PERIOD.inUnit(seconds)
         )
 
-        recordOutput("Drivetrain(Swerve)/RawKinematicsStates", SwerveModuleState.struct, *kinematics.toSwerveModuleStates(goal))
-        recordOutput("Drivetrain(Swerve)/DesiredModuleStates", SwerveModuleState.struct, *setpoint.moduleStates)
+        recordOutput("Drivetrain(Swerve)/RawKinematicsStates", *kinematics.toSwerveModuleStates(goal))
+        recordOutput("Drivetrain(Swerve)/DesiredModuleStates", *setpoint.moduleStates)
         recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Setpoint)", ChassisSpeeds.struct, setpoint.chassisSpeeds)
         recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Goal)", ChassisSpeeds.struct, goal)
 
-        when (currentControlMode) {
-            ControlMode.CLOSED_LOOP -> {
-                moduleArray.forEachIndexed { i, module ->
-                    module.setDirectionalVelocity(
-                        setpoint.moduleStates[i].speedMetersPerSecond.ofUnit(meters / seconds) / wheelRadius,
-                        setpoint.moduleStates[i].angle.asAngle()
-                    )
-                }
-            }
 
-            ControlMode.OPEN_LOOP -> {
-                moduleArray.forEachIndexed { i, module ->
-                    module.setDirectionalPower(
-                        setpoint.moduleStates[i].speedMetersPerSecond / hardwareData.maxModuleSpeed.siValue,
-                        setpoint.moduleStates[i].angle.asAngle()
-                    )
-                }
-            }
-
-            else -> {}
+        moduleIOArray.forEachIndexed { index, moduleIO ->
+            setDesiredState(
+                moduleIO,
+                setpoint.moduleStates[index],
+                openLoop = currentControlMode == ControlMode.OPEN_LOOP
+            )
         }
-
     }
 }

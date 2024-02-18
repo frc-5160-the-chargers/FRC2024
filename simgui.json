@@ -134,7 +134,8 @@
             "TopRightModule": {
               "open": true
             }
-          }
+          },
+          "open": true
         },
         "Shooter": {
           "open": true

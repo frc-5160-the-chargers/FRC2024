@@ -139,6 +139,9 @@ public data class SwerveMotors<out M: EncoderMotorController>(
     val bottomLeft: M,
     val bottomRight: M
 ){
+    public fun toList(): List<M> =
+        listOf(topLeft, topRight, bottomLeft, bottomRight)
+
     // inline reified allows for runtime checks of whether or not the motors
     // are a specified type.
     public inline fun <reified T: EncoderMotorController> containsMotors(): Boolean =
