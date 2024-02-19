@@ -1,7 +1,6 @@
 package frc.chargers.hardware.sensors.vision
 
-import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.Distance
+import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 
 /**
  * A utility class that stores constants related a single vision camera.
@@ -15,11 +14,8 @@ data class VisionCameraConstants(
      */
     val cameraName: String,
     /**
-     * How high the vision camera's lens is from the ground.
+     * The x, y, z and rotational components of the camera,
+     * with respect to the origin of the robot.
      */
-    val lensHeight: Distance,
-    /**
-     * How many degrees the vision camera is from perfectly vertical.
-     */
-    val mountAngle: Angle
+    val robotToCameraTransform: UnitTransform3d
 )

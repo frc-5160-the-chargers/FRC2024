@@ -144,6 +144,7 @@ public class ChargerSparkMax(
         return when (encoderType){
             is SparkMaxEncoderType.Regular -> SparkEncoderAdaptor(
                 super.getEncoder().apply{
+                    pidController.setFeedbackDevice(this@apply)
                     // property access syntax setters
                     if (encoderType.averageDepth != null){
                         averageDepth = encoderType.averageDepth
@@ -159,6 +160,7 @@ public class ChargerSparkMax(
                     SparkMaxAlternateEncoder.Type.kQuadrature,
                     encoderType.countsPerRev
                 ).apply{
+                    pidController.setFeedbackDevice(this@apply)
                     // property access syntax setters
                     if (encoderType.encoderMeasurementPeriod != null){
                         measurementPeriod = encoderType.encoderMeasurementPeriod.inUnit(milli.seconds).toInt()
@@ -174,6 +176,7 @@ public class ChargerSparkMax(
 
             is SparkMaxEncoderType.Absolute -> SparkEncoderAdaptor(
                 super.getAbsoluteEncoder(encoderType.category).apply{
+                    pidController.setFeedbackDevice(this@apply)
                     // property access syntax setters
                     if (encoderType.averageDepth != null){
                         averageDepth = encoderType.averageDepth

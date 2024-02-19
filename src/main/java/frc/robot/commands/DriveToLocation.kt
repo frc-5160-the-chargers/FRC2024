@@ -1,9 +1,7 @@
 @file:Suppress("unused")
 package frc.robot.commands
 
-import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.Scalar
-import com.batterystaple.kmeasure.quantities.abs
+import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.auto.AutoBuilder
@@ -19,10 +17,7 @@ import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
-import frc.robot.CAMERA_YAW_TO_OPEN_LOOP_STRAFE_PID
-import frc.robot.NO_TARGET_FOUND_ALERT
-import frc.robot.OPEN_LOOP_STRAFE_PRECISION
-import frc.robot.PATHFIND_CONSTRAINTS
+import frc.robot.*
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import org.littletonrobotics.junction.Logger
@@ -32,23 +27,27 @@ enum class FieldLocation(
     val blueAllianceApriltagId: Int,
     val redAllianceApriltagId: Int,
     val pivotAngle: Angle,
+    val targetDistanceToTag: Distance? = null
 ){
     SOURCE_LEFT(
         blueAllianceApriltagId = 2,
         redAllianceApriltagId = 10,
-        pivotAngle = PivotAngle.SOURCE
+        pivotAngle = PivotAngle.SOURCE,
+        0.5.meters
     ), // tbd
 
     SOURCE_RIGHT(
         blueAllianceApriltagId = 1,
         redAllianceApriltagId = 9,
-        pivotAngle = PivotAngle.SOURCE
+        pivotAngle = PivotAngle.SOURCE,
+        0.5.meters
     ), // tbd
 
     AMP(
         blueAllianceApriltagId = 6,
         redAllianceApriltagId = 5,
-        pivotAngle = PivotAngle.AMP
+        pivotAngle = PivotAngle.AMP,
+        0.5.meters
     )
 }
 
@@ -68,14 +67,21 @@ fun driveToLocation(
 
         DriverStation.Alliance.Red -> target.redAllianceApriltagId
     }
+
+    // represents raw, unflipped pose fetched from apriltagfieldlayout
+    val targetPoseRaw = ChargerRobot
+        .APRILTAG_LAYOUT
+        .getTagPose(targetId)
+        .orElseThrow()
+
     val targetPose: UnitPose2d =
-        ChargerRobot
-            .APRILTAG_LAYOUT
-            .getTagPose(targetId)
-            .orElseThrow()
+        targetPoseRaw
             .toPose2d()
             .ofUnit(meters)
             .flipWhenNeeded()
+
+    val targetHeight: Distance =
+        targetPoseRaw.z.ofUnit(meters)
 
     val aimingController by getOnceDuringRun {
         SuperPIDController(
@@ -85,6 +91,7 @@ fun driveToLocation(
             outputRange = Scalar(-0.5)..Scalar(0.5)
         )
     }
+
 
     fun canFindTarget(): Boolean {
         val bestTarget = apriltagVision.bestTarget
@@ -111,52 +118,68 @@ fun driveToLocation(
     fun hasFinishedAiming(): Boolean {
         val aimingError = aimingController.error
         Logger.recordOutput("AimToLocation/aimingError", aimingError.siValue)
+
         return (aimingError in OPEN_LOOP_STRAFE_PRECISION.allowableError).also{
             Logger.recordOutput("AimToLocation/hasFinishedAiming", it)
         }
     }
 
+    fun getDistanceErrorToTag(): Distance {
+        if (target.targetDistanceToTag == null) return 0.meters
 
-    var aimLoopOccurences by resetDuringRun{0}
+        val distance = apriltagVision.robotToTargetDistance(targetHeight) ?: return 0.meters
+
+        return (distance - target.targetDistanceToTag).also{
+            Logger.recordOutput("AimToLocation/distanceTest", it.siValue)
+        }
+    }
+
+
 
     addRequirements(drivetrain, pivot)
 
     runOnce{
         apriltagVision.reset()
-        println(targetPose)
     }
 
     runParallelUntilAllFinish {
         +pivot.setAngleCommand(target.pivotAngle)
 
         runSequentially{
+            val distanceFromAprilTag by getOnceDuringRun{
+                val drivetrainPose = drivetrain.poseEstimator.robotPose
+                val distanceX = drivetrainPose.x - targetPose.x
+                val distanceY = drivetrainPose.y - targetPose.y
+                hypot(distanceX, distanceY)
+            }
+
             if (path != null){
                 runIf(
-                    { (abs(drivetrain.poseEstimator.robotPose.translation.norm - targetPose.translation.norm) > 1.meters).also{ println("Pathfinding?$it") } },
+                    {distanceFromAprilTag > 1.3.meters},
                     onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
-                    onFalse = AutoBuilder.followPath(path)
+                    onFalse = runIf(
+                        {distanceFromAprilTag > 0.6.meters},
+                        AutoBuilder.followPath(path)
+                    )
                 )
             }
 
-            loopUntil({ !canFindTarget() || hasFinishedAiming() }){
+            loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.003) }){
                 Logger.recordOutput("AimToLocation/isAiming", true)
-                Logger.recordOutput("AimToLocation/aimLoop#", aimLoopOccurences)
-                aimLoopOccurences++
                 drivetrain.swerveDrive(
-                    xPower = 0.0,
+                    xPower = getDistanceErrorToTag().siValue * DISTANCE_TO_TAG_REACH_KP,
                     yPower = -aimingController.calculateOutput().siValue,
                     rotationPower = 0.0,
                     fieldRelative = false
                 )
             }
-
-            runOnce{
-                Logger.recordOutput("AimToLocation/isAiming", false)
-                drivetrain.setDriveVoltages(
-                    listOf(0.volts, 0.volts, 0.volts, 0.volts)
-                )
-                drivetrain.stopInX()
-            }
         }
+    }
+
+    onEnd{
+        Logger.recordOutput("AimToLocation/isAiming", false)
+        drivetrain.setDriveVoltages(
+            listOf(0.volts, 0.volts, 0.volts, 0.volts)
+        )
     }
 }

@@ -19,8 +19,6 @@ interface PivotIO {
     val appliedCurrent: Current
     val tempCelsius: Double
 
-    val absolutePosition: Angle
-
     fun setVoltage(voltage: Voltage)
 
     /**
@@ -35,7 +33,7 @@ interface PivotIO {
     // not intended to be overriden
     fun getRioPIDController() = SuperPIDController(
         PIDConstants(0.3,0,0),
-        getInput = { absolutePosition },
+        getInput = { position },
         target = 0.degrees,
         outputRange = (-12).volts..12.volts
     )

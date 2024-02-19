@@ -151,6 +151,7 @@ public class ChargerSparkFlex(
         return when (encoderType){
             is SparkFlexEncoderType.Regular -> SparkEncoderAdaptor(
                 super.getEncoder().apply{
+                    pidController.setFeedbackDevice(this@apply)
                     // property access syntax setters
                     if (encoderType.averageDepth != null){
                         averageDepth = encoderType.averageDepth
@@ -166,6 +167,7 @@ public class ChargerSparkFlex(
                     encoderType.category,
                     encoderType.countsPerRev
                 ).apply{
+                    pidController.setFeedbackDevice(this@apply)
                     // property access syntax setters
                     if (encoderType.encoderMeasurementPeriod != null){
                         measurementPeriod = encoderType.encoderMeasurementPeriod.inUnit(milli.seconds).toInt()
@@ -181,6 +183,7 @@ public class ChargerSparkFlex(
 
             is SparkFlexEncoderType.Absolute -> SparkEncoderAdaptor(
                 super.getAbsoluteEncoder(encoderType.category).apply{
+                    pidController.setFeedbackDevice(this@apply)
                     // property access syntax setters(replace setAverageDepth and getAverageDepth)
                     if (encoderType.averageDepth != null){
                         averageDepth = encoderType.averageDepth

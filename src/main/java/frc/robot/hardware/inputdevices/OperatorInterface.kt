@@ -14,11 +14,13 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
 
 
     val driveToAmpTrigger: Trigger = a()
-    val driveToSourceLeftTrigger: Trigger = povLeft()
-    val driveToSourceRightTrigger: Trigger = povRight()
+    val driveToSourceLeftTrigger: Trigger = x()
+    val driveToSourceRightTrigger: Trigger = y()
 
-    val aimToSpeakerTrigger: Trigger = b()
+    val aimToSpeakerTrigger: Trigger = start().or(back())
 
     val groundIntakeTrigger: Trigger = rightTrigger()
     val groundOuttakeTrigger: Trigger = leftTrigger()
+
+    val stowTrigger: Trigger = b()
 }

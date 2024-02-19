@@ -275,8 +275,7 @@ public class ChargerLimelight(
 
         override val cameraConstants = VisionCameraConstants(
             "Limelight " + if (this@ChargerLimelight.name == "") "(No Name)" else this@ChargerLimelight.name,
-            this@ChargerLimelight.robotToCamera.z,
-            this@ChargerLimelight.robotToCamera.rotation.y.ofUnit(radians)
+            this@ChargerLimelight.robotToCamera
         )
     }
 }

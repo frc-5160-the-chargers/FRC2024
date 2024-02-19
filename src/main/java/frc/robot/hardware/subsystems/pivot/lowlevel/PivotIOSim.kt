@@ -36,10 +36,6 @@ class PivotIOSim(private val motorSim: DCMotorSim): PivotIO {
         0.0
     }
 
-    override val absolutePosition by PivotLog.quantity {
-        position
-    }
-
     override fun setVoltage(voltage: Voltage) {
         _pivotVoltage = voltage
         motorSim.setInputVoltage(voltage.siValue)

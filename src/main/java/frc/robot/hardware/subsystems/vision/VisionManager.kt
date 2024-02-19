@@ -5,6 +5,7 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.wpilibj.RobotBase
+import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
@@ -21,11 +22,12 @@ import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTranslation3d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import org.littletonrobotics.junction.Logger
 import org.photonvision.simulation.SimCameraProperties
 import org.photonvision.simulation.VisionSystemSim
 import org.photonvision.simulation.VisionTargetSim
 
-class VisionManager(poseEstimator: RobotPoseMonitor) {
+class VisionManager(poseEstimator: RobotPoseMonitor): SubsystemBase() {
     private val noteTargetModel = TargetModel(2.inches, 14.inches) // custom overload
 
     // handles logging & replay for vision cameras
@@ -35,7 +37,7 @@ class VisionManager(poseEstimator: RobotPoseMonitor) {
 
     // transforms for vision cameras
     private val robotToLimelight = UnitTransform3d(
-        UnitTranslation3d(x = 0.25.meters, y = 0.meters, z = 26.inches),
+        UnitTranslation3d(x = 0.meters, y = 0.meters, z = 20.inches),
         Rotation3d(roll = 0.degrees, pitch = (-45).degrees, yaw = 0.degrees)
     ) // tbd atm
     private val robotToArducam = robotToLimelight // tbd atm
@@ -104,5 +106,9 @@ class VisionManager(poseEstimator: RobotPoseMonitor) {
 
     fun addNotes(vararg poses: UnitPose2d){
         addNotes(*poses.map{ it.toPose3d() }.toTypedArray())
+    }
+
+    override fun periodic(){
+        Logger.recordOutput("AprilTagCam/robotToTargetDistance", fusedTagPipeline.robotToTargetDistance(targetHeight = 1.35582.meters)?.siValue ?: 0.0)
     }
 }

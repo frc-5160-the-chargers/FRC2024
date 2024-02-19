@@ -121,6 +121,9 @@
           "AimToLocation": {
             "open": true
           },
+          "AprilTagCam": {
+            "open": true
+          },
           "Drivetrain(Swerve)": {
             "BottomLeftModule": {
               "open": true
@@ -135,6 +138,12 @@
               "open": true
             }
           },
+          "Pathplanner": {
+            "deviationFromTargetPose": {
+              "open": true
+            },
+            "open": true
+          },
           "open": true
         },
         "Shooter": {
@@ -147,6 +156,9 @@
           "open": true
         },
         "double[]##v_/PathPlanner/targetPose": {
+          "open": true
+        },
+        "double[]##v_/PathPlanner/vel": {
           "open": true
         },
         "open": true

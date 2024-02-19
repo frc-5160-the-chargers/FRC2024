@@ -46,7 +46,7 @@ val PATHFIND_CONSTRAINTS = PathConstraints(
 val NO_TARGET_FOUND_ALERT = Alert.warning(text = "A command is attempting to aim to an apriltag, but none can be found.")
 
 // aiming pid constants for commands
-val CAMERA_YAW_TO_OPEN_LOOP_STRAFE_PID = PIDConstants(0.006, 0.0,0.004)
+val CAMERA_YAW_TO_OPEN_LOOP_STRAFE_PID = PIDConstants(0.009, 0.0,0.004)
 
 val OPEN_LOOP_STRAFE_PRECISION = Precision.Within(Scalar(0.5))
 
@@ -54,4 +54,5 @@ val CAMERA_YAW_TO_ROTATIONAL_VELOCITY_PID = PIDConstants(0.11,0,0.02)
 
 val ANGLE_TO_ROTATIONAL_VELOCITY_PID = PIDConstants(3.5,0,0)
 
+const val DISTANCE_TO_TAG_REACH_KP = 0.5
 

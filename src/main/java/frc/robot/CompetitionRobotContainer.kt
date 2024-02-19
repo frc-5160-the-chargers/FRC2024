@@ -46,12 +46,14 @@ import frc.robot.commands.FieldLocation
 import frc.robot.commands.auto.AutoChooser
 import frc.robot.commands.driveToLocation
 import frc.robot.commands.enableAimToSpeaker
+import frc.robot.commands.runGroundIntake
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.groundintake.GroundIntake
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOReal
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOSim
 import frc.robot.hardware.subsystems.pivot.Pivot
+import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.pivot.lowlevel.PivotIOReal
 import frc.robot.hardware.subsystems.pivot.lowlevel.PivotIOSim
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -93,20 +95,19 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         if (isReal()){
             PivotIOReal(
                 ChargerSparkMax(PIVOT_MOTOR_ID),
-                ChargerCANcoder(PIVOT_ENCODER_ID),
                 useOnboardPID = false,
-                pivotRatio,
-                0.degrees
+                encoderType = PivotIOReal.EncoderType.IntegratedAbsoluteEncoder,
+                offset = 0.degrees
             )
         }else{
             PivotIOSim(
-                DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.010)
+                DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004)
             )
         },
-        PIDConstants(10.0,0,0),
+        PIDConstants(8.0,0,0),
         AngularTrapezoidProfile(
-            maxVelocity = AngularVelocity(3.0),
-            maxAcceleration = AngularAcceleration(5.0)
+            maxVelocity = AngularVelocity(8.0),
+            maxAcceleration = AngularAcceleration(10.0)
         )
     )
 
@@ -173,8 +174,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }else{
                 AngularMotorFFEquation(0.0081299, 0.13396)
             },
-            robotRotationPID = PIDConstants(1.2,0,0),
-            robotTranslationPID = PIDConstants(1.2,0,0)
+            robotRotationPID = PIDConstants(1.4,0,0.1),
+            robotTranslationPID = PIDConstants(0.2,0,0)
         ),
         useOnboardPID = false,
         hardwareData = SwerveHardwareData.mk4iL2(
@@ -240,8 +241,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }
         }
 
+
         shooter.setDefaultRunCommand{
-            val speed = OperatorInterface.rightY
+            val speed = OperatorInterface.leftY
             if (speed >= 0.0){
                 shooter.outtake(speed)
             }else{
@@ -249,8 +251,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }
         }
 
-        pivot.setDefaultRunCommand{// function has context of pivot
-            pivot.setSpeed(OperatorInterface.leftY / 6.0) // change this later
+
+        pivot.setDefaultRunCommand{
+            pivot.setSpeed(OperatorInterface.rightY / 6.0)
+            //pivot.setSpeed(0.3)
         }
     }
 
@@ -279,7 +283,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             val idleGroundIntake = runOnceCommand(groundIntake){ groundIntake.setIdle() }
 
             groundIntakeTrigger
-                .whileTrue(loopCommand(groundIntake){ groundIntake.intake() })
+                .whileTrue(runGroundIntake(shooter, pivot, groundIntake))
                 .onFalse(idleGroundIntake)
 
             groundOuttakeTrigger
@@ -322,6 +326,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     pivot
                 )
             )
+
+            stowTrigger.whileTrue(
+                pivot.setAngleCommand(PivotAngle.STOWED)
+            )
+
+            aimToSpeakerTrigger.whileTrue(
+                enableAimToSpeaker(drivetrain, vision.fusedTagPipeline)
+            ).onFalse(runOnceCommand{ drivetrain.removeRotationOverride() })
         }
     }
 

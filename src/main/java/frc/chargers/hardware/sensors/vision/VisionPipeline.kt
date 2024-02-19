@@ -4,8 +4,6 @@ package frc.chargers.hardware.sensors.vision
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import org.photonvision.PhotonUtils
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 public typealias AprilTagVisionPipeline = VisionPipeline<VisionTarget.AprilTag>
 
@@ -58,28 +56,18 @@ public interface VisionPipeline<T: VisionTarget> {
     /**
      * Calculates the horizontal distance to a target, utilizing the pitch and height of the target.
      */
-    public fun distanceToTarget(
+    public fun robotToTargetDistance(
         targetHeight: Distance,
         target: T? = bestTarget
     ): Distance? = if (target != null){
         PhotonUtils.calculateDistanceToTargetMeters(
-            cameraConstants.lensHeight.inUnit(meters),
+            cameraConstants.robotToCameraTransform.z.inUnit(meters),
             targetHeight.inUnit(meters),
-            cameraConstants.mountAngle.inUnit(radians),
+            -cameraConstants.robotToCameraTransform.rotation.y,
             target.ty.ofUnit(degrees).inUnit(radians)
-        ).ofUnit(meters)
+        ).ofUnit(meters) //+ cameraConstants.robotToCameraTransform.x
     }else{
         null
-    }
-
-    /**
-     * Calculates the diagonal distance to the target.
-     */
-    public fun diagonalDistanceToTarget(targetHeight: Distance, target: T? = bestTarget): Distance? {
-        val horizontalDistance = distanceToTarget(targetHeight, target) ?: return null
-        return Distance(
-            sqrt(horizontalDistance.siValue.pow(2) + targetHeight.siValue.pow(2.0))
-        )
     }
 }
 

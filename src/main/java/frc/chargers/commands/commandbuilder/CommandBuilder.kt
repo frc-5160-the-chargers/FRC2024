@@ -242,8 +242,12 @@ public open class CommandBuilder{
     /**
      * Adds a command that will run the command onTrue or only if a condition is met.
      */
-    public fun runIf(condition: () -> Boolean, onTrue: Command, onFalse: Command): ConditionalCommand =
-        ConditionalCommand(onTrue,onFalse,condition).also(::addCommand)
+    public fun runIf(condition: () -> Boolean, onTrue: Command, onFalse: Command = InstantCommand()): ConditionalCommand =
+        ConditionalCommand(onTrue, onFalse, condition).also{
+            addCommand(it)
+            this.commands.remove(onTrue)
+            this.commands.remove(onFalse)
+        }
 
     /**
      * Adds a command that will run the appropriate mapped command, depending on the key given.
@@ -304,7 +308,7 @@ public open class CommandBuilder{
      * @param execute the code to be run
      */
     public inline fun loopWhile(crossinline condition: () -> Boolean, vararg requirements: Subsystem, noinline execute: CodeBlockContext.() -> Unit): ParallelRaceGroup =
-        loopUntil({ !condition() }, *requirements, execute=execute)
+        loopUntil({ !condition() }, *requirements, execute = execute)
 
     /**
      * Adds several commands that will run at the same time, all stopping as soon as one finishes.
@@ -463,28 +467,36 @@ public open class CommandBuilder{
      */
     public fun <T : Any> getOnceDuringRun(get: CodeBlockContext.() -> T) : ReadOnlyProperty<Any?, T> =
         object: ReadOnlyProperty<Any?, T> {
+            private lateinit var value: T
+
+            private var hasInitialized: Boolean = false
+
+            private fun initializeValue() {
+                value = CodeBlockContext.get()
+                hasInitialized = true
+            }
+
             init {
                 addCommand(
                     object : Command() { // Add a new command that initializes this value in its initialize() function.
                         override fun initialize() {
                             // if the value is not initialized yet, initialize it.
-                            // ::value is a property reference, which allows you to check whether something
-                            if (!::value.isInitialized) {
+                            if (!hasInitialized) {
                                 initializeValue()
                             }
                         }
 
                         // command does not stop until value is initialized
-                        override fun isFinished(): Boolean = ::value.isInitialized
+                        override fun isFinished(): Boolean = hasInitialized
+
+                        override fun end(interrupted: Boolean) {
+                            // sets hasInitialized to false when command ends,
+                            // so that the value can re-initialize when the command is executed again.
+                            hasInitialized = false
+                        }
                     }
                 )
             }
-
-            private fun initializeValue() {
-                value = CodeBlockContext.get()
-            }
-
-            private lateinit var value: T
 
             override fun getValue(thisRef: Any?, property: KProperty<*>): T =
                 try {

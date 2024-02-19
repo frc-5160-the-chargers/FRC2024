@@ -69,14 +69,10 @@ public interface SmartEncoderMotorController: EncoderMotorController{
         continuousWrap: Boolean = false,
         extraVoltage: Voltage = Voltage(0.0),
         absoluteEncoder: PositionEncoder,
-        /**
-         * The motor to encoder ratio.
-         * This is usually the gear ratio of the motor,
-         * unless if the absolute encoder is on gearing.
-         */
-        motorToEncoderRatio: Double = DEFAULT_GEAR_RATIO,
+        gearRatio: Double = DEFAULT_GEAR_RATIO,
     ){
-        val positionError = (target - absoluteEncoder.angularPosition) / motorToEncoderRatio
+        // native units     new units
+        val positionError = (target - absoluteEncoder.angularPosition) * gearRatio
 
         // remove this in the future
         println("Target position: " + (this.encoder.angularPosition + positionError))

@@ -5,7 +5,6 @@ import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.meters
-import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.wpilibj.RobotBase.*
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
@@ -153,8 +152,7 @@ public class ChargerPhotonCamera(
 
         override val cameraConstants = VisionCameraConstants(
             "Photon Camera " + this@ChargerPhotonCamera.name,
-            this@ChargerPhotonCamera.robotToCamera.z,
-            this@ChargerPhotonCamera.robotToCamera.rotation.y.ofUnit(radians)
+            this@ChargerPhotonCamera.robotToCamera
         )
     }
 }

@@ -5,7 +5,6 @@ import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.meters
-import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
@@ -136,11 +135,7 @@ class VisionCameraSim(
         }
 
         override val cameraConstants: VisionCameraConstants
-            get() = VisionCameraConstants(
-                cameraName,
-                robotToCamera.z,
-                robotToCamera.rotation.y.ofUnit(radians)
-            )
+            get() = VisionCameraConstants(cameraName, robotToCamera)
 
         override fun reset() {
             println("Sim camera pipeline has been reset.")

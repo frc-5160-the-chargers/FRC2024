@@ -99,8 +99,7 @@ class FusedAprilTagPipeline(
 
             return VisionCameraConstants(
                 "Fused AprilTag Pipeline($allData)",
-                allData.map{ it.lensHeight }.average(),
-                allData.map{ it.mountAngle }.average(),
+                pipelines[0].cameraConstants.robotToCameraTransform,
             )
         }
 
@@ -110,8 +109,8 @@ class FusedAprilTagPipeline(
         }
     }
 
-    override fun distanceToTarget(targetHeight: Distance, target: VisionTarget.AprilTag?): Distance? {
-        val allDistances = pipelines.mapNotNull{ it.distanceToTarget(targetHeight, target) }
+    override fun robotToTargetDistance(targetHeight: Distance, target: VisionTarget.AprilTag?): Distance? {
+        val allDistances = pipelines.mapNotNull{ it.robotToTargetDistance(targetHeight, target) }
         return if (allDistances.isEmpty()) {
             null
         } else {

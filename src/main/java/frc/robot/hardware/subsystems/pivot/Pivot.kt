@@ -1,10 +1,7 @@
 package frc.robot.hardware.subsystems.pivot
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.Voltage
-import com.batterystaple.kmeasure.quantities.inUnit
-import com.batterystaple.kmeasure.quantities.times
+import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
@@ -32,7 +29,7 @@ import org.littletonrobotics.junction.Logger
 object PivotAngle{
     val AMP: Angle = 30.degrees
 
-    val SOURCE: Angle = 30.degrees
+    val SOURCE: Angle = -30.degrees
 
     val SPEAKER: Angle = 0.degrees
 
@@ -41,8 +38,10 @@ object PivotAngle{
     val GROUND_INTAKE_HANDOFF: Angle = 0.degrees
 }
 
+private val STARTING_TRANSLATION_PIVOT_SIM = Translation3d(0.325, 0.0, 0.75)
+
 class Pivot(
-    private val io: PivotIO,
+    val io: PivotIO,
     private val pidConstants: PIDConstants,
     // null indicates no motion profile
     private val motionProfile: AngularMotionProfile? = null,
@@ -104,20 +103,16 @@ class Pivot(
             setpointPosition = position
             feedforward = 0.volts
         }
-        Logger.recordOutput("Shooter/setpoint", setpointPosition.siValue)
-        Logger.recordOutput("Shooter/ff", feedforward.siValue)
+        Logger.recordOutput("Pivot/setpoint", setpointPosition.siValue)
+        Logger.recordOutput("Pivot/ff", feedforward.siValue)
 
-        hasHitPivotTarget = (setpointPosition - io.position).within(precision)
+        hasHitPivotTarget = (position - io.position).within(precision)
 
-        if (hasHitPivotTarget){
-            io.setVoltage(0.volts)
-        }else{
-            io.setPositionSetpoint(
-                setpointPosition,
-                pidConstants,
-                feedforward
-            )
-        }
+        io.setPositionSetpoint(
+            setpointPosition,
+            pidConstants,
+            feedforward
+        )
     }
 
     fun setVoltage(voltage: Voltage) = io.setVoltage(voltage)
@@ -143,12 +138,10 @@ class Pivot(
             "Pivot/Mechanism3dPose",
             Pose3d.struct,
             Pose3d(
-                Translation3d(0.0, 0.0, 0.0),
-                Rotation3d(0.degrees, 0.degrees, 0.degrees)
+                STARTING_TRANSLATION_PIVOT_SIM,
+                Rotation3d(0.degrees, io.position, 0.degrees) // custom overload function that accepts kmeasure quantities
             )
         )
-
-        setPosition(30.degrees)
 
         if (DriverStation.isDisabled()){
             setIdle()

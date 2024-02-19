@@ -13,7 +13,7 @@ import kotlin.jvm.optionals.getOrNull
 fun enableAimToSpeaker(
     drivetrain: EncoderHolonomicDrivetrain,
     apriltagVision: AprilTagVisionPipeline
-): Command = runOnceCommand(drivetrain){
+): Command = runOnceCommand{
     drivetrain.setRotationOverride(
         AimToAprilTagRotationOverride(
             if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
