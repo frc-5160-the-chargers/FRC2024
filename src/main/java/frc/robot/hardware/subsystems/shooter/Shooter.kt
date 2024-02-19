@@ -7,13 +7,14 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
 
-
+// standard: + = outtake, - = intake
 class Shooter(private val io: ShooterIO): SubsystemBase() {
+
 
 
     val hasBeamBreakSensor: Boolean get() = io.hasBeamBreakSensor
 
-    val hasGamepiece: Boolean get() = io.hasNote
+    val hasNote: Boolean get() = io.hasNote
 
     fun setIdle(){
         io.intake(0.volts)
@@ -37,6 +38,7 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
 
     fun outtake(voltage: Voltage){
         require(voltage >= 0.volts){ "Applied voltage must be > 0.volts. To intake, call intake(voltage) or intake(speed) instead." }
+        NoteVisualizer.update(voltage)
         io.intake(voltage)
     }
 
@@ -44,5 +46,6 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
         if (DriverStation.isDisabled()){
             setIdle()
         }
+        NoteVisualizer.update(io.intakeVoltages[0])
     }
 }

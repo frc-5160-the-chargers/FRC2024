@@ -9,6 +9,7 @@ import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIO
 /**
  * Spins both the ground intake and the conveyor to pass to the shooter.
  */
+// standard: + = outtake, - = intake
 class GroundIntake(io: GroundIntakeIO): SubsystemBase(), GroundIntakeIO by io { // implements GroundIntakeIO to inherit necessary functions from io layer
     fun setIdle(){
         intake(0.volts)

@@ -135,6 +135,12 @@ fun driveToLocation(
     }
 
 
+    val distanceFromAprilTag by getOnceDuringRun {
+        val drivetrainPose = drivetrain.poseEstimator.robotPose
+        val distanceX = drivetrainPose.x - targetPose.x
+        val distanceY = drivetrainPose.y - targetPose.y
+        hypot(distanceX, distanceY)
+    }
 
     addRequirements(drivetrain, pivot)
 
@@ -142,37 +148,28 @@ fun driveToLocation(
         apriltagVision.reset()
     }
 
+    if (path != null){
+        runIf(
+            {distanceFromAprilTag > 1.3.meters},
+            onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
+            onFalse = runIf(
+                {distanceFromAprilTag > 0.6.meters},
+                AutoBuilder.followPath(path)
+            )
+        )
+    }
+
     runParallelUntilAllFinish {
         +pivot.setAngleCommand(target.pivotAngle)
 
-        runSequentially{
-            val distanceFromAprilTag by getOnceDuringRun{
-                val drivetrainPose = drivetrain.poseEstimator.robotPose
-                val distanceX = drivetrainPose.x - targetPose.x
-                val distanceY = drivetrainPose.y - targetPose.y
-                hypot(distanceX, distanceY)
-            }
-
-            if (path != null){
-                runIf(
-                    {distanceFromAprilTag > 1.3.meters},
-                    onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
-                    onFalse = runIf(
-                        {distanceFromAprilTag > 0.6.meters},
-                        AutoBuilder.followPath(path)
-                    )
-                )
-            }
-
-            loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.003) }){
-                Logger.recordOutput("AimToLocation/isAiming", true)
-                drivetrain.swerveDrive(
-                    xPower = getDistanceErrorToTag().siValue * DISTANCE_TO_TAG_REACH_KP,
-                    yPower = -aimingController.calculateOutput().siValue,
-                    rotationPower = 0.0,
-                    fieldRelative = false
-                )
-            }
+        loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.003) }){
+            Logger.recordOutput("AimToLocation/isAiming", true)
+            drivetrain.swerveDrive(
+                xPower = getDistanceErrorToTag().siValue * DISTANCE_TO_TAG_REACH_KP,
+                yPower = -aimingController.calculateOutput().siValue,
+                rotationPower = 0.0,
+                fieldRelative = false
+            )
         }
     }
 

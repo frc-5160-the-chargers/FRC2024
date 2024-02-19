@@ -12,7 +12,7 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     fun keyPressTrigger(key: String): Trigger =
         Trigger{ keyboardNTInterface.getEntry(key).getString("") == key }
 
-
+    val stowTrigger: Trigger = b()
     val driveToAmpTrigger: Trigger = a()
     val driveToSourceLeftTrigger: Trigger = x()
     val driveToSourceRightTrigger: Trigger = y()
@@ -21,6 +21,4 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
 
     val groundIntakeTrigger: Trigger = rightTrigger()
     val groundOuttakeTrigger: Trigger = leftTrigger()
-
-    val stowTrigger: Trigger = b()
 }

@@ -5,6 +5,9 @@
         "header": {
           "open": true
         }
+      },
+      "window": {
+        "visible": false
       }
     }
   },
@@ -164,6 +167,9 @@
         "open": true
       },
       "SmartDashboard": {
+        "NoteVisualizer": {
+          "open": true
+        },
         "Shooter": {
           "open": true
         },

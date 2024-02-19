@@ -47,7 +47,7 @@ fun grabGamepiece(
 
             // fieldRelative = false because rotation override makes drivetrain aim to gamepiece;
             // this means that driving back while field relative is not true will directly grab the gamepiece
-            loopWhile( { shooter.hasBeamBreakSensor && !shooter.hasGamepiece } ){
+            loopWhile( { shooter.hasBeamBreakSensor && !shooter.hasNote } ){
                 drivetrain.swerveDrive(-0.15,0.0,0.0, fieldRelative = false)
             }
         }

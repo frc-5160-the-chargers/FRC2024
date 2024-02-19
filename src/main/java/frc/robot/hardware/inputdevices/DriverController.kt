@@ -21,10 +21,12 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
 
     /* Public API */
-    val pointNorthButton: Trigger = y()
-    val pointSouthButton: Trigger = a()
-    val pointEastButton: Trigger = x()
-    val pointWestButton: Trigger = b()
+    val pointNorthTrigger: Trigger = y()
+    val pointSouthTrigger: Trigger = a()
+    val pointEastTrigger: Trigger = x()
+    val pointWestTrigger: Trigger = b()
+
+    val disableFieldRelativeTrigger: Trigger = start().or(back())
 
 
     /* Private implementation */

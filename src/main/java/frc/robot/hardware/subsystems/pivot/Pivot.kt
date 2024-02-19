@@ -29,7 +29,7 @@ import org.littletonrobotics.junction.Logger
 object PivotAngle{
     val AMP: Angle = 30.degrees
 
-    val SOURCE: Angle = -30.degrees
+    val SOURCE: Angle = -40.degrees
 
     val SPEAKER: Angle = 0.degrees
 
@@ -75,13 +75,19 @@ class Pivot(
         )
     }
 
-
-
     private var motionProfileSetpoint = AngularMotionProfileState(io.position)
 
     @AutoLogOutput
     var hasHitPivotTarget: Boolean = true
         private set
+
+    // regular pose3d is the only option because UnitPose3d does not support automatic logging
+    @get:AutoLogOutput
+    val mechanism3dPose: Pose3d
+        get() = Pose3d(
+            STARTING_TRANSLATION_PIVOT_SIM,
+            Rotation3d(0.degrees, io.position, 0.degrees) // custom overload function that accepts kmeasure quantities
+        )
 
     fun setIdle(){
         io.setVoltage(0.volts)
@@ -132,16 +138,6 @@ class Pivot(
 
     override fun periodic(){
         pivotVisualizer.angle = io.position.inUnit(degrees)
-
-        // tbd at the moment; haven't gotten 3d mechanisms to work yet
-        Logger.recordOutput(
-            "Pivot/Mechanism3dPose",
-            Pose3d.struct,
-            Pose3d(
-                STARTING_TRANSLATION_PIVOT_SIM,
-                Rotation3d(0.degrees, io.position, 0.degrees) // custom overload function that accepts kmeasure quantities
-            )
-        )
 
         if (DriverStation.isDisabled()){
             setIdle()

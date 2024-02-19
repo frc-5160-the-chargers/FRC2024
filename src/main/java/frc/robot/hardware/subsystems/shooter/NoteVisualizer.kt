@@ -1,6 +1,20 @@
-package frc.robot.hardware.subsystems.shooter;
+package frc.robot.hardware.subsystems.shooter
 
-// Copyright 2021-2024 FRC 6328
+import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.units.meters
+import edu.wpi.first.math.geometry.*
+import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.DriverStation.Alliance
+import edu.wpi.first.wpilibj.RobotBase
+import edu.wpi.first.wpilibj.Timer
+import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.Commands
+import edu.wpi.first.wpilibj2.command.ScheduleCommand
+import edu.wpi.first.wpilibj2.command.InstantCommand
+import frc.chargers.framework.ChargerRobot
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import org.littletonrobotics.junction.Logger
+
 // http://github.com/Mechanical-Advantage
 //
 // This program is free software; you can redistribute it and/or
@@ -12,65 +26,93 @@ package frc.robot.hardware.subsystems.shooter;
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
+// Note: This code is mostly identical to mechanical advantage's code,
+// aside from being converted to kotlin.
 
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Transform3d;
-import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.ScheduleCommand;
-import java.util.Set;
-import java.util.function.Supplier;
-import org.littletonrobotics.junction.Logger;
+object NoteVisualizer{
+    private val blueSpeaker = Translation3d(0.225, 5.55, 2.1)
+    private val redSpeaker = Translation3d(16.317, 5.55, 2.1)
+    private val zeroedNoteOffset = Transform3d(
+        Translation3d(0.0,-0.03, 0.15),
+        Rotation3d()
+    )
 
-// unused as of now
-@SuppressWarnings("ALL")
-public class NoteVisualizer {
-    private static final Translation3d blueSpeaker = new Translation3d(0.225, 5.55, 2.1);
-    private static final Translation3d redSpeaker = new Translation3d(16.317, 5.55, 2.1);
-    private static final Transform3d launcherTransform =
-            new Transform3d(0.35, 0, 0.8, new Rotation3d(0.0, Units.degreesToRadians(-55.0), 0.0));
-    private static final double shotSpeed = 5.0; // Meters per sec
-    private static Supplier<Pose2d> robotPoseSupplier = Pose2d::new;
+    private const val shotSpeed = 5.0 // Meters per sec
+    private var robotPoseSupplier = { Pose2d() }
+    private var launcherTransformSupplier = { Transform3d() }
 
-    public static void setRobotPoseSupplier(Supplier<Pose2d> supplier) {
-        robotPoseSupplier = supplier;
+    private var hasNoteInShooter: Boolean = false
+    private var isShootingInSpeaker: Boolean = false
+
+    init{
+        ChargerRobot.runPeriodicallyWithLowPriority {
+            if (hasNoteInShooter){
+                Logger.recordOutput(
+                    "Shooter/notePose",
+                    Pose3d(robotPoseSupplier())
+                        .transformBy(launcherTransformSupplier())
+                        .transformBy(zeroedNoteOffset)
+                )
+            }else if (!isShootingInSpeaker){
+                Logger.recordOutput("Shooter/notePose", *arrayOf<Pose3d>())
+            }
+        }
     }
 
-    public static Command shoot() {
-        return new ScheduleCommand( // Branch off and exit immediately
-            Commands.defer(
-                () -> {
-                    final Pose3d startPose =
-                            new Pose3d(robotPoseSupplier.get()).transformBy(launcherTransform);
-                    final boolean isRed =
-                            DriverStation.getAlliance().isPresent()
-                                    && DriverStation.getAlliance().get().equals(Alliance.Red);
-                    final Pose3d endPose =
-                            new Pose3d(isRed ? redSpeaker : blueSpeaker, startPose.getRotation());
+    fun setRobotPoseSupplier(supplier: () -> UnitPose2d){
+        robotPoseSupplier = { supplier().inUnit(meters) }
+    }
 
-                    final double duration =
-                            startPose.getTranslation().getDistance(endPose.getTranslation()) / shotSpeed;
-                    final Timer timer = new Timer();
-                    timer.start();
-                    return Commands.run(
-                                () -> Logger.recordOutput(
-                                        "NoteVisualizer",
-                                        new Pose3d[] {startPose.interpolate(endPose, timer.get() / duration)}
-                                ))
-                            .until(() -> timer.hasElapsed(duration))
-                            .finallyDo(
-                                () -> {
-                                    Logger.recordOutput("NoteVisualizer", new Pose3d[] {});
-                                });
+    // regular pose3d as that is whats being logged
+    fun setLauncherTransformSupplier(supplier: () -> Pose3d){
+        launcherTransformSupplier = { supplier() - Pose3d() }
+    }
+
+    fun shootInSpeakerCommand(): Command {
+        if (RobotBase.isReal()) return InstantCommand()
+        return ScheduleCommand( // Branch off and exit immediately
+            Commands.defer(
+                {
+                    val startPose =
+                        Pose3d(robotPoseSupplier()).transformBy(launcherTransformSupplier())
+                    val isRed =
+                        DriverStation.getAlliance().isPresent && DriverStation.getAlliance().get() == Alliance.Red
+                    val endPose =
+                        Pose3d(if (isRed) redSpeaker else blueSpeaker, startPose.rotation)
+
+                    val duration =
+                        startPose.translation.getDistance(endPose.translation) / shotSpeed
+                    val timer = Timer()
+                    timer.start()
+                    Commands.run(
+                        {
+                            isShootingInSpeaker = true
+                            Logger.recordOutput(
+                                "Shooter/notePose",
+                                startPose
+                                    .interpolate(endPose, timer.get() / duration)
+                                    .transformBy(zeroedNoteOffset)
+                            )
+                        })
+                        .until { timer.hasElapsed(duration) }
+                        .finallyDo { _: Boolean ->
+                            Logger.recordOutput("Shooter/notePose", *arrayOf<Pose3d>())
+                            isShootingInSpeaker = false
+                        }
                 },
-                Set.of())
-        .ignoringDisable(true));
+                setOf()
+            ).ignoringDisable(true)
+        )
+    }
+
+
+    fun update(shooterVoltage: Voltage){
+        if (RobotBase.isReal()) return
+
+        if (shooterVoltage.siValue > 0.0) {
+            hasNoteInShooter = true
+        }else if (shooterVoltage.siValue < 0.0){ // if shooting into speaker, do not clear note pose
+            hasNoteInShooter = false
+        }
     }
 }

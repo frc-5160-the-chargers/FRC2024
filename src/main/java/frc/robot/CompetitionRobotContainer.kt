@@ -15,6 +15,7 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isReal
+import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
@@ -56,6 +57,7 @@ import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.pivot.lowlevel.PivotIOReal
 import frc.robot.hardware.subsystems.pivot.lowlevel.PivotIOSim
+import frc.robot.hardware.subsystems.shooter.NoteVisualizer
 import frc.robot.hardware.subsystems.shooter.Shooter
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOReal
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOSim
@@ -107,7 +109,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         PIDConstants(8.0,0,0),
         AngularTrapezoidProfile(
             maxVelocity = AngularVelocity(8.0),
-            maxAcceleration = AngularAcceleration(10.0)
+            maxAcceleration = AngularAcceleration(11.0)
         )
     )
 
@@ -226,6 +228,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             vision.fusedTagPipeline, vision.notePipeline, drivetrain,
             shooter, pivot, groundIntake
         )
+
+        if (isSimulation()){
+            NoteVisualizer.setRobotPoseSupplier { drivetrain.poseEstimator.robotPose }
+            NoteVisualizer.setLauncherTransformSupplier { pivot.mechanism3dPose }
+        }
     }
 
     private fun configureDefaultCommands(){
@@ -233,7 +240,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             addRequirements(drivetrain)
 
             loop{
-                drivetrain.swerveDrive(DriverController.swerveOutput)
+                if (DriverController.disableFieldRelativeTrigger.asBoolean){
+                    drivetrain.swerveDrive(DriverController.swerveOutput, fieldRelative = false)
+                }else{
+                    drivetrain.swerveDrive(DriverController.swerveOutput)
+                }
             }
 
             onEnd{
@@ -244,7 +255,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
         shooter.setDefaultRunCommand{
             val speed = OperatorInterface.leftY
-            if (speed >= 0.0){
+            if (speed > 0.0){
                 shooter.outtake(speed)
             }else{
                 shooter.intake(speed)
@@ -273,10 +284,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         DriverController.apply{
-            pointNorthButton.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
-            pointEastButton.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
-            pointSouthButton.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
-            pointWestButton.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
+            pointNorthTrigger.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
+            pointEastTrigger.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
+            pointSouthTrigger.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
+            pointWestTrigger.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
         }
 
         OperatorInterface.apply{
