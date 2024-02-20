@@ -14,6 +14,8 @@ fun enableAimToSpeaker(
     drivetrain: EncoderHolonomicDrivetrain,
     apriltagVision: AprilTagVisionPipeline
 ): Command = runOnceCommand{
+    apriltagVision.reset()
+
     drivetrain.setRotationOverride(
         AimToAprilTagRotationOverride(
             if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){

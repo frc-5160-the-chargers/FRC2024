@@ -31,11 +31,11 @@ object PivotAngle{
 
     val SOURCE: Angle = -40.degrees
 
-    val SPEAKER: Angle = 0.degrees
-
     val STOWED: Angle = 0.degrees
 
     val GROUND_INTAKE_HANDOFF: Angle = 0.degrees
+
+    val SPEAKER: Angle = GROUND_INTAKE_HANDOFF // same as of now
 }
 
 private val STARTING_TRANSLATION_PIVOT_SIM = Translation3d(0.325, 0.0, 0.75)
@@ -48,10 +48,11 @@ class Pivot(
     private val feedforward: ArmFFEquation = ArmFFEquation(0.0,0.0,0.0),
     private val precision: Precision.Within<AngleDimension> = Precision.Within(0.5.degrees)
 ): SubsystemBase() {
-
+    /* Private Members */
     @AutoLogOutput
     private val mechanismCanvas = Mechanism2d(3.0, 3.0)
     private val pivotVisualizer: MechanismLigament2d
+    private var motionProfileSetpoint = AngularMotionProfileState(io.angle)
 
     init{
         val root = mechanismCanvas.getRoot("PivotingShooter", 2.0, 0.0)
@@ -75,10 +76,10 @@ class Pivot(
         )
     }
 
-    private var motionProfileSetpoint = AngularMotionProfileState(io.position)
+    /* Public API */
 
     @AutoLogOutput
-    var hasHitPivotTarget: Boolean = true
+    var atTarget: Boolean = true
         private set
 
     // regular pose3d is the only option because UnitPose3d does not support automatic logging
@@ -86,14 +87,21 @@ class Pivot(
     val mechanism3dPose: Pose3d
         get() = Pose3d(
             STARTING_TRANSLATION_PIVOT_SIM,
-            Rotation3d(0.degrees, io.position, 0.degrees) // custom overload function that accepts kmeasure quantities
+            Rotation3d(0.degrees, io.angle, 0.degrees) // custom overload function that accepts kmeasure quantities
         )
+
+    val angle: Angle
+        get() = io.angle
 
     fun setIdle(){
         io.setVoltage(0.volts)
     }
 
-    fun setPosition(position: Angle){
+    fun setVoltage(voltage: Voltage) = io.setVoltage(voltage)
+
+    fun setSpeed(speed: Double) = setVoltage(speed * 12.volts)
+
+    fun setAngle(angle: Angle){
         val setpointPosition: Angle
         val feedforward: Voltage
 
@@ -101,18 +109,18 @@ class Pivot(
             motionProfileSetpoint = motionProfile.calculate(
                 0.02.seconds,
                 motionProfileSetpoint,
-                AngularMotionProfileState(position)
+                AngularMotionProfileState(angle)
             )
             setpointPosition = motionProfileSetpoint.position
-            feedforward = feedforward(io.position, motionProfileSetpoint.velocity)
+            feedforward = feedforward(io.angle, motionProfileSetpoint.velocity)
         }else{
-            setpointPosition = position
+            setpointPosition = angle
             feedforward = 0.volts
         }
         Logger.recordOutput("Pivot/setpoint", setpointPosition.siValue)
         Logger.recordOutput("Pivot/ff", feedforward.siValue)
 
-        hasHitPivotTarget = (position - io.position).within(precision)
+        atTarget = (angle - io.angle).within(precision)
 
         io.setPositionSetpoint(
             setpointPosition,
@@ -121,23 +129,19 @@ class Pivot(
         )
     }
 
-    fun setVoltage(voltage: Voltage) = io.setVoltage(voltage)
-
-    fun setSpeed(speed: Double) = setVoltage(speed * 12.volts)
-
     fun setAngleCommand(target: Angle): Command =
         buildCommand{
-            runOnce(this@Pivot){ setPosition(target) }
+            runOnce(this@Pivot){ setAngle(target) }
 
-            loopUntil({ hasHitPivotTarget }, this@Pivot){
-                setPosition(target)
+            loopUntil({ atTarget }, this@Pivot){
+                setAngle(target)
             }
 
             runOnce(this@Pivot){ setIdle() }
         }
 
     override fun periodic(){
-        pivotVisualizer.angle = io.position.inUnit(degrees)
+        pivotVisualizer.angle = io.angle.inUnit(degrees)
 
         if (DriverStation.isDisabled()){
             setIdle()

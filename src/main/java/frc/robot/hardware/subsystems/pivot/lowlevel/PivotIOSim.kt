@@ -24,7 +24,7 @@ class PivotIOSim(private val motorSim: DCMotorSim): PivotIO {
         _pivotVoltage
     }
 
-    override val position by PivotLog.quantity{
+    override val angle by PivotLog.quantity{
         motorSim.angularPositionRad.ofUnit(radians)
     }
 

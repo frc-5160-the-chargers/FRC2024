@@ -8,12 +8,10 @@ import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.commands.FieldLocation
-import frc.robot.commands.driveToLocation
-import frc.robot.commands.grabGamepiece
-import frc.robot.commands.shootInAmp
-import frc.robot.hardware.subsystems.groundintake.GroundIntake
+import frc.robot.commands.*
+import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
+import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 
@@ -24,21 +22,27 @@ fun twoPieceAmpWithVision(
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
     pivot: Pivot,
-    groundIntake: GroundIntake,
+    groundIntake: GroundIntakeSerializer,
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, groundIntake)
 
-    +shootInAmp(pivot, shooter,0.3, 0.5.seconds)
+    +pivot.setAngleCommand(PivotAngle.AMP)
+
+    loopFor(0.5.seconds){
+        shooter.outtake(0.3)
+    }
 
     runOnce{
         drivetrain.poseEstimator.resetToPathplannerTrajectory("AmpGrabG2")
     }
 
-    +grabGamepiece(
+    +driveThenGroundIntakeToShooter(
         path = PathPlannerPath.fromPathFile("AmpGrabG2"),
         noteDetector = noteDetector,
-        drivetrain, pivot, shooter, groundIntake
+        drivetrain, shooter, pivot, groundIntake
     )
+
+    +idleSubsystems(drivetrain, shooter, pivot, groundIntake)
 
     +driveToLocation(
         target = FieldLocation.AMP,
@@ -46,9 +50,11 @@ fun twoPieceAmpWithVision(
         drivetrain, apriltagVision, pivot
     )
 
-    +shootInAmp(pivot, shooter,0.3, 0.5.seconds)
+    loopFor(0.5.seconds){
+        shooter.outtake(0.3)
+    }
 
-    +basicTaxi(
-        drivetrain, shooter = shooter, groundIntake = groundIntake
-    )
+    +idleSubsystems(drivetrain, shooter, pivot, groundIntake)
+
+    +basicTaxi(drivetrain)
 }

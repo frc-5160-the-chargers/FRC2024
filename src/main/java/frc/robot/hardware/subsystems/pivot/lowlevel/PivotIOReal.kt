@@ -59,7 +59,7 @@ class PivotIOReal(
         motor.appliedVoltage
     }
     
-    override val position by PivotLog.quantity{
+    override val angle by PivotLog.quantity{
         when (encoderType){
             EncoderType.IntegratedAbsoluteEncoder -> motor.encoder.angularPosition
 

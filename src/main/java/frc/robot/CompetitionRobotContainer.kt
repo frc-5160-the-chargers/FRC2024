@@ -47,10 +47,10 @@ import frc.robot.commands.FieldLocation
 import frc.robot.commands.auto.AutoChooser
 import frc.robot.commands.driveToLocation
 import frc.robot.commands.enableAimToSpeaker
-import frc.robot.commands.runGroundIntake
+import frc.robot.commands.idleSubsystems
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
-import frc.robot.hardware.subsystems.groundintake.GroundIntake
+import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOReal
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOSim
 import frc.robot.hardware.subsystems.pivot.Pivot
@@ -113,12 +113,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         )
     )
 
-    private val groundIntake = GroundIntake(
+    private val groundIntake = GroundIntakeSerializer(
         if (isReal()){
             GroundIntakeIOReal(
                 ChargerSparkFlex(GROUND_INTAKE_ID),
                 conveyorMotor = ChargerSparkMax(CONVEYOR_ID),
-                conveyorVoltageMultiplier = 0.8,
                 intakeGearRatio = groundIntakeRatio
             )
         }else{
@@ -177,7 +176,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 AngularMotorFFEquation(0.0081299, 0.13396)
             },
             robotRotationPID = PIDConstants(1.4,0,0.1),
-            robotTranslationPID = PIDConstants(0.2,0,0)
+            robotTranslationPID = PIDConstants(1.0,0,0)
         ),
         useOnboardPID = false,
         hardwareData = SwerveHardwareData.mk4iL2(
@@ -252,7 +251,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }
         }
 
-
         shooter.setDefaultRunCommand{
             val speed = OperatorInterface.leftY
             if (speed > 0.0){
@@ -261,7 +259,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 shooter.intake(speed)
             }
         }
-
 
         pivot.setDefaultRunCommand{
             pivot.setSpeed(OperatorInterface.rightY / 6.0)
@@ -291,22 +288,22 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         OperatorInterface.apply{
-            val idleGroundIntake = runOnceCommand(groundIntake){ groundIntake.setIdle() }
 
-            groundIntakeTrigger
-                .whileTrue(runGroundIntake(shooter, pivot, groundIntake))
-                .onFalse(idleGroundIntake)
+            groundIntakeToShooterTrigger
+                .whileTrue(
+                    loopCommand(groundIntake, pivot, shooter){
+                        groundIntake.intakeToShooter(pivot, shooter)
+                    }
+                )
+                .onFalse(idleSubsystems(drivetrain = null, shooter, pivot, groundIntake))
 
             groundOuttakeTrigger
                 .whileTrue(loopCommand(groundIntake){ groundIntake.outtake() })
-                .onFalse(idleGroundIntake)
+                .onFalse(runOnceCommand(groundIntake){ groundIntake.setIdle() })
 
-
-            aimToSpeakerTrigger.whileTrue(enableAimToSpeaker(drivetrain, vision.fusedTagPipeline)).onFalse(
-                runOnceCommand(drivetrain){
-                    drivetrain.removeRotationOverride()
-                }
-            )
+            aimToSpeakerTrigger
+                .whileTrue(enableAimToSpeaker(drivetrain, vision.fusedTagPipeline))
+                .onFalse(runOnceCommand(drivetrain){ drivetrain.removeRotationOverride() })
 
             driveToSourceLeftTrigger.whileTrue(
                 driveToLocation(
@@ -338,13 +335,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 )
             )
 
-            stowTrigger.whileTrue(
-                pivot.setAngleCommand(PivotAngle.STOWED)
-            )
+            stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
 
-            aimToSpeakerTrigger.whileTrue(
-                enableAimToSpeaker(drivetrain, vision.fusedTagPipeline)
-            ).onFalse(runOnceCommand{ drivetrain.removeRotationOverride() })
+            aimToSpeakerTrigger
+                .whileTrue(enableAimToSpeaker(drivetrain, vision.fusedTagPipeline))
+                .onFalse(runOnceCommand{ drivetrain.removeRotationOverride() })
         }
     }
 
@@ -365,12 +360,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     }
 
-
-
-
     override val autonomousCommand: Command
         get() = buildCommand{
-            +AutoBuilder.followPath(PathPlannerPath.fromPathFile("Test Path"))
+            val pathname = "4Point5pAutoCenter"
+
+            runOnce{
+                drivetrain.poseEstimator.resetToChoreoTrajectory(pathname)
+            }
+            +AutoBuilder.followPath(PathPlannerPath.fromChoreoTrajectory(pathname))
         }
 
 

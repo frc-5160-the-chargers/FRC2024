@@ -16,4 +16,6 @@ interface GroundIntakeIO: GenericIntakeIO {
     val conveyorVoltage: Voltage
     val conveyorCurrent: Current
     val conveyorSpeed: AngularVelocity
+
+    fun setConveyorVoltage(voltage: Voltage)
 }

@@ -45,7 +45,7 @@ class ShooterIOReal(
         allMotors.map{ it.tempCelsius }
     }
 
-    override fun intake(voltage: Voltage) {
+    override fun setIntakeVoltage(voltage: Voltage) {
         topMotor.setVoltage(voltage.inUnit(volts))
         bottomMotor?.setVoltage(-voltage.inUnit(volts))
     }

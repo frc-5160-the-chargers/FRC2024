@@ -15,8 +15,17 @@ import frc.chargers.commands.commandbuilder.buildCommand
 public fun InstantCommand(vararg subsystems: Subsystem, toRun: () -> Unit): InstantCommand =
     InstantCommand(toRun, *subsystems)
 
+/**
+ * A utility function for creating [InstantCommand]s in a more kotlin-friendly way.
+ */
 public fun runOnceCommand(vararg subsystems: Subsystem, toRun: () -> Unit): InstantCommand =
     InstantCommand(toRun, *subsystems)
+
+/**
+ * A utility function for creating [DeferredCommand]s in a more kotlin-friendly way.
+ */
+public fun DeferredCommand(subsystems: Set<Subsystem>, getCommand: () -> Command): DeferredCommand =
+    DeferredCommand(getCommand, subsystems)
 
 
 
@@ -26,6 +35,9 @@ public fun runOnceCommand(vararg subsystems: Subsystem, toRun: () -> Unit): Inst
 public fun RunCommand(vararg subsystems: Subsystem, toRun: () -> Unit): RunCommand =
     RunCommand(toRun, *subsystems)
 
+/**
+ * A utility function for creating [RunCommand]s in a more kotlin-friendly way.
+ */
 public fun loopCommand(vararg subsystems: Subsystem, toRun: () -> Unit): RunCommand =
     RunCommand(toRun, *subsystems)
 

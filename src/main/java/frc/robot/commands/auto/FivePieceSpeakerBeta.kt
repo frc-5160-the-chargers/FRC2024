@@ -15,10 +15,8 @@ import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.robot.PATHFIND_CONSTRAINTS
-import frc.robot.commands.enableAimToSpeaker
-import frc.robot.commands.grabGamepiece
-import frc.robot.commands.shootInSpeaker
-import frc.robot.hardware.subsystems.groundintake.GroundIntake
+import frc.robot.commands.*
+import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -32,14 +30,13 @@ fun fivePieceSpeakerBeta(
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
     pivot: Pivot,
-    groundIntake: GroundIntake,
+    groundIntake: GroundIntakeSerializer,
 ): Command = buildCommand {
     // adds a command that makes the drivebase follow a path, while intaking gamepieces.
     fun pathAndIntake(path: PathPlannerPath): Command =
-        grabGamepiece(
-            path,
-            noteDetector,
-            drivetrain, pivot, shooter, groundIntake
+        driveThenGroundIntakeAndStow(
+            path, noteDetector, drivetrain,
+            shooter, pivot, groundIntake
         )
 
     fun aimToSpeakerIfNecessary(
@@ -68,11 +65,11 @@ fun fivePieceSpeakerBeta(
     }
 
     // note 1
-    +shootInSpeaker(shooter, pivot, 0.7)
+    +shootInSpeaker(shooter, groundIntake, pivot, 0.7)
 
     // note 2
     +pathAndIntake(paths[0])
-    +shootInSpeaker(shooter, pivot, 0.9)
+    +shootInSpeaker(shooter, groundIntake, pivot, 0.9)
 
     // note 3
     +pathAndIntake(paths[1])
@@ -82,12 +79,12 @@ fun fivePieceSpeakerBeta(
 
         +pivot.setAngleCommand(PivotAngle.SPEAKER)
     }
-    +shootInSpeaker(shooter, pivot, 0.7)
+    +shootInSpeaker(shooter, groundIntake, pivot, 0.7)
 
     // note 4
     +pathAndIntake(paths[3])
     +aimToSpeakerIfNecessary(paths[1], shouldDelay = true)
-    +shootInSpeaker(shooter, pivot, 0.7)
+    +shootInSpeaker(shooter, groundIntake, pivot, 0.7)
 
     // note 5
     +pathAndIntake(paths[4])
@@ -97,13 +94,9 @@ fun fivePieceSpeakerBeta(
 
         +pivot.setAngleCommand(PivotAngle.SPEAKER)
     }
-    +shootInSpeaker(shooter, pivot, 0.7)
+    +shootInSpeaker(shooter, groundIntake, pivot, 0.7)
 
-    runOnce{
-        drivetrain.stop()
-        shooter.setIdle()
-        groundIntake.setIdle()
-    }
+    +idleSubsystems(drivetrain, shooter, pivot, groundIntake)
 
     +basicTaxi(drivetrain)
 }

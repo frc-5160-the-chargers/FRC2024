@@ -10,8 +10,6 @@ class GroundIntakeIOReal(
     private val bottomMotor: SmartEncoderMotorController? = null,
     private val conveyorMotor: SmartEncoderMotorController,
 
-    private val conveyorVoltageMultiplier: Double = 1.0,
-
     private val intakeGearRatio: Double = 1.0,
     private val conveyorGearRatio: Double = 1.0,
 ): GroundIntakeIO {
@@ -49,10 +47,12 @@ class GroundIntakeIOReal(
         conveyorMotor.encoder.angularVelocity / conveyorGearRatio
     }
 
-    override fun intake(voltage: Voltage) {
+    override fun setIntakeVoltage(voltage: Voltage) {
         topMotor.setVoltage(voltage.siValue)
         bottomMotor?.setVoltage(-voltage.siValue)
+    }
 
-        conveyorMotor.setVoltage(voltage.siValue * conveyorVoltageMultiplier)
+    override fun setConveyorVoltage(voltage: Voltage) {
+        conveyorMotor.setVoltage(voltage.siValue)
     }
 }

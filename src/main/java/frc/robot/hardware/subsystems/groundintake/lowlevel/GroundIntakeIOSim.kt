@@ -62,14 +62,17 @@ class GroundIntakeIOSim(
         _conveyorVoltage
     }
 
-    override fun intake(voltage: Voltage) {
+    override fun setIntakeVoltage(voltage: Voltage) {
         _intakeVoltages[0] = voltage
         topMotorSim.setInputVoltage(voltage.inUnit(volts))
         if (bottomMotorSim != null){
             _intakeVoltages[1] = -voltage
             bottomMotorSim.setInputVoltage(-voltage.inUnit(volts))
         }
-        _conveyorVoltage = voltage * conveyorVoltageMultiplier
+    }
+
+    override fun setConveyorVoltage(voltage: Voltage) {
+        _conveyorVoltage = voltage
         conveyorMotorSim.setInputVoltage(_conveyorVoltage.siValue)
     }
 }

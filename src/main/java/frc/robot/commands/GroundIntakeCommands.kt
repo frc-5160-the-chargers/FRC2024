@@ -10,22 +10,52 @@ import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.CAMERA_YAW_TO_ROTATIONAL_VELOCITY_PID
 import frc.robot.PATHFIND_CONSTRAINTS
-import frc.robot.hardware.subsystems.groundintake.GroundIntake
+import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.shooter.Shooter
 
-
-
-fun grabGamepiece(
+/**
+ * Paths, then ground intakes to the shooter.
+ *
+ * @see GroundIntakeSerializer.intakeToShooter
+ */
+fun driveThenGroundIntakeToShooter(
     path: PathPlannerPath? = null,
     noteDetector: ObjectVisionPipeline,
 
     drivetrain: EncoderHolonomicDrivetrain,
-    pivot: Pivot,
     shooter: Shooter,
-    groundIntake: GroundIntake,
+    pivot: Pivot,
+    groundIntake: GroundIntakeSerializer,
+): Command = driveToNoteAndGrab(path, false, noteDetector, drivetrain, shooter, pivot, groundIntake)
+
+/**
+ * Paths, then ground intakes to the shooter.
+ *
+ * @see GroundIntakeSerializer.intakeAndStow
+ */
+fun driveThenGroundIntakeAndStow(
+    path: PathPlannerPath? = null,
+    noteDetector: ObjectVisionPipeline,
+
+    drivetrain: EncoderHolonomicDrivetrain,
+    shooter: Shooter,
+    pivot: Pivot,
+    groundIntake: GroundIntakeSerializer,
+): Command = driveToNoteAndGrab(path, false, noteDetector, drivetrain, shooter, pivot, groundIntake)
+
+
+fun driveToNoteAndGrab(
+    path: PathPlannerPath? = null,
+    stowNoteInGroundIntake: Boolean,
+    noteDetector: ObjectVisionPipeline,
+
+    drivetrain: EncoderHolonomicDrivetrain,
+    shooter: Shooter,
+    pivot: Pivot,
+    groundIntake: GroundIntakeSerializer,
 ): Command = buildCommand {
-    addRequirements(drivetrain, shooter, groundIntake, pivot)
+    addRequirements(drivetrain, groundIntake, pivot)
 
     runOnce{
         noteDetector.reset()
@@ -45,17 +75,28 @@ fun grabGamepiece(
                 +AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS)
             }
 
+            fun shouldContinueDriving(): Boolean =
+                if (stowNoteInGroundIntake || !shooter.hasBeamBreakSensor){
+                    noteDetector.visionTargets.isNotEmpty()
+                }else{
+                    shooter.hasNote
+                }
+
             // fieldRelative = false because rotation override makes drivetrain aim to gamepiece;
             // this means that driving back while field relative is not true will directly grab the gamepiece
-            loopWhile( { shooter.hasBeamBreakSensor && !shooter.hasNote } ){
+            loopWhile(::shouldContinueDriving){
                 drivetrain.swerveDrive(-0.15,0.0,0.0, fieldRelative = false)
             }
         }
 
         // parallel #2
-        +runGroundIntake(
-            shooter, pivot, groundIntake
-        )
+        loop{
+            if (stowNoteInGroundIntake){
+                groundIntake.intakeAndStow(pivot)
+            }else{
+                groundIntake.intakeToShooter(pivot, shooter)
+            }
+        }
     }
 
     runOnce{

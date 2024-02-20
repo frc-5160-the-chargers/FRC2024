@@ -15,5 +15,5 @@ interface GenericIntakeIO {
     val intakeCurrents: List<Current>
     val intakeTemps: List<Double>
 
-    fun intake(voltage: Voltage)
+    fun setIntakeVoltage(voltage: Voltage)
 }

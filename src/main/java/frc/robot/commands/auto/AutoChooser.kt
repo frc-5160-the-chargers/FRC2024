@@ -5,7 +5,7 @@ import frc.chargers.commands.InstantCommand
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.hardware.subsystems.groundintake.GroundIntake
+import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.shooter.Shooter
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
@@ -20,7 +20,7 @@ object AutoChooser {
         drivetrain: EncoderHolonomicDrivetrain,
         shooter: Shooter,
         pivot: Pivot,
-        groundIntake: GroundIntake,
+        groundIntake: GroundIntakeSerializer,
     ){
         sendableChooser.apply{
             addDefaultOption("Taxi", basicTaxi(drivetrain))

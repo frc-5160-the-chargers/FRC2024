@@ -55,7 +55,7 @@ class ShooterIOSim(
         motorSims.map{ 0.0 }
     }
 
-    override fun intake(voltage: Voltage) {
+    override fun setIntakeVoltage(voltage: Voltage) {
         _intakeVoltages[0] = voltage
         topMotorSim.setInputVoltage(voltage.inUnit(volts))
         if (bottomMotorSim != null){

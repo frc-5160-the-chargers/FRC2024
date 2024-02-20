@@ -12,13 +12,14 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     fun keyPressTrigger(key: String): Trigger =
         Trigger{ keyboardNTInterface.getEntry(key).getString("") == key }
 
-    val stowTrigger: Trigger = b()
+    val stowPivotTrigger: Trigger = b()
     val driveToAmpTrigger: Trigger = a()
     val driveToSourceLeftTrigger: Trigger = x()
     val driveToSourceRightTrigger: Trigger = y()
 
     val aimToSpeakerTrigger: Trigger = start().or(back())
 
-    val groundIntakeTrigger: Trigger = rightTrigger()
-    val groundOuttakeTrigger: Trigger = leftTrigger()
+    val groundIntakeToShooterTrigger: Trigger = leftTrigger()
+    val groundIntakeAndStowTrigger: Trigger = Trigger{ false.also{println("Inactive trigger")} }
+    val groundOuttakeTrigger: Trigger = rightTrigger().and(leftTrigger().negate())
 }

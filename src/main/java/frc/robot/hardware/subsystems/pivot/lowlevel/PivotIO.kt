@@ -15,7 +15,7 @@ val PivotLog = LoggableInputsProvider("Pivot")
  */
 interface PivotIO {
     val appliedVoltage: Voltage
-    val position: Angle
+    val angle: Angle
     val appliedCurrent: Current
     val tempCelsius: Double
 
@@ -33,7 +33,7 @@ interface PivotIO {
     // not intended to be overriden
     fun getRioPIDController() = SuperPIDController(
         PIDConstants(0.3,0,0),
-        getInput = { position },
+        getInput = { angle },
         target = 0.degrees,
         outputRange = (-12).volts..12.volts
     )
