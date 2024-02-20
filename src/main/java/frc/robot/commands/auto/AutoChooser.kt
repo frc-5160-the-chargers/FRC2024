@@ -29,13 +29,13 @@ object AutoChooser {
             addOption("Pathplanner Taxi", pathplannerTaxi(drivetrain))
             addOption(
                 "Two piece amp(no vision)",
-                twoPieceAmpNoVision(drivetrain, shooter, pivot, groundIntake)
+                twoNoteAmpNoVision(drivetrain, shooter, pivot, groundIntake)
             )
 
             if (aprilTagVision != null && noteDetector != null){
                 addOption(
                     "Two piece amp(with vision)",
-                    twoPieceAmpWithVision(
+                    twoNoteAmp(
                         aprilTagVision, noteDetector, drivetrain,
                         shooter, pivot, groundIntake
                     )
@@ -43,7 +43,7 @@ object AutoChooser {
 
                 addOption(
                     "Five piece speaker(beta)",
-                    fivePieceSpeakerBeta(
+                    fiveNoteSpeakerRight(
                         aprilTagVision, noteDetector , drivetrain,
                         shooter, pivot, groundIntake,
                     )
@@ -51,7 +51,7 @@ object AutoChooser {
 
                 addOption(
                     "Six piece speaker(beta)",
-                    sixPieceSpeakerBeta(
+                    sixNoteSpeakerCenter(
                         aprilTagVision, noteDetector , drivetrain,
                         shooter, pivot, groundIntake,
                     )

@@ -5,12 +5,17 @@ import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.quantities.Quantity
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.quantities.ofUnit
+import edu.wpi.first.math.geometry.Pose3d
+import edu.wpi.first.math.geometry.Rotation3d
+import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.wpilibj.DriverStation
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.utils.math.units.KmeasureUnit
 import frc.chargers.utils.math.units.siUnit
 import frc.chargers.wpilibextensions.Alert
+import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
+import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import org.littletonrobotics.junction.networktables.LoggedDashboardBoolean
 import org.littletonrobotics.junction.networktables.LoggedDashboardNumber
 import kotlin.properties.PropertyDelegateProvider
@@ -218,7 +223,7 @@ public open class DashboardTuner(
      * Represents [PIDConstants] that can be tuned from the dashboard.
      */
     public fun pidConstants(kP: Double, kI: Double, kD: Double, key: String? = null): TunableDelegate<PIDConstants> =
-        pidConstants(PIDConstants(kP, kI, kD),key)
+        pidConstants(PIDConstants(kP, kI, kD), key)
 
 
     private inner class TunablePIDConstants(
@@ -247,6 +252,63 @@ public open class DashboardTuner(
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): PIDConstants = value
 
+    }
+
+
+    public fun transform3d(
+        default: UnitTransform3d,
+        key: String? = null
+    ): TunableDelegate<UnitTransform3d> =
+        PropertyDelegateProvider { _, variable ->
+            object: ReadOnlyProperty<Any?, UnitTransform3d>{
+                private val tunablePose = TunableUnitPose3d(UnitPose3d() + default, key ?: variable.name)
+
+                override fun getValue(thisRef: Any?, property: KProperty<*>): UnitTransform3d =
+                    tunablePose.getValue(thisRef, property) - UnitPose3d()
+            }
+        }
+
+    public fun pose3d(
+        default: UnitPose3d,
+        key: String? = null
+    ): TunableDelegate<UnitPose3d> =
+    PropertyDelegateProvider{ _, variable ->
+        TunableUnitPose3d(default, key ?: variable.name)
+    }
+
+
+    private inner class TunableUnitPose3d(
+        default: UnitPose3d,
+        key: String
+    ): ReadOnlyProperty<Any?, UnitPose3d> {
+        val xDashNumber = LoggedDashboardNumber("$dashKey/$key-x", default.x.siValue)
+        val yDashNumber = LoggedDashboardNumber("$dashKey/$key-y", default.y.siValue)
+        val zDashNumber = LoggedDashboardNumber("$dashKey/$key-z", default.z.siValue)
+
+        val yawDashNumber = LoggedDashboardNumber("$dashKey/$key-yaw", default.rotation.x)
+        val pitchDashNumber = LoggedDashboardNumber("$dashKey/$key-pitch", default.rotation.y)
+        val rollDashNumber = LoggedDashboardNumber("$dashKey/$key-roll", default.rotation.z)
+
+        private var value = default
+        // ap test stuff; cs and math
+        private fun getPose(): UnitPose3d =
+            UnitPose3d(
+                Pose3d(
+                    Translation3d(xDashNumber.get(), yDashNumber.get(), zDashNumber.get()),
+                    Rotation3d(yawDashNumber.get(), pitchDashNumber.get(), rollDashNumber.get())
+                )
+            )
+
+        init{
+            allTunables.add(
+                Tunable(
+                    { value = getPose() },
+                    { value != getPose() }
+                )
+            )
+        }
+
+        override fun getValue(thisRef: Any?, property: KProperty<*>): UnitPose3d = value
     }
 
 

@@ -8,7 +8,6 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix6.signals.SensorDirectionValue
 import com.kauailabs.navx.frc.AHRS
-import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.math.geometry.Pose2d
@@ -43,11 +42,9 @@ import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
-import frc.robot.commands.FieldLocation
+import frc.robot.commands.*
 import frc.robot.commands.auto.AutoChooser
-import frc.robot.commands.driveToLocation
-import frc.robot.commands.enableAimToSpeaker
-import frc.robot.commands.idleSubsystems
+import frc.robot.commands.auto.twoNoteAmp
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
@@ -189,7 +186,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         gyro = if (isReal()) gyroIO else null,
     )
 
-    private val vision = VisionManager(drivetrain.poseEstimator)
+    private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
 
 
 
@@ -360,15 +357,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     }
 
-    override val autonomousCommand: Command
-        get() = buildCommand{
-            val pathname = "4Point5pAutoCenter"
+    val testAuto = twoNoteAmp(
+        vision.fusedTagPipeline,
+        vision.notePipeline,
+        drivetrain, shooter, pivot, groundIntake
+    )
 
-            runOnce{
-                drivetrain.poseEstimator.resetToChoreoTrajectory(pathname)
-            }
-            +AutoBuilder.followPath(PathPlannerPath.fromChoreoTrajectory(pathname))
-        }
+    override val autonomousCommand: Command
+        get() = testAuto
 
 
     override val testCommand: Command get(){

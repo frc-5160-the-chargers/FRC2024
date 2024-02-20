@@ -33,9 +33,13 @@ public interface RobotPoseMonitor: HeadingProvider {
     override val heading: Angle get() = robotPose.rotation
 
 
-    public fun resetToPathplannerTrajectory(pathName: String){
+    public fun resetToPathplannerTrajectory(pathName: String, useHolonomicPose: Boolean){
         val path = PathPlannerPath.fromPathFile(pathName)
-        resetPose(path.startingDifferentialPose.ofUnit(meters))
+        if (useHolonomicPose){
+            resetPose(path.previewStartingHolonomicPose.ofUnit(meters))
+        }else{
+            resetPose(path.startingDifferentialPose.ofUnit(meters))
+        }
     }
 
     // when you read the starting pose of a pathplanner path,

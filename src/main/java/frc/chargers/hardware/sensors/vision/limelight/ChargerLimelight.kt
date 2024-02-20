@@ -122,7 +122,10 @@ public class ChargerLimelight(
 
         override val visionTargets: List<VisionTarget.AprilTag>
             by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
-                if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != index) {
+                if (isSimulation() || !hasTargets()) {
+                    return@valueList listOf()
+                }else if (getCurrentPipelineIndex(name).toInt() != index){
+                    println("Limelight apriltag pipeline index is incorrect!")
                     return@valueList listOf()
                 }
 
@@ -218,7 +221,10 @@ public class ChargerLimelight(
 
         override val visionTargets: List<VisionTarget.Object>
             by logInputs.valueList<VisionTarget.Object>(default = VisionTarget.Object.Dummy) {
-                if (isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != index) {
+                if (isSimulation() || !hasTargets()) {
+                    return@valueList listOf()
+                }else if (getCurrentPipelineIndex(name).toInt() != index){
+                    println("Limelight object pipeline index is incorrect!")
                     return@valueList listOf()
                 }
 

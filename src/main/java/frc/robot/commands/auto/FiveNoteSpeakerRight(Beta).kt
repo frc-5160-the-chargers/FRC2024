@@ -1,5 +1,6 @@
 package frc.robot.commands.auto
 
+import kotlin.math.abs
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.degrees
 import com.pathplanner.lib.auto.AutoBuilder
@@ -13,19 +14,16 @@ import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.pathplannerextensions.PathPlannerPaths
-import frc.robot.commands.driveThenGroundIntakeAndStow
-import frc.robot.commands.enableAimToSpeaker
-import frc.robot.commands.idleSubsystems
-import frc.robot.commands.shootInSpeaker
+import frc.robot.PATHFIND_CONSTRAINTS
+import frc.robot.commands.*
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
-import kotlin.math.abs
 
 
 @Suppress("unused")
-fun sixPieceSpeakerBeta(
+fun fiveNoteSpeakerRight(
     aprilTagVision: AprilTagVisionPipeline,
     noteDetector: ObjectVisionPipeline,
 
@@ -57,12 +55,10 @@ fun sixPieceSpeakerBeta(
     }
 
 
-
-
-    val trajGroupName = "6pAutoCenter"
+    val trajGroupName = "5pAutoLeft"
     val paths = PathPlannerPaths.fromChoreoTrajectoryGroup(trajGroupName)
 
-    addRequirements(drivetrain, shooter, groundIntake)
+    addRequirements(drivetrain, shooter, groundIntake, pivot)
 
     runOnce {
         drivetrain.poseEstimator.resetToChoreoTrajectory(trajGroupName)
@@ -73,37 +69,34 @@ fun sixPieceSpeakerBeta(
 
     // note 2
     +pathAndIntake(paths[0])
-    +aimToSpeakerIfNecessary(paths[1], shouldDelay = true)
-    +shootInSpeaker(shooter, groundIntake, pivot, 0.7)
+    +shootInSpeaker(shooter, groundIntake, pivot, 0.9)
 
     // note 3
     +pathAndIntake(paths[1])
     +aimToSpeakerIfNecessary(paths[1], shouldDelay = false)
     runParallelUntilAllFinish{
-        +AutoBuilder.followPath(paths[2])
-
-        +pivot.setAngleCommand(PivotAngle.SPEAKER)
-    }
-    +shootInSpeaker(shooter, groundIntake, pivot, 0.9)
-
-    // note 4
-    +pathAndIntake(paths[3])
-    +aimToSpeakerIfNecessary(paths[1], shouldDelay = false)
-    runParallelUntilAllFinish{
-        +AutoBuilder.followPath(paths[4])
+        +AutoBuilder.pathfindThenFollowPath(paths[2], PATHFIND_CONSTRAINTS)
 
         +pivot.setAngleCommand(PivotAngle.SPEAKER)
     }
     +shootInSpeaker(shooter, groundIntake, pivot, 0.7)
 
+    // note 4
+    +pathAndIntake(paths[3])
+    +aimToSpeakerIfNecessary(paths[1], shouldDelay = true)
+    +shootInSpeaker(shooter, groundIntake, pivot, 0.7)
+
     // note 5
     +pathAndIntake(paths[4])
-    +aimToSpeakerIfNecessary(paths[1], shouldDelay = true)
-    +shootInSpeaker(shooter, groundIntake, pivot, 0.8)
+    +aimToSpeakerIfNecessary(paths[1], shouldDelay = false)
+    runParallelUntilAllFinish{
+        +AutoBuilder.pathfindThenFollowPath(paths[2], PATHFIND_CONSTRAINTS)
 
-    +pathAndIntake(paths[5])
-    +aimToSpeakerIfNecessary(paths[1], shouldDelay = true)
-    +shootInSpeaker(shooter, groundIntake, pivot, 0.9)
+        +pivot.setAngleCommand(PivotAngle.SPEAKER)
+    }
+    +shootInSpeaker(shooter, groundIntake, pivot, 0.7)
 
     +idleSubsystems(drivetrain, shooter, pivot, groundIntake)
+
+    +basicTaxi(drivetrain)
 }

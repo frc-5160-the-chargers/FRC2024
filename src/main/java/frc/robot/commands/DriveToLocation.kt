@@ -9,10 +9,12 @@ import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
+import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.chargers.utils.Precision
 import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.geometry.ofUnit
@@ -22,6 +24,11 @@ import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import org.littletonrobotics.junction.Logger
 import kotlin.jvm.optionals.getOrNull
+
+private val DRIVE_TO_LOCATION_AIMING_PID = PIDConstants(0.0115, 0.0,0.004)
+private val DRIVE_TO_LOCATION_PRECISION = Precision.Within(Scalar(0.5))
+private const val DISTANCE_TO_TAG_REACH_KP = 0.5
+
 
 enum class FieldLocation(
     val blueAllianceApriltagId: Int,
@@ -61,7 +68,7 @@ fun driveToLocation(
     drivetrain: EncoderHolonomicDrivetrain,
     apriltagVision: AprilTagVisionPipeline,
     pivot: Pivot,
-): Command = buildCommand ( logIndividualCommands = true) {
+): Command = buildCommand( logIndividualCommands = true) {
     val targetId = when (DriverStation.getAlliance().getOrNull()){
         DriverStation.Alliance.Blue, null -> target.blueAllianceApriltagId
 
@@ -85,7 +92,7 @@ fun driveToLocation(
 
     val aimingController by getOnceDuringRun {
         SuperPIDController(
-            CAMERA_YAW_TO_OPEN_LOOP_STRAFE_PID,
+            DRIVE_TO_LOCATION_AIMING_PID,
             getInput = { Scalar(apriltagVision.bestTarget?.tx ?: 0.0) },
             target = Scalar(0.0),
             outputRange = Scalar(-0.5)..Scalar(0.5)
@@ -119,7 +126,7 @@ fun driveToLocation(
         val aimingError = aimingController.error
         Logger.recordOutput("AimToLocation/aimingError", aimingError.siValue)
 
-        return (aimingError in OPEN_LOOP_STRAFE_PRECISION.allowableError).also{
+        return (aimingError in DRIVE_TO_LOCATION_PRECISION.allowableError).also{
             Logger.recordOutput("AimToLocation/hasFinishedAiming", it)
         }
     }
@@ -134,14 +141,6 @@ fun driveToLocation(
         }
     }
 
-
-    val distanceFromAprilTag by getOnceDuringRun {
-        val drivetrainPose = drivetrain.poseEstimator.robotPose
-        val distanceX = drivetrainPose.x - targetPose.x
-        val distanceY = drivetrainPose.y - targetPose.y
-        hypot(distanceX, distanceY)
-    }
-
     addRequirements(drivetrain, pivot)
 
     runOnce{
@@ -149,8 +148,20 @@ fun driveToLocation(
     }
 
     if (path != null){
+        val distanceFromAprilTag by getOnceDuringRun {
+            val drivetrainPose = drivetrain.poseEstimator.robotPose
+            val distanceX = drivetrainPose.x - targetPose.x
+            val distanceY = drivetrainPose.y - targetPose.y
+            hypot(distanceX, distanceY)
+        }
+
+        val distanceFromPathStart by getOnceDuringRun {
+            val drivetrainPose = drivetrain.poseEstimator.robotPose
+            (drivetrainPose.translation - path.previewStartingHolonomicPose.translation.ofUnit(meters)).norm
+        }
+
         runIf(
-            {distanceFromAprilTag > 1.3.meters},
+            {distanceFromAprilTag > 1.3.meters && distanceFromPathStart > 0.3.meters},
             onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
             onFalse = runIf(
                 {distanceFromAprilTag > 0.6.meters},

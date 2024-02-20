@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package frc.robot.hardware.subsystems.shooter
 
 import com.batterystaple.kmeasure.quantities.Voltage
@@ -109,10 +110,15 @@ object NoteVisualizer{
     fun update(shooterVoltage: Voltage){
         if (RobotBase.isReal()) return
 
-        if (shooterVoltage.siValue > 0.0) {
+        if (shooterVoltage.siValue < 0.0) {
             hasNoteInShooter = true
-        }else if (shooterVoltage.siValue < 0.0){ // if shooting into speaker, do not clear note pose
+        }else if (shooterVoltage.siValue > 0.0){
             hasNoteInShooter = false
         }
+    }
+
+    fun setHasNote(hasNote: Boolean){
+        if (RobotBase.isReal()) return
+        hasNoteInShooter = hasNote
     }
 }

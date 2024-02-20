@@ -13,16 +13,16 @@ import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 @Suppress("unused")
-fun twoPieceAmpNoVision(
+fun twoNoteAmpNoVision(
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
     pivot: Pivot,
     groundIntake: GroundIntakeSerializer,
-): Command = buildCommand {
+): Command = buildCommand(name = "Two piece amp(no vision)", logIndividualCommands = true){
     addRequirements(drivetrain, shooter, groundIntake)
 
     runOnce{
-        drivetrain.poseEstimator.resetToPathplannerTrajectory("AmpGrabG2")
+        drivetrain.poseEstimator.resetToPathplannerTrajectory("AmpGrabG2", useHolonomicPose = true)
     }
 
     loopFor(0.5.seconds){

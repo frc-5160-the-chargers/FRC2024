@@ -16,25 +16,27 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 
 
 @Suppress("unused")
-fun twoPieceAmpWithVision(
+fun twoNoteAmp(
     apriltagVision: AprilTagVisionPipeline,
     noteDetector: ObjectVisionPipeline,
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
     pivot: Pivot,
     groundIntake: GroundIntakeSerializer,
-): Command = buildCommand {
-    addRequirements(drivetrain, shooter, groundIntake)
+): Command = buildCommand(name = "Two piece amp(with vision)", logIndividualCommands = true) {
+    addRequirements(drivetrain, shooter, pivot, groundIntake)
+
+    runOnce{
+        drivetrain.poseEstimator.resetToPathplannerTrajectory("AmpGrabG2", useHolonomicPose = true)
+    }
 
     +pivot.setAngleCommand(PivotAngle.AMP)
 
-    loopFor(0.5.seconds){
+    loopFor(0.5.seconds, shooter){
+        println("Hi")
         shooter.outtake(0.3)
     }
 
-    runOnce{
-        drivetrain.poseEstimator.resetToPathplannerTrajectory("AmpGrabG2")
-    }
 
     +driveThenGroundIntakeToShooter(
         path = PathPlannerPath.fromPathFile("AmpGrabG2"),

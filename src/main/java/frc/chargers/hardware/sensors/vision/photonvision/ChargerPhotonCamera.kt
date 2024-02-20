@@ -68,6 +68,9 @@ public class ChargerPhotonCamera(
                 val data = latestResult
                 if (!data.hasTargets() || isSimulation() || pipelineIndex != index){
                     return@valueList listOf()
+                }else if (pipelineIndex != index){
+                    println("AprilTag photon camera pipeline index is incorrect!")
+                    return@valueList listOf()
                 }
 
                 return@valueList data
@@ -119,7 +122,10 @@ public class ChargerPhotonCamera(
         override val visionTargets: List<VisionTarget.Object>
             by logInputs.valueList(default = VisionTarget.Object.Dummy){
                 val data = latestResult
-                if (!data.hasTargets() || isSimulation() || pipelineIndex != index){
+                if (!data.hasTargets() || isSimulation()){
+                    return@valueList listOf()
+                }else if (pipelineIndex != index){
+                    println("Object photon camera pipeline index is incorrect!")
                     return@valueList listOf()
                 }
 

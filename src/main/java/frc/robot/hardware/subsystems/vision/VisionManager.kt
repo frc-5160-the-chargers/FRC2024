@@ -7,6 +7,8 @@ import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+import frc.chargers.constants.DashboardTuner
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.FusedAprilTagPipeline
@@ -22,13 +24,14 @@ import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTranslation3d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitTranslation2d
 import org.littletonrobotics.junction.Logger
 import org.photonvision.simulation.SimCameraProperties
 import org.photonvision.simulation.VisionSystemSim
 import org.photonvision.simulation.VisionTargetSim
 
-class VisionManager(poseEstimator: RobotPoseMonitor): SubsystemBase() {
-    private val noteTargetModel = TargetModel(2.inches, 14.inches) // custom overload
+class VisionManager(poseEstimator: RobotPoseMonitor, tunableCamerasInSim: Boolean = false): SubsystemBase() {
+    private val noteTargetModel = TargetModel(14.inches, 14.inches, 2.inches) // custom overload
 
     // handles logging & replay for vision cameras
     private val leftCamLog = LoggableInputsProvider("AprilTagCamLeft")
@@ -41,7 +44,10 @@ class VisionManager(poseEstimator: RobotPoseMonitor): SubsystemBase() {
         Rotation3d(roll = 0.degrees, pitch = (-45).degrees, yaw = 0.degrees)
     ) // tbd atm
     private val robotToArducam = robotToLimelight // tbd atm
-    private val robotToMLWebcam = UnitTransform3d() // tbd atm
+    private val robotToMLWebcam = UnitTransform3d(
+        UnitTranslation3d(x = 0.meters, y = 0.meters, z = 10.inches),
+        Rotation3d(roll = 0.degrees, pitch = 20.degrees, yaw = 180.degrees)
+    ) // tbd atm
 
     private val mlTargetField = VisionSystemSim("ML Vision System")
 
@@ -72,9 +78,20 @@ class VisionManager(poseEstimator: RobotPoseMonitor): SubsystemBase() {
         }else{
             val limelightSim = VisionCameraSim(poseEstimator, robotToLimelight, SimCameraProperties.LL2_640_480())
             val photonArducamSim = VisionCameraSim(poseEstimator, robotToArducam, SimCameraProperties.PI4_LIFECAM_640_480())
-            val photonWebcamSim = VisionCameraSim(poseEstimator, robotToMLWebcam, SimCameraProperties.PI4_LIFECAM_640_480())
+            val photonWebcamSim = VisionCameraSim(poseEstimator, robotToMLWebcam, SimCameraProperties())
 
-            val mlTargetField = VisionSystemSim("ML Vision System")
+            if (tunableCamerasInSim){
+                val dashTuner = DashboardTuner("SimVisionTuning")
+                val tunableLLTransform by dashTuner.transform3d(robotToLimelight)
+                val tunableArducamTransform by dashTuner.transform3d(robotToArducam)
+                val tunableWebcamTransform by dashTuner.transform3d(robotToMLWebcam)
+
+                ChargerRobot.runPeriodically{
+                    //limelightSim.updateRobotToCamera(tunableLLTransform)
+                    //photonArducamSim.updateRobotToCamera(tunableArducamTransform)
+                    photonWebcamSim.updateRobotToCamera(tunableWebcamTransform)
+                }
+            }
 
             leftTagPipeline = limelightSim.AprilTagPipeline(leftCamLog)
                 .also{ poseSources.add(it) }
@@ -86,6 +103,22 @@ class VisionManager(poseEstimator: RobotPoseMonitor): SubsystemBase() {
         }
 
         poseEstimator.addPoseSuppliers(*poseSources.toTypedArray())
+        addNotes(
+            UnitPose2d(
+                UnitTranslation2d(
+                    8.3.meters,
+                    7.45.meters
+                ),
+                0.degrees
+            ),
+            UnitPose2d(
+                UnitTranslation2d(
+                    8.3.meters,
+                    5.77.meters
+                ),
+                0.degrees
+            ),
+        )
     }
 
     // fuses the left and right apriltag pipelines together

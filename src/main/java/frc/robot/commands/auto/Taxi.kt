@@ -15,7 +15,7 @@ fun basicTaxi(
 ): Command =
     buildCommand("Taxi Auto"){
         loopFor(3.seconds){
-            drivetrain.swerveDrive(power,0.0,0.0)
+            drivetrain.swerveDrive(power,0.0,0.0, fieldRelative = false)
         }
 
         runOnce{
@@ -33,7 +33,7 @@ fun pathplannerTaxi(
 
         runOnce{
             if (resetPoseAtStart){
-                drivetrain.poseEstimator.resetToPathplannerTrajectory(pathName)
+                drivetrain.poseEstimator.resetToPathplannerTrajectory(pathName, useHolonomicPose = true)
                 println("Pose reset for drivetrain.")
             }
         }

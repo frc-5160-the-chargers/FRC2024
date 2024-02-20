@@ -45,6 +45,14 @@ class VisionCameraSim(
 ): SubsystemBase() {
     private val allVisionSystems: LinkedHashSet<VisionSystemSim> = linkedSetOf()
 
+    fun updateRobotToCamera(newRobotToCamera: UnitTransform3d){
+        allVisionSystems.forEach{
+            it.cameraSims.forEach{ camSim ->
+                it.adjustCamera(camSim, newRobotToCamera.inUnit(meters))
+            }
+        }
+    }
+
     inner class AprilTagPipeline(
         /**
          * The namespace of which to log to.

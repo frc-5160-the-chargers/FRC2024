@@ -13,6 +13,12 @@ import kotlin.math.sqrt
 
 
 object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
+
+    enum class Person{
+        NAYAN, KENNA, CONRAD
+    }
+
+
     var isSimXboxController = false
 
 
