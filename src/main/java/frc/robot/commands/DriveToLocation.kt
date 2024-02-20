@@ -59,16 +59,16 @@ enum class FieldLocation(
 }
 
 /**
- * Aims to a location on the field, and paths to there if applicable.
+ * Aims and drives to a location on the field, and moves the pivot to the correct position.
  */
 fun driveToLocation(
-    target: FieldLocation,
-    path: PathPlannerPath? = null,
-
     drivetrain: EncoderHolonomicDrivetrain,
     apriltagVision: AprilTagVisionPipeline,
     pivot: Pivot,
-): Command = buildCommand( logIndividualCommands = true) {
+
+    target: FieldLocation,
+    path: PathPlannerPath? = null,
+): Command = buildCommand(logIndividualCommands = true) {
     val targetId = when (DriverStation.getAlliance().getOrNull()){
         DriverStation.Alliance.Blue, null -> target.blueAllianceApriltagId
 

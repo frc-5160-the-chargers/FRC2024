@@ -33,29 +33,29 @@ fun twoNoteAmpNoVision(
         +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpGrabG2"))
 
         loop{
-            groundIntake.intakeToShooter(pivot, shooter)
+            groundIntake.intake(pivot)
         }
     }
 
-    runOnce{
-        groundIntake.setIdle()
-        pivot.setIdle()
-        shooter.setIdle()
-    }
+    +idleSubsystems(drivetrain, shooter, pivot, groundIntake)
 
     runParallelUntilAllFinish{
         +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpScoreG2"))
 
-        +pivot.setAngleCommand(PivotAngle.AMP)
+        loopUntil({shooter.hasNote}){
+            groundIntake.passToShooter(shooter)
+        }
     }
 
-    +loopFor(0.5.seconds){
+    loopFor(0.5.seconds){
         shooter.outtake(0.3)
     }
 
-    idleSubsystems(drivetrain, shooter, pivot, groundIntake)
+    +idleSubsystems(drivetrain, shooter, pivot, groundIntake)
 
-    +basicTaxi(
-        drivetrain
-    )
+    runParallelUntilAllFinish{
+        +basicTaxi(drivetrain)
+
+        +pivot.setAngleCommand(PivotAngle.AMP)
+    }
 }

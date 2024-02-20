@@ -13,6 +13,7 @@ fun shootInSpeaker(
     shooter: Shooter,
     groundIntake: GroundIntakeSerializer,
     pivot: Pivot,
+
     power: Double = 0.8
 ): Command = buildCommand {
     +pivot.setAngleCommand(PivotAngle.SPEAKER)

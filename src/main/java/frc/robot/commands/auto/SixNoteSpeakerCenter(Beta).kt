@@ -13,7 +13,7 @@ import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.pathplannerextensions.PathPlannerPaths
-import frc.robot.commands.driveThenGroundIntakeAndStow
+import frc.robot.commands.driveToNoteAndIntake
 import frc.robot.commands.enableAimToSpeaker
 import frc.robot.commands.idleSubsystems
 import frc.robot.commands.shootInSpeaker
@@ -36,9 +36,9 @@ fun sixNoteSpeakerCenter(
 ): Command = buildCommand {
     // adds a command that makes the drivebase follow a path, while intaking gamepieces.
     fun pathAndIntake(path: PathPlannerPath): Command =
-        driveThenGroundIntakeAndStow(
-            path, noteDetector, drivetrain,
-            shooter, pivot, groundIntake
+        driveToNoteAndIntake(
+            noteDetector, drivetrain,
+            shooter, pivot, groundIntake, path
         )
 
     fun aimToSpeakerIfNecessary(

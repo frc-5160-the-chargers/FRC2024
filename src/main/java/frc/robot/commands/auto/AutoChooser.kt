@@ -61,5 +61,5 @@ object AutoChooser {
     }
 
     val selected: Command
-        get() = sendableChooser.get()
+        get() = sendableChooser.get() ?: InstantCommand{}
 }

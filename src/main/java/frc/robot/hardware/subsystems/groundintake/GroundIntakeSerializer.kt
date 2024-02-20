@@ -5,6 +5,7 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.chargers.wpilibextensions.Alert
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIO
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
@@ -15,30 +16,12 @@ import frc.robot.hardware.subsystems.shooter.Shooter
  */
 // standard: + = outtake, - = intake
 class GroundIntakeSerializer(io: GroundIntakeIO): SubsystemBase(), GroundIntakeIO by io{ // implements GroundIntakeIO to inherit necessary functions from io layer
+    private val passToShooterAlert =
+        Alert.warning(text = "You are attempting to pass a ground intaked piece to the shooter; however, the shooter already has a gamepiece.")
 
     fun setIdle(){
         setIntakeVoltage(0.volts)
         setConveyorVoltage(0.volts)
-    }
-
-    /**
-     * Intakes a note with the help of a pivot;
-     * passing it all the way into the shooter,
-     * instead of keeping it within the serializer/conveyor.
-     *
-     * This should be used when a note is intaked for amp scoring(aka most of the time).
-     */
-    fun intakeToShooter(pivot: Pivot, shooter: Shooter){
-        pivot.setAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
-        if (abs(pivot.angle - PivotAngle.GROUND_INTAKE_HANDOFF) < 10.degrees){
-            setIntakeVoltage((-10).volts)
-            setConveyorVoltage(6.volts)
-            if (shooter.hasBeamBreakSensor && shooter.hasNote){
-                shooter.intake(0.0)
-            }else{
-                shooter.intake((-6).volts)
-            }
-        }
     }
 
     /**
@@ -48,7 +31,7 @@ class GroundIntakeSerializer(io: GroundIntakeIO): SubsystemBase(), GroundIntakeI
      * To pass the note to the shooter, you should use intakeToShooter() instead,
      * or
      */
-    fun intakeAndStow(pivot: Pivot){
+    fun intake(pivot: Pivot){
         pivot.setAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
         if (abs(pivot.angle - PivotAngle.GROUND_INTAKE_HANDOFF) < 10.degrees) {
             setIntakeVoltage((-10).volts)
@@ -56,7 +39,7 @@ class GroundIntakeSerializer(io: GroundIntakeIO): SubsystemBase(), GroundIntakeI
         }
     }
 
-    /*
+
     /**
      * Passes a stowed gamepiece within the conveyor/serializer
      * to the shooter.
@@ -65,16 +48,18 @@ class GroundIntakeSerializer(io: GroundIntakeIO): SubsystemBase(), GroundIntakeI
      * if not, do not call this.
      */
     fun passToShooter(shooter: Shooter){
-        if (shooter.hasBeamBreakSensor && shooter.hasNote){
-            passToShooterAlert.active = true
-            println(passToShooterAlert.text)
-            return
+        if (shooter.hasBeamBreakSensor){
+            if (shooter.hasNote){
+                passToShooterAlert.active = true
+                println(passToShooterAlert.text)
+                return
+            }
+            shooter.intake(6.volts)
+        }else{
+            shooter.intake(2.volts)
         }
-        shooter.intake(6.volts)
         setConveyorVoltage(6.volts)
     }
-
-     */
 
     /**
      * Outtakes; useful for ferrying notes(niche usecase).

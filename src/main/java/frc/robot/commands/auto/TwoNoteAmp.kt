@@ -2,6 +2,7 @@ package frc.robot.commands.auto
 
 
 import com.batterystaple.kmeasure.units.seconds
+import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
@@ -33,23 +34,42 @@ fun twoNoteAmp(
     +pivot.setAngleCommand(PivotAngle.AMP)
 
     loopFor(0.5.seconds, shooter){
-        println("Hi")
         shooter.outtake(0.3)
     }
 
-
-    +driveThenGroundIntakeToShooter(
+    +driveToNoteAndIntake(
+        noteDetector,
+        drivetrain, shooter, pivot, groundIntake,
         path = PathPlannerPath.fromPathFile("AmpGrabG2"),
-        noteDetector = noteDetector,
-        drivetrain, shooter, pivot, groundIntake
     )
 
     +idleSubsystems(drivetrain, shooter, pivot, groundIntake)
 
+    fun passToShooter(){
+        // sets pivot angle to ground intake handoff
+        pivot.setAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
+        groundIntake.passToShooter(shooter)
+    }
+
+    // during pathing, we want to pass the note
+    runParallelUntilFirstCommandFinishes{
+        +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpScoreG2"))
+
+        if (shooter.hasBeamBreakSensor){
+            loopUntil({shooter.hasNote}){
+                passToShooter()
+            }
+        }else{
+            loopFor(0.5.seconds){
+                passToShooter()
+            }
+        }
+    }
+
+    // already sets pivot angle; so we dont need to explicitly set it
     +driveToLocation(
-        target = FieldLocation.AMP,
-        path = PathPlannerPath.fromPathFile("AmpScoreG2"),
-        drivetrain, apriltagVision, pivot
+        drivetrain, apriltagVision, pivot,
+        target = FieldLocation.AMP
     )
 
     loopFor(0.5.seconds){
@@ -58,5 +78,9 @@ fun twoNoteAmp(
 
     +idleSubsystems(drivetrain, shooter, pivot, groundIntake)
 
-    +basicTaxi(drivetrain)
+    runParallelUntilAllFinish{
+        +basicTaxi(drivetrain)
+
+        +pivot.setAngleCommand(PivotAngle.STOWED)
+    }
 }

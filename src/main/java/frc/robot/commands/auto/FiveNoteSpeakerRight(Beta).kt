@@ -34,9 +34,9 @@ fun fiveNoteSpeakerRight(
 ): Command = buildCommand {
     // adds a command that makes the drivebase follow a path, while intaking gamepieces.
     fun pathAndIntake(path: PathPlannerPath): Command =
-        driveThenGroundIntakeAndStow(
-            path, noteDetector, drivetrain,
-            shooter, pivot, groundIntake
+        driveToNoteAndIntake(
+            noteDetector, drivetrain,
+            shooter, pivot, groundIntake, path
         )
 
     fun aimToSpeakerIfNecessary(

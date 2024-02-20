@@ -264,6 +264,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureBindings(){
+
         fun resetAimToAngle() = runOnceCommand(drivetrain){
             drivetrain.removeRotationOverride()
         }
@@ -289,7 +290,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             groundIntakeToShooterTrigger
                 .whileTrue(
                     loopCommand(groundIntake, pivot, shooter){
-                        groundIntake.intakeToShooter(pivot, shooter)
+                        //groundIntake.intakeToShooter(pivot, shooter)
                     }
                 )
                 .onFalse(idleSubsystems(drivetrain = null, shooter, pivot, groundIntake))
@@ -304,31 +305,31 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             driveToSourceLeftTrigger.whileTrue(
                 driveToLocation(
-                    FieldLocation.SOURCE_LEFT,
-                    PathPlannerPath.fromPathFile("SourceLeftTeleop"),
                     drivetrain,
                     vision.fusedTagPipeline,
-                    pivot
+                    pivot,
+                    FieldLocation.SOURCE_LEFT,
+                    PathPlannerPath.fromPathFile("SourceLeftTeleop"),
                 )
             )
 
             driveToSourceRightTrigger.whileTrue(
                 driveToLocation(
-                    FieldLocation.SOURCE_RIGHT,
-                    PathPlannerPath.fromPathFile("SourceRightTeleop"),
                     drivetrain,
                     vision.fusedTagPipeline,
-                    pivot
+                    pivot,
+                    FieldLocation.SOURCE_RIGHT,
+                    PathPlannerPath.fromPathFile("SourceRightTeleop"),
                 )
             )
 
             driveToAmpTrigger.whileTrue(
                 driveToLocation(
-                    FieldLocation.AMP,
-                    PathPlannerPath.fromPathFile("AmpTeleop"),
                     drivetrain,
                     vision.fusedTagPipeline,
-                    pivot
+                    pivot,
+                    FieldLocation.AMP,
+                    PathPlannerPath.fromPathFile("AmpTeleop"),
                 )
             )
 
@@ -356,6 +357,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             recordOutput("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
         }
     }
+
+
 
     val testAuto = twoNoteAmp(
         vision.fusedTagPipeline,
