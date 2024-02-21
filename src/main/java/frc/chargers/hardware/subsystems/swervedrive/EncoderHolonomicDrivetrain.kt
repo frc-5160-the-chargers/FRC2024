@@ -234,7 +234,7 @@ public class EncoderHolonomicDrivetrain(
 
     private val distanceOffset: Distance = averageEncoderPosition() * wheelRadius
 
-    private var rotationOverride: RotationOverride = { null }
+    private var rotationOverride: RotationOverride? = null
 
     private enum class ControlMode{
         OPEN_LOOP,  // Represents open-loop control with no feedforward / PID
@@ -417,7 +417,7 @@ public class EncoderHolonomicDrivetrain(
      * Removes a rotation override for the drivetrain.
      */
     public fun removeRotationOverride(){
-        this.rotationOverride = { null }
+        this.rotationOverride = null
     }
 
     /**
@@ -619,6 +619,10 @@ public class EncoderHolonomicDrivetrain(
     override fun periodic() {
         recordOutput("Drivetrain(Swerve)/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
         recordOutput("Drivetrain(Swerve)/OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
+        recordOutput("Drivetrain(Swerve)/DesiredModuleStates", *setpoint.moduleStates)
+        recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Setpoint)", ChassisSpeeds.struct, setpoint.chassisSpeeds)
+        recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Goal)", ChassisSpeeds.struct, goal)
+        recordOutput("Drivetrain(Swerve)/HasRotationOverride", rotationOverride != null)
 
         if (DriverStation.isDisabled()) {
             stop()
@@ -629,7 +633,7 @@ public class EncoderHolonomicDrivetrain(
 
         when (currentControlMode) {
             ControlMode.CLOSED_LOOP -> {
-                val output = rotationOverride(this)
+                val output = rotationOverride?.invoke(this)
                 if (output != null) {
                     goal.omegaRadiansPerSecond = output.closedLoopRotation.siValue
                 }
@@ -637,7 +641,7 @@ public class EncoderHolonomicDrivetrain(
             }
 
             ControlMode.OPEN_LOOP -> {
-                val output = rotationOverride(this)
+                val output = rotationOverride?.invoke(this)
                 if (output != null) {
                     goal.omegaRadiansPerSecond = output.openLoopRotation * maxRotationalVelocity.siValue
                 }
@@ -653,11 +657,6 @@ public class EncoderHolonomicDrivetrain(
             goal,
             ChargerRobot.LOOP_PERIOD.inUnit(seconds)
         )
-
-        recordOutput("Drivetrain(Swerve)/RawKinematicsStates", *kinematics.toSwerveModuleStates(goal))
-        recordOutput("Drivetrain(Swerve)/DesiredModuleStates", *setpoint.moduleStates)
-        recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Setpoint)", ChassisSpeeds.struct, setpoint.chassisSpeeds)
-        recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Goal)", ChassisSpeeds.struct, goal)
 
 
         moduleIOArray.forEachIndexed { index, moduleIO ->

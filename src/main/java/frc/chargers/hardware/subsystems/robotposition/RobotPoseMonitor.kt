@@ -9,6 +9,7 @@ import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj.Filesystem
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
+import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import java.io.File
@@ -36,9 +37,9 @@ public interface RobotPoseMonitor: HeadingProvider {
     public fun resetToPathplannerTrajectory(pathName: String, useHolonomicPose: Boolean){
         val path = PathPlannerPath.fromPathFile(pathName)
         if (useHolonomicPose){
-            resetPose(path.previewStartingHolonomicPose.ofUnit(meters))
+            resetPose(path.previewStartingHolonomicPose.ofUnit(meters).flipWhenNeeded())
         }else{
-            resetPose(path.startingDifferentialPose.ofUnit(meters))
+            resetPose(path.startingDifferentialPose.ofUnit(meters).flipWhenNeeded())
         }
     }
 
@@ -52,32 +53,28 @@ public interface RobotPoseMonitor: HeadingProvider {
         val file = File(Filesystem.getDeployDirectory(), "choreo/$pathName.traj")
         require(file.exists()){ "The pathname specified does not exist!" }
         val fileReader = file.bufferedReader()
-        try{
-            // skips to the first path heading reference
-            repeat(5){
-                fileReader.readLine()
-            }
-
-            val headingData = fileReader.readLine()
-
-            val startIndex = headingData.indexOf(":")
-            val endIndex = headingData.indexOf(",")
-
-            if (startIndex == -1 || endIndex == -1){
-                error("") // causes code to jump to exception block
-            }
-
-
-            resetPose(
-                // pose2d wrapper w/ units support
-                UnitPose2d(
-                    translation.ofUnit(meters),
-                    headingData.substring(startIndex+2, endIndex).toDouble().ofUnit(radians)
-                )
-            )
-        }catch(e: Throwable){
-            throw e
+        // skips to the first path heading reference
+        repeat(5){
+            fileReader.readLine()
         }
+
+        val headingData = fileReader.readLine()
+
+        val startIndex = headingData.indexOf(":")
+        val endIndex = headingData.indexOf(",")
+
+        if (startIndex == -1 || endIndex == -1){
+            error("") // causes code to jump to exception block
+        }
+
+
+        resetPose(
+            // pose2d wrapper w/ units support
+            UnitPose2d(
+                translation.ofUnit(meters),
+                headingData.substring(startIndex+2, endIndex).toDouble().ofUnit(radians)
+            ).flipWhenNeeded()
+        )
     }
 
 }

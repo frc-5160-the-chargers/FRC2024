@@ -69,26 +69,30 @@ fun driveToLocation(
     target: FieldLocation,
     path: PathPlannerPath? = null,
 ): Command = buildCommand(logIndividualCommands = true) {
-    val targetId = when (DriverStation.getAlliance().getOrNull()){
-        DriverStation.Alliance.Blue, null -> target.blueAllianceApriltagId
+    val targetId by getOnceDuringRun{
+        when (DriverStation.getAlliance().getOrNull()){
+            DriverStation.Alliance.Blue, null -> target.blueAllianceApriltagId
 
-        DriverStation.Alliance.Red -> target.redAllianceApriltagId
+            DriverStation.Alliance.Red -> target.redAllianceApriltagId
+        }
     }
 
     // represents raw, unflipped pose fetched from apriltagfieldlayout
-    val targetPoseRaw = ChargerRobot
-        .APRILTAG_LAYOUT
-        .getTagPose(targetId)
-        .orElseThrow()
+    val targetPoseRaw by getOnceDuringRun {
+        ChargerRobot
+            .APRILTAG_LAYOUT
+            .getTagPose(targetId)
+            .orElseThrow()
+    }
 
-    val targetPose: UnitPose2d =
+    val targetPose: UnitPose2d by getOnceDuringRun {
         targetPoseRaw
             .toPose2d()
             .ofUnit(meters)
             .flipWhenNeeded()
+    }
 
-    val targetHeight: Distance =
-        targetPoseRaw.z.ofUnit(meters)
+    val targetHeight: Distance by getOnceDuringRun{ targetPoseRaw.z.ofUnit(meters) }
 
     val aimingController by getOnceDuringRun {
         SuperPIDController(

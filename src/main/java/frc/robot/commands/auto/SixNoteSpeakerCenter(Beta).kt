@@ -38,7 +38,7 @@ fun sixNoteSpeakerCenter(
     fun pathAndIntake(path: PathPlannerPath): Command =
         driveToNoteAndIntake(
             noteDetector, drivetrain,
-            shooter, pivot, groundIntake, path
+            pivot, groundIntake, path
         )
 
     fun aimToSpeakerIfNecessary(

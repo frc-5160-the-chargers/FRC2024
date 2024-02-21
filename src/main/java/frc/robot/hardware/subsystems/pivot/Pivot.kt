@@ -46,7 +46,7 @@ class Pivot(
     // null indicates no motion profile
     private val motionProfile: AngularMotionProfile? = null,
     private val feedforward: ArmFFEquation = ArmFFEquation(0.0,0.0,0.0),
-    private val precision: Precision.Within<AngleDimension> = Precision.Within(0.5.degrees)
+    private val precision: Precision.Within<AngleDimension> = Precision.Within(1.5.degrees)
 ): SubsystemBase() {
     /* Private Members */
     @AutoLogOutput

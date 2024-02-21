@@ -27,10 +27,12 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
         }else{
             io.setIntakeVoltage(voltage)
         }
+        NoteVisualizer.setHasNote(true)
     }
 
     fun outtake(percentOut: Double){
         outtake(percentOut * 12.volts)
+        NoteVisualizer.setHasNote(false)
     }
 
     fun outtake(voltage: Voltage){
@@ -46,6 +48,5 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
         if (DriverStation.isDisabled()){
             setIdle()
         }
-        NoteVisualizer.update(io.intakeVoltages[0])
     }
 }

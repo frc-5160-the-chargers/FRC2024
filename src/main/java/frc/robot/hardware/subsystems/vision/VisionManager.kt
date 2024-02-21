@@ -46,7 +46,7 @@ class VisionManager(poseEstimator: RobotPoseMonitor, tunableCamerasInSim: Boolea
     private val robotToArducam = robotToLimelight // tbd atm
     private val robotToMLWebcam = UnitTransform3d(
         UnitTranslation3d(x = 0.meters, y = 0.meters, z = 10.inches),
-        Rotation3d(roll = 0.degrees, pitch = 20.degrees, yaw = 180.degrees)
+        Rotation3d(roll = 0.degrees, pitch = 30.degrees, yaw = 180.degrees)
     ) // tbd atm
 
     private val mlTargetField = VisionSystemSim("ML Vision System")
@@ -118,6 +118,13 @@ class VisionManager(poseEstimator: RobotPoseMonitor, tunableCamerasInSim: Boolea
                 ),
                 0.degrees
             ),
+//            UnitPose2d(
+//                UnitTranslation2d(
+//                    2.9.meters,
+//                    7.05.meters
+//                ),
+//                0.degrees
+//            )
         )
     }
 
@@ -143,5 +150,6 @@ class VisionManager(poseEstimator: RobotPoseMonitor, tunableCamerasInSim: Boolea
 
     override fun periodic(){
         Logger.recordOutput("AprilTagCam/robotToTargetDistance", fusedTagPipeline.robotToTargetDistance(targetHeight = 1.35582.meters)?.siValue ?: 0.0)
+        Logger.recordOutput("MLCam/robotToTargetDistance", notePipeline.robotToTargetDistance(targetHeight = 0.inches)?.siValue ?: 0.0)
     }
 }

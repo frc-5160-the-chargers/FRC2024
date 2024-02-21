@@ -48,7 +48,7 @@ public sealed class SparkFlexEncoderType{
      * Represents an absolute encoder connected to a Spark Flex.
      */
     public data class Absolute(
-        val category: SparkAbsoluteEncoder.Type,
+        val category: SparkAbsoluteEncoder.Type = SparkAbsoluteEncoder.Type.kDutyCycle,
         val averageDepth: Int? = null,
         val inverted: Boolean? = null
     ): SparkFlexEncoderType()

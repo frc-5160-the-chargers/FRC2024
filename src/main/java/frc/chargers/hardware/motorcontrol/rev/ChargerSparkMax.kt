@@ -27,7 +27,7 @@ public sealed class SparkMaxEncoderType{
     ): SparkMaxEncoderType()
 
     public data class Alternate(
-        val category: SparkMaxAlternateEncoder.Type,
+        val category: SparkMaxAlternateEncoder.Type = SparkMaxAlternateEncoder.Type.kQuadrature,
         val countsPerRev: Int,
         val encoderMeasurementPeriod: Time? = null,
         val averageDepth: Int? = null,
@@ -35,7 +35,7 @@ public sealed class SparkMaxEncoderType{
     ): SparkMaxEncoderType()
 
     public data class Absolute(
-        val category: SparkAbsoluteEncoder.Type,
+        val category: SparkAbsoluteEncoder.Type = SparkAbsoluteEncoder.Type.kDutyCycle,
         val averageDepth: Int? = null,
         val inverted: Boolean? = null
     ): SparkMaxEncoderType()

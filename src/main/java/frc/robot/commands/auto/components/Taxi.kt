@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package frc.robot.commands.auto
+package frc.robot.commands.auto.components
 
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.auto.AutoBuilder
@@ -25,7 +25,7 @@ fun basicTaxi(
 
 fun pathplannerTaxi(
     drivetrain: EncoderHolonomicDrivetrain,
-    pathName: String = "Taxi Path",
+    pathName: String = "AmpSideTaxi",
     resetPoseAtStart: Boolean = true,
 ): Command =
     buildCommand("Taxi Auto w/ Path") {

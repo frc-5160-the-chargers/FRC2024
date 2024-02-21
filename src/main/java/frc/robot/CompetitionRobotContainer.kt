@@ -34,6 +34,7 @@ import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
+import frc.chargers.hardware.motorcontrol.rev.SparkMaxEncoderType
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX
@@ -43,7 +44,8 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.robot.commands.*
-import frc.robot.commands.auto.AutoChooser
+import frc.robot.commands.auto.components.AmpAutoEndAction
+import frc.robot.commands.auto.components.AutoChooser
 import frc.robot.commands.auto.twoNoteAmp
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
@@ -93,7 +95,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val pivot = Pivot(
         if (isReal()){
             PivotIOReal(
-                ChargerSparkMax(PIVOT_MOTOR_ID),
+                ChargerSparkMax(PIVOT_MOTOR_ID){
+                   encoderType = SparkMaxEncoderType.Absolute()
+                },
                 useOnboardPID = false,
                 encoderType = PivotIOReal.EncoderType.IntegratedAbsoluteEncoder,
                 offset = 0.degrees
@@ -103,10 +107,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004)
             )
         },
-        PIDConstants(8.0,0,0),
+        PIDConstants(10.0,0,0),
         AngularTrapezoidProfile(
-            maxVelocity = AngularVelocity(8.0),
-            maxAcceleration = AngularAcceleration(11.0)
+            maxVelocity = AngularVelocity(10.0),
+            maxAcceleration = AngularAcceleration(15.0)
         )
     )
 
@@ -120,7 +124,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }else{
             GroundIntakeIOSim(
                 topMotorSim = DCMotorSim(DCMotor.getNeoVortex(1), groundIntakeRatio, 0.010),
-                conveyorMotorSim = DCMotorSim(DCMotor.getNEO(1), conveyorRatio, 0.004)
+                conveyorMotorSim = DCMotorSim(DCMotor.getNEO(1), conveyorRatio, 0.010)
             )
         }
     )
@@ -172,8 +176,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }else{
                 AngularMotorFFEquation(0.0081299, 0.13396)
             },
-            robotRotationPID = PIDConstants(1.4,0,0.1),
-            robotTranslationPID = PIDConstants(1.0,0,0)
+            robotRotationPID = PIDConstants(1.3,0,0.1),
+            robotTranslationPID = PIDConstants(0.3,0,0.03)
         ),
         useOnboardPID = false,
         hardwareData = SwerveHardwareData.mk4iL2(
@@ -363,7 +367,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     val testAuto = twoNoteAmp(
         vision.fusedTagPipeline,
         vision.notePipeline,
-        drivetrain, shooter, pivot, groundIntake
+        drivetrain, shooter, pivot, groundIntake,
+        AmpAutoEndAction.FERRY
     )
 
     override val autonomousCommand: Command

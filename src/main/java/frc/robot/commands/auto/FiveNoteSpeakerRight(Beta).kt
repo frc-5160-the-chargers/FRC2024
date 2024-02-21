@@ -16,6 +16,7 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.robot.PATHFIND_CONSTRAINTS
 import frc.robot.commands.*
+import frc.robot.commands.auto.components.basicTaxi
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
@@ -36,7 +37,7 @@ fun fiveNoteSpeakerRight(
     fun pathAndIntake(path: PathPlannerPath): Command =
         driveToNoteAndIntake(
             noteDetector, drivetrain,
-            shooter, pivot, groundIntake, path
+            pivot, groundIntake, path
         )
 
     fun aimToSpeakerIfNecessary(
