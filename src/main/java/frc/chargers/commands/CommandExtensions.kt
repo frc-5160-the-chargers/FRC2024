@@ -6,8 +6,23 @@ import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.wpilibj2.command.*
 import frc.chargers.commands.commandbuilder.buildCommand
+import frc.chargers.wpilibextensions.fpgaTimestamp
 
 
+public fun Command.logDuration(logName: String = this.name): Command =
+    object: WrapperCommand(this){
+        private var startTime = fpgaTimestamp()
+
+        override fun initialize(){
+            startTime = fpgaTimestamp()
+            this@logDuration.initialize()
+        }
+
+        override fun end(interrupted: Boolean){
+            this@logDuration.end(interrupted)
+            println("Command with name $logName has finished with time " + (fpgaTimestamp() - startTime).siValue + "seconds.")
+        }
+    }
 
 /**
  * A utility function for creating [InstantCommand]s in a more kotlin-friendly way.
@@ -57,6 +72,7 @@ public fun <S: Subsystem> S.setDefaultRunCommand(vararg requirements: Subsystem,
 public fun Command.withExtraRequirements(vararg requirements: Subsystem): Command =
     object: Command(){
         override fun getName(): String = this@withExtraRequirements.name
+
         init{
             addRequirements(*requirements, *this.requirements.toTypedArray())
         }

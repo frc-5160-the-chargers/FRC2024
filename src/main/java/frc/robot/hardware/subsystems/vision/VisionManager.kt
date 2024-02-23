@@ -24,7 +24,6 @@ import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTranslation3d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitTranslation2d
 import org.littletonrobotics.junction.Logger
 import org.photonvision.simulation.SimCameraProperties
 import org.photonvision.simulation.VisionSystemSim
@@ -104,20 +103,9 @@ class VisionManager(poseEstimator: RobotPoseMonitor, tunableCamerasInSim: Boolea
 
         poseEstimator.addPoseSuppliers(*poseSources.toTypedArray())
         addNotes(
-            UnitPose2d(
-                UnitTranslation2d(
-                    8.3.meters,
-                    7.45.meters
-                ),
-                0.degrees
-            ),
-            UnitPose2d(
-                UnitTranslation2d(
-                    8.3.meters,
-                    5.77.meters
-                ),
-                0.degrees
-            ),
+            UnitPose2d(8.3.meters, 7.45.meters, 0.degrees),
+            UnitPose2d(8.3.meters, 5.77.meters, 0.degrees),
+            UnitPose2d(8.3.meters, 4.13.meters, 0.degrees)
 //            UnitPose2d(
 //                UnitTranslation2d(
 //                    2.9.meters,

@@ -62,10 +62,10 @@ fun driveToNoteAndIntake(
                         // notes are on the ground; thus, no height is factored in
                         val distance = noteDetector.robotToTargetDistance(targetHeight = 0.meters, target)
                         if (distance != null && distance < acceptableDistanceToNote){
-                            println("Acceptable distance: $distance")
+                            //println("Acceptable distance: $distance")
                             return true
                         }else{
-                            println("Target too far: $distance")
+                            //println("Target too far: $distance")
                         }
                     }
 

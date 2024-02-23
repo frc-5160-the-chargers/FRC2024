@@ -28,7 +28,7 @@ fun twoNoteAmp(
     pivot: Pivot,
     groundIntake: GroundIntakeSerializer,
 
-    endAction: AmpAutoEndAction
+    endAction: AmpAutoEndAction? = null
 ): Command = buildCommand(name = "Two note amp(with vision)", logIndividualCommands = true) {
     fun passToShooter(){
         // sets pivot angle to ground intake handoff
@@ -38,11 +38,7 @@ fun twoNoteAmp(
 
     addRequirements(drivetrain, shooter, pivot, groundIntake)
 
-    runOnce{
-        drivetrain.poseEstimator.resetToPathplannerTrajectory("AmpGrabG1", useHolonomicPose = true)
-    }
-
-    +oneNoteAmp(shooter, pivot)
+    +oneNoteAmp(apriltagVision, drivetrain, shooter, pivot)
 
     +driveToNoteAndIntake(
         noteDetector,
@@ -77,7 +73,7 @@ fun twoNoteAmp(
     }
 
     // already sets pivot angle; so we dont need to explicitly set it
-    +driveToLocation(
+    +aimToLocation(
         drivetrain, apriltagVision, pivot,
         target = FieldLocation.AMP
     )
@@ -91,11 +87,9 @@ fun twoNoteAmp(
         shooter.setIdle()
     }
 
-    loopFor(0.2.seconds){
-        drivetrain.swerveDrive(-0.2,0.0,0.0, fieldRelative = false)
-    }
-
     when (endAction){
+        null -> {}
+
         AmpAutoEndAction.STOW_PIVOT -> {
             +pivot.setAngleCommand(PivotAngle.STOWED)
         }
@@ -109,7 +103,7 @@ fun twoNoteAmp(
         }
 
         AmpAutoEndAction.FERRY -> {
-            +ferryNotes(noteDetector, drivetrain, pivot, groundIntake, 2)
+            +ferryNotes(noteDetector, drivetrain, pivot, groundIntake)
         }
     }
 
@@ -127,21 +121,11 @@ fun twoNoteAmpWithoutVision(
     pivot: Pivot,
     groundIntake: GroundIntakeSerializer,
 
-    endAction: AmpAutoEndAction
+    endAction: AmpAutoEndAction? = null
 ): Command = buildCommand(name = "Two note amp(no vision)", logIndividualCommands = true) {
-    fun passToShooter(){
-        // sets pivot angle to ground intake handoff
-        pivot.setAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
-        groundIntake.passToShooter(shooter)
-    }
-
     addRequirements(drivetrain, shooter, pivot, groundIntake)
 
-    runOnce{
-        drivetrain.poseEstimator.resetToPathplannerTrajectory("AmpGrabG1", useHolonomicPose = true)
-    }
-
-    +oneNoteAmp(shooter, pivot)
+    +oneNoteAmp(drivetrain = drivetrain, shooter = shooter, pivot = pivot)
 
     runParallelUntilFirstCommandFinishes{
         +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpGrabG1"))
@@ -168,11 +152,11 @@ fun twoNoteAmpWithoutVision(
 
         if (shooter.hasBeamBreakSensor){
             loopUntil({shooter.hasNote}){
-                passToShooter()
+                groundIntake.passToShooter(shooter)
             }
         }else{
             loopFor(0.5.seconds){
-                passToShooter()
+                groundIntake.passToShooter(shooter)
             }
         }
     }
@@ -194,6 +178,8 @@ fun twoNoteAmpWithoutVision(
     }
 
     when (endAction){
+        null -> {}
+
         AmpAutoEndAction.STOW_PIVOT -> {
             +pivot.setAngleCommand(PivotAngle.STOWED)
         }
@@ -207,7 +193,7 @@ fun twoNoteAmpWithoutVision(
         }
 
         AmpAutoEndAction.FERRY -> {
-            +ferryNotes(noteDetector = null, drivetrain, pivot, groundIntake, 2)
+            +ferryNotes(noteDetector = null, drivetrain, pivot, groundIntake)
         }
     }
 

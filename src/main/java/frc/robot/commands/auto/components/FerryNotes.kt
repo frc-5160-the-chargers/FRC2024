@@ -21,11 +21,9 @@ fun ferryNotes(
     drivetrain: EncoderHolonomicDrivetrain,
     pivot: Pivot,
     groundIntake: GroundIntakeSerializer,
-
-    numPiecesToFerry: Int,
-): Command = buildCommand(name = "Note Ferry($numPiecesToFerry notes)"){
+): Command = buildCommand(name = "Note Ferry(2 notes)"){
     var pathCounter = 1
-    repeat(numPiecesToFerry){
+    repeat(2){
         val grabPath = PathPlannerPath.fromChoreoTrajectory("FerryPath.$pathCounter")
 
         if (noteDetector != null){

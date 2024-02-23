@@ -25,34 +25,34 @@ import frc.robot.hardware.subsystems.pivot.PivotAngle
 import org.littletonrobotics.junction.Logger
 import kotlin.jvm.optionals.getOrNull
 
-private val DRIVE_TO_LOCATION_AIMING_PID = PIDConstants(0.0115, 0.0,0.004)
+private val DRIVE_TO_LOCATION_AIMING_PID = PIDConstants(0.01, 0.0,0.004)
 private val DRIVE_TO_LOCATION_PRECISION = Precision.Within(Scalar(0.5))
-private const val DISTANCE_TO_TAG_REACH_KP = 0.5
+private const val DISTANCE_TO_TAG_REACH_KP = 0.6
 
 
 enum class FieldLocation(
-    val blueAllianceApriltagId: Int,
-    val redAllianceApriltagId: Int,
+    val blueAllianceAprilTagId: Int,
+    val redAllianceAprilTagId: Int,
     val pivotAngle: Angle,
     val targetDistanceToTag: Distance? = null
 ){
     SOURCE_LEFT(
-        blueAllianceApriltagId = 2,
-        redAllianceApriltagId = 10,
+        blueAllianceAprilTagId = 2,
+        redAllianceAprilTagId = 10,
         pivotAngle = PivotAngle.SOURCE,
         0.5.meters
     ), // tbd
 
     SOURCE_RIGHT(
-        blueAllianceApriltagId = 1,
-        redAllianceApriltagId = 9,
+        blueAllianceAprilTagId = 1,
+        redAllianceAprilTagId = 9,
         pivotAngle = PivotAngle.SOURCE,
         0.5.meters
     ), // tbd
 
     AMP(
-        blueAllianceApriltagId = 6,
-        redAllianceApriltagId = 5,
+        blueAllianceAprilTagId = 6,
+        redAllianceAprilTagId = 5,
         pivotAngle = PivotAngle.AMP,
         0.5.meters
     )
@@ -61,19 +61,20 @@ enum class FieldLocation(
 /**
  * Aims and drives to a location on the field, and moves the pivot to the correct position.
  */
-fun driveToLocation(
+fun aimToLocation(
     drivetrain: EncoderHolonomicDrivetrain,
     apriltagVision: AprilTagVisionPipeline,
     pivot: Pivot,
 
     target: FieldLocation,
     path: PathPlannerPath? = null,
-): Command = buildCommand(logIndividualCommands = true) {
-    val targetId by getOnceDuringRun{
+    setPivotAngleWhenFollowingPath: Boolean = false
+): Command = buildCommand(name = "Aim To Location($target)", logIndividualCommands = true) {
+    val targetId by getOnceDuringRun {
         when (DriverStation.getAlliance().getOrNull()){
-            DriverStation.Alliance.Blue, null -> target.blueAllianceApriltagId
+            DriverStation.Alliance.Blue, null -> target.blueAllianceAprilTagId
 
-            DriverStation.Alliance.Red -> target.redAllianceApriltagId
+            DriverStation.Alliance.Red -> target.redAllianceAprilTagId
         }
     }
 
@@ -161,23 +162,29 @@ fun driveToLocation(
 
         val distanceFromPathStart by getOnceDuringRun {
             val drivetrainPose = drivetrain.poseEstimator.robotPose
-            (drivetrainPose.translation - path.previewStartingHolonomicPose.translation.ofUnit(meters)).norm
+            (drivetrainPose.translation - path.previewStartingHolonomicPose.translation.ofUnit(meters).flipWhenNeeded()).norm
         }
 
-        runIf(
-            {distanceFromAprilTag > 1.3.meters && distanceFromPathStart > 0.3.meters},
-            onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
-            onFalse = runIf(
-                {distanceFromAprilTag > 0.6.meters},
-                AutoBuilder.followPath(path)
+        runParallelUntilAllFinish{
+            runIf(
+                {distanceFromAprilTag > 1.3.meters && distanceFromPathStart > 0.3.meters},
+                onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
+                onFalse = runIf(
+                    {distanceFromAprilTag > 0.6.meters},
+                    AutoBuilder.followPath(path)
+                )
             )
-        )
+
+            if (setPivotAngleWhenFollowingPath){
+                +pivot.setAngleCommand(target.pivotAngle)
+            }
+        }
     }
 
     runParallelUntilAllFinish {
         +pivot.setAngleCommand(target.pivotAngle)
 
-        loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.003) }){
+        loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.01) }){
             Logger.recordOutput("AimToLocation/isAiming", true)
             drivetrain.swerveDrive(
                 xPower = getDistanceErrorToTag().siValue * DISTANCE_TO_TAG_REACH_KP,

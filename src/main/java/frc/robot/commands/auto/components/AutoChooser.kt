@@ -8,7 +8,6 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.commands.auto.*
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
-import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 
@@ -31,12 +30,12 @@ object AutoChooser {
 
             addOption(
                 "1 Note Amp",
-                oneNoteAmp(shooter, pivot).andThen(pivot.setAngleCommand(PivotAngle.STOWED))
+                oneNoteAmp(drivetrain = drivetrain, shooter = shooter, pivot = pivot, stowPivotAtEnd = true)
             )
 
             addOption(
                 "1 Note Amp + Taxi",
-                oneNoteAmp(noteDetector = null, drivetrain, shooter, pivot, groundIntake, AmpAutoEndAction.STOW_PIVOT)
+                oneNoteAmp(drivetrain = drivetrain, shooter = shooter, pivot = pivot, stowPivotAtEnd = true, taxiAtEnd = true)
             )
 
             addOption(
@@ -55,11 +54,6 @@ object AutoChooser {
             )
 
             if (aprilTagVision != null && noteDetector != null){
-                addOption(
-                    "1 Note Amp + Three Note Ferry",
-                    oneNoteAmp(noteDetector, drivetrain, shooter, pivot, groundIntake, AmpAutoEndAction.FERRY)
-                )
-
                 addOption(
                     "Two Note Amp",
                     twoNoteAmp(

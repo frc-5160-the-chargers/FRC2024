@@ -19,7 +19,8 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
 
     val aimToSpeakerTrigger: Trigger = start().or(back())
 
-    val groundIntakeToShooterTrigger: Trigger = leftTrigger()
-    val groundIntakeAndStowTrigger: Trigger = Trigger{ false.also{println("Inactive trigger")} }
-    val groundOuttakeTrigger: Trigger = rightTrigger().and(leftTrigger().negate())
+    val groundIntakeTrigger: Trigger = rightTrigger().and(leftTrigger().negate())
+    val groundOuttakeTrigger: Trigger = leftTrigger().and(rightTrigger().negate())
+    val passToShooterTrigger: Trigger = leftTrigger().and(rightTrigger())
+
 }

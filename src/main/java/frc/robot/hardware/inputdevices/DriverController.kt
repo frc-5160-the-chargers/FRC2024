@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package frc.robot.hardware.inputdevices
 
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
@@ -14,16 +15,15 @@ import kotlin.math.sqrt
 
 object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
-    enum class Person{
+    enum class Driver {
         NAYAN, KENNA, CONRAD
     }
 
 
-    var isSimXboxController = false
-
-
     /* Top-Level constants */
     private const val DEFAULT_DEADBAND = 0.2
+    private const val IS_SIM_XBOX_CONTROLLER = false
+    private val DRIVER = Driver.NAYAN
 
 
     /* Public API */
@@ -42,7 +42,13 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
 
     private val driveScalar =
-        InputAxis{ sqrt(leftX.pow(2) + leftY.pow(2)) }
+        InputAxis{
+            when (DRIVER){
+                Driver.NAYAN -> sqrt(leftX.pow(2) + leftY.pow(2))
+
+                Driver.KENNA, Driver.CONRAD -> sqrt(rightX.pow(2) + rightY.pow(2))
+            }
+        }
             .applyMultiplier(0.6)
 
     private fun getScaleRate(): Double{
@@ -60,20 +66,38 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
 
     private val forwardAxis =
-        InputAxis{ leftY }
-            .applyDefaults()
-            .withModifier{ if (isSimXboxController) -1.0 * it else it }
+        InputAxis{
+            when (DRIVER){
+                Driver.NAYAN -> leftY
+
+                Driver.KENNA, Driver.CONRAD -> rightY
+            }
+        }
+            .applyDeadband(DEFAULT_DEADBAND)
+            .withModifier{ if (IS_SIM_XBOX_CONTROLLER) -1.0 * it else it }
             .withModifier{ it * getScaleRate() }
 
     private val strafeAxis =
-        InputAxis{ leftX }
+        InputAxis{
+            when (DRIVER){
+                Driver.NAYAN -> leftX
+
+                Driver.KENNA, Driver.CONRAD -> rightX
+            }
+        }
             .applyDeadband(0.3)
-            .withModifier{ if (isSimXboxController) -1.0 * it else it }
+            .withModifier{ if (IS_SIM_XBOX_CONTROLLER) -1.0 * it else it }
             .withModifier{ it * getScaleRate() }
 
     private val rotationAxis =
-        InputAxis{ rightX }
-            .applyDefaults()
+        InputAxis{
+            when (DRIVER){
+                Driver.NAYAN -> rightX
+
+                Driver.KENNA, Driver.CONRAD -> leftX
+            }
+        }
+            .applyDeadband(DEFAULT_DEADBAND)
             .square()
             .applyEquation( Polynomial(-0.1,0.0,-0.4,0.0) )
 
@@ -101,7 +125,6 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
         recordOutput("DriverController/TurboOutput", turbo)
         recordOutput("DriverController/PrecisionOutput", precision)
-
 
         recordOutput("DriverController/xPower", forward)
         recordOutput("DriverController/yPower", strafe)

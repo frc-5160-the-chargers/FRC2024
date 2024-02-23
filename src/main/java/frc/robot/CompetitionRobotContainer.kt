@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.commands.commandbuilder.buildCommand
+import frc.chargers.commands.logDuration
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -44,9 +45,8 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.robot.commands.*
-import frc.robot.commands.auto.components.AmpAutoEndAction
 import frc.robot.commands.auto.components.AutoChooser
-import frc.robot.commands.auto.twoNoteAmp
+import frc.robot.commands.auto.threeNoteAmp
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
@@ -184,7 +184,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             turnMotorType = DCMotor.getNEO(1),
             driveMotorType = DCMotor.getNEO(1),
             maxModuleSpeed = 4.5.meters / 1.seconds,
-            maxModuleAcceleration = 25.meters / 1.seconds / 1.seconds,
             trackWidth = 32.inches, wheelBase = 32.inches
         ),
         gyro = if (isReal()) gyroIO else null,
@@ -236,19 +235,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureDefaultCommands(){
-        drivetrain.defaultCommand = buildCommand{
-            addRequirements(drivetrain)
-
-            loop{
-                if (DriverController.disableFieldRelativeTrigger.asBoolean){
-                    drivetrain.swerveDrive(DriverController.swerveOutput, fieldRelative = false)
-                }else{
-                    drivetrain.swerveDrive(DriverController.swerveOutput)
-                }
-            }
-
-            onEnd{
-                drivetrain.stop()
+        drivetrain.setDefaultRunCommand{
+            if (DriverController.disableFieldRelativeTrigger.asBoolean){
+                drivetrain.swerveDrive(DriverController.swerveOutput, fieldRelative = false)
+            }else{
+                drivetrain.swerveDrive(DriverController.swerveOutput)
             }
         }
 
@@ -291,24 +282,32 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
         OperatorInterface.apply{
 
-            groundIntakeToShooterTrigger
-                .whileTrue(
-                    loopCommand(groundIntake, pivot, shooter){
-                        //groundIntake.intakeToShooter(pivot, shooter)
-                    }
-                )
-                .onFalse(idleSubsystems(drivetrain = null, shooter, pivot, groundIntake))
+            groundIntakeTrigger
+                .whileTrue(loopCommand(groundIntake, pivot){ groundIntake.intake(pivot) })
+                .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
 
             groundOuttakeTrigger
                 .whileTrue(loopCommand(groundIntake){ groundIntake.outtake() })
                 .onFalse(runOnceCommand(groundIntake){ groundIntake.setIdle() })
+
+            passToShooterTrigger
+                .whileTrue(
+                    buildCommand {
+                        +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+
+                        loop(groundIntake, shooter){
+                            groundIntake.passToShooter(shooter)
+                        }
+                    }
+                )
+                .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
 
             aimToSpeakerTrigger
                 .whileTrue(enableAimToSpeaker(drivetrain, vision.fusedTagPipeline))
                 .onFalse(runOnceCommand(drivetrain){ drivetrain.removeRotationOverride() })
 
             driveToSourceLeftTrigger.whileTrue(
-                driveToLocation(
+                aimToLocation(
                     drivetrain,
                     vision.fusedTagPipeline,
                     pivot,
@@ -318,7 +317,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
 
             driveToSourceRightTrigger.whileTrue(
-                driveToLocation(
+                aimToLocation(
                     drivetrain,
                     vision.fusedTagPipeline,
                     pivot,
@@ -328,7 +327,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
 
             driveToAmpTrigger.whileTrue(
-                driveToLocation(
+                aimToLocation(
                     drivetrain,
                     vision.fusedTagPipeline,
                     pivot,
@@ -364,12 +363,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
 
-    val testAuto = twoNoteAmp(
+    val testAuto = threeNoteAmp(
         vision.fusedTagPipeline,
         vision.notePipeline,
-        drivetrain, shooter, pivot, groundIntake,
-        AmpAutoEndAction.FERRY
-    )
+        drivetrain, shooter, pivot, groundIntake
+    ).logDuration("Auto Test") // extension function
 
     override val autonomousCommand: Command
         get() = testAuto

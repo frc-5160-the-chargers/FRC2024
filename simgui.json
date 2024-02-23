@@ -18,6 +18,7 @@
       "/AdvantageKit/RealOutputs/Shooter/mechanism2d": "Mechanism2d",
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Auto Command": "String Chooser",
+      "/SmartDashboard/AutoOptions": "String Chooser",
       "/SmartDashboard/Autonomous": "String Chooser",
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/PivotingShooter": "Mechanism2d",
@@ -121,6 +122,9 @@
         "ObjectDetector": {
           "open": true,
           "visionTargets": {
+            "Value#1": {
+              "open": true
+            },
             "open": true
           }
         },
