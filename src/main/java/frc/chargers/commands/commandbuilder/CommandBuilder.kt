@@ -270,7 +270,7 @@ public open class CommandBuilder{
 
 
     /**
-     * Adds a command that will run *until* [condition] is met.
+     * Adds a command that will run *until* the [condition] is met.
      *
      * Equivalent to the until decorator for commands.
      *
@@ -282,7 +282,19 @@ public open class CommandBuilder{
             .also(::addCommand)
 
     /**
-     * Adds a command that will run *until* [condition] is met.
+     * Adds a command that will run *while* the [condition] is met.
+     *
+     * Equivalent to the until decorator for commands.
+     *
+     * @param condition the condition to be met
+     * @param command the command to run until [condition] is met
+     */
+    public fun runWhile(condition: () -> Boolean, command: Command): ParallelRaceGroup =
+        command.until { !condition() }
+            .also(::addCommand)
+
+    /**
+     * Adds a command that will run the code block repeatedly *until* the [condition] is met.
      *
      * @param condition the condition to be met
      * @param requirements the Subsystems this command uses
@@ -298,8 +310,8 @@ public open class CommandBuilder{
      * @param requirements the Subsystems this command uses
      * @param execute the code to be run
      */
-    public inline fun loopWhile(crossinline condition: () -> Boolean, vararg requirements: Subsystem, noinline execute: CodeBlockContext.() -> Unit): ParallelRaceGroup =
-        loopUntil({ !condition() }, *requirements, execute = execute)
+    public fun loopWhile(condition: () -> Boolean, vararg requirements: Subsystem, execute: CodeBlockContext.() -> Unit): ParallelRaceGroup =
+        runWhile(condition, RunCommand(*requirements) { CodeBlockContext.execute() })
 
     /**
      * Adds several commands that will run at the same time, all stopping as soon as one finishes.
@@ -312,7 +324,7 @@ public open class CommandBuilder{
      * these are automatically removed from the overarching builder(so you can use runOnce/loopUntil).
      * @param block a builder allowing more parallel commands to be defined and added
      */
-    public inline fun runParallelUntilOneFinishes(vararg commands: Command, block: CommandBuilder.() -> Unit): Command {
+    public inline fun runParallelUntilOneFinishes(vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
@@ -332,14 +344,18 @@ public open class CommandBuilder{
      * these are automatically removed from the overarching builder(so you can use runOnce/loopUntil).
      * @param block a builder allowing more parallel commands to be defined and added
      */
-    public inline fun runParallelUntilFirstCommandFinishes(vararg commands: Command, block: CommandBuilder.() -> Unit): Command {
+    public inline fun runParallelUntilFirstCommandFinishes(vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
         builder.addingCommandsLocked = true
-        val firstCommand = commandsSet.first()
-        val otherCommands = commandsSet - firstCommand
-        return ParallelDeadlineGroup(firstCommand, *otherCommands.toTypedArray()).also(::addCommand)
+        try{
+            val firstCommand = commandsSet.first()
+            val otherCommands = commandsSet - firstCommand
+            return ParallelDeadlineGroup(firstCommand, *otherCommands.toTypedArray()).also(::addCommand)
+        }catch(e: NoSuchElementException){
+            throw NoSuchElementException("Your runParallelUntilFirstCommandFinishes needs to have a first command(or deadline); however, you have not specified any commands.")
+        }
     }
 
     /**
@@ -353,7 +369,7 @@ public open class CommandBuilder{
      * these are automatically removed from the overarching builder(so you can use runOnce/loopUntil).
      * @param block a builder allowing more parallel commands to be defined and added
      */
-    public inline fun runParallelUntilAllFinish(vararg commands: Command, block: CommandBuilder.() -> Unit): Command {
+    public inline fun runParallelUntilAllFinish(vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)

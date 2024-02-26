@@ -70,6 +70,7 @@
     "transitory": {
       "AdvantageKit": {
         "AprilTagCamLeft": {
+          "open": true,
           "robotPoseEstimates": {
             "Value#1": {
               "open": true
@@ -120,7 +121,6 @@
           }
         },
         "ObjectDetector": {
-          "open": true,
           "visionTargets": {
             "Value#1": {
               "open": true
@@ -159,7 +159,8 @@
             },
             "TopRightModule": {
               "open": true
-            }
+            },
+            "open": true
           },
           "Pathplanner": {
             "deviationFromTargetPose": {

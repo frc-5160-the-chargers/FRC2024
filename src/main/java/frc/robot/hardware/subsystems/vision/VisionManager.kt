@@ -105,14 +105,8 @@ class VisionManager(poseEstimator: RobotPoseMonitor, tunableCamerasInSim: Boolea
         addNotes(
             UnitPose2d(8.3.meters, 7.45.meters, 0.degrees),
             UnitPose2d(8.3.meters, 5.77.meters, 0.degrees),
-            UnitPose2d(8.3.meters, 4.13.meters, 0.degrees)
-//            UnitPose2d(
-//                UnitTranslation2d(
-//                    2.9.meters,
-//                    7.05.meters
-//                ),
-//                0.degrees
-//            )
+            UnitPose2d(8.3.meters, 4.13.meters, 0.degrees),
+            UnitPose2d(2.9.meters, 7.05.meters, 0.degrees)
         )
     }
 

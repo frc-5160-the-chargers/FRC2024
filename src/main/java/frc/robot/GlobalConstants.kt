@@ -44,5 +44,5 @@ val PATHFIND_CONSTRAINTS = PathConstraints(
 val NO_TARGET_FOUND_ALERT = Alert.warning(text = "A command is attempting to aim to a target using vision, but none can be found.")
 
 // pid constants used in multiple places
-val ANGLE_TO_ROTATIONAL_VELOCITY_PID = PIDConstants(3.5,0,0)
+val ANGLE_TO_ROTATIONAL_VELOCITY_PID = PIDConstants(3.8,0,0)
 

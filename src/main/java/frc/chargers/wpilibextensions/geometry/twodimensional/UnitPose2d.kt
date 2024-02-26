@@ -4,6 +4,7 @@ package frc.chargers.wpilibextensions.geometry.twodimensional
 import com.batterystaple.kmeasure.dimensions.DistanceDimension
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Distance
+import com.batterystaple.kmeasure.quantities.abs
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Pose3d
 import frc.chargers.advantagekitextensions.AdvantageKitLoggable
@@ -57,6 +58,12 @@ public data class UnitPose2d(
      * Converts this pose to a [UnitPose3d].
      */
     public fun toPose3d(): UnitPose3d = UnitPose3d(Pose3d(siValue))
+
+    /**
+     * Fetches the distance from this pose to another pose.
+     */
+    public fun distanceTo(other: UnitPose2d): Distance =
+        abs((this - other).norm)
 
 
     /**

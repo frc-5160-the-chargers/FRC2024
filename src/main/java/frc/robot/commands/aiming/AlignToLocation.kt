@@ -1,24 +1,25 @@
 @file:Suppress("unused")
-package frc.robot.commands
+package frc.robot.commands.aiming
 
 import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.volts
-import com.pathplanner.lib.auto.AutoBuilder
-import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.InstantCommand
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
+import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.Precision
-import frc.chargers.utils.flipWhenNeeded
+import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.geometry.ofUnit
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
 import frc.robot.*
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
@@ -30,7 +31,7 @@ private val DRIVE_TO_LOCATION_PRECISION = Precision.Within(Scalar(0.5))
 private const val DISTANCE_TO_TAG_REACH_KP = 0.6
 
 
-enum class FieldLocation(
+enum class AprilTagLocation(
     val blueAllianceAprilTagId: Int,
     val redAllianceAprilTagId: Int,
     val pivotAngle: Angle,
@@ -59,41 +60,45 @@ enum class FieldLocation(
 }
 
 /**
- * Aims and drives to a location on the field, and moves the pivot to the correct position.
+ * Aims and drives to an apriltag on a certain location within the field,
+ * and moves the pivot to the correct position.
+ *
+ * A follow path command can optionally be specified,
+ * which will be automatically cancelled once the range to the apriltag is small enough.
+ * This is to allow for a smoother and quicker line-up with the apriltag target.
  */
-fun aimToLocation(
+fun alignToAprilTag(
     drivetrain: EncoderHolonomicDrivetrain,
     apriltagVision: AprilTagVisionPipeline,
     pivot: Pivot,
 
-    target: FieldLocation,
-    path: PathPlannerPath? = null,
-    setPivotAngleWhenFollowingPath: Boolean = false
-): Command = buildCommand(name = "Aim To Location($target)", logIndividualCommands = true) {
+    tagLocation: AprilTagLocation,
+    followPathCommand: Command = InstantCommand()
+): Command = buildCommand(name = "Aim To AprilTag($tagLocation)", logIndividualCommands = true) {
+
+    // these values have their internal value re-evaluated once every time the command runs.
+    // these use kotlin's property delegates.
+
     val targetId by getOnceDuringRun {
         when (DriverStation.getAlliance().getOrNull()){
-            DriverStation.Alliance.Blue, null -> target.blueAllianceAprilTagId
+            DriverStation.Alliance.Blue, null -> tagLocation.blueAllianceAprilTagId
 
-            DriverStation.Alliance.Red -> target.redAllianceAprilTagId
+            DriverStation.Alliance.Red -> tagLocation.redAllianceAprilTagId
         }
     }
 
-    // represents raw, unflipped pose fetched from apriltagfieldlayout
-    val targetPoseRaw by getOnceDuringRun {
+    val tagPose: UnitPose3d by getOnceDuringRun {
         ChargerRobot
             .APRILTAG_LAYOUT
             .getTagPose(targetId)
             .orElseThrow()
-    }
-
-    val targetPose: UnitPose2d by getOnceDuringRun {
-        targetPoseRaw
-            .toPose2d()
             .ofUnit(meters)
-            .flipWhenNeeded()
     }
 
-    val targetHeight: Distance by getOnceDuringRun{ targetPoseRaw.z.ofUnit(meters) }
+    val headingToFaceAprilTag by getOnceDuringRun {
+        (tagPose.toPose2d().rotation + 180.degrees)
+            .inputModulus(0.degrees..360.degrees) // pretty sure this is the right formula
+    }
 
     val aimingController by getOnceDuringRun {
         SuperPIDController(
@@ -105,20 +110,24 @@ fun aimToLocation(
     }
 
 
-    fun canFindTarget(): Boolean {
+    fun canFindTarget(silenceWarnings: Boolean = false): Boolean {
         val bestTarget = apriltagVision.bestTarget
 
         return if (bestTarget == null){
-            println("NO TARGET FOUND!")
-            NO_TARGET_FOUND_ALERT.active = true
+            if (!silenceWarnings){
+                println("NO TARGET FOUND!")
+                NO_TARGET_FOUND_ALERT.active = true
+            }
             false
         }else if (targetId != bestTarget.fiducialId){
-            val alertText = "An apriltag command can find an apriltag, " +
-                    "but it does not match the id of $targetId. " +
-                    "(Found id: " + bestTarget.fiducialId
+            if (!silenceWarnings){
+                val alertText = "An apriltag command can find an apriltag, " +
+                        "but it does not match the id of $targetId. " +
+                        "(Found id: " + bestTarget.fiducialId
 
-            Alert.warning(text = alertText).active = true
-            println(alertText)
+                Alert.warning(text = alertText).active = true
+                println(alertText)
+            }
             false
         }else{
             true
@@ -137,11 +146,11 @@ fun aimToLocation(
     }
 
     fun getDistanceErrorToTag(): Distance {
-        if (target.targetDistanceToTag == null) return 0.meters
+        if (tagLocation.targetDistanceToTag == null) return 0.meters
 
-        val distance = apriltagVision.robotToTargetDistance(targetHeight) ?: return 0.meters
+        val distance = apriltagVision.robotToTargetDistance(tagPose.z) ?: return 0.meters // z is the tag height
 
-        return (distance - target.targetDistanceToTag).also{
+        return (distance - tagLocation.targetDistanceToTag).also{
             Logger.recordOutput("AimToLocation/distanceTest", it.siValue)
         }
     }
@@ -152,37 +161,31 @@ fun aimToLocation(
         apriltagVision.reset()
     }
 
-    if (path != null){
-        val distanceFromAprilTag by getOnceDuringRun {
-            val drivetrainPose = drivetrain.poseEstimator.robotPose
-            val distanceX = drivetrainPose.x - targetPose.x
-            val distanceY = drivetrainPose.y - targetPose.y
-            hypot(distanceX, distanceY)
-        }
+    // runs the path following until tag within certain range, then cancels it
+    // this ensures a smooth transition to aiming + getting within range
+    runUntil(
+        {
+            canFindTarget(silenceWarnings = true) &&
+            getDistanceErrorToTag() < 0.3.meters &&
+            abs(drivetrain.heading - headingToFaceAprilTag) < 20.degrees
+        }, // we want to silence warnings here because during the pathing process, there might be other tags detected
+        followPathCommand
+    )
 
-        val distanceFromPathStart by getOnceDuringRun {
-            val drivetrainPose = drivetrain.poseEstimator.robotPose
-            (drivetrainPose.translation - path.previewStartingHolonomicPose.translation.ofUnit(meters).flipWhenNeeded()).norm
-        }
-
-        runParallelUntilAllFinish{
-            runIf(
-                {distanceFromAprilTag > 1.3.meters && distanceFromPathStart > 0.3.meters},
-                onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
-                onFalse = runIf(
-                    {distanceFromAprilTag > 0.6.meters},
-                    AutoBuilder.followPath(path)
-                )
+    runOnce{
+        // aims to the appropriate angle while strafing to the apriltag
+        // this way, the lineup is appropriate.
+        drivetrain.setRotationOverride(
+            AimToAngleRotationOverride(
+                headingToFaceAprilTag,
+                ANGLE_TO_ROTATIONAL_VELOCITY_PID
             )
-
-            if (setPivotAngleWhenFollowingPath){
-                +pivot.setAngleCommand(target.pivotAngle)
-            }
-        }
+        )
     }
 
-    runParallelUntilAllFinish {
-        +pivot.setAngleCommand(target.pivotAngle)
+    // must be run in parallel in order to acheive higher performance
+    runParallelUntilAllFinish{
+        +pivot.setAngleCommand(tagLocation.pivotAngle)
 
         loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.01) }){
             Logger.recordOutput("AimToLocation/isAiming", true)
@@ -197,6 +200,7 @@ fun aimToLocation(
 
     onEnd{
         Logger.recordOutput("AimToLocation/isAiming", false)
+        drivetrain.removeRotationOverride()
         drivetrain.setDriveVoltages(
             listOf(0.volts, 0.volts, 0.volts, 0.volts)
         )

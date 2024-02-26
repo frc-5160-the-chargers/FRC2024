@@ -7,7 +7,6 @@ import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.robot.OPERATOR_CONTROLLER_PORT
 
 object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
-
     private val keyboardNTInterface = NetworkTableInstance.getDefault().getTable("DriverStationKeyPress")
     fun keyPressTrigger(key: String): Trigger =
         Trigger{ keyboardNTInterface.getEntry(key).getString("") == key }
@@ -17,10 +16,13 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     val driveToSourceLeftTrigger: Trigger = x()
     val driveToSourceRightTrigger: Trigger = y()
 
-    val aimToSpeakerTrigger: Trigger = start().or(back())
+    val aimToSpeakerTrigger: Trigger = start().or(back()) // tbd; might want driver to aim to speaker
 
-    val groundIntakeTrigger: Trigger = rightTrigger().and(leftTrigger().negate())
-    val groundOuttakeTrigger: Trigger = leftTrigger().and(rightTrigger().negate())
-    val passToShooterTrigger: Trigger = leftTrigger().and(rightTrigger())
+    val groundIntakeTrigger: Trigger = rightTrigger()
+    val groundOuttakeTrigger: Trigger = leftTrigger()
+    val passToShooterTrigger: Trigger = rightBumper()
+    val shootInSpeakerTrigger: Trigger = leftBumper()
 
+    val climberUpTrigger: Trigger = povUp()
+    val climberDownTrigger: Trigger = povDown()
 }

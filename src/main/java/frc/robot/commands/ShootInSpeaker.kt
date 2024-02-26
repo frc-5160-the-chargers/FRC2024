@@ -1,5 +1,6 @@
 package frc.robot.commands
 
+import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj2.command.Command
@@ -14,25 +15,40 @@ fun shootInSpeaker(
     groundIntake: GroundIntakeSerializer,
     pivot: Pivot,
 
-    power: Double = 0.8
+    power: Double = 0.8,
+    timeout: Time? = 0.7.seconds
 ): Command = buildCommand {
+    addRequirements(shooter, groundIntake, pivot)
+
     +pivot.setAngleCommand(PivotAngle.SPEAKER)
 
     runParallelUntilAllFinish{
-        loopFor(0.7.seconds, shooter){
-            shooter.outtake(power)
+        if (timeout != null){
+            loopFor(timeout){
+                shooter.outtake(power)
+            }
+        }else{
+            loop{
+                shooter.outtake(power)
+            }
         }
 
         runSequentially{
-            waitFor(0.4.seconds)
+            waitFor(0.3.seconds)
 
-            loopFor(0.3.seconds, groundIntake){
-                groundIntake.setConveyorVoltage(10.volts)
+            if (timeout != null){
+                loopFor(timeout){
+                    groundIntake.setConveyorVoltage(10.volts)
+                }
+            }else{
+                loop{
+                    groundIntake.setConveyorVoltage(10.volts)
+                }
             }
         }
     }
 
-    runOnce(shooter, groundIntake){
+    onEnd{
         shooter.setIdle()
         groundIntake.setIdle()
     }

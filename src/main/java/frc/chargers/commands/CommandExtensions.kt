@@ -20,7 +20,7 @@ public fun Command.logDuration(logName: String = this.name): Command =
 
         override fun end(interrupted: Boolean){
             this@logDuration.end(interrupted)
-            println("Command with name $logName has finished with time " + (fpgaTimestamp() - startTime).siValue + "seconds.")
+            println("Command with name $logName has finished with time " + (fpgaTimestamp() - startTime).siValue + " seconds.")
         }
     }
 

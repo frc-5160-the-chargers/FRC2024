@@ -13,7 +13,7 @@ fun idleSubsystems(
     pivot: Pivot? = null,
     groundIntake: GroundIntakeSerializer? = null
 ): Command = buildCommand {
-    if(drivetrain != null) addRequirements(drivetrain)
+    if (drivetrain != null) addRequirements(drivetrain)
     if (shooter != null) addRequirements(shooter)
     if (pivot != null) addRequirements(pivot)
     if (groundIntake != null) addRequirements(groundIntake)

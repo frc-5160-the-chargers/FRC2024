@@ -103,12 +103,24 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
 
     private val turboAxis =
-        InputAxis{ rightTriggerAxis }
+        InputAxis{
+            when (DRIVER){
+                Driver.NAYAN -> leftTriggerAxis
+
+                Driver.KENNA, Driver.CONRAD -> rightTriggerAxis
+            }
+        }
             .mapToRange(1.0..2.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
 
     private val precisionAxis =
-        InputAxis{ leftTriggerAxis }
+        InputAxis{
+            when (DRIVER){
+                Driver.NAYAN -> rightTriggerAxis
+
+                Driver.KENNA, Driver.CONRAD -> leftTriggerAxis
+            }
+        }
             .mapToRange(1.0..4.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
             .withModifier{ 1.0 / it }

@@ -21,20 +21,16 @@ public fun Trigger.onDoubleClick(clickTimeout: Time? = null, command: Command){
 }
 
 public fun Trigger.whileTrueContinuous(command: Command) {
+    var pressedLast = asBoolean
     CommandScheduler.getInstance().defaultButtonLoop
-        .bind(
-            object : Runnable {
-                private var m_pressedLast = asBoolean
-                override fun run() {
-                    val pressed = asBoolean
-                    if (pressed) {
-                        command.schedule()
-                    } else if (m_pressedLast) {
-                        command.cancel()
-                    }
-                    m_pressedLast = pressed
-                }
+        .bind{
+            val pressed = asBoolean
+            if (pressed) {
+                command.schedule()
+            } else if (pressedLast) {
+                command.cancel()
             }
-        )
+            pressedLast = pressed
+        }
 }
 

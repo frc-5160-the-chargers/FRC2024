@@ -45,8 +45,11 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.robot.commands.*
-import frc.robot.commands.auto.components.AutoChooser
-import frc.robot.commands.auto.threeNoteAmp
+import frc.robot.commands.aiming.AprilTagLocation
+import frc.robot.commands.aiming.alignToAprilTag
+import frc.robot.commands.auto.ampAutonomous
+import frc.robot.commands.auto.components.AmpAutoScoreComponent
+import frc.robot.controls.rotationoverride.getSpeakerRotationOverride
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
@@ -109,8 +112,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         },
         PIDConstants(10.0,0,0),
         AngularTrapezoidProfile(
-            maxVelocity = AngularVelocity(10.0),
-            maxAcceleration = AngularAcceleration(15.0)
+            maxVelocity = AngularVelocity(8.0),
+            maxAcceleration = AngularAcceleration(12.0)
         )
     )
 
@@ -223,11 +226,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
         configurePPLogging()
 
-        AutoChooser.initOptions(
-            vision.fusedTagPipeline, vision.notePipeline, drivetrain,
-            shooter, pivot, groundIntake
-        )
-
         if (isSimulation()){
             NoteVisualizer.setRobotPoseSupplier { drivetrain.poseEstimator.robotPose }
             NoteVisualizer.setLauncherTransformSupplier { pivot.mechanism3dPose }
@@ -283,7 +281,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         OperatorInterface.apply{
 
             groundIntakeTrigger
-                .whileTrue(loopCommand(groundIntake, pivot){ groundIntake.intake(pivot) })
+                .whileTrue(intakeNoteFromGround(groundIntake, pivot, shooter))
                 .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
 
             groundOuttakeTrigger
@@ -291,56 +289,64 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 .onFalse(runOnceCommand(groundIntake){ groundIntake.setIdle() })
 
             passToShooterTrigger
-                .whileTrue(
-                    buildCommand {
-                        +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
-
-                        loop(groundIntake, shooter){
-                            groundIntake.passToShooter(shooter)
-                        }
-                    }
-                )
+                .whileTrue(passSerializedNote(groundIntake, shooter, pivot))
                 .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
 
             aimToSpeakerTrigger
-                .whileTrue(enableAimToSpeaker(drivetrain, vision.fusedTagPipeline))
+                .whileTrue(runOnceCommand{
+                    drivetrain.setRotationOverride(getSpeakerRotationOverride(vision.fusedTagPipeline))
+                })
                 .onFalse(runOnceCommand(drivetrain){ drivetrain.removeRotationOverride() })
 
             driveToSourceLeftTrigger.whileTrue(
-                aimToLocation(
+                alignToAprilTag(
                     drivetrain,
                     vision.fusedTagPipeline,
                     pivot,
-                    FieldLocation.SOURCE_LEFT,
-                    PathPlannerPath.fromPathFile("SourceLeftTeleop"),
+                    AprilTagLocation.SOURCE_LEFT,
+                    followPathCommand = followPathOptimal(
+                        drivetrain,
+                        PathPlannerPath.fromPathFile("SourceLeftTeleop")
+                    )
                 )
             )
 
             driveToSourceRightTrigger.whileTrue(
-                aimToLocation(
+                alignToAprilTag(
                     drivetrain,
                     vision.fusedTagPipeline,
                     pivot,
-                    FieldLocation.SOURCE_RIGHT,
-                    PathPlannerPath.fromPathFile("SourceRightTeleop"),
+                    AprilTagLocation.SOURCE_RIGHT,
+                    followPathCommand = followPathOptimal(
+                        drivetrain,
+                        PathPlannerPath.fromPathFile("SourceRightTeleop")
+                    )
                 )
             )
 
             driveToAmpTrigger.whileTrue(
-                aimToLocation(
+                alignToAprilTag(
+                    drivetrain,
+                    vision.fusedTagPipeline,
+                    pivot,
+                    AprilTagLocation.AMP,
+                    followPathCommand = followPathOptimal(
+                        drivetrain,
+                        PathPlannerPath.fromPathFile("AmpTeleop")
+                    )
+                )
+                /*
+                aimToLocationOld(
                     drivetrain,
                     vision.fusedTagPipeline,
                     pivot,
                     FieldLocation.AMP,
                     PathPlannerPath.fromPathFile("AmpTeleop"),
                 )
+               */
             )
 
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
-
-            aimToSpeakerTrigger
-                .whileTrue(enableAimToSpeaker(drivetrain, vision.fusedTagPipeline))
-                .onFalse(runOnceCommand{ drivetrain.removeRotationOverride() })
         }
     }
 
@@ -363,14 +369,22 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
 
-    val testAuto = threeNoteAmp(
-        vision.fusedTagPipeline,
-        vision.notePipeline,
-        drivetrain, shooter, pivot, groundIntake
-    ).logDuration("Auto Test") // extension function
 
     override val autonomousCommand: Command
-        get() = testAuto
+        get() = ampAutonomous(
+            vision.fusedTagPipeline, vision.notePipeline, drivetrain,
+            shooter, pivot, groundIntake,
+            additionalComponents = listOf(
+                AmpAutoScoreComponent.fromPathPlanner(
+                    grabPathName = "AmpGrabG1",
+                    scorePathName = "AmpScoreG1"
+                ),
+                AmpAutoScoreComponent.fromPathPlanner(
+                    grabPathName = "AmpGrabG3",
+                    scorePathName = "AmpScoreG3"
+                )
+            )
+        ).logDuration("Amp Auto Test")
 
 
     override val testCommand: Command get(){
