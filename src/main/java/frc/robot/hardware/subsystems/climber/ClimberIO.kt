@@ -2,7 +2,6 @@
 package frc.robot.hardware.subsystems.climber
 
 import com.batterystaple.kmeasure.quantities.AngularVelocity
-import com.batterystaple.kmeasure.quantities.Current
 import com.batterystaple.kmeasure.quantities.Voltage
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 
@@ -15,12 +14,6 @@ interface ClimberIO {
 
     val leftSpeed: AngularVelocity
     val rightSpeed: AngularVelocity
-
-    val leftCurrent: Current
-    val rightCurrent: Current
-
-    val leftTemp: Double
-    val rightTemp: Double
 
     fun setVoltages(leftVoltage: Voltage, rightVoltage: Voltage)
 }
