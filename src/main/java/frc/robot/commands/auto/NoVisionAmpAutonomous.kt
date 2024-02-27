@@ -1,6 +1,5 @@
 package frc.robot.commands.auto
 
-import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.auto.AutoBuilder
@@ -9,7 +8,9 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.chargers.wpilibextensions.geometry.ofUnit
+import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
+import frc.robot.AMP_AUTO_STARTING_POSE_BLUE
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
 import frc.robot.commands.followPathOptimal
 import frc.robot.commands.runGroundIntake
@@ -36,7 +37,7 @@ fun noVisionAmpAutonomous(
 
     runOnce{
         drivetrain.poseEstimator.resetPose(
-            UnitPose2d(1.4.meters, 7.3.meters, 90.degrees).flipWhenNeeded()
+            AMP_AUTO_STARTING_POSE_BLUE.flipWhenNeeded()
         )
     }
 
@@ -58,12 +59,21 @@ fun noVisionAmpAutonomous(
 
 
     for (autoComponent in additionalComponents){
+        val grabPathStartPose = autoComponent.grabPath.pathPoses.last().ofUnit(meters).flipWhenNeeded()
         runParallelUntilFirstCommandFinishes{
             // parallel #1
             +followPathOptimal(drivetrain, autoComponent.grabPath)
 
             // parallel #2
-            +runGroundIntake(groundIntake, pivot, shooter)
+            runSequentially{
+                // sets pivot angle while note intake does not start yet
+                runUntil(
+                    { drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE },
+                    pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+                )
+
+                +runGroundIntake(groundIntake, pivot, shooter)
+            }
         }
 
         runParallelUntilAllFinish{

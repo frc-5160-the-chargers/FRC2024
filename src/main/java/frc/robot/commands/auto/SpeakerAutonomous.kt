@@ -9,6 +9,7 @@ import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.SpeakerAutoScoreComponent
 import frc.robot.commands.auto.components.SpeakerAutoStartingPose
@@ -63,9 +64,10 @@ fun speakerAutonomous(
 
             // parallel #2
             runSequentially{
-                loopUntil({ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }){
-                    pivot.setAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
-                }
+                runUntil(
+                    { drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE },
+                    pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+                )
 
                 runOnce{
                     drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))

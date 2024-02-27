@@ -7,8 +7,8 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 
 fun basicTaxi(drivetrain: EncoderHolonomicDrivetrain): Command =
     buildCommand {
-        loopFor(3.seconds){
-            drivetrain.swerveDrive(-0.2,0.0,0.0, fieldRelative = false)
+        loopFor(2.seconds){
+            drivetrain.swerveDrive(-0.3,0.0,0.0, fieldRelative = false)
         }
 
         runOnce{

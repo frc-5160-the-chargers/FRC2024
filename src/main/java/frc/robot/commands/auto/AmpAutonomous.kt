@@ -1,6 +1,5 @@
 package frc.robot.commands.auto
 
-import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.auto.AutoBuilder
@@ -13,7 +12,8 @@ import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
+import frc.robot.AMP_AUTO_STARTING_POSE_BLUE
 import frc.robot.commands.*
 import frc.robot.commands.aiming.AprilTagLocation
 import frc.robot.commands.aiming.alignToAprilTag
@@ -26,8 +26,7 @@ import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 import kotlin.jvm.optionals.getOrNull
 
-val AMP_AUTO_STARTING_POSE_BLUE = UnitPose2d(1.4.meters, 7.3.meters, 90.degrees)
-val ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE = 1.5.meters
+
 
 /**
  * A modular amp autonomous command, used for all of our amp autos.
@@ -78,7 +77,7 @@ fun ampAutonomous(
     }
 
     for (autoComponent in additionalComponents){
-        val grabPathStartPose = autoComponent.grabPath.pathPoses.last().ofUnit(meters)
+        val grabPathStartPose = autoComponent.grabPath.pathPoses.last().ofUnit(meters).flipWhenNeeded()
 
         runParallelUntilFirstCommandFinishes{
             // parallel #1
@@ -94,9 +93,10 @@ fun ampAutonomous(
             // parallel #2
             runSequentially{
                 // sets pivot angle while note intake does not start yet
-                loopUntil({drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE}){
-                    pivot.setAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
-                }
+                runUntil(
+                    { drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE },
+                    pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+                )
 
                 runOnce{
                     drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
