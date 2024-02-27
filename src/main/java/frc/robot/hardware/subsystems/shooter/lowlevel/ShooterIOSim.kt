@@ -35,7 +35,7 @@ class ShooterIOSim(
         false
     }
 
-    override val hasBeamBreakSensor by ShooterLog.boolean{
+    override val hasNoteDetector by ShooterLog.boolean{
         false
     }
 

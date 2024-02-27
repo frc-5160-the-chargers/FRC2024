@@ -121,6 +121,7 @@
           }
         },
         "ObjectDetector": {
+          "open": true,
           "visionTargets": {
             "Value#1": {
               "open": true

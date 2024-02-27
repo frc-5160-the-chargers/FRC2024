@@ -51,3 +51,8 @@ F. Units are treated the same as Quantity's
 In Kmeasure, a Unit(I.E meters, seconds, etc.) are actually represented by ```Quantity<D>```'s internal, with the quantity representing the conversion factor of the unit from the SI unit.
 
 In order to increase code clarity, ChargerLib adds the ```KmeasureUnit<D: Dimension>``` typealias.
+
+
+## Wrappers that utilize Kmeasure:
+
+A. Hardware 

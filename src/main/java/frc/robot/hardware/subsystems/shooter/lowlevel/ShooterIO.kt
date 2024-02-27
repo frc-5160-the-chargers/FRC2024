@@ -12,5 +12,5 @@ val ShooterLog = LoggableInputsProvider("Shooter")
  */
 interface ShooterIO: GenericIntakeIO {
     val hasNote: Boolean
-    val hasBeamBreakSensor: Boolean
+    val hasNoteDetector: Boolean
 }

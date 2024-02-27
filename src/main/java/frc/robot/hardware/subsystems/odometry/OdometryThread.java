@@ -20,7 +20,7 @@ import org.littletonrobotics.junction.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
-import java.util.ArrayDeque;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -69,7 +69,7 @@ public class OdometryThread {
     }
 
     public Queue<Double> registerSignal(DoubleSupplier signal) {
-        Queue<Double> queue = new ArrayDeque<>(100);
+        Queue<Double> queue = new ArrayBlockingQueue<>(20);
         ODOMETRY_LOCK.lock();
         try {
             signals.add(signal);
@@ -81,7 +81,7 @@ public class OdometryThread {
     }
 
     public Queue<Double> makeTimestampQueue() {
-        Queue<Double> queue = new ArrayDeque<>(100);
+        Queue<Double> queue = new ArrayBlockingQueue<>(20);
         ODOMETRY_LOCK.lock();
         try {
             timestampQueues.add(queue);

@@ -7,16 +7,9 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
 
-enum class ShooterVoltage(val voltage: Voltage, val stopWhenNoteDetected: Boolean){
-    AMP_OUTTAKE(4.volts, false),
-    SOURCE_INTAKE(8.volts, true),
-    SPEAKER_OUTTAKE(11.volts, false),
-    GROUND_INTAKE_RECEIVE(6.volts, true);
-}
-
 // standard: + = outtake, - = intake; regardless of voltage set
 class Shooter(val io: ShooterIO): SubsystemBase() {
-    val hasBeamBreakSensor: Boolean get() = io.hasBeamBreakSensor
+    val hasNoteDetector: Boolean get() = io.hasNoteDetector
 
     val hasNote: Boolean get() = io.hasNote
 
@@ -45,12 +38,14 @@ class Shooter(val io: ShooterIO): SubsystemBase() {
     }
 
     fun intake(voltage: Voltage){
-        if (io.hasNote && io.hasBeamBreakSensor){
+        if (io.hasNote && io.hasNoteDetector){
             io.setIntakeVoltage(0.volts)
         }else{
             io.setIntakeVoltage(voltage)
+            if (voltage < -2.volts){
+                NoteVisualizer.setHasNote(true)
+            }
         }
-        NoteVisualizer.setHasNote(true)
     }
 
     fun outtake(percentOut: Double){
@@ -60,7 +55,7 @@ class Shooter(val io: ShooterIO): SubsystemBase() {
 
     fun outtake(voltage: Voltage){
         require(voltage >= 0.volts){ "Applied voltage must be > 0.volts. To intake, call intake(voltage) or intake(speed) instead." }
-        NoteVisualizer.update(voltage)
+        NoteVisualizer.setHasNote(false)
         io.setIntakeVoltage(voltage)
     }
 

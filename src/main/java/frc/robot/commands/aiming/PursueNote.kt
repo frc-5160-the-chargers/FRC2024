@@ -18,7 +18,7 @@ fun pursueNote(
     drivetrain: EncoderHolonomicDrivetrain,
     noteDetector: ObjectVisionPipeline,
     getNotePursuitPower: (VisionTarget.Object) -> Double = { visionTarget -> 0.3 * (1.0 - visionTarget.tx / 100.0) },
-    acceptableDistanceToNoteMargin: Distance = 0.5.meters // determines the maximum distance that vision targets can be from the robot before being rejected
+    acceptableDistanceToNoteMargin: Distance = 2.meters // determines the maximum distance that vision targets can be from the robot before being rejected
 ): Command = buildCommand {
     lateinit var currentTarget: VisionTarget.Object
 

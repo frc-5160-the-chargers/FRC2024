@@ -8,21 +8,26 @@ import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.wpilibextensions.geometry.ofUnit
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.SpeakerAutoScoreComponent
 import frc.robot.commands.auto.components.SpeakerAutoStartingPose
 import frc.robot.commands.followPathOptimal
-import frc.robot.commands.intakeNoteFromGround
+import frc.robot.commands.runGroundIntake
 import frc.robot.commands.shootInSpeaker
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
 import frc.robot.controls.rotationoverride.getSpeakerRotationOverride
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
+import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 private val CLOSE_RANGE_SPEAKER_SHOOT_TIMEOUT = 0.7.seconds
 private val FAR_RANGE_SPEAKER_SHOOT_TIMEOUT = 0.9.seconds
 
+/**
+ * A modular autonomous command for speaker-side autos.
+ */
 fun speakerAutonomous(
     apriltagVision: AprilTagVisionPipeline,
     noteDetector: ObjectVisionPipeline,
@@ -34,6 +39,7 @@ fun speakerAutonomous(
     startingPose: SpeakerAutoStartingPose,
     additionalComponents: List<SpeakerAutoScoreComponent>
 ): Command = buildCommand {
+    val speakerRotationOverride = getSpeakerRotationOverride(apriltagVision)
 
     runOnce{
         drivetrain.poseEstimator.resetPose(startingPose.pose)
@@ -42,7 +48,7 @@ fun speakerAutonomous(
     +shootInSpeaker(shooter, groundIntake, pivot, timeout = CLOSE_RANGE_SPEAKER_SHOOT_TIMEOUT)
 
     for (autoComponent in additionalComponents){
-        val grabPathStartPose = autoComponent.grabPath.pathPoses.last().ofUnit(meters)
+        val grabPathStartPose: UnitPose2d = autoComponent.grabPath.pathPoses.last().ofUnit(meters)
 
         runParallelUntilFirstCommandFinishes{
             // parallel #1
@@ -57,32 +63,27 @@ fun speakerAutonomous(
 
             // parallel #2
             runSequentially{
-                // time unknown as of now
-                waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }
+                loopUntil({ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }){
+                    pivot.setAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
+                }
 
                 runOnce{
                     drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
                 }
 
-                +intakeNoteFromGround(groundIntake, pivot, shooter)
+                +runGroundIntake(groundIntake, pivot, shooter)
             }
         }
-
-        val speakerRotationOverride = getSpeakerRotationOverride(apriltagVision)
 
         runOnce{
             drivetrain.setRotationOverride(speakerRotationOverride)
         }
 
-        waitUntil{speakerRotationOverride.atSetpoint}
-
-        runOnce{
-            drivetrain.removeRotationOverride()
-        }
-
         if (autoComponent.scorePath != null){
             +followPathOptimal(drivetrain, autoComponent.scorePath)
         }
+
+        waitUntil{speakerRotationOverride.atSetpoint}
 
         if (autoComponent.shouldShootOnEnd){
             +shootInSpeaker(
@@ -93,6 +94,10 @@ fun speakerAutonomous(
                     CLOSE_RANGE_SPEAKER_SHOOT_TIMEOUT
                 }
             )
+        }
+
+        runOnce{
+            drivetrain.removeRotationOverride()
         }
     }
 }

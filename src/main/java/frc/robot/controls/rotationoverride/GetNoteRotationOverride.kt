@@ -7,5 +7,5 @@ import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 fun getNoteRotationOverride(notePipeline: ObjectVisionPipeline): AimToObjectRotationOverride =
     AimToObjectRotationOverride(
         notePipeline,
-        PIDConstants(0.03,0.0,0.003)
+        PIDConstants(0.1,0.0,0.003)
     )

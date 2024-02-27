@@ -93,14 +93,16 @@ fun ampAutonomous(
 
             // parallel #2
             runSequentially{
-                // time unknown as of now
-                waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }
+                // sets pivot angle while note intake does not start yet
+                loopUntil({drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE}){
+                    pivot.setAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
+                }
 
                 runOnce{
                     drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
                 }
 
-                +intakeNoteFromGround(groundIntake, pivot, shooter)
+                +runGroundIntake(groundIntake, pivot, shooter)
             }
         }
 

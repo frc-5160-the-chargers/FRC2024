@@ -19,7 +19,7 @@ fun passSerializedNote(
 
     +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
 
-    if (shooter.hasBeamBreakSensor){
+    if (shooter.hasNoteDetector){
         loopUntil({shooter.hasNote}){
             shooter.receiveFromGroundIntake()
             groundIntake.passToShooter()

@@ -12,7 +12,7 @@ import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
 import frc.robot.commands.followPathOptimal
-import frc.robot.commands.intakeNoteFromGround
+import frc.robot.commands.runGroundIntake
 import frc.robot.commands.passSerializedNote
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
@@ -63,7 +63,7 @@ fun noVisionAmpAutonomous(
             +followPathOptimal(drivetrain, autoComponent.grabPath)
 
             // parallel #2
-            +intakeNoteFromGround(groundIntake, pivot, shooter)
+            +runGroundIntake(groundIntake, pivot, shooter)
         }
 
         runParallelUntilAllFinish{

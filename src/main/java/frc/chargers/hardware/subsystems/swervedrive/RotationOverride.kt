@@ -110,6 +110,8 @@ class AimToObjectRotationOverride  (
         }
     }
 
+    private var previousTY: Double? = null
+
     val atSetpoint: Boolean get() = pidController.atSetpoint()
 
     override fun invoke(drivetrain: EncoderHolonomicDrivetrain): RotationOverrideResult? {

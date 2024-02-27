@@ -45,7 +45,7 @@ class VisionManager(poseEstimator: RobotPoseMonitor, tunableCamerasInSim: Boolea
     private val robotToArducam = robotToLimelight // tbd atm
     private val robotToMLWebcam = UnitTransform3d(
         UnitTranslation3d(x = 0.meters, y = 0.meters, z = 10.inches),
-        Rotation3d(roll = 0.degrees, pitch = 30.degrees, yaw = 180.degrees)
+        Rotation3d(roll = 0.degrees, pitch = 37.degrees, yaw = 180.degrees)
     ) // tbd atm
 
     private val mlTargetField = VisionSystemSim("ML Vision System")

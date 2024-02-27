@@ -47,9 +47,9 @@ import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.robot.commands.*
 import frc.robot.commands.aiming.AprilTagLocation
 import frc.robot.commands.aiming.alignToAprilTag
+import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.ampAutonomous
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
-import frc.robot.controls.rotationoverride.getSpeakerRotationOverride
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
@@ -281,7 +281,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         OperatorInterface.apply{
 
             groundIntakeTrigger
-                .whileTrue(intakeNoteFromGround(groundIntake, pivot, shooter))
+                .whileTrue(runGroundIntake(groundIntake, pivot, shooter))
                 .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
 
             groundOuttakeTrigger
@@ -293,9 +293,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
 
             aimToSpeakerTrigger
-                .whileTrue(runOnceCommand{
-                    drivetrain.setRotationOverride(getSpeakerRotationOverride(vision.fusedTagPipeline))
-                })
+                .whileTrue(pursueNote(drivetrain, vision.notePipeline))
                 .onFalse(runOnceCommand(drivetrain){ drivetrain.removeRotationOverride() })
 
             driveToSourceLeftTrigger.whileTrue(

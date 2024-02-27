@@ -11,12 +11,12 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     fun keyPressTrigger(key: String): Trigger =
         Trigger{ keyboardNTInterface.getEntry(key).getString("") == key }
 
-    val stowPivotTrigger: Trigger = b()
+    val stowPivotTrigger: Trigger = Trigger{false}
     val driveToAmpTrigger: Trigger = a()
     val driveToSourceLeftTrigger: Trigger = x()
     val driveToSourceRightTrigger: Trigger = y()
 
-    val aimToSpeakerTrigger: Trigger = start().or(back()) // tbd; might want driver to aim to speaker
+    val aimToSpeakerTrigger: Trigger = b() // tbd; might want driver to aim to speaker
 
     val groundIntakeTrigger: Trigger = rightTrigger()
     val groundOuttakeTrigger: Trigger = leftTrigger()
