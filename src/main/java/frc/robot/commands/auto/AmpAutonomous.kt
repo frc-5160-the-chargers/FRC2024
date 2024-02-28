@@ -58,7 +58,6 @@ fun ampAutonomous(
         }else{
             drivetrain.swerveDrive(0.13, -0.13, 0.0, fieldRelative = false)
         }
-        pivot.setAngle(PivotAngle.AMP)
     }
 
     +alignToAprilTag(
@@ -128,19 +127,22 @@ fun ampAutonomous(
             }
 
             AmpAutoScoreComponent.Type.SCORE_NOTE -> {
-
                 +alignToAprilTag(
                     drivetrain, apriltagVision, pivot,
                     AprilTagLocation.AMP,
-                    followPathCommand = followPathOptimal(drivetrain, autoComponent.scorePath) // negative sign removes the block from the command builder, as the parallel command is added to the builder by default
+                    followPathCommand = -runParallelUntilAllFinish{
+                        +followPathOptimal(drivetrain, autoComponent.scorePath)
+
+                        +passSerializedNote(groundIntake, shooter, pivot)
+                    } // negative sign removes the block from the command builder, as the parallel command is added to the builder by default
                 )
 
-
-                loopFor(0.2.seconds){
+                loopFor(0.3.seconds){
                     shooter.outtake(0.5)
                 }
 
-                runOnce{
+                loopFor(0.2.seconds){
+                    pivot.setAngle(PivotAngle.STOWED)
                     shooter.setIdle()
                 }
             }

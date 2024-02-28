@@ -1,4 +1,4 @@
-package frc.robot.hardware.subsystems.climber
+package frc.robot.hardware.subsystems.climber.lowlevel
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*

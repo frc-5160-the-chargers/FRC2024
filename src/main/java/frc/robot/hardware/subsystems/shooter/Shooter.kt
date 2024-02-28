@@ -38,7 +38,7 @@ class Shooter(val io: ShooterIO): SubsystemBase() {
     }
 
     fun intake(voltage: Voltage){
-        if (io.hasNote && io.hasNoteDetector){
+        if (io.hasNoteDetector && io.hasNote){
             io.setIntakeVoltage(0.volts)
         }else{
             io.setIntakeVoltage(voltage)

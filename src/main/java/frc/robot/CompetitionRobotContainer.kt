@@ -52,6 +52,8 @@ import frc.robot.commands.auto.ampAutonomous
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
+import frc.robot.hardware.subsystems.climber.Climber
+import frc.robot.hardware.subsystems.climber.lowlevel.ClimberIOReal
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOReal
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOSim
@@ -130,6 +132,13 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 conveyorMotorSim = DCMotorSim(DCMotor.getNEO(1), conveyorRatio, 0.010)
             )
         }
+    )
+
+    private val climber = Climber(
+        ClimberIOReal(
+            ChargerSparkMax(CLIMBER_ID_LEFT),
+            ChargerSparkMax(CLIMBER_ID_RIGHT)
+        )
     )
 
 
@@ -345,6 +354,16 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
 
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
+
+            climberUpTrigger
+                .whileTrue(loopCommand(climber){ climber.runUpwards() })
+                .onFalse(runOnceCommand(climber){ climber.setIdle() })
+
+            climberDownTrigger
+                .whileTrue(loopCommand(climber){ climber.runDownwards() })
+                .onFalse(runOnceCommand(climber){ climber.setIdle() })
+
+
         }
     }
 

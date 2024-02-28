@@ -52,6 +52,7 @@ fun pursueNote(
         }catch(e: UninitializedPropertyAccessException){
             0.0
         }
+        // no rotation needed because rotation override set
         drivetrain.swerveDrive(notePursuitPower,0.0,0.0, fieldRelative = false)
     }
 

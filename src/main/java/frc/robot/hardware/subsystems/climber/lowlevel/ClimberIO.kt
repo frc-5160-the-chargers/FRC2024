@@ -1,5 +1,5 @@
 @file:Suppress("unused")
-package frc.robot.hardware.subsystems.climber
+package frc.robot.hardware.subsystems.climber.lowlevel
 
 import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Voltage
