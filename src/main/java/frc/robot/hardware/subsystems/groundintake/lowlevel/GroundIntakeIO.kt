@@ -9,9 +9,6 @@ import frc.robot.hardware.subsystems.GenericIntakeIO
 // handles logging + replay for ground intake
 val GroundIntakeLog = LoggableInputsProvider("GroundIntake")
 
-/**
- * Standard order for lists is top motor, then bottom motor(if available).
- */
 interface GroundIntakeIO: GenericIntakeIO {
     val conveyorVoltage: Voltage
     val conveyorCurrent: Current

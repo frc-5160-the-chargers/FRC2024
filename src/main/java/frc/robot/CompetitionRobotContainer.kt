@@ -342,15 +342,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                         PathPlannerPath.fromPathFile("AmpTeleop")
                     )
                 )
-                /*
-                aimToLocationOld(
-                    drivetrain,
-                    vision.fusedTagPipeline,
-                    pivot,
-                    FieldLocation.AMP,
-                    PathPlannerPath.fromPathFile("AmpTeleop"),
-                )
-               */
             )
 
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))

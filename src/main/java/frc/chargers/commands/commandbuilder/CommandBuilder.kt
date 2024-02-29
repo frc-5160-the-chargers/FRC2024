@@ -104,6 +104,9 @@ public class BuildCommandScope: CommandBuilder(){
                 
                 For instance:
                 buildCommand{
+                    // correct way to do it; outside of any block
+                    addRequirements(...)
+                    
                     runOnce{
                         // does not compile
                         addRequirements(...)
@@ -170,7 +173,7 @@ public open class CommandBuilder{
      *
      * ```
      * buildCommand{
-     *      runOnce{ println("hi") }.modify{ withTimeout(5) }
+     *      loop{ println("hi") }.modify{ withTimeout(5) }
      *
      * }
      */
@@ -187,7 +190,9 @@ public open class CommandBuilder{
      * Adds a single command to be run until its completion.
      * Usage Example:
      * ```
-     * buildCommand{
+     * class ArmCommand(val angle: Angle, val arm: Arm): Command(){...}
+     *
+     * val command = buildCommand{
      *      +ArmCommand(2.0.radians, armSubsystem)
      * }
      * ```
@@ -203,11 +208,12 @@ public open class CommandBuilder{
      * ```
      * buildCommand{
      *    val command by getOnceDuringRun{
-     *      -runOnce{ doSomethingHere()}
+     *      -runOnce{ doSomethingHere()} // will no longer be added to the command builder
      *    }
      * }
      * ```
      */
+    @CommandBuilderMarker
     public operator fun <C: Command> C.unaryMinus(): C{
         commands.remove(this)
         return this
@@ -266,7 +272,10 @@ public open class CommandBuilder{
      * @param commands: A map between the key and commands to be called.
      */
     public fun <T: Any> runWhen(key: () -> T, commands: Map<T, Command>): Command =
-        SelectCommand(commands, key).also(::addCommand)
+        SelectCommand(commands, key).also{
+            addCommand(it)
+            this.commands.removeAll(commands.values.toSet())
+        }
 
 
     /**
@@ -279,7 +288,10 @@ public open class CommandBuilder{
      */
     public fun runUntil(condition: () -> Boolean, command: Command): ParallelRaceGroup =
         command.until { condition() }
-            .also(::addCommand)
+            .also{
+                addCommand(it)
+                this.commands.remove(command)
+            }
 
     /**
      * Adds a command that will run *while* the [condition] is met.
@@ -291,7 +303,10 @@ public open class CommandBuilder{
      */
     public fun runWhile(condition: () -> Boolean, command: Command): ParallelRaceGroup =
         command.until { !condition() }
-            .also(::addCommand)
+            .also{
+                addCommand(it)
+                this.commands.remove(command)
+            }
 
     /**
      * Adds a command that will run the code block repeatedly *until* the [condition] is met.
@@ -453,7 +468,7 @@ public open class CommandBuilder{
         vararg requirements: Subsystem,
         crossinline execute: CodeBlockContext.() -> Unit
     ): RunCommand =
-            RunCommand(*requirements) { CodeBlockContext.execute() }.also(::addCommand)
+        RunCommand(*requirements) { CodeBlockContext.execute() }.also(::addCommand)
 
     /**
      * Adds a command that does nothing for a specified [timeInterval], then completes.

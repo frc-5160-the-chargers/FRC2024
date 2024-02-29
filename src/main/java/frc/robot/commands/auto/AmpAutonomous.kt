@@ -48,12 +48,8 @@ fun ampAutonomous(
         drivetrain.poseEstimator.resetPose(AMP_AUTO_STARTING_POSE_BLUE.flipWhenNeeded())
     }
 
-    val flipAlliance by getOnceDuringRun{
-        DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red
-    }
-
     loopFor(0.2.seconds){
-        if (flipAlliance){
+        if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
             drivetrain.swerveDrive(0.13, 0.13, 0.0, fieldRelative = false)
         }else{
             drivetrain.swerveDrive(0.13, -0.13, 0.0, fieldRelative = false)
@@ -67,7 +63,7 @@ fun ampAutonomous(
         AprilTagLocation.AMP
     )
 
-    loopFor(0.2.seconds){
+    loopFor(0.3.seconds){
         shooter.outtake(0.5)
     }
 
@@ -141,8 +137,7 @@ fun ampAutonomous(
                     shooter.outtake(0.5)
                 }
 
-                loopFor(0.2.seconds){
-                    pivot.setAngle(PivotAngle.STOWED)
+                runOnce{
                     shooter.setIdle()
                 }
             }

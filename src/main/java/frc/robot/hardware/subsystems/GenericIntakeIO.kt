@@ -8,6 +8,8 @@ import com.batterystaple.kmeasure.quantities.Voltage
 /**
  * Represents the generic low level component of an intake on the robot.
  * This includes the ground intake and the shooter.
+ *
+ * In general, the standard order for this is
  */
 interface GenericIntakeIO {
     val intakeVoltages: List<Voltage>

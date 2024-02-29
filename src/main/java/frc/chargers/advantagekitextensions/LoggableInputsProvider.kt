@@ -633,9 +633,6 @@ public class LoggableInputsProvider(
 
 
 
-
-
-
     public fun <T: AdvantageKitLoggable<T>> value(
         default: T,
         getValue: () -> T
@@ -757,11 +754,11 @@ public class LoggableInputsProvider(
                 var counter = 1
                 table.put("$name/totalValues", field.size)
                 for (item in field){
-                    item.pushToLog(table, "$name/Value#$counter")
+                    item.pushToLog(table, "$name/$counter")
                     // not used for replay; simply used as useful information so that it can be distinguished
                     // which logged items are actually within the list or not,
                     // since items that are removed from the list still have their last logged value preserved.
-                    table.put("$name/Value#$counter/IsPresentInList", true)
+                    table.put("$name/$counter/IsPresentInList", true)
                     counter++
                 }
 
@@ -769,7 +766,7 @@ public class LoggableInputsProvider(
                 // as not present.
                 if (previousNumItems > field.size){
                     for (i in field.size+1..previousNumItems){
-                        table.put("$name/Value#$i/IsPresentInList", false)
+                        table.put("$name/$i/IsPresentInList", false)
                     }
                 }
 
@@ -781,7 +778,7 @@ public class LoggableInputsProvider(
                 val newField = mutableListOf<T>()
                 for (counter in 1 ..< totalItems + 1){
                     newField.add(
-                        default.getFromLog(table, "$name/Value#$counter")
+                        default.getFromLog(table, "$name/$counter")
                     )
                 }
                 field = newField
