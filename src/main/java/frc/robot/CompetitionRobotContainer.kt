@@ -251,7 +251,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         shooter.setDefaultRunCommand{
-            val speed = OperatorInterface.leftY
+            val speed = OperatorInterface.shooterSpeed
             if (speed > 0.0){
                 shooter.outtake(speed)
             }else{
@@ -260,7 +260,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         pivot.setDefaultRunCommand{
-            pivot.setSpeed(OperatorInterface.rightY / 6.0)
+            pivot.setSpeed(OperatorInterface.pivotSpeed)
             //pivot.setSpeed(0.3)
         }
     }

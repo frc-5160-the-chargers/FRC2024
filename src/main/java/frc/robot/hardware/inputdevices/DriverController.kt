@@ -1,6 +1,7 @@
 @file:Suppress("unused")
 package frc.robot.hardware.inputdevices
 
+import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.hardware.inputdevices.InputAxis
@@ -9,20 +10,18 @@ import frc.chargers.utils.math.equations.epsilonEquals
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.robot.DRIVER_CONTROLLER_PORT
 import org.littletonrobotics.junction.Logger.recordOutput
+import kotlin.jvm.optionals.getOrNull
 import kotlin.math.pow
 import kotlin.math.sqrt
 
 
 object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
-
     enum class Driver {
         NAYAN, KENNA, CONRAD
     }
 
-
     /* Top-Level constants */
     private const val DEFAULT_DEADBAND = 0.2
-    private const val IS_SIM_XBOX_CONTROLLER = false
     private val DRIVER = Driver.NAYAN
 
 
@@ -37,11 +36,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
     /* Private implementation */
 
-    private fun InputAxis.applyDefaults(): InputAxis =
-        this.applyDeadband(DEFAULT_DEADBAND)
-
-
-    private val driveScalar =
+    private val scalar =
         InputAxis{
             when (DRIVER){
                 Driver.NAYAN -> sqrt(leftX.pow(2) + leftY.pow(2))
@@ -52,8 +47,8 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
             .applyMultiplier(0.6)
 
     private fun getScaleRate(): Double{
-        val baseValue = driveScalar.getBaseValue()
-        val scaledValue = driveScalar()
+        val baseValue = scalar.getBaseValue()
+        val scaledValue = scalar()
 
         return if (baseValue epsilonEquals 0.0){
             1.0
@@ -74,7 +69,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
             }
         }
             .applyDeadband(DEFAULT_DEADBAND)
-            .withModifier{ if (IS_SIM_XBOX_CONTROLLER) -1.0 * it else it }
+            .withModifier{ if (DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red) -1.0 * it else it }
             .withModifier{ it * getScaleRate() }
 
     private val strafeAxis =
@@ -86,7 +81,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
             }
         }
             .applyDeadband(0.3)
-            .withModifier{ if (IS_SIM_XBOX_CONTROLLER) -1.0 * it else it }
+            .withModifier{ if (DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red) -1.0 * it else it }
             .withModifier{ it * getScaleRate() }
 
     private val rotationAxis =

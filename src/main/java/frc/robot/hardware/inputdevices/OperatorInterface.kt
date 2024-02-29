@@ -7,9 +7,21 @@ import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.robot.OPERATOR_CONTROLLER_PORT
 
 object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
+    private const val SHOULD_INVERT_SHOOTER_SPEED = true
+    private const val SHOULD_INVERT_PIVOT_SPEED = true
+
+    val shooterSpeed: Double
+        get() = leftY * if(SHOULD_INVERT_SHOOTER_SPEED) -1.0 else 1.0
+
+    val pivotSpeed: Double
+        get() = rightY / 5.0 * if (SHOULD_INVERT_PIVOT_SPEED) -1.0 else 1.0
+
+
+
     private val keyboardNTInterface = NetworkTableInstance.getDefault().getTable("DriverStationKeyPress")
     fun keyPressTrigger(key: String): Trigger =
         Trigger{ keyboardNTInterface.getEntry(key).getString("") == key }
+
 
     val stowPivotTrigger: Trigger = Trigger{false}
     val driveToAmpTrigger: Trigger = a()
