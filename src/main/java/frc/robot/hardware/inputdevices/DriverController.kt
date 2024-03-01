@@ -6,13 +6,9 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.hardware.inputdevices.InputAxis
 import frc.chargers.utils.math.equations.Polynomial
-import frc.chargers.utils.math.equations.epsilonEquals
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.robot.DRIVER_CONTROLLER_PORT
-import org.littletonrobotics.junction.Logger.recordOutput
 import kotlin.jvm.optionals.getOrNull
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 
 object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
@@ -22,6 +18,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
     /* Top-Level constants */
     private const val DEFAULT_DEADBAND = 0.2
+    private const val IS_KEYBOARD_SIM_CONTROLLER = true
     private val DRIVER = Driver.NAYAN
 
 
@@ -31,35 +28,11 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     val pointEastTrigger: Trigger = x()
     val pointWestTrigger: Trigger = b()
 
-    val disableFieldRelativeTrigger: Trigger = start().or(back())
+    val shouldDisableFieldRelative: Boolean
+        get() = start().asBoolean || back().asBoolean
 
 
     /* Private implementation */
-
-    private val scalar =
-        InputAxis{
-            when (DRIVER){
-                Driver.NAYAN -> sqrt(leftX.pow(2) + leftY.pow(2))
-
-                Driver.KENNA, Driver.CONRAD -> sqrt(rightX.pow(2) + rightY.pow(2))
-            }
-        }
-            .applyMultiplier(0.6)
-
-    private fun getScaleRate(): Double{
-        val baseValue = scalar.getBaseValue()
-        val scaledValue = scalar()
-
-        return if (baseValue epsilonEquals 0.0){
-            1.0
-        }else {
-            scaledValue / baseValue
-        }.also{ recordOutput("Drivetrain(Swerve)/scaleRate", it) }
-    }
-
-
-
-
     private val forwardAxis =
         InputAxis{
             when (DRIVER){
@@ -69,8 +42,13 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
             }
         }
             .applyDeadband(DEFAULT_DEADBAND)
-            .withModifier{ if (DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red) -1.0 * it else it }
-            .withModifier{ it * getScaleRate() }
+            .invertWhen{
+                DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
+                    !IS_KEYBOARD_SIM_CONTROLLER &&
+                    !shouldDisableFieldRelative
+            }
+            .applyMultiplier(0.6)
+            .log("DriverController/xPower")
 
     private val strafeAxis =
         InputAxis{
@@ -81,8 +59,13 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
             }
         }
             .applyDeadband(0.3)
-            .withModifier{ if (DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red) -1.0 * it else it }
-            .withModifier{ it * getScaleRate() }
+            .invertWhen{
+                DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
+                        !IS_KEYBOARD_SIM_CONTROLLER &&
+                        !shouldDisableFieldRelative
+            }
+            .applyMultiplier(0.6)
+            .log("DriverController/yPower")
 
     private val rotationAxis =
         InputAxis{
@@ -94,53 +77,32 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
         }
             .applyDeadband(DEFAULT_DEADBAND)
             .square()
-            .applyEquation( Polynomial(-0.1,0.0,-0.4,0.0) )
+            .applyEquation(Polynomial(-0.1,0.0,-0.4,0.0))
+            .log("DriverController/rotationPower")
 
 
     private val turboAxis =
-        InputAxis{
-            when (DRIVER){
-                Driver.NAYAN -> leftTriggerAxis
-
-                Driver.KENNA, Driver.CONRAD -> rightTriggerAxis
-            }
-        }
+        InputAxis{ rightTriggerAxis }
             .mapToRange(1.0..2.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
+            .log("DriverController/turboPower")
 
     private val precisionAxis =
-        InputAxis{
-            when (DRIVER){
-                Driver.NAYAN -> rightTriggerAxis
-
-                Driver.KENNA, Driver.CONRAD -> leftTriggerAxis
-            }
-        }
+        InputAxis{ leftTriggerAxis }
             .mapToRange(1.0..4.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
             .withModifier{ 1.0 / it }
+            .log("DriverController/precisionPower")
 
 
 
     val swerveOutput: ChassisPowers get(){
-        val forward = forwardAxis()
-        val strafe = strafeAxis()
-        val rotation = rotationAxis()
-
-        val turbo = turboAxis()
-        val precision = precisionAxis()
-
-        recordOutput("DriverController/TurboOutput", turbo)
-        recordOutput("DriverController/PrecisionOutput", precision)
-
-        recordOutput("DriverController/xPower", forward)
-        recordOutput("DriverController/yPower", strafe)
-        recordOutput("DriverController/rotation", rotation)
+        val scalar = turboAxis() * precisionAxis()
 
         return ChassisPowers(
-            xPower = forward * turbo * precision,
-            yPower = strafe * turbo * precision,
-            rotationPower = rotation * precision
+            xPower = forwardAxis() * scalar,
+            yPower = strafeAxis() * scalar,
+            rotationPower = rotationAxis() * scalar
         )
     }
 }

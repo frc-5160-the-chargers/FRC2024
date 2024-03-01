@@ -67,6 +67,7 @@ import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOReal
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOSim
 import frc.robot.hardware.subsystems.vision.VisionManager
 import org.littletonrobotics.junction.Logger.recordOutput
+import kotlin.jvm.optionals.getOrNull
 
 
 class CompetitionRobotContainer: ChargerRobotContainer() {
@@ -233,7 +234,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
 
-        configurePPLogging()
+        configurePathPlannerLogging()
 
         if (isSimulation()){
             NoteVisualizer.setRobotPoseSupplier { drivetrain.poseEstimator.robotPose }
@@ -243,7 +244,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
     private fun configureDefaultCommands(){
         drivetrain.setDefaultRunCommand{
-            if (DriverController.disableFieldRelativeTrigger.asBoolean){
+            if (DriverController.shouldDisableFieldRelative){
                 drivetrain.swerveDrive(DriverController.swerveOutput, fieldRelative = false)
             }else{
                 drivetrain.swerveDrive(DriverController.swerveOutput)
@@ -251,7 +252,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         shooter.setDefaultRunCommand{
-            val speed = OperatorInterface.shooterSpeed
+            val speed = OperatorInterface.shooterSpeedAxis()
             if (speed > 0.0){
                 shooter.outtake(speed)
             }else{
@@ -260,21 +261,26 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         pivot.setDefaultRunCommand{
-            pivot.setSpeed(OperatorInterface.pivotSpeed)
-            //pivot.setSpeed(0.3)
+            pivot.setSpeed(OperatorInterface.pivotSpeedAxis())
         }
     }
 
     private fun configureBindings(){
 
-        fun resetAimToAngle() = runOnceCommand(drivetrain){
+        fun resetAimToAngle() = runOnceCommand{
             drivetrain.removeRotationOverride()
         }
 
-        fun targetAngle(heading: Angle) = runOnceCommand(drivetrain){
+        fun targetAngle(heading: Angle) = runOnceCommand{
+            val allianceAngleCompensation = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
+                180.degrees
+            } else {
+                0.degrees
+            }
+
             drivetrain.setRotationOverride(
                 AimToAngleRotationOverride(
-                    heading,
+                    heading + allianceAngleCompensation,
                     ANGLE_TO_ROTATIONAL_VELOCITY_PID,
                 )
             )
@@ -353,12 +359,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             climberDownTrigger
                 .whileTrue(loopCommand(climber){ climber.runDownwards() })
                 .onFalse(runOnceCommand(climber){ climber.setIdle() })
-
-
         }
     }
 
-    private fun configurePPLogging(){
+    private fun configurePathPlannerLogging(){
         PathPlannerLogging.setLogCurrentPoseCallback {
             recordOutput("Pathplanner/currentPose", Pose2d.struct, it)
         }
@@ -376,8 +380,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
 
-
-
     override val autonomousCommand: Command
         get() = ampAutonomous(
             vision.fusedTagPipeline, vision.notePipeline, drivetrain,
@@ -392,7 +394,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     scorePathName = "AmpScoreG3"
                 )
             )
-        ).logDuration("Amp Auto Test")
+        ).logDuration("Amp Auto Test(3 gamepiece)")
 
 
     override val testCommand: Command get(){

@@ -7,6 +7,8 @@ import edu.wpi.first.math.filter.SlewRateLimiter
 import frc.chargers.utils.math.equations.Polynomial
 import frc.chargers.utils.math.mapBetweenRanges
 import frc.chargers.utils.math.preserveSign
+import org.littletonrobotics.junction.Logger
+import kotlin.properties.ReadOnlyProperty
 
 public typealias TriggerValue = Double
 
@@ -18,7 +20,17 @@ public typealias TriggerValue = Double
  */
 public class InputAxis(
     private val get: () -> TriggerValue
-): () -> TriggerValue {
+): () -> TriggerValue, ReadOnlyProperty<Any?, Double> by ReadOnlyProperty({ _, _ -> get() }) {
+    public fun getBaseValue(): TriggerValue = get()
+
+    override operator fun invoke(): TriggerValue {
+        var value = get()
+        for (modifier in modifiers){
+            value = modifier.modifyAxis(value)
+        }
+        return value
+    }
+
     private val modifiers: MutableList<AxisModifier> = mutableListOf()
 
     public fun withModifier(modifier: AxisModifier): InputAxis{
@@ -60,16 +72,14 @@ public class InputAxis(
     public fun invert(): InputAxis =
         withModifier{ it * -1.0 }
 
+    public fun invertWhen(booleanSupplier: () -> Boolean): InputAxis =
+        withModifier{ it * if (booleanSupplier()) -1.0 else 1.0 }
 
-    public fun getBaseValue(): TriggerValue = get()
-
-    override fun invoke(): TriggerValue {
-        var value = get()
-        modifiers.forEach{
-            value = it.modifyAxis(value)
+    public fun log(namespace: String): InputAxis =
+        withModifier{
+            Logger.recordOutput(namespace, it)
+            it
         }
-        return value
-    }
 }
 
 /**

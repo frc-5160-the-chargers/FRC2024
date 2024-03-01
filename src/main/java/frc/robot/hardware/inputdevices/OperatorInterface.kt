@@ -4,24 +4,28 @@ package frc.robot.hardware.inputdevices
 import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.Trigger
+import frc.chargers.hardware.inputdevices.InputAxis
 import frc.robot.OPERATOR_CONTROLLER_PORT
 
 object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
+    /* Top Level Constants */
     private const val SHOULD_INVERT_SHOOTER_SPEED = true
     private const val SHOULD_INVERT_PIVOT_SPEED = true
 
-    val shooterSpeed: Double
-        get() = leftY * if(SHOULD_INVERT_SHOOTER_SPEED) -1.0 else 1.0
-
-    val pivotSpeed: Double
-        get() = rightY / 5.0 * if (SHOULD_INVERT_PIVOT_SPEED) -1.0 else 1.0
-
-
-
     private val keyboardNTInterface = NetworkTableInstance.getDefault().getTable("DriverStationKeyPress")
+
+    /* Public API */
+    val shooterSpeedAxis =
+        InputAxis{ leftY }
+            .invertWhen{ SHOULD_INVERT_SHOOTER_SPEED }
+
+    val pivotSpeedAxis =
+        InputAxis{ rightY }
+            .invertWhen { SHOULD_INVERT_PIVOT_SPEED }
+            .applyMultiplier(0.2)
+
     fun keyPressTrigger(key: String): Trigger =
         Trigger{ keyboardNTInterface.getEntry(key).getString("") == key }
-
 
     val stowPivotTrigger: Trigger = Trigger{false}
     val driveToAmpTrigger: Trigger = a()

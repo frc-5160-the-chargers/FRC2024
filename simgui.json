@@ -148,6 +148,9 @@
           "AprilTagCam": {
             "open": true
           },
+          "DriverController": {
+            "open": true
+          },
           "Drivetrain(Swerve)": {
             "BottomLeftModule": {
               "open": true
