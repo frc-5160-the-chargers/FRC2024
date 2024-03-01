@@ -23,10 +23,22 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
 
     /* Public API */
-    val pointNorthTrigger: Trigger = y()
-    val pointSouthTrigger: Trigger = a()
-    val pointEastTrigger: Trigger = x()
-    val pointWestTrigger: Trigger = b()
+    val pointNorthTrigger: Trigger = when(DRIVER){
+        Driver.NAYAN -> y()
+        else -> povUp()
+    }
+    val pointSouthTrigger: Trigger = when(DRIVER){
+        Driver.NAYAN -> a()
+        else -> povDown()
+    }
+    val pointEastTrigger: Trigger = when(DRIVER){
+        Driver.NAYAN -> x()
+        else -> povRight()
+    }
+    val pointWestTrigger: Trigger = when(DRIVER){
+        Driver.NAYAN -> b()
+        else -> povLeft()
+    }
 
     val shouldDisableFieldRelative: Boolean
         get() = start().asBoolean || back().asBoolean
