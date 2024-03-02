@@ -164,7 +164,7 @@ fun alignToAprilTag(
 
     // while auto drive from operator controller is disabled, always set pivot angle.
     runWhile(
-        {OperatorInterface.disableAutoDriveFromOperator && DriverStation.isTeleop()},
+        {OperatorInterface.disableAutoDriveFromOperatorTrigger.asBoolean && DriverStation.isTeleop()},
         pivot.setAngleCommand(tagLocation.pivotAngle)
     )
 

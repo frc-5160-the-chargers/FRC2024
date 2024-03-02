@@ -52,9 +52,14 @@ fun pursueNote(
     loopWhile(::shouldContinuePursuit){
         val notePursuitPower = try{
             -abs(getNotePursuitSpeed(currentTarget))
-        }catch(e: UninitializedPropertyAccessException){
-            0.0
+        }catch(e: UninitializedPropertyAccessException){ // runs the block below if the property has not been initialized with a value
+            if (continueAfterNoteNotFound){
+                -abs(getNotePursuitSpeed(VisionTarget.Object.Dummy)) // uses a dummy vision target for calculations
+            }else{
+                0.0
+            }
         }
+
         // no rotation needed because rotation override set
         drivetrain.swerveDrive(notePursuitPower,0.0,0.0, fieldRelative = false)
     }

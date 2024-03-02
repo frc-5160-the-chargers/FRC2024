@@ -110,7 +110,8 @@
           },
           "TopRightModule": {
             "open": true
-          }
+          },
+          "open": true
         },
         "IMU": {
           "accelerometer": {
@@ -212,6 +213,12 @@
     }
   },
   "NetworkTables Info": {
+    "Clients": {
+      "open": true
+    },
     "visible": true
+  },
+  "NetworkTables View": {
+    "visible": false
   }
 }

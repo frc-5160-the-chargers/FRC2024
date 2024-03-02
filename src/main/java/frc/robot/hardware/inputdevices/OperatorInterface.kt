@@ -41,8 +41,8 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     val passToShooterTrigger: Trigger = rightBumper()
     val shootInSpeakerTrigger: Trigger = leftBumper()
 
-    val disableAutoDriveFromOperator: Boolean get() =
-        start().or(back()).asBoolean
+    val disableAutoDriveFromOperatorTrigger = start().or(back())
+
 
 
     val climberUpTrigger: Trigger = povUp()
