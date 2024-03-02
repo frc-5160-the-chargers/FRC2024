@@ -18,7 +18,8 @@ fun pursueNote(
     drivetrain: EncoderHolonomicDrivetrain,
     noteDetector: ObjectVisionPipeline,
     getNotePursuitSpeed: (VisionTarget.Object) -> Double = { visionTarget -> 0.6 * (0.5 - visionTarget.tx / 100.0) },
-    acceptableDistanceToNoteMargin: Distance = 2.meters // determines the maximum distance that vision targets can be from the robot before being rejected
+    acceptableDistanceToNoteMargin: Distance = 2.meters, // determines the maximum distance that vision targets can be from the robot before being rejected
+    continueAfterNoteNotFound: Boolean = false
 ): Command = buildCommand {
     lateinit var currentTarget: VisionTarget.Object
 
@@ -56,7 +57,18 @@ fun pursueNote(
         drivetrain.swerveDrive(notePursuitPower,0.0,0.0, fieldRelative = false)
     }
 
-    runOnce{
+    if (continueAfterNoteNotFound){
+        loop{
+            val notePursuitPower = try{
+                -abs(getNotePursuitSpeed(currentTarget)) / 4.0
+            }catch(e: UninitializedPropertyAccessException){
+                0.0
+            }
+            drivetrain.swerveDrive(notePursuitPower, 0.0, 0.0, fieldRelative = false)
+        }
+    }
+
+    onEnd{
         drivetrain.stop()
         drivetrain.removeRotationOverride()
     }

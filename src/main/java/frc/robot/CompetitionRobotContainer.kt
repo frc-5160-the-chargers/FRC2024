@@ -358,11 +358,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
 
             driveToNoteTrigger.whileTrue(
-                pursueNote(
-                    drivetrain,
-                    vision.notePipeline,
-                    getNotePursuitSpeed = { visionTarget -> DriverController.swerveOutput.xPower * (1.0 - visionTarget.tx) },
-                )
+                buildCommand {
+                    pursueNote(
+                        drivetrain,
+                        vision.notePipeline,
+                        getNotePursuitSpeed = { visionTarget -> DriverController.swerveOutput.xPower * (1.0 - visionTarget.tx) },
+                        continueAfterNoteNotFound = true
+                    )
+                }
             )
 
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
