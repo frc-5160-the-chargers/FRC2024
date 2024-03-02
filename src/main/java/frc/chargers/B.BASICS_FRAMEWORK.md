@@ -14,7 +14,19 @@ and provides separation between real and simulation components),
 
 [Command-Based Programming](https://docs.wpilib.org/en/stable/docs/software/commandbased/what-is-command-based.html) - 
 Illustrates how command-based works. Our command system exactly matches wpilib's;
-with the exception of the optional use of buildCommand for DSL-based commands.
+except the optional use of buildCommand for DSL-based commands.
+
+
+[AdvantageKit Documentation](https://github.com/Mechanical-Advantage/AdvantageKit/tree/main)
+Illustrates how the advantagekit logging + replay framework works. Our system mostly matches the system above; with some small modifications.
+
+
+## So, how do I start off coding a robot?
+
+Within chargerlib, it is intended to create 1 or many RobotContainer(s) per robot instance.
+These RobotContainer(s) will then 
+
+
 
 
 

@@ -12,8 +12,12 @@ import kotlin.jvm.optionals.getOrNull
 
 
 object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
-    enum class Driver {
-        NAYAN, KENNA, CONRAD
+    enum class Driver(val rightHanded: Boolean) {
+        NAYAN(false),
+        KENNA(true),
+        CONRAD(true),
+        JOYCE(true),
+        JACK(true)
     }
 
     /* Top-Level constants */
@@ -23,22 +27,10 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
 
     /* Public API */
-    val pointNorthTrigger: Trigger = when(DRIVER){
-        Driver.NAYAN -> y()
-        else -> povUp()
-    }
-    val pointSouthTrigger: Trigger = when(DRIVER){
-        Driver.NAYAN -> a()
-        else -> povDown()
-    }
-    val pointEastTrigger: Trigger = when(DRIVER){
-        Driver.NAYAN -> x()
-        else -> povRight()
-    }
-    val pointWestTrigger: Trigger = when(DRIVER){
-        Driver.NAYAN -> b()
-        else -> povLeft()
-    }
+    val pointNorthTrigger: Trigger = if (DRIVER.rightHanded) povUp() else y()
+    val pointSouthTrigger: Trigger = if (DRIVER.rightHanded) povDown() else a()
+    val pointEastTrigger: Trigger = if (DRIVER.rightHanded) povRight() else x()
+    val pointWestTrigger: Trigger = if (DRIVER.rightHanded) povLeft() else b()
 
     val shouldDisableFieldRelative: Boolean
         get() = start().asBoolean || back().asBoolean
@@ -46,13 +38,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
     /* Private implementation */
     private val forwardAxis =
-        InputAxis{
-            when (DRIVER){
-                Driver.NAYAN -> leftY
-
-                Driver.KENNA, Driver.CONRAD -> rightY
-            }
-        }
+        InputAxis{ if (DRIVER.rightHanded) rightY else leftY }
             .applyDeadband(DEFAULT_DEADBAND)
             .invertWhen{
                 DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
@@ -63,13 +49,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
             .log("DriverController/xPower")
 
     private val strafeAxis =
-        InputAxis{
-            when (DRIVER){
-                Driver.NAYAN -> leftX
-
-                Driver.KENNA, Driver.CONRAD -> rightX
-            }
-        }
+        InputAxis{ if (DRIVER.rightHanded) rightX else leftX }
             .applyDeadband(0.3)
             .invertWhen{
                 DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
@@ -80,13 +60,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
             .log("DriverController/yPower")
 
     private val rotationAxis =
-        InputAxis{
-            when (DRIVER){
-                Driver.NAYAN -> rightX
-
-                Driver.KENNA, Driver.CONRAD -> leftX
-            }
-        }
+        InputAxis{ if (DRIVER.rightHanded) leftX else rightX }
             .applyDeadband(DEFAULT_DEADBAND)
             .square()
             .applyEquation(Polynomial(-0.1,0.0,-0.4,0.0))
