@@ -26,9 +26,9 @@ import frc.robot.hardware.subsystems.pivot.PivotAngle
 import org.littletonrobotics.junction.Logger
 import kotlin.jvm.optionals.getOrNull
 
-private val DRIVE_TO_LOCATION_AIMING_PID = PIDConstants(0.01, 0.0,0.004)
-private val DRIVE_TO_LOCATION_PRECISION = Precision.Within(Scalar(0.5))
-private const val DISTANCE_TO_TAG_REACH_KP = 0.6
+private val APRILTAG_AIM_PID = PIDConstants(0.01, 0.0,0.004)
+private val APRILTAG_AIM_PRECISION = Precision.Within(Scalar(0.5))
+private const val DISTANCE_REACH_KP = 0.6
 
 
 enum class AprilTagLocation(
@@ -102,7 +102,7 @@ fun alignToAprilTag(
 
     val aimingController by getOnceDuringRun {
         SuperPIDController(
-            DRIVE_TO_LOCATION_AIMING_PID,
+            APRILTAG_AIM_PID,
             getInput = { Scalar(apriltagVision.bestTarget?.tx ?: 0.0) },
             target = Scalar(0.0),
             outputRange = Scalar(-0.5)..Scalar(0.5)
@@ -140,7 +140,7 @@ fun alignToAprilTag(
         val aimingError = aimingController.error
         Logger.recordOutput("AimToLocation/aimingError", aimingError.siValue)
 
-        return (aimingError in DRIVE_TO_LOCATION_PRECISION.allowableError).also{
+        return (aimingError in APRILTAG_AIM_PRECISION.allowableError).also{
             Logger.recordOutput("AimToLocation/hasFinishedAiming", it)
         }
     }
@@ -166,7 +166,7 @@ fun alignToAprilTag(
     runUntil(
         {
             canFindTarget(silenceWarnings = true) &&
-            getDistanceErrorToTag() < 0.3.meters &&
+            getDistanceErrorToTag() < 0.4.meters &&
             abs(drivetrain.heading - headingToFaceAprilTag) < 20.degrees
         }, // we want to silence warnings here because during the pathing process, there might be other tags detected
         followPathCommand
@@ -191,7 +191,7 @@ fun alignToAprilTag(
             loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.01) }){
                 Logger.recordOutput("AimToLocation/isAiming", true)
                 drivetrain.swerveDrive(
-                    xPower = getDistanceErrorToTag().siValue * DISTANCE_TO_TAG_REACH_KP,
+                    xPower = getDistanceErrorToTag().siValue * DISTANCE_REACH_KP,
                     yPower = -aimingController.calculateOutput().siValue,
                     rotationPower = 0.0,
                     fieldRelative = false
