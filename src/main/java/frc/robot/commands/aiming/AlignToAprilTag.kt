@@ -187,22 +187,24 @@ fun alignToAprilTag(
     runParallelUntilAllFinish{
         +pivot.setAngleCommand(tagLocation.pivotAngle)
 
-        loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.01) }){
-            Logger.recordOutput("AimToLocation/isAiming", true)
-            drivetrain.swerveDrive(
-                xPower = getDistanceErrorToTag().siValue * DISTANCE_TO_TAG_REACH_KP,
-                yPower = -aimingController.calculateOutput().siValue,
-                rotationPower = 0.0,
-                fieldRelative = false
-            )
-        }
-    }
+        runSequentially{
+            loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.01) }){
+                Logger.recordOutput("AimToLocation/isAiming", true)
+                drivetrain.swerveDrive(
+                    xPower = getDistanceErrorToTag().siValue * DISTANCE_TO_TAG_REACH_KP,
+                    yPower = -aimingController.calculateOutput().siValue,
+                    rotationPower = 0.0,
+                    fieldRelative = false
+                )
+            }
 
-    onEnd{
-        Logger.recordOutput("AimToLocation/isAiming", false)
-        drivetrain.removeRotationOverride()
-        drivetrain.setDriveVoltages(
-            listOf(0.volts, 0.volts, 0.volts, 0.volts)
-        )
+            runOnce{
+                Logger.recordOutput("AimToLocation/isAiming", false)
+                drivetrain.removeRotationOverride()
+                drivetrain.setDriveVoltages(
+                    listOf(0.volts, 0.volts, 0.volts, 0.volts)
+                )
+            }
+        }
     }
 }
