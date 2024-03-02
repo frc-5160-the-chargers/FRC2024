@@ -31,7 +31,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     val pointSouthTrigger: Trigger = if (DRIVER.rightHanded) povDown() else a()
     val pointEastTrigger: Trigger = if (DRIVER.rightHanded) povRight() else x()
     val pointWestTrigger: Trigger = if (DRIVER.rightHanded) povLeft() else b()
-    val aimToSpeakerTrigger: Trigger = leftBumper()
+    val aimToSpeakerTrigger: Trigger = Trigger{ false }
 
     val shouldDisableFieldRelative: Boolean
         get() = start().asBoolean || back().asBoolean

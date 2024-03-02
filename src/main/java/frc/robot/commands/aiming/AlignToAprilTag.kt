@@ -21,6 +21,7 @@ import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
 import frc.robot.*
+import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import org.littletonrobotics.junction.Logger
@@ -161,13 +162,19 @@ fun alignToAprilTag(
         apriltagVision.reset()
     }
 
+    // while auto drive from operator controller is disabled, always set pivot angle.
+    runWhile(
+        {OperatorInterface.disableAutoDriveFromOperator && DriverStation.isTeleop()},
+        pivot.setAngleCommand(tagLocation.pivotAngle)
+    )
+
     // runs the path following until tag within certain range, then cancels it
     // this ensures a smooth transition to aiming + getting within range
     runUntil(
         {
-            canFindTarget(silenceWarnings = true) &&
+            (canFindTarget(silenceWarnings = true) &&
             getDistanceErrorToTag() < 0.4.meters &&
-            abs(drivetrain.heading - headingToFaceAprilTag) < 20.degrees
+            abs(drivetrain.heading - headingToFaceAprilTag) < 20.degrees)
         }, // we want to silence warnings here because during the pathing process, there might be other tags detected
         followPathCommand
     )

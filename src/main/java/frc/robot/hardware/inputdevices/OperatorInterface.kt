@@ -27,7 +27,6 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
             .applyMultiplier(0.33)
             .square()
 
-
     fun keyPressTrigger(key: String): Trigger =
         Trigger{ keyboardNTInterface.getEntry(key).getString("") == key }
 
@@ -41,6 +40,10 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     val groundOuttakeTrigger: Trigger = leftTrigger()
     val passToShooterTrigger: Trigger = rightBumper()
     val shootInSpeakerTrigger: Trigger = leftBumper()
+
+    val disableAutoDriveFromOperator: Boolean get() =
+        start().or(back()).asBoolean
+
 
     val climberUpTrigger: Trigger = povUp()
     val climberDownTrigger: Trigger = povDown()

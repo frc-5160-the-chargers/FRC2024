@@ -24,6 +24,8 @@ fun pursueNote(
     lateinit var currentTarget: VisionTarget.Object
 
     fun shouldContinuePursuit(): Boolean {
+        if (continueAfterNoteNotFound) return true
+
         val allTargets = noteDetector.visionTargets
 
         if (allTargets.isEmpty()) return false
@@ -55,17 +57,6 @@ fun pursueNote(
         }
         // no rotation needed because rotation override set
         drivetrain.swerveDrive(notePursuitPower,0.0,0.0, fieldRelative = false)
-    }
-
-    if (continueAfterNoteNotFound){
-        loop{
-            val notePursuitPower = try{
-                -abs(getNotePursuitSpeed(currentTarget)) / 4.0
-            }catch(e: UninitializedPropertyAccessException){
-                0.0
-            }
-            drivetrain.swerveDrive(notePursuitPower, 0.0, 0.0, fieldRelative = false)
-        }
     }
 
     onEnd{
