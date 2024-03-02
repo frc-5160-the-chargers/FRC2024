@@ -46,13 +46,20 @@ class Pivot(
     // null indicates no motion profile
     private val motionProfile: AngularMotionProfile? = null,
     private val feedforward: ArmFFEquation = ArmFFEquation(0.0,0.0,0.0),
-    private val precision: Precision.Within<AngleDimension> = Precision.Within(1.5.degrees)
+    private val precision: Precision.Within<AngleDimension> = Precision.Within(1.5.degrees),
+    private val forwardSoftStop: Angle? = null,
+    private val reverseSoftStop: Angle? = null
 ): SubsystemBase() {
     /* Private Members */
     @AutoLogOutput
     private val mechanismCanvas = Mechanism2d(3.0, 3.0)
     private val pivotVisualizer: MechanismLigament2d
     private var motionProfileSetpoint = AngularMotionProfileState(io.angle)
+
+
+    private fun willExceedSoftStop(movingForward: Boolean): Boolean =
+        (forwardSoftStop != null && io.angle >= forwardSoftStop && movingForward) ||
+        (reverseSoftStop != null && io.angle <= reverseSoftStop && !movingForward)
 
     init{
         val root = mechanismCanvas.getRoot("PivotingShooter", 2.0, 0.0)
@@ -97,11 +104,24 @@ class Pivot(
         io.setVoltage(0.volts)
     }
 
-    fun setVoltage(voltage: Voltage) = io.setVoltage(voltage)
+    fun setVoltage(voltage: Voltage){
+        if (willExceedSoftStop(movingForward = voltage > 0.volts)){
+            setIdle()
+            atTarget = true
+            return
+        }
+        io.setVoltage(voltage)
+    }
 
     fun setSpeed(speed: Double) = setVoltage(speed * 12.volts)
 
     fun setAngle(angle: Angle){
+        if (willExceedSoftStop(movingForward = angle > io.angle)){
+            setIdle()
+            atTarget = true
+            return
+        }
+
         val setpointPosition: Angle
         val feedforward: Voltage
 
@@ -122,7 +142,7 @@ class Pivot(
 
         atTarget = (angle - io.angle).within(precision)
 
-        io.setPositionSetpoint(
+        io.setAngleSetpoint(
             setpointPosition,
             pidConstants,
             feedforward

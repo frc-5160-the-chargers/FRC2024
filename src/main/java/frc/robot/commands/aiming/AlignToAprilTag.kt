@@ -7,6 +7,7 @@ import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.ConditionalCommand
 import edu.wpi.first.wpilibj2.command.InstantCommand
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.pid.PIDConstants
@@ -59,6 +60,24 @@ enum class AprilTagLocation(
         0.5.meters
     )
 }
+
+/**
+ * Sets the pivot angle of the pivot,
+ * and drives to the appropriate location when auto drive is enabled.
+ *
+ * @see alignToAprilTag
+ */
+fun alignToAprilTagWhenEnabled(
+    drivetrain: EncoderHolonomicDrivetrain,
+    apriltagVision: AprilTagVisionPipeline,
+    pivot: Pivot,
+
+    tagLocation: AprilTagLocation,
+    followPathCommand: Command = InstantCommand()
+): Command = ConditionalCommand(
+    alignToAprilTag(drivetrain, apriltagVision, pivot, tagLocation, followPathCommand),
+    pivot.setAngleCommand(tagLocation.pivotAngle)
+){ OperatorInterface.enableAutoDriveTrigger.asBoolean }
 
 /**
  * Aims and drives to an apriltag on a certain location within the field,
@@ -163,10 +182,9 @@ fun alignToAprilTag(
     }
 
     // while auto drive from operator controller is disabled, always set pivot angle.
-    runWhile(
-        {OperatorInterface.disableAutoDriveFromOperatorTrigger.asBoolean && DriverStation.isTeleop()},
-        pivot.setAngleCommand(tagLocation.pivotAngle)
-    )
+    loopWhile({OperatorInterface.disableAutoDriveFromOperatorTrigger.asBoolean && DriverStation.isTeleop()}){
+        pivot.setAngle(tagLocation.pivotAngle)
+    }
 
     // runs the path following until tag within certain range, then cancels it
     // this ensures a smooth transition to aiming + getting within range

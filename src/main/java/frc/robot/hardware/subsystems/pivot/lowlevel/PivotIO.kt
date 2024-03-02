@@ -24,7 +24,7 @@ interface PivotIO {
     /**
      * Sets the pivot position with only pid control; no motion profiling at all.
      */
-    fun setPositionSetpoint(
+    fun setAngleSetpoint(
         position: Angle,
         pidConstants: PIDConstants,
         ffOutput: Voltage = Voltage(0.0)

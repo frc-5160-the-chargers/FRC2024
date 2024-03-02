@@ -62,8 +62,12 @@ public fun loopCommand(vararg subsystems: Subsystem, toRun: () -> Unit): RunComm
  *
  * @see Subsystem.setDefaultCommand
  */
-public fun <S: Subsystem> S.setDefaultRunCommand(vararg requirements: Subsystem, toRun: S.() -> Unit){
-    defaultCommand = RunCommand({toRun()}, this, *requirements)
+public fun <S: Subsystem> S.setDefaultRunCommand(
+    vararg requirements: Subsystem,
+    endBehavior: S.(Boolean) -> Unit = {},
+    toRun: S.() -> Unit
+){
+    defaultCommand = RunCommand({toRun()}, this, *requirements).finallyDo{ interrupted -> endBehavior(interrupted) }
 }
 
 /**

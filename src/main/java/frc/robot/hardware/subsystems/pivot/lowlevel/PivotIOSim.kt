@@ -41,7 +41,7 @@ class PivotIOSim(private val motorSim: DCMotorSim): PivotIO {
         motorSim.setInputVoltage(voltage.siValue)
     }
 
-    override fun setPositionSetpoint(position: Angle, pidConstants: PIDConstants, ffOutput: Voltage) {
+    override fun setAngleSetpoint(position: Angle, pidConstants: PIDConstants, ffOutput: Voltage) {
         pivotController.constants = pidConstants
         val output = pivotController.calculateOutput(position) + ffOutput
         setVoltage(output)

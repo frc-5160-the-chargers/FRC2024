@@ -47,7 +47,7 @@ import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.robot.commands.*
 import frc.robot.commands.aiming.AprilTagLocation
-import frc.robot.commands.aiming.alignToAprilTag
+import frc.robot.commands.aiming.alignToAprilTagWhenEnabled
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.ampAutonomous
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
@@ -127,7 +127,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         AngularTrapezoidProfile(
             maxVelocity = AngularVelocity(8.0),
             maxAcceleration = AngularAcceleration(12.0)
-        )
+        ),
+        forwardSoftStop = 1.636.radians,
+        reverseSoftStop = (-1.576).radians
     )
 
     private val groundIntake = GroundIntakeSerializer(
@@ -253,7 +255,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureDefaultCommands(){
-        drivetrain.setDefaultRunCommand{
+        drivetrain.setDefaultRunCommand(endBehavior = { drivetrain.stop() }){
             if (DriverController.shouldDisableFieldRelative){
                 drivetrain.swerveDrive(DriverController.swerveOutput, fieldRelative = false)
             }else{
@@ -261,7 +263,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }
         }
 
-        shooter.setDefaultRunCommand{
+        shooter.setDefaultRunCommand(endBehavior = { shooter.setIdle() }){
             val speed = OperatorInterface.shooterSpeedAxis()
             if (speed > 0.0){
                 shooter.outtake(speed)
@@ -270,7 +272,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }
         }
 
-        pivot.setDefaultRunCommand{
+        pivot.setDefaultRunCommand(endBehavior = { pivot.setIdle() }){
             pivot.setSpeed(OperatorInterface.pivotSpeedAxis())
         }
     }
@@ -301,6 +303,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             pointEastTrigger.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
             pointSouthTrigger.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
             pointWestTrigger.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
+
+            climberUpTrigger
+                .whileTrue(loopCommand(climber){ climber.runUpwards() })
+                .onFalse(runOnceCommand(climber){ climber.setIdle() })
+
+            climberDownTrigger
+                .whileTrue(loopCommand(climber){ climber.runDownwards() })
+                .onFalse(runOnceCommand(climber){ climber.setIdle() })
         }
 
         OperatorInterface.apply{
@@ -319,7 +329,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
             driveToSourceLeftTrigger.whileTrue(
-                alignToAprilTag(
+                alignToAprilTagWhenEnabled(
                     drivetrain,
                     vision.fusedTagPipeline,
                     pivot,
@@ -332,7 +342,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
 
             driveToSourceRightTrigger.whileTrue(
-                alignToAprilTag(
+                alignToAprilTagWhenEnabled(
                     drivetrain,
                     vision.fusedTagPipeline,
                     pivot,
@@ -345,7 +355,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
 
             driveToAmpTrigger.whileTrue(
-                alignToAprilTag(
+                alignToAprilTagWhenEnabled(
                     drivetrain,
                     vision.fusedTagPipeline,
                     pivot,
@@ -367,14 +377,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
 
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
-
-            climberUpTrigger
-                .whileTrue(loopCommand(climber){ climber.runUpwards() })
-                .onFalse(runOnceCommand(climber){ climber.setIdle() })
-
-            climberDownTrigger
-                .whileTrue(loopCommand(climber){ climber.runDownwards() })
-                .onFalse(runOnceCommand(climber){ climber.setIdle() })
         }
     }
 

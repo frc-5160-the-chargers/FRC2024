@@ -81,7 +81,7 @@ class PivotIOReal(
         motor.setVoltage(voltage.siValue)
     }
     
-    override fun setPositionSetpoint(position: Angle, pidConstants: PIDConstants, ffOutput: Voltage) {
+    override fun setAngleSetpoint(position: Angle, pidConstants: PIDConstants, ffOutput: Voltage) {
         if (rioController != null){
             rioController.constants = pidConstants
             setVoltage(rioController.calculateOutput(position) + ffOutput)
