@@ -18,21 +18,24 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     val shooterSpeedAxis =
         InputAxis{ leftY }
             .invertWhen{ SHOULD_INVERT_SHOOTER_SPEED }
+            .applyDeadband(0.2)
 
     val pivotSpeedAxis =
         InputAxis{ rightY }
             .invertWhen { SHOULD_INVERT_PIVOT_SPEED }
-            .applyMultiplier(0.2)
+            .applyDeadband(0.2)
+            .applyMultiplier(0.33)
+            .square()
+
 
     fun keyPressTrigger(key: String): Trigger =
         Trigger{ keyboardNTInterface.getEntry(key).getString("") == key }
 
-    val stowPivotTrigger: Trigger = Trigger{false}
+    val stowPivotTrigger: Trigger = b()
     val driveToAmpTrigger: Trigger = a()
     val driveToSourceLeftTrigger: Trigger = x()
-    val driveToSourceRightTrigger: Trigger = y()
-
-    val aimToSpeakerTrigger: Trigger = b() // tbd; might want driver to aim to speaker
+    val driveToSourceRightTrigger: Trigger = Trigger{ false } // dont drive to right source as of now
+    val driveToNoteTrigger: Trigger = y()
 
     val groundIntakeTrigger: Trigger = rightTrigger()
     val groundOuttakeTrigger: Trigger = leftTrigger()

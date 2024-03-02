@@ -17,7 +17,7 @@ import kotlin.math.abs
 fun pursueNote(
     drivetrain: EncoderHolonomicDrivetrain,
     noteDetector: ObjectVisionPipeline,
-    getNotePursuitPower: (VisionTarget.Object) -> Double = { visionTarget -> 0.3 * (1.0 - visionTarget.tx / 100.0) },
+    getNotePursuitSpeed: (VisionTarget.Object) -> Double = { visionTarget -> 0.6 * (0.5 - visionTarget.tx / 100.0) },
     acceptableDistanceToNoteMargin: Distance = 2.meters // determines the maximum distance that vision targets can be from the robot before being rejected
 ): Command = buildCommand {
     lateinit var currentTarget: VisionTarget.Object
@@ -48,7 +48,7 @@ fun pursueNote(
     // this means that driving back while field relative is not true will directly grab the gamepiece
     loopWhile(::shouldContinuePursuit){
         val notePursuitPower = try{
-            -abs(getNotePursuitPower(currentTarget))
+            -abs(getNotePursuitSpeed(currentTarget))
         }catch(e: UninitializedPropertyAccessException){
             0.0
         }

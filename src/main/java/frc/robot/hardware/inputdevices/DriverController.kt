@@ -22,7 +22,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
     /* Top-Level constants */
     private const val DEFAULT_DEADBAND = 0.2
-    private const val IS_KEYBOARD_SIM_CONTROLLER = true
+    private const val IS_KEYBOARD_SIM_CONTROLLER = false
     private val DRIVER = Driver.NAYAN
 
 
@@ -31,6 +31,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     val pointSouthTrigger: Trigger = if (DRIVER.rightHanded) povDown() else a()
     val pointEastTrigger: Trigger = if (DRIVER.rightHanded) povRight() else x()
     val pointWestTrigger: Trigger = if (DRIVER.rightHanded) povLeft() else b()
+    val aimToSpeakerTrigger: Trigger = leftBumper()
 
     val shouldDisableFieldRelative: Boolean
         get() = start().asBoolean || back().asBoolean
@@ -41,9 +42,9 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
         InputAxis{ if (DRIVER.rightHanded) rightY else leftY }
             .applyDeadband(DEFAULT_DEADBAND)
             .invertWhen{
-                DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
-                    !IS_KEYBOARD_SIM_CONTROLLER &&
-                    !shouldDisableFieldRelative
+                (DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
+                    !IS_KEYBOARD_SIM_CONTROLLER) ||
+                    shouldDisableFieldRelative
             }
             .applyMultiplier(0.6)
             .log("DriverController/xPower")
@@ -52,9 +53,9 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
         InputAxis{ if (DRIVER.rightHanded) rightX else leftX }
             .applyDeadband(0.3)
             .invertWhen{
-                DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
-                        !IS_KEYBOARD_SIM_CONTROLLER &&
-                        !shouldDisableFieldRelative
+                (DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
+                    !IS_KEYBOARD_SIM_CONTROLLER) ||
+                    shouldDisableFieldRelative
             }
             .applyMultiplier(0.6)
             .log("DriverController/yPower")

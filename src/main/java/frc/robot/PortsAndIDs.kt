@@ -1,11 +1,11 @@
 package frc.robot
 
 // controller Ports
-const val OPERATOR_CONTROLLER_PORT = 1
 const val DRIVER_CONTROLLER_PORT = 0
+const val OPERATOR_CONTROLLER_PORT = 1
 
 // drivetrain IDs
-object DrivetrainID{
+object DrivetrainID {
     const val TL_DRIVE = 0
     const val TR_DRIVE = 1
     const val BL_DRIVE = 2
@@ -25,7 +25,7 @@ object DrivetrainID{
 // mechanism IDs
 const val SHOOTER_ID_TOP = 12
 const val PIVOT_MOTOR_ID = 13
-const val PIVOT_ENCODER_ID = 14
+//const val PIVOT_ENCODER_ID = 14
 const val GROUND_INTAKE_ID = 15
 const val CONVEYOR_ID = 16
 

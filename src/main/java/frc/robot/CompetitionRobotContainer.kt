@@ -33,6 +33,7 @@ import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
+import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.SparkMaxEncoderType
@@ -80,6 +81,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     // note of reference: an IO class is a low-level component of the robot
     // that integrates advantagekit logging.
 
+    /*
+    CANSparkMax, CANSparkFlex, TalonFX
+    ChargerSparkMax, ChargerSparkFlex, ChargerTalonFX
+     */
+
     private val gyroIO = ChargerNavX(
         useFusedHeading = false,
         ahrs = AHRS(SPI.Port.kMXP, ODOMETRY_UPDATE_FREQUENCY_HZ.toInt().toByte())
@@ -88,7 +94,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val shooter = Shooter(
         if (isReal()){
             ShooterIOReal(
-                topMotor = ChargerSparkFlex(SHOOTER_ID_TOP),
+                topMotor = ChargerTalonFX(SHOOTER_ID_TOP),
                 gearRatio = shooterRatio
             )
         }else{
@@ -102,7 +108,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         if (isReal()){
             PivotIOReal(
                 ChargerSparkMax(PIVOT_MOTOR_ID){
-                   encoderType = SparkMaxEncoderType.Absolute()
+                    encoderType = SparkMaxEncoderType.Absolute()
+                }.also{
+                    it.setSmartCurrentLimit(5)
+                    it.setInverted(true)
+                    it.setInverted(false)
                 },
                 useOnboardPID = false,
                 encoderType = PivotIOReal.EncoderType.IntegratedAbsoluteEncoder,
@@ -123,7 +133,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val groundIntake = GroundIntakeSerializer(
         if (isReal()){
             GroundIntakeIOReal(
-                ChargerSparkFlex(GROUND_INTAKE_ID),
+                topMotor = ChargerSparkFlex(GROUND_INTAKE_ID),
                 conveyorMotor = ChargerSparkMax(CONVEYOR_ID),
                 intakeGearRatio = groundIntakeRatio
             )
@@ -307,9 +317,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 .whileTrue(passSerializedNote(groundIntake, shooter, pivot))
                 .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
 
-            aimToSpeakerTrigger
-                .whileTrue(pursueNote(drivetrain, vision.notePipeline))
-                .onFalse(runOnceCommand(drivetrain){ drivetrain.removeRotationOverride() })
 
             driveToSourceLeftTrigger.whileTrue(
                 alignToAprilTag(
@@ -347,6 +354,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                         drivetrain,
                         PathPlannerPath.fromPathFile("AmpTeleop")
                     )
+                )
+            )
+
+            driveToNoteTrigger.whileTrue(
+                pursueNote(
+                    drivetrain,
+                    vision.notePipeline,
+                    getNotePursuitSpeed = { visionTarget -> DriverController.swerveOutput.xPower * (1.0 - visionTarget.tx) },
                 )
             )
 
