@@ -12,7 +12,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.external.frc6328.MechanicalAdvantagePoseEstimator
 import frc.external.frc6328.MechanicalAdvantagePoseEstimator.TimestampedVisionUpdate
-import frc.external.frc6995.NomadApriltagUtil
+import frc.external.frc6995.NomadAprilTagUtil
 import frc.chargers.advantagekitextensions.recordLatency
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.VisionPoseSupplier
@@ -124,7 +124,7 @@ public class SwervePoseMonitor(
                         continue
                     }
 
-                    val stdDevVector = NomadApriltagUtil.calculateVisionUncertainty(
+                    val stdDevVector = NomadAprilTagUtil.calculateVisionUncertainty(
                         poseEstimate.value.x.siValue,
                         heading.asRotation2d(),
                         visionPoseSupplier.cameraYaw.asRotation2d(),

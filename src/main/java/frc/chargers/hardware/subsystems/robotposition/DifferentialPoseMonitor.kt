@@ -12,7 +12,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.framework.ChargerRobot
 import frc.external.frc6328.MechanicalAdvantagePoseEstimator
 import frc.external.frc6328.MechanicalAdvantagePoseEstimator.TimestampedVisionUpdate
-import frc.external.frc6995.NomadApriltagUtil
+import frc.external.frc6995.NomadAprilTagUtil
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.differentialdrive.EncoderDifferentialDrivetrain
@@ -104,7 +104,7 @@ public class DifferentialPoseMonitor(
                     continue
                 }
 
-                val stdDevVector = NomadApriltagUtil.calculateVisionUncertainty(
+                val stdDevVector = NomadAprilTagUtil.calculateVisionUncertainty(
                     poseEstimate.value.x.siValue,
                     heading.asRotation2d(),
                     visionPoseSupplier.cameraYaw.asRotation2d(),

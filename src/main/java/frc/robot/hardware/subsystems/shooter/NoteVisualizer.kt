@@ -43,7 +43,10 @@ object NoteVisualizer{
     private var launcherTransformSupplier = { Transform3d() }
 
     private var hasNoteInShooter: Boolean = false
-    private var isShootingInSpeaker: Boolean = false
+
+
+    var isShootingInSpeaker: Boolean = false
+        private set
 
     init{
         ChargerRobot.runPeriodicallyWithLowPriority {

@@ -31,18 +31,15 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
         Trigger{ keyboardNTInterface.getEntry(key).getString("") == key }
 
     val stowPivotTrigger: Trigger = b()
-    val driveToAmpTrigger: Trigger = a()
-    val driveToSourceLeftTrigger: Trigger = x()
-    val driveToSourceRightTrigger: Trigger = Trigger{ false } // dont drive to right source as of now
+
+    val ampScoreTrigger: Trigger = a()
+    val sourceIntakeLeftTrigger: Trigger = x()
+    val sourceIntakeRightTrigger: Trigger = Trigger{ false }
     val driveToNoteTrigger: Trigger = y()
 
     val groundIntakeTrigger: Trigger = rightTrigger()
     val groundOuttakeTrigger: Trigger = leftTrigger()
     val passToShooterTrigger: Trigger = rightBumper()
     val shootInSpeakerTrigger: Trigger = leftBumper()
-
-    // auto drive only enabled when start and back are not pressed
-    val enableAutoDriveTrigger: Trigger = start().or(back())
-    val disableAutoDriveFromOperatorTrigger: Trigger = (start().or(back())).negate()
 
 }

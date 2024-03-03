@@ -4,10 +4,8 @@ package frc.robot.commands.aiming
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
-import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.ConditionalCommand
 import edu.wpi.first.wpilibj2.command.InstantCommand
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.pid.PIDConstants
@@ -22,7 +20,6 @@ import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
 import frc.robot.*
-import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import org.littletonrobotics.junction.Logger
@@ -41,14 +38,14 @@ enum class AprilTagLocation(
 ){
     SOURCE_LEFT(
         blueAllianceAprilTagId = 2,
-        redAllianceAprilTagId = 10,
+        redAllianceAprilTagId = 9,
         pivotAngle = PivotAngle.SOURCE,
         0.5.meters
     ), // tbd
 
     SOURCE_RIGHT(
         blueAllianceAprilTagId = 1,
-        redAllianceAprilTagId = 9,
+        redAllianceAprilTagId = 10,
         pivotAngle = PivotAngle.SOURCE,
         0.5.meters
     ), // tbd
@@ -60,24 +57,6 @@ enum class AprilTagLocation(
         0.5.meters
     )
 }
-
-/**
- * Sets the pivot angle of the pivot,
- * and drives to the appropriate location when auto drive is enabled.
- *
- * @see alignToAprilTag
- */
-fun alignToAprilTagWhenEnabled(
-    drivetrain: EncoderHolonomicDrivetrain,
-    apriltagVision: AprilTagVisionPipeline,
-    pivot: Pivot,
-
-    tagLocation: AprilTagLocation,
-    followPathCommand: Command = InstantCommand()
-): Command = ConditionalCommand(
-    alignToAprilTag(drivetrain, apriltagVision, pivot, tagLocation, followPathCommand),
-    pivot.setAngleCommand(tagLocation.pivotAngle)
-){ OperatorInterface.enableAutoDriveTrigger.asBoolean }
 
 /**
  * Aims and drives to an apriltag on a certain location within the field,
@@ -181,11 +160,6 @@ fun alignToAprilTag(
         apriltagVision.reset()
     }
 
-    // while auto drive from operator controller is disabled, always set pivot angle.
-    loopWhile({OperatorInterface.disableAutoDriveFromOperatorTrigger.asBoolean && DriverStation.isTeleop()}){
-        pivot.setAngle(tagLocation.pivotAngle)
-    }
-
     // runs the path following until tag within certain range, then cancels it
     // this ensures a smooth transition to aiming + getting within range
     runUntil(
@@ -212,24 +186,20 @@ fun alignToAprilTag(
     runParallelUntilAllFinish{
         +pivot.setAngleCommand(tagLocation.pivotAngle)
 
-        runSequentially{
-            loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.01) }){
-                Logger.recordOutput("AimToLocation/isAiming", true)
-                drivetrain.swerveDrive(
-                    xPower = getDistanceErrorToTag().siValue * DISTANCE_REACH_KP,
-                    yPower = -aimingController.calculateOutput().siValue,
-                    rotationPower = 0.0,
-                    fieldRelative = false
-                )
-            }
-
-            runOnce{
-                Logger.recordOutput("AimToLocation/isAiming", false)
-                drivetrain.removeRotationOverride()
-                drivetrain.setDriveVoltages(
-                    listOf(0.volts, 0.volts, 0.volts, 0.volts)
-                )
-            }
+        loopUntil({ (!canFindTarget() || hasFinishedAiming()) && getDistanceErrorToTag() <= Distance(0.01) }){
+            Logger.recordOutput("AimToLocation/isAiming", true)
+            drivetrain.swerveDrive(
+                xPower = getDistanceErrorToTag().siValue * DISTANCE_REACH_KP,
+                yPower = -aimingController.calculateOutput().siValue,
+                rotationPower = 0.0,
+                fieldRelative = false
+            )
         }
+    }
+
+    onEnd{
+        drivetrain.stop()
+        Logger.recordOutput("AimToLocation/isAiming", false)
+        drivetrain.removeRotationOverride()
     }
 }

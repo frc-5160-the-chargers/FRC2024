@@ -24,7 +24,7 @@ import frc.chargers.wpilibextensions.delay
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
-import frc.external.frc6995.NomadApriltagUtil
+import frc.external.frc6995.NomadAprilTagUtil
 import frc.robot.hardware.subsystems.odometry.lowlevel.GyroOdometryIO
 import frc.robot.hardware.subsystems.odometry.lowlevel.ModuleOdometryIO
 import frc.robot.hardware.subsystems.odometry.lowlevel.OdometryTimestampsIO
@@ -185,7 +185,7 @@ class ThreadedPoseMonitor(
                     continue
                 }
 
-                val stdDevVector = NomadApriltagUtil.calculateVisionUncertainty(
+                val stdDevVector = NomadAprilTagUtil.calculateVisionUncertainty(
                     poseEstimate.value.x.siValue,
                     navX.heading.asRotation2d(),
                     visionPoseSupplier.cameraYaw.asRotation2d(), // each pose supplier stores the camera yaw for std dev purposes

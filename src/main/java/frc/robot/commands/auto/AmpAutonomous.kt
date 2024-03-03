@@ -87,7 +87,8 @@ fun ampAutonomous(
 
             // parallel #2
             runSequentially{
-                // sets pivot angle while note intake does not start yet
+                // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
+                // along the path.
                 runUntil(
                     { drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE },
                     pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)

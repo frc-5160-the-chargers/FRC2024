@@ -17,7 +17,7 @@ fun shootInSpeaker(
 
     power: Double = 0.8,
     shooterSpinUpTime: Time = 0.3.seconds,
-    timeout: Time? = 0.7.seconds
+    timeout: Time? = 0.4.seconds
 ): Command = buildCommand {
     addRequirements(shooter, groundIntake, pivot)
 
@@ -38,7 +38,7 @@ fun shootInSpeaker(
             waitFor(shooterSpinUpTime)
 
             if (timeout != null){
-                loopFor(timeout - shooterSpinUpTime){
+                loopFor(timeout){
                     groundIntake.setConveyorVoltage(10.volts)
                 }
             }else{

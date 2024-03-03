@@ -36,7 +36,7 @@ fun runGroundIntake(
         }
     }
 
-    runOnce{
+    onEnd{
         shooter.setIdle()
         groundIntake.setIdle()
         pivot.setIdle()

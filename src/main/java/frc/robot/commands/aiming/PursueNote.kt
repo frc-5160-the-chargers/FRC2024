@@ -19,13 +19,10 @@ fun pursueNote(
     noteDetector: ObjectVisionPipeline,
     getNotePursuitSpeed: (VisionTarget.Object) -> Double = { visionTarget -> 0.6 * (0.5 - visionTarget.tx / 100.0) },
     acceptableDistanceToNoteMargin: Distance = 2.meters, // determines the maximum distance that vision targets can be from the robot before being rejected
-    continueAfterNoteNotFound: Boolean = false
 ): Command = buildCommand {
     lateinit var currentTarget: VisionTarget.Object
 
     fun shouldContinuePursuit(): Boolean {
-        if (continueAfterNoteNotFound) return true
-
         val allTargets = noteDetector.visionTargets
 
         if (allTargets.isEmpty()) return false
@@ -42,22 +39,15 @@ fun pursueNote(
         return false
     }
 
-
     runOnce{
         drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
     }
 
-    // fieldRelative = false because rotation override makes drivetrain aim to gamepiece;
-    // this means that driving back while field relative is not true will directly grab the gamepiece
     loopWhile(::shouldContinuePursuit){
         val notePursuitPower = try{
             -abs(getNotePursuitSpeed(currentTarget))
         }catch(e: UninitializedPropertyAccessException){ // runs the block below if the property has not been initialized with a value
-            if (continueAfterNoteNotFound){
-                -abs(getNotePursuitSpeed(VisionTarget.Object.Dummy)) // uses a dummy vision target for calculations
-            }else{
-                0.0
-            }
+            0.0
         }
 
         // no rotation needed because rotation override set

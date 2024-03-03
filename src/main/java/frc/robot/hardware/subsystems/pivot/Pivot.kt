@@ -157,7 +157,7 @@ class Pivot(
                 setAngle(target)
             }
 
-            runOnce(this@Pivot){ setIdle() }
+            onEnd{ setIdle() }
         }
 
     override fun periodic(){

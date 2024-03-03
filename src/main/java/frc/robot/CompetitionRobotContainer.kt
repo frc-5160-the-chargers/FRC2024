@@ -33,6 +33,7 @@ import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
+import frc.chargers.hardware.inputdevices.onClickAndHold
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
@@ -47,10 +48,11 @@ import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.robot.commands.*
 import frc.robot.commands.aiming.AprilTagLocation
-import frc.robot.commands.aiming.alignToAprilTagWhenEnabled
-import frc.robot.commands.aiming.pursueNote
-import frc.robot.commands.auto.ampAutonomous
-import frc.robot.commands.auto.components.AmpAutoScoreComponent
+import frc.robot.commands.aiming.alignToAprilTag
+import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
+import frc.robot.commands.auto.components.SpeakerAutoScoreComponent
+import frc.robot.commands.auto.components.SpeakerAutoStartingPose
+import frc.robot.commands.auto.speakerAutonomous
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.climber.Climber
@@ -255,7 +257,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureDefaultCommands(){
-        drivetrain.setDefaultRunCommand(endBehavior = { drivetrain.stop() }){
+        drivetrain.setDefaultRunCommand{
             if (DriverController.shouldDisableFieldRelative){
                 drivetrain.swerveDrive(DriverController.swerveOutput, fieldRelative = false)
             }else{
@@ -328,34 +330,27 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
 
 
-            driveToSourceLeftTrigger.whileTrue(
-                alignToAprilTagWhenEnabled(
-                    drivetrain,
-                    vision.fusedTagPipeline,
-                    pivot,
-                    AprilTagLocation.SOURCE_LEFT,
-                    followPathCommand = followPathOptimal(
-                        drivetrain,
-                        PathPlannerPath.fromPathFile("SourceLeftTeleop")
-                    )
-                )
+
+            // when only held, the buttons will just cause the pivot to PID to the appropriate position
+            // interrupt behavior set as to prevent command scheduling conflicts
+            ampScoreTrigger.whileTrue(
+                pivot
+                    .setAngleCommand(PivotAngle.AMP)
+                    .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
             )
 
-            driveToSourceRightTrigger.whileTrue(
-                alignToAprilTagWhenEnabled(
-                    drivetrain,
-                    vision.fusedTagPipeline,
-                    pivot,
-                    AprilTagLocation.SOURCE_RIGHT,
-                    followPathCommand = followPathOptimal(
-                        drivetrain,
-                        PathPlannerPath.fromPathFile("SourceRightTeleop")
-                    )
-                )
+            sourceIntakeLeftTrigger.or(sourceIntakeRightTrigger).whileTrue(
+                pivot
+                    .setAngleCommand(PivotAngle.SOURCE)
+                    .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
             )
 
-            driveToAmpTrigger.whileTrue(
-                alignToAprilTagWhenEnabled(
+            stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
+
+
+            // when "double clicked" and held, the buttons will auto drive and move the pivot
+            ampScoreTrigger.onClickAndHold(
+                alignToAprilTag(
                     drivetrain,
                     vision.fusedTagPipeline,
                     pivot,
@@ -367,16 +362,35 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 )
             )
 
-            driveToNoteTrigger.whileTrue(
-                pursueNote(
+            sourceIntakeLeftTrigger.onClickAndHold(
+                alignToAprilTag(
                     drivetrain,
-                    vision.notePipeline,
-                    getNotePursuitSpeed = { visionTarget -> DriverController.swerveOutput.xPower * (1.0 - visionTarget.tx / 100.0) },
-                    continueAfterNoteNotFound = true
+                    vision.fusedTagPipeline,
+                    pivot,
+                    AprilTagLocation.SOURCE_LEFT,
+                    followPathCommand = followPathOptimal(
+                        drivetrain,
+                        PathPlannerPath.fromPathFile("SourceLeftTeleop")
+                    )
                 )
             )
 
-            stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
+            sourceIntakeRightTrigger.onClickAndHold(
+                alignToAprilTag(
+                    drivetrain,
+                    vision.fusedTagPipeline,
+                    pivot,
+                    AprilTagLocation.SOURCE_RIGHT,
+                    followPathCommand = followPathOptimal(
+                        drivetrain,
+                        PathPlannerPath.fromPathFile("SourceRightTeleop")
+                    )
+                )
+            )
+
+            driveToNoteTrigger.whileTrue(
+                pursueNoteElseTeleopDrive(drivetrain, vision.notePipeline)
+            )
         }
     }
 
@@ -397,23 +411,43 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     }
 
-
-    override val autonomousCommand: Command
-        get() = ampAutonomous(
+    val testSpeakerAuto =
+        speakerAutonomous(
             vision.fusedTagPipeline, vision.notePipeline, drivetrain,
             shooter, pivot, groundIntake,
+            startingPose = SpeakerAutoStartingPose.CENTER,
             additionalComponents = listOf(
-                AmpAutoScoreComponent.fromPathPlanner(
-                    grabPathName = "AmpGrabG1",
-                    scorePathName = "AmpScoreG1"
+                SpeakerAutoScoreComponent.fromChoreo(
+                    grabPathName = "5pAutoCenter.1",
+                    scorePathName = "5pAutoCenter.2",
+                    shooterShouldStartDuringPath = true,
                 ),
-                AmpAutoScoreComponent.fromPathPlanner(
-                    grabPathName = "AmpGrabG3",
-                    scorePathName = "AmpScoreG3"
+                SpeakerAutoScoreComponent.fromChoreo(
+                    grabPathName = "5pAutoCenter.3",
+                    scorePathName = "5pAutoCenter.4",
+                    shooterShouldStartDuringPath = true,
+                ),
+                SpeakerAutoScoreComponent.fromChoreo(
+                    grabPathName = "5pAutoCenter.5",
+                    scorePathName = "5pAutoCenter.6",
+                    shooterShouldStartDuringPath = true,
+                ),
+                SpeakerAutoScoreComponent.fromChoreo(
+                    grabPathName = "5pAutoCenter.7",
+                    scorePathName = "5pAutoCenter.8",
+                    shooterShouldStartDuringPath = true,
                 )
             )
-        ).logDuration("Amp Auto Test(3 gamepiece)")
+        ).logDuration("Speaker Auto Test(5 gamepiece)")
 
+
+    override val autonomousCommand: Command
+        get() = /*SequentialCommandGroup(
+            runOnceCommand{
+                drivetrain.poseEstimator.resetPose(UnitPose2d(1.45.meters, 5.546.meters, 180.degrees))
+            },
+            *PathPlannerPaths.fromChoreoTrajectoryGroup("5pAutoCenter").map{ followPathOptimal(drivetrain, it) }.toTypedArray()
+        ).logDuration("Test Auto with only paths")*/ testSpeakerAuto
 
     override val testCommand: Command get(){
         val routine = drivetrain.getDriveSysIdRoutine()

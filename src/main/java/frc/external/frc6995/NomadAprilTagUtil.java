@@ -10,7 +10,7 @@ import edu.wpi.first.math.numbers.N3;
  * Credits: frc 6995 repository:
  * <a name = "6328 repository" href="https://github.com/frc6995/Robot-2023/blob/main/src/main/java/frc/robot/util/AprilTags.java">(Repository Here)</a>
  */
-public class NomadApriltagUtil {
+public class NomadAprilTagUtil {
     public static Matrix<N3, N1> calculateVisionUncertainty(double poseX, Rotation2d heading, Rotation2d cameraYaw) {
         double maximumUncertainty = 3;
         double minimumUncertainty = 0.1;
