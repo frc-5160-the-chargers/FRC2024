@@ -6,28 +6,30 @@ const val OPERATOR_CONTROLLER_PORT = 1
 
 // drivetrain IDs
 object DrivetrainID {
-    const val TL_DRIVE = 0
-    const val TR_DRIVE = 1
-    const val BL_DRIVE = 2
-    const val BR_DRIVE = 3
+    const val TL_DRIVE = 22
+    const val TR_DRIVE = 16
+    const val BL_DRIVE = 3
+    const val BR_DRIVE = 10
 
-    const val TL_TURN = 4
-    const val TR_TURN = 5
-    const val BL_TURN = 6
-    const val BR_TURN = 7
+    const val TL_TURN = 30
+    const val TR_TURN = 31
+    const val BL_TURN = 4
+    const val BR_TURN = 12
 
-    const val TL_ENCODER = 8
-    const val TR_ENCODER = 9
-    const val BL_ENCODER = 10
-    const val BR_ENCODER = 11
+    const val TL_ENCODER = 43
+    const val TR_ENCODER = 42
+    const val BL_ENCODER = 45
+    const val BR_ENCODER = 44
 }
 
+
+// ALL TBD; DONT USE AS OF NOW
 // mechanism IDs
-const val SHOOTER_ID_TOP = 12
-const val PIVOT_MOTOR_ID = 13
+const val SHOOTER_MOTOR_ID = 7
+const val PIVOT_MOTOR_ID = 9
 //const val PIVOT_ENCODER_ID = 14
 const val GROUND_INTAKE_ID = 15
 const val CONVEYOR_ID = 16
 
-const val CLIMBER_ID_LEFT = 17
+const val CLIMBER_ID_LEFT = 6
 const val CLIMBER_ID_RIGHT = 18

@@ -4,8 +4,8 @@ package frc.chargers.commands.commandbuilder
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.wpilibj2.command.*
-import frc.chargers.commands.InstantCommand
-import frc.chargers.commands.RunCommand
+import frc.chargers.commands.loopCommand
+import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.then
 import frc.chargers.commands.withExtraRequirements
 import org.littletonrobotics.junction.Logger
@@ -49,7 +49,7 @@ public inline fun buildCommand(
     name: String = "Generic BuildCommand",
     logIndividualCommands: Boolean = false,
     block: BuildCommandScope.() -> Unit
-): Command{
+): Command {
     val builder = BuildCommandScope().apply(block)
 
     val commandArray: Array<Command> = builder.commands.toTypedArray()
@@ -87,7 +87,7 @@ public annotation class CommandBuilderMarker
  */
 @CommandBuilderMarker
 public class BuildCommandScope: CommandBuilder(){
-    public val requirements: MutableList<Subsystem> = mutableListOf()
+    public val requirements: LinkedHashSet<Subsystem> = linkedSetOf()
 
     public var addingRequirementsLocked: Boolean = false
 
@@ -244,7 +244,7 @@ public open class CommandBuilder{
      * @param execute the code to be run
      */
     public fun runOnce(vararg requirements: Subsystem, execute: CodeBlockContext.() -> Unit): InstantCommand =
-        InstantCommand(*requirements) { CodeBlockContext.execute() }.also(::addCommand)
+        runOnceCommand(*requirements) { CodeBlockContext.execute() }.also(::addCommand)
 
 
     /**
@@ -316,7 +316,7 @@ public open class CommandBuilder{
      * @param execute the code to be run until [condition] is met
      */
     public inline fun loopUntil(noinline condition: () -> Boolean, vararg requirements: Subsystem, crossinline execute: CodeBlockContext.() -> Unit): ParallelRaceGroup =
-        runUntil(condition, RunCommand(*requirements) { CodeBlockContext.execute() })
+        runUntil(condition, loopCommand(*requirements) { CodeBlockContext.execute() })
 
     /**
      * Adds a command that will run *while* [condition] is true.
@@ -326,7 +326,7 @@ public open class CommandBuilder{
      * @param execute the code to be run
      */
     public fun loopWhile(condition: () -> Boolean, vararg requirements: Subsystem, execute: CodeBlockContext.() -> Unit): ParallelRaceGroup =
-        runWhile(condition, RunCommand(*requirements) { CodeBlockContext.execute() })
+        runWhile(condition, loopCommand(*requirements) { CodeBlockContext.execute() })
 
     /**
      * Adds several commands that will run at the same time, all stopping as soon as one finishes.
@@ -456,7 +456,7 @@ public open class CommandBuilder{
         vararg requirements: Subsystem,
         crossinline execute: CodeBlockContext.() -> Unit
     ): ParallelRaceGroup =
-        RunCommand(*requirements) { CodeBlockContext.execute() }.withTimeout(timeInterval.inUnit(seconds)).also(::addCommand)
+        loopCommand(*requirements) { CodeBlockContext.execute() }.withTimeout(timeInterval.inUnit(seconds)).also(::addCommand)
 
     /**
      * Adds a command to be run continuously.
@@ -468,7 +468,7 @@ public open class CommandBuilder{
         vararg requirements: Subsystem,
         crossinline execute: CodeBlockContext.() -> Unit
     ): RunCommand =
-        RunCommand(*requirements) { CodeBlockContext.execute() }.also(::addCommand)
+        loopCommand(*requirements) { CodeBlockContext.execute() }.also(::addCommand)
 
     /**
      * Adds a command that does nothing for a specified [timeInterval], then completes.
@@ -487,14 +487,6 @@ public open class CommandBuilder{
      */
     public fun waitUntil(condition: () -> Boolean): WaitUntilCommand =
         WaitUntilCommand(condition).also(::addCommand)
-
-    /**
-     * Adds a command that prints a message.
-     *
-     * @param message a function that generates the message to print
-     */
-    public fun printToConsole(message: () -> Any?): Command =
-        InstantCommand { println(message()) }.also(::addCommand)
 
     /**
      * Creates values that will refresh once during run;
@@ -581,7 +573,7 @@ public open class CommandBuilder{
             init{
                 addCommand(
                     // adds a command that resets the value
-                    InstantCommand({value = getDefault()})
+                    runOnceCommand{ value = getDefault() }
                 )
             }
 
@@ -608,7 +600,7 @@ internal fun loggedSequentialCommandGroup(name: String, vararg commands: Command
 }
 
 internal fun Command.withLogInCommandGroup(commandGroupName: String): Command{
-    fun logCommand(active: Boolean) = InstantCommand{
+    fun logCommand(active: Boolean) = runOnceCommand{
         Logger.recordOutput(
             "/ActiveCommands/Subcommands Of: $commandGroupName/$name",active
         )

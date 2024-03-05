@@ -21,7 +21,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     }
 
     /* Top-Level constants */
-    private const val DEFAULT_DEADBAND = 0.2
+    private const val DEFAULT_DEADBAND = 0.1
     private const val IS_KEYBOARD_SIM_CONTROLLER = true
     private val DRIVER = Driver.NAYAN
 

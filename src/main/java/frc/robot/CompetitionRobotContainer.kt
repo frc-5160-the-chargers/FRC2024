@@ -8,20 +8,17 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix6.signals.SensorDirectionValue
 import com.kauailabs.navx.frc.AHRS
-import com.pathplanner.lib.path.PathPlannerPath
 import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.GenericHID
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
-import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.commands.logDuration
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -33,7 +30,6 @@ import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
-import frc.chargers.hardware.inputdevices.onClickAndHold
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
@@ -46,13 +42,8 @@ import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
+import frc.chargers.wpilibextensions.runAllTests
 import frc.robot.commands.*
-import frc.robot.commands.aiming.AprilTagLocation
-import frc.robot.commands.aiming.alignToAprilTag
-import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
-import frc.robot.commands.auto.components.SpeakerAutoScoreComponent
-import frc.robot.commands.auto.components.SpeakerAutoStartingPose
-import frc.robot.commands.auto.speakerAutonomous
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.climber.Climber
@@ -68,7 +59,6 @@ import frc.robot.hardware.subsystems.shooter.NoteVisualizer
 import frc.robot.hardware.subsystems.shooter.Shooter
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOReal
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOSim
-import frc.robot.hardware.subsystems.vision.VisionManager
 import org.littletonrobotics.junction.Logger.recordOutput
 import kotlin.jvm.optionals.getOrNull
 
@@ -83,11 +73,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     // note of reference: an IO class is a low-level component of the robot
     // that integrates advantagekit logging.
 
-    /*
-    CANSparkMax, CANSparkFlex, TalonFX
-    ChargerSparkMax, ChargerSparkFlex, ChargerTalonFX
-     */
-
     private val gyroIO = ChargerNavX(
         useFusedHeading = false,
         ahrs = AHRS(SPI.Port.kMXP, ODOMETRY_UPDATE_FREQUENCY_HZ.toInt().toByte())
@@ -96,7 +81,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val shooter = Shooter(
         if (isReal()){
             ShooterIOReal(
-                topMotor = ChargerTalonFX(SHOOTER_ID_TOP),
+                topMotor = ChargerTalonFX(SHOOTER_MOTOR_ID),
                 gearRatio = shooterRatio
             )
         }else{
@@ -111,10 +96,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             PivotIOReal(
                 ChargerSparkMax(PIVOT_MOTOR_ID){
                     encoderType = SparkMaxEncoderType.Absolute()
-                }.also{
-                    it.setSmartCurrentLimit(5)
-                    it.setInverted(true)
-                    it.setInverted(false)
                 },
                 useOnboardPID = false,
                 encoderType = PivotIOReal.EncoderType.IntegratedAbsoluteEncoder,
@@ -216,9 +197,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         gyro = if (isReal()) gyroIO else null,
     )
 
-    private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
+    //private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
 
 
+    private val autoChooser = AutoChooser(
+        aprilTagVision = null,
+        noteDetector = null,
+        drivetrain, shooter, pivot, groundIntake
+    )
 
 
     init{
@@ -257,7 +243,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureDefaultCommands(){
-        drivetrain.setDefaultRunCommand{
+        drivetrain.setDefaultRunCommand(endBehavior = {
+            if (DriverStation.isEnabled()){
+                println("Rumbling!")
+                DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 0.2)
+            }
+        }){
             if (DriverController.shouldDisableFieldRelative){
                 drivetrain.swerveDrive(DriverController.swerveOutput, fieldRelative = false)
             }else{
@@ -265,7 +256,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }
         }
 
-        shooter.setDefaultRunCommand(endBehavior = { shooter.setIdle() }){
+        shooter.setDefaultRunCommand(endBehavior = shooter::setIdle){
             val speed = OperatorInterface.shooterSpeedAxis()
             if (speed > 0.0){
                 shooter.outtake(speed)
@@ -274,7 +265,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }
         }
 
-        pivot.setDefaultRunCommand(endBehavior = { pivot.setIdle() }){
+        pivot.setDefaultRunCommand(endBehavior = pivot::setIdle){
             pivot.setSpeed(OperatorInterface.pivotSpeedAxis())
         }
     }
@@ -302,8 +293,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
         DriverController.apply{
             pointNorthTrigger.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
+
             pointEastTrigger.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
+
             pointSouthTrigger.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
+
             pointWestTrigger.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
 
             climberUpTrigger
@@ -316,7 +310,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         OperatorInterface.apply{
-
             groundIntakeTrigger
                 .whileTrue(runGroundIntake(groundIntake, pivot, shooter))
                 .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
@@ -328,8 +321,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             passToShooterTrigger
                 .whileTrue(passSerializedNote(groundIntake, shooter, pivot))
                 .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
-
-
 
             // when only held, the buttons will just cause the pivot to PID to the appropriate position
             // interrupt behavior set as to prevent command scheduling conflicts
@@ -347,7 +338,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
 
-
+            /*
             // when "double clicked" and held, the buttons will auto drive and move the pivot
             ampScoreTrigger.onClickAndHold(
                 alignToAprilTag(
@@ -391,6 +382,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             driveToNoteTrigger.whileTrue(
                 pursueNoteElseTeleopDrive(drivetrain, vision.notePipeline)
             )
+
+             */
         }
     }
 
@@ -401,7 +394,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
         // Logging callback for target robot pose
         PathPlannerLogging.setLogTargetPoseCallback {
-            //ChargerRobot.FIELD.getObject("PathplannerTargetPose").pose = it
             recordOutput("Pathplanner/targetPose", Pose2d.struct, it)
 
             val currPose = drivetrain.poseEstimator.robotPose.inUnit(meters)
@@ -411,51 +403,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     }
 
-    val testSpeakerAuto =
-        speakerAutonomous(
-            vision.fusedTagPipeline, vision.notePipeline, drivetrain,
-            shooter, pivot, groundIntake,
-            startingPose = SpeakerAutoStartingPose.CENTER,
-            additionalComponents = listOf(
-                SpeakerAutoScoreComponent.fromChoreo(
-                    grabPathName = "5pAutoCenter.1",
-                    scorePathName = "5pAutoCenter.2",
-                    shooterShouldStartDuringPath = true,
-                ),
-                SpeakerAutoScoreComponent.fromChoreo(
-                    grabPathName = "5pAutoCenter.3",
-                    scorePathName = "5pAutoCenter.4",
-                    shooterShouldStartDuringPath = true,
-                ),
-                SpeakerAutoScoreComponent.fromChoreo(
-                    grabPathName = "5pAutoCenter.5",
-                    scorePathName = "5pAutoCenter.6",
-                    shooterShouldStartDuringPath = true,
-                ),
-                SpeakerAutoScoreComponent.fromChoreo(
-                    grabPathName = "5pAutoCenter.7",
-                    scorePathName = "5pAutoCenter.8",
-                    shooterShouldStartDuringPath = true,
-                )
-            )
-        ).logDuration("Speaker Auto Test(5 gamepiece)")
-
-
     override val autonomousCommand: Command
-        get() = /*SequentialCommandGroup(
-            runOnceCommand{
-                drivetrain.poseEstimator.resetPose(UnitPose2d(1.45.meters, 5.546.meters, 180.degrees))
-            },
-            *PathPlannerPaths.fromChoreoTrajectoryGroup("5pAutoCenter").map{ followPathOptimal(drivetrain, it) }.toTypedArray()
-        ).logDuration("Test Auto with only paths")*/ testSpeakerAuto
+        get() = autoChooser.selected
 
-    override val testCommand: Command get(){
-        val routine = drivetrain.getDriveSysIdRoutine()
-        return buildCommand {
-            +routine.quasistatic(SysIdRoutine.Direction.kForward)
-            +routine.quasistatic(SysIdRoutine.Direction.kReverse)
-            +routine.dynamic(SysIdRoutine.Direction.kForward)
-            +routine.dynamic(SysIdRoutine.Direction.kReverse)
-        }
-    }
+    override val testCommand: Command get() =
+        drivetrain.getDriveSysIdRoutine().runAllTests() // chargerlib extension function
 }

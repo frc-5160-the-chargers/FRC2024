@@ -78,6 +78,9 @@
             "open": true
           },
           "visionTargets": {
+            "1": {
+              "open": true
+            },
             "Value#1": {
               "open": true
             },
@@ -217,8 +220,5 @@
       "open": true
     },
     "visible": true
-  },
-  "NetworkTables View": {
-    "visible": false
   }
 }

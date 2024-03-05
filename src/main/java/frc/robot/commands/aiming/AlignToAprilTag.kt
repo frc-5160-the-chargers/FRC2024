@@ -6,7 +6,6 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.InstantCommand
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.controls.pid.SuperPIDController
@@ -72,13 +71,12 @@ fun alignToAprilTag(
     pivot: Pivot,
 
     tagLocation: AprilTagLocation,
-    followPathCommand: Command = InstantCommand()
+    followPathCommand: Command? = null
 ): Command = buildCommand(name = "Aim To AprilTag($tagLocation)", logIndividualCommands = true) {
 
-    // these values have their internal value re-evaluated once every time the command runs.
-    // these use kotlin's property delegates.
+    // these values have their internal value evaluated once they are accessed.
 
-    val targetId by getOnceDuringRun {
+    val targetId by lazy {
         when (DriverStation.getAlliance().getOrNull()){
             DriverStation.Alliance.Blue, null -> tagLocation.blueAllianceAprilTagId
 
@@ -86,7 +84,7 @@ fun alignToAprilTag(
         }
     }
 
-    val tagPose: UnitPose3d by getOnceDuringRun {
+    val tagPose: UnitPose3d by lazy {
         ChargerRobot
             .APRILTAG_LAYOUT
             .getTagPose(targetId)
@@ -94,11 +92,12 @@ fun alignToAprilTag(
             .ofUnit(meters)
     }
 
-    val headingToFaceAprilTag by getOnceDuringRun {
+    val headingToFaceAprilTag by lazy {
         (tagPose.toPose2d().rotation + 180.degrees)
             .inputModulus(0.degrees..360.degrees) // pretty sure this is the right formula
     }
 
+    // there is a new aiming controller fetched every time the command is run.
     val aimingController by getOnceDuringRun {
         SuperPIDController(
             APRILTAG_AIM_PID,
@@ -162,14 +161,16 @@ fun alignToAprilTag(
 
     // runs the path following until tag within certain range, then cancels it
     // this ensures a smooth transition to aiming + getting within range
-    runUntil(
-        {
-            (canFindTarget(silenceWarnings = true) &&
-            getDistanceErrorToTag() < 0.4.meters &&
-            abs(drivetrain.heading - headingToFaceAprilTag) < 20.degrees)
-        }, // we want to silence warnings here because during the pathing process, there might be other tags detected
-        followPathCommand
-    )
+    if (followPathCommand != null){
+        runUntil(
+            {
+                (canFindTarget(silenceWarnings = true) &&
+                        getDistanceErrorToTag() < 0.4.meters &&
+                        abs(drivetrain.heading - headingToFaceAprilTag) < 20.degrees)
+            }, // we want to silence warnings here because during the pathing process, there might be other tags detected
+            followPathCommand
+        )
+    }
 
     runOnce{
         // aims to the appropriate angle while strafing to the apriltag

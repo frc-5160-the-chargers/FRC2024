@@ -2,6 +2,7 @@ package frc.robot
 
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
+import frc.chargers.commands.runOnceCommand
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
@@ -9,7 +10,10 @@ import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.ampAutonomous
 import frc.robot.commands.auto.basicTaxi
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
+import frc.robot.commands.auto.components.SpeakerAutoScoreComponent
+import frc.robot.commands.auto.components.SpeakerAutoStartingPose
 import frc.robot.commands.auto.noVisionAmpAutonomous
+import frc.robot.commands.auto.speakerAutonomous
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -25,6 +29,12 @@ class AutoChooser(
     groundIntake: GroundIntakeSerializer,
 ){
     private val sendableChooser = LoggedDashboardChooser<Command>("AutoOptions")
+
+    /**
+     * The selected command of our auto chooser.
+     */
+    val selected: Command get() = sendableChooser.get() ?: runOnceCommand{ println("WARNING: An Auto command was requested, but none were set.") }
+
 
     private val secondNoteScoreComponent = AmpAutoScoreComponent.fromPathPlanner(
         grabPathName = "AmpGrabG1",
@@ -172,11 +182,24 @@ class AutoChooser(
                         additionalComponents = listOf(secondNoteScoreComponent, thirdNoteScoreComponent)
                     )
                 )
+
+                addOption(
+                    "4-5 Piece Speaker",
+                    speakerAutonomous(
+                        aprilTagVision, noteDetector, drivetrain,
+                        shooter, pivot, groundIntake,
+                        startingPose = SpeakerAutoStartingPose.CENTER,
+                        additionalComponents = listOf(
+                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2", shooterShouldStartDuringPath = true,),
+                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", shooterShouldStartDuringPath = true,),
+                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6", shooterShouldStartDuringPath = true,),
+                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8", shooterShouldStartDuringPath = true,)
+                        )
+                    )
+                )
+
+
             }
         }
     }
-
-
-    val selected: Command
-        get() = sendableChooser.get() ?: InstantCommand()
 }

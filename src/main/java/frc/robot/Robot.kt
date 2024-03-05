@@ -4,7 +4,7 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.RobotConfig
 
 val ROBOT = ChargerRobot(
-    getRobotContainer = { CompetitionRobotContainer() },
+    getRobotContainer = { TestBoardRobotContainer() },
     config = RobotConfig(
         isReplay = false,
         tuningMode = false,
