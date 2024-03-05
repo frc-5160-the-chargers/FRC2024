@@ -8,6 +8,7 @@ import frc.chargers.utils.math.equations.Polynomial
 import frc.chargers.utils.math.mapBetweenRanges
 import frc.chargers.utils.math.preserveSign
 import org.littletonrobotics.junction.Logger
+import kotlin.math.abs
 import kotlin.properties.ReadOnlyProperty
 
 public typealias TriggerValue = Double
@@ -53,7 +54,14 @@ public class InputAxis(
         withModifier(equation)
 
     public fun mapToRange(range: ClosedRange<Double>): InputAxis =
-        withModifier{ it.mapBetweenRanges(0.0..1.0, range) }
+        withModifier{
+            val initialValue = abs(it).mapBetweenRanges(from = 0.0..1.0, to = range)
+            if (it < 0.0){
+                -initialValue
+            }else{
+                initialValue
+            }
+        }
 
 
     public fun rateLimit(positiveLimit: Frequency, negativeLimit: Frequency): InputAxis{

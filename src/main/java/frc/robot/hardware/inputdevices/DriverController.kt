@@ -12,14 +12,6 @@ import kotlin.jvm.optionals.getOrNull
 
 
 object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
-    enum class Driver(val rightHanded: Boolean) {
-        NAYAN(false),
-        KENNA(true),
-        CONRAD(true),
-        JOYCE(true),
-        JACK(true)
-    }
-
     /* Top-Level constants */
     private const val DEFAULT_DEADBAND = 0.1
     private const val IS_KEYBOARD_SIM_CONTROLLER = true
@@ -54,7 +46,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
     private val strafeAxis =
         InputAxis{ if (DRIVER.rightHanded) rightX else leftX }
-            .applyDeadband(0.3)
+            .applyDeadband(DEFAULT_DEADBAND)
             .invertWhen{
                 (DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
                     !IS_KEYBOARD_SIM_CONTROLLER) ||

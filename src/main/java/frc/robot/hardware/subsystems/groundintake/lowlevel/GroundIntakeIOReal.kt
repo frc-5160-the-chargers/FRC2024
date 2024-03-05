@@ -2,13 +2,17 @@ package frc.robot.hardware.subsystems.groundintake.lowlevel
 
 import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.units.amps
+import com.batterystaple.kmeasure.units.radians
+import com.batterystaple.kmeasure.units.seconds
+import com.batterystaple.kmeasure.units.volts
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 
 @Suppress("unused")
 class GroundIntakeIOReal(
     private val topMotor: SmartEncoderMotorController,
     private val bottomMotor: SmartEncoderMotorController? = null,
-    private val conveyorMotor: SmartEncoderMotorController,
+    private val conveyorMotor: SmartEncoderMotorController? = null,
 
     private val intakeGearRatio: Double = 1.0,
     private val conveyorGearRatio: Double = 1.0,
@@ -36,15 +40,19 @@ class GroundIntakeIOReal(
     }
 
     override val conveyorVoltage by GroundIntakeLog.quantity{
-        conveyorMotor.appliedVoltage
+        conveyorMotor?.appliedVoltage ?: 0.volts
     }
 
     override val conveyorCurrent by GroundIntakeLog.quantity{
-        conveyorMotor.appliedCurrent
+        conveyorMotor?.appliedCurrent ?: 0.amps
     }
 
     override val conveyorSpeed by GroundIntakeLog.quantity{
-        conveyorMotor.encoder.angularVelocity / conveyorGearRatio
+        if (conveyorMotor != null){
+            conveyorMotor.encoder.angularVelocity / conveyorGearRatio
+        }else{
+            0.radians / 0.seconds
+        }
     }
 
     override fun setIntakeVoltage(voltage: Voltage) {
@@ -53,6 +61,6 @@ class GroundIntakeIOReal(
     }
 
     override fun setConveyorVoltage(voltage: Voltage) {
-        conveyorMotor.setVoltage(voltage.siValue)
+        conveyorMotor?.setVoltage(voltage.siValue)
     }
 }

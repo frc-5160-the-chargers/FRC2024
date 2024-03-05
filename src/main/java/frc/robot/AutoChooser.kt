@@ -36,13 +36,13 @@ class AutoChooser(
     val selected: Command get() = sendableChooser.get() ?: runOnceCommand{ println("WARNING: An Auto command was requested, but none were set.") }
 
 
-    private val secondNoteScoreComponent = AmpAutoScoreComponent.fromPathPlanner(
+    private val ampScoreNote2Component = AmpAutoScoreComponent.fromPathPlanner(
         grabPathName = "AmpGrabG1",
         scorePathName = "AmpScoreG1",
         type = AmpAutoScoreComponent.Type.SCORE_NOTE
     )
 
-    private val thirdNoteScoreComponent = AmpAutoScoreComponent.fromPathPlanner(
+    private val ampScoreNote3Component = AmpAutoScoreComponent.fromPathPlanner(
         grabPathName = "AmpGrabG3",
         scorePathName = "AmpScoreG3",
         type = AmpAutoScoreComponent.Type.SCORE_NOTE
@@ -91,7 +91,7 @@ class AutoChooser(
                     drivetrain, shooter, pivot,
                     groundIntake,
                     taxiAtEnd = false,
-                    additionalComponents = listOf(secondNoteScoreComponent)
+                    additionalComponents = listOf(ampScoreNote2Component)
                 )
             )
 
@@ -101,7 +101,7 @@ class AutoChooser(
                     drivetrain, shooter, pivot,
                     groundIntake,
                     taxiAtEnd = true,
-                    additionalComponents = listOf(secondNoteScoreComponent)
+                    additionalComponents = listOf(ampScoreNote2Component)
                 )
             )
 
@@ -111,7 +111,7 @@ class AutoChooser(
                     drivetrain, shooter, pivot,
                     groundIntake,
                     taxiAtEnd = true,
-                    additionalComponents = listOf(secondNoteScoreComponent) + ferryComponents
+                    additionalComponents = listOf(ampScoreNote2Component) + ferryComponents
                 )
             )
 
@@ -121,7 +121,7 @@ class AutoChooser(
                     drivetrain, shooter, pivot,
                     groundIntake,
                     taxiAtEnd = true,
-                    additionalComponents = listOf(secondNoteScoreComponent)
+                    additionalComponents = listOf(ampScoreNote2Component)
                 )
             )
 
@@ -152,7 +152,7 @@ class AutoChooser(
                     ampAutonomous(
                         aprilTagVision, noteDetector, drivetrain,
                         shooter, pivot, groundIntake, taxiAtEnd = false,
-                        additionalComponents = listOf(secondNoteScoreComponent)
+                        additionalComponents = listOf(ampScoreNote2Component)
                     )
                 )
 
@@ -161,7 +161,7 @@ class AutoChooser(
                     ampAutonomous(
                         aprilTagVision, noteDetector, drivetrain,
                         shooter, pivot, groundIntake, taxiAtEnd = true,
-                        additionalComponents = listOf(secondNoteScoreComponent)
+                        additionalComponents = listOf(ampScoreNote2Component)
                     )
                 )
 
@@ -170,7 +170,7 @@ class AutoChooser(
                     ampAutonomous(
                         aprilTagVision, noteDetector, drivetrain,
                         shooter, pivot, groundIntake, taxiAtEnd = true,
-                        additionalComponents = listOf(secondNoteScoreComponent) + ferryComponents
+                        additionalComponents = listOf(ampScoreNote2Component) + ferryComponents
                     )
                 )
 
@@ -179,7 +179,7 @@ class AutoChooser(
                     ampAutonomous(
                         aprilTagVision, noteDetector, drivetrain,
                         shooter, pivot, groundIntake, taxiAtEnd = false,
-                        additionalComponents = listOf(secondNoteScoreComponent, thirdNoteScoreComponent)
+                        additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component)
                     )
                 )
 
@@ -197,7 +197,6 @@ class AutoChooser(
                         )
                     )
                 )
-
 
             }
         }

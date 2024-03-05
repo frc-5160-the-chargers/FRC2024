@@ -6,12 +6,12 @@ const val OPERATOR_CONTROLLER_PORT = 1
 
 // drivetrain IDs
 object DrivetrainID {
-    const val TL_DRIVE = 22
+    const val TL_DRIVE = 30
     const val TR_DRIVE = 16
     const val BL_DRIVE = 3
     const val BR_DRIVE = 10
 
-    const val TL_TURN = 30
+    const val TL_TURN = 22
     const val TR_TURN = 31
     const val BL_TURN = 4
     const val BR_TURN = 12

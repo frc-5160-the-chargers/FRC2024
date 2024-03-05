@@ -31,13 +31,15 @@ import kotlin.jvm.optionals.getOrNull
 
 class TestBoardRobotContainer: ChargerRobotContainer() {
 
-    private val gyroIO = ChargerNavX(useFusedHeading = false)
+    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{
+        zeroHeading()
+    }
 
     private val testingDrivetrain = EncoderHolonomicDrivetrain(
         turnMotors = sparkMaxSwerveMotors(
             ChargerSparkMax(DrivetrainID.TL_TURN),
             ChargerSparkMax(DrivetrainID.TR_TURN),
-            ChargerSparkMax(DrivetrainID.BL_TURN),
+            ChargerSparkMax(DrivetrainID.BL_TURN){ inverted = true },
             ChargerSparkMax(DrivetrainID.BR_TURN)
         ){
             smartCurrentLimit = SmartCurrentLimit(30.amps)
@@ -52,15 +54,15 @@ class TestBoardRobotContainer: ChargerRobotContainer() {
             bottomRight = ChargerCANcoder(DrivetrainID.BR_ENCODER),
             useAbsoluteSensor = true
         ).withOffsets(
-            topLeftZero = 0.973.radians,
-            topRightZero = 2.881.radians,
-            bottomLeftZero = 1.477.radians,
-            bottomRightZero = 6.004.radians
+            topLeftZero = 6.207.radians,
+            topRightZero = 4.941.radians,
+            bottomLeftZero = 1.4.radians,
+            bottomRightZero = 0.661.radians,
         ),
         driveMotors = sparkMaxSwerveMotors(
-            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE),
+            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE){ inverted = true },
             topRight = ChargerSparkMax(DrivetrainID.TR_DRIVE),
-            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE),
+            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE){ inverted = true },
             bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE)
         ){
             smartCurrentLimit = SmartCurrentLimit(45.amps)
@@ -70,7 +72,7 @@ class TestBoardRobotContainer: ChargerRobotContainer() {
         },
         controlData = SwerveControlData(
             azimuthControl = SwerveAzimuthControl.PID(
-                PIDConstants(12.0,0,0.2),
+                PIDConstants(7.0,0,0.2),
             ),
             openLoopDiscretizationRate = 4.5,
             velocityPID = PIDConstants(0.2,0.0,0.0),

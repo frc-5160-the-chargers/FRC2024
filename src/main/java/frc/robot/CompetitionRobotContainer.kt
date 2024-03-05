@@ -6,7 +6,6 @@ package frc.robot
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
-import com.ctre.phoenix6.signals.SensorDirectionValue
 import com.kauailabs.navx.frc.AHRS
 import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.math.geometry.Pose2d
@@ -63,6 +62,9 @@ import org.littletonrobotics.junction.Logger.recordOutput
 import kotlin.jvm.optionals.getOrNull
 
 
+/**
+ * The robot container for the official competition robot.
+ */
 class CompetitionRobotContainer: ChargerRobotContainer() {
 
     private val shooterRatio = 5.0 * (14.0 / 26.0) // torque * sprocket
@@ -140,10 +142,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
     private val drivetrain = EncoderHolonomicDrivetrain(
         turnMotors = sparkMaxSwerveMotors(
-            ChargerSparkMax(DrivetrainID.TL_TURN){inverted = true},
-            ChargerSparkMax(DrivetrainID.TR_TURN){inverted = true},
-            ChargerSparkMax(DrivetrainID.BL_TURN),
-            ChargerSparkMax(DrivetrainID.BR_TURN){inverted = true}
+            ChargerSparkMax(DrivetrainID.TL_TURN),
+            ChargerSparkMax(DrivetrainID.TR_TURN),
+            ChargerSparkMax(DrivetrainID.BL_TURN){ inverted = true },
+            ChargerSparkMax(DrivetrainID.BR_TURN)
         ){
             smartCurrentLimit = SmartCurrentLimit(30.amps)
             voltageCompensationNominalVoltage = 12.volts
@@ -151,22 +153,22 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             closedLoopRampRate = 48.0
         },
         turnEncoders = swerveCANcoders(
-            topLeft = ChargerCANcoder(DrivetrainID.TL_ENCODER){ sensorDirection = SensorDirectionValue.Clockwise_Positive },
-            topRight = ChargerCANcoder(DrivetrainID.TR_ENCODER){ sensorDirection = SensorDirectionValue.Clockwise_Positive },
+            topLeft = ChargerCANcoder(DrivetrainID.TL_ENCODER),
+            topRight = ChargerCANcoder(DrivetrainID.TR_ENCODER),
             bottomLeft = ChargerCANcoder(DrivetrainID.BL_ENCODER),
             bottomRight = ChargerCANcoder(DrivetrainID.BR_ENCODER),
             useAbsoluteSensor = true
         ).withOffsets(
-            topLeftZero = 0.973.radians,
-            topRightZero = 2.881.radians,
-            bottomLeftZero = 1.477.radians,
-            bottomRightZero = 6.004.radians
+            topLeftZero = 6.207.radians,
+            topRightZero = 4.941.radians,
+            bottomLeftZero = 1.4.radians,
+            bottomRightZero = 0.661.radians,
         ),
         driveMotors = sparkMaxSwerveMotors(
-            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE){inverted = false},
-            topRight = ChargerSparkMax(DrivetrainID.TR_DRIVE){inverted = true},
-            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE){inverted = false},
-            bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE){inverted = false}
+            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE){ inverted = true },
+            topRight = ChargerSparkMax(DrivetrainID.TR_DRIVE),
+            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE){ inverted = true },
+            bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE)
         ){
             smartCurrentLimit = SmartCurrentLimit(45.amps)
             voltageCompensationNominalVoltage = 12.volts
@@ -175,7 +177,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         },
         controlData = SwerveControlData(
             azimuthControl = SwerveAzimuthControl.PID(
-                PIDConstants(12.0,0,0.2),
+                PIDConstants(7.0,0,0.2),
             ),
             openLoopDiscretizationRate = 4.5,
             velocityPID = PIDConstants(0.2,0.0,0.0),
@@ -242,18 +244,19 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     }
 
+    private fun rumbleControllerOnInterrupt(){
+        if (DriverStation.isEnabled()){
+            println("Rumbling!")
+            DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 0.2)
+        }
+    }
+
     private fun configureDefaultCommands(){
-        drivetrain.setDefaultRunCommand(endBehavior = {
-            if (DriverStation.isEnabled()){
-                println("Rumbling!")
-                DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 0.2)
-            }
-        }){
-            if (DriverController.shouldDisableFieldRelative){
-                drivetrain.swerveDrive(DriverController.swerveOutput, fieldRelative = false)
-            }else{
-                drivetrain.swerveDrive(DriverController.swerveOutput)
-            }
+        drivetrain.setDefaultRunCommand(endBehavior = ::rumbleControllerOnInterrupt){
+            drivetrain.swerveDrive(
+                DriverController.swerveOutput,
+                fieldRelative = !DriverController.shouldDisableFieldRelative
+            )
         }
 
         shooter.setDefaultRunCommand(endBehavior = shooter::setIdle){
@@ -271,7 +274,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureBindings(){
-
         fun resetAimToAngle() = runOnceCommand{
             drivetrain.removeRotationOverride()
         }
@@ -338,6 +340,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
 
+            // vision stuff commented out for now
             /*
             // when "double clicked" and held, the buttons will auto drive and move the pivot
             ampScoreTrigger.onClickAndHold(

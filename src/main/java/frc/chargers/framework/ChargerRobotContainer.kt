@@ -2,7 +2,7 @@
 package frc.chargers.framework
 
 import edu.wpi.first.wpilibj2.command.Command
-import frc.chargers.commands.InstantCommand
+import edu.wpi.first.wpilibj2.command.InstantCommand
 
 /**
  * Represents a basic Robot Container, for use in Command-Based programming.
@@ -12,7 +12,7 @@ public abstract class ChargerRobotContainer {
     public abstract val autonomousCommand: Command
 
     // instantCommand is used over Commands.idle() in case the test command isn't canceled for some reason
-    public open val testCommand: Command get() = InstantCommand{}
+    public open val testCommand: Command get() = InstantCommand()
 
     /*
     Here are functions that replicate functionality of the Robot class.

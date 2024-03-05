@@ -26,12 +26,12 @@ import frc.robot.hardware.subsystems.pivot.lowlevel.PivotIO
 import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 
-object PivotAngle{
+object PivotAngle {
     val AMP: Angle = 30.degrees
 
-    val SOURCE: Angle = -40.degrees
+    val SOURCE: Angle = 0.degrees
 
-    val STOWED: Angle = 0.degrees
+    val STOWED: Angle = -70.degrees
 
     val GROUND_INTAKE_HANDOFF: Angle = -60.degrees
 
