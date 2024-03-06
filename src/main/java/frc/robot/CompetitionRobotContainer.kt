@@ -121,7 +121,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         if (isReal()){
             GroundIntakeIOReal(
                 topMotor = ChargerSparkFlex(GROUND_INTAKE_ID),
-                conveyorMotor = ChargerSparkMax(CONVEYOR_ID),
+                conveyorMotor = null, //ChargerSparkMax(CONVEYOR_ID),
                 intakeGearRatio = groundIntakeRatio
             )
         }else{

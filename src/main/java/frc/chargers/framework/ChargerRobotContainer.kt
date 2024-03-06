@@ -77,5 +77,4 @@ public abstract class ChargerRobotContainer {
      * Called repeatedly in sim.
      */
     public open fun simulationPeriodic() {}
-
 }

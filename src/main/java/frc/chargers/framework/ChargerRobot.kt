@@ -37,7 +37,7 @@ public open class ChargerRobot(
     private val getRobotContainer: () -> ChargerRobotContainer,
     private val config: RobotConfig
 ): LoggedRobot(config.loopPeriod.inUnit(seconds)){
-    public companion object{
+    public companion object {
         /**
          * Adds a specific function to the robot's periodic loop.
          *
@@ -187,7 +187,7 @@ public open class ChargerRobot(
             for (filePathSuffix in config.filePathOptions){
                 val filePathOption = "/media/$filePathSuffix"
                 if (filePathOption in availablePaths){
-                    //addDataReceiver(WPILOGWriter(filePathOption))
+                    addDataReceiver(WPILOGWriter(filePathOption))
                     noLogHappening = false
                     break
                 }
@@ -275,10 +275,10 @@ public open class ChargerRobot(
     /** This autonomous runs the autonomous command selected by your RobotContainer class.  */
     override fun autonomousInit() {
         try{
-            cancelCommand{testCommand}
+            robotContainer.autonomousInit()
+            cancelCommand{ testCommand }
             autonomousCommand = robotContainer.autonomousCommand
             autonomousCommand.schedule()
-            robotContainer.autonomousInit()
         }catch(e: Exception){
             println("Error has been caught in [autonomousInit].")
             config.onError(e)
@@ -299,9 +299,9 @@ public open class ChargerRobot(
 
     override fun teleopInit() {
         try{
-            cancelCommand{autonomousCommand}
-            cancelCommand{testCommand}
             robotContainer.teleopInit()
+            cancelCommand{ autonomousCommand }
+            cancelCommand{ testCommand }
         }catch(e: Exception){
             println("Error has been caught in [teleopInit].")
             config.onError(e)
@@ -366,8 +366,6 @@ public open class ChargerRobot(
             throw e
         }
     }
-
-
 }
 
 
