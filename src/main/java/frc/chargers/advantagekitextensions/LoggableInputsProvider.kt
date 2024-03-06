@@ -127,15 +127,15 @@ public class LoggableInputsProvider(
             if (updateInputs){
                 runBeforeInputUpdate?.invoke()
                 // updates inputs periodically in the background
-                allLoggedProperties.forEach{ item ->
-                    item.updateInputs()
+                allLoggedProperties.forEach{ property ->
+                    property.updateInputs()
                 }
                 runAfterInputUpdate?.invoke()
             }
             // processes all the loggable inputs to the log
-            allLoggedProperties.forEach{ item ->
+            allLoggedProperties.forEach{ property ->
                 try{
-                    Logger.processInputs(namespace, item.inputsProcessor)
+                    Logger.processInputs(namespace, property.inputsProcessor)
                 }catch(_: Exception){
                     println("Logging has failed for a logged input; this potentially is a problem with initialization.")
                 }
@@ -264,7 +264,7 @@ public class LoggableInputsProvider(
         private var field = Quantity<D>(0.0)
 
         override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) = table.put(name,field.siValue)
+            override fun toLog(table: LogTable) = table.put(name, field.siValue)
             override fun fromLog(table: LogTable) { field = Quantity(table.get(name,0.0)) }
         }
 

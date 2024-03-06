@@ -139,6 +139,9 @@
         "PoseData": {
           "open": true
         },
+        "RealMetadata": {
+          "open": true
+        },
         "RealOutputs": {
           "ActiveCommands": {
             "Subcommands Of: Generic BuildCommand": {

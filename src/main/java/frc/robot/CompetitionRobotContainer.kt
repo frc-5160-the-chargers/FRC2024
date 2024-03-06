@@ -126,8 +126,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
         }else{
             GroundIntakeIOSim(
-                topMotorSim = DCMotorSim(DCMotor.getNeoVortex(1), groundIntakeRatio, 0.010),
-                conveyorMotorSim = DCMotorSim(DCMotor.getNEO(1), conveyorRatio, 0.010)
+                topMotorSim = DCMotorSim(DCMotor.getNeoVortex(1), groundIntakeRatio, 0.10),
+                conveyorMotorSim = DCMotorSim(DCMotor.getNEO(1), conveyorRatio, 0.004)
             )
         }
     )
