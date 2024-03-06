@@ -18,12 +18,12 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     val shooterSpeedAxis =
         InputAxis{ leftY }
             .invertWhen{ SHOULD_INVERT_SHOOTER_SPEED }
-            .applyDeadband(0.2)
+            .applyDeadband(0.15)
 
     val pivotSpeedAxis =
         InputAxis{ rightY }
             .invertWhen { SHOULD_INVERT_PIVOT_SPEED }
-            .applyDeadband(0.2)
+            .applyDeadband(0.33)
             .applyMultiplier(0.33)
             .square()
 
