@@ -18,7 +18,6 @@ import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.InstantCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -203,14 +202,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     //private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
 
 
-    /*
+
     private val autoChooser = AutoChooser(
         aprilTagVision = null,
         noteDetector = null,
         drivetrain, shooter, pivot, groundIntake
     )
-
-     */
 
 
     init{
@@ -411,7 +408,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     override val autonomousCommand: Command
-        get() = InstantCommand() //autoChooser.selected
+        get() = autoChooser.selected
 
     override val testCommand: Command get() =
         drivetrain.getDriveSysIdRoutine().runAllTests() // chargerlib extension function
