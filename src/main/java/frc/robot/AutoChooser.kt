@@ -45,6 +45,7 @@ class AutoChooser(
         type = AmpAutoScoreComponent.Type.SCORE_NOTE
     )
 
+    /*
     private val ferryComponents = listOf(
         AmpAutoScoreComponent.fromChoreo(
             grabPathName = "FerryPath.1",
@@ -57,6 +58,7 @@ class AutoChooser(
             type = AmpAutoScoreComponent.Type.FERRY_NOTE
         )
     )
+     */
 
     init{
         sendableChooser.apply{
@@ -102,6 +104,7 @@ class AutoChooser(
                 )
             )
 
+            /*
             addOption(
                 "2 Note Amp + 1-2 Ferry(NO VISION)",
                 noVisionAmpAutonomous(
@@ -111,6 +114,8 @@ class AutoChooser(
                     additionalComponents = listOf(ampScoreNote2Component) + ferryComponents
                 )
             )
+
+             */
 
             addOption(
                 "3 Note Amp(NO VISION)",
@@ -162,6 +167,7 @@ class AutoChooser(
                     )
                 )
 
+                /*
                 addOption(
                     "2 Note Amp + 1-2 Note Ferry",
                     ampAutonomous(
@@ -170,6 +176,8 @@ class AutoChooser(
                         additionalComponents = listOf(ampScoreNote2Component) + ferryComponents
                     )
                 )
+
+                 */
 
                 addOption(
                     "3 Note Amp",

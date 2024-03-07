@@ -219,6 +219,21 @@ public open class ChargerRobot(
     }
 
     private val gcTimer = Timer()
+    private fun runTopPriorityPeriodicFunctions(){
+        recordLatency("LoggedRobot/PeriodicRunnableLoopTime/RegularPriority"){
+            periodicRunnables.forEach{
+                it()
+            }
+        }
+    }
+
+    private fun runLowPriorityPeriodicFunctions(){
+        recordLatency("LoggedRobot/PeriodicRunnableLoopTime/LowPriority"){
+            lowPriorityPeriodicRunnables.forEach{
+                it()
+            }
+        }
+    }
 
     /**
      * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
@@ -234,22 +249,13 @@ public open class ChargerRobot(
                 System.gc()
             }
 
-            recordLatency("LoggedRobot/PeriodicRunnableLoopTime/RegularPriority"){
-                periodicRunnables.forEach{
-                    it()
-                }
-            }
+            runTopPriorityPeriodicFunctions()
             // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
             // commands, running already-scheduled commands, removing finished or interrupted commands,
             // and running subsystem periodic() methods.  This must be called from the robot's periodic
             // block in order for anything in the Command-based framework to work.
             CommandScheduler.getInstance().run()
-            recordOutput("RemainingRamMB", Runtime.getRuntime().freeMemory() / 1024 / 1024)
-            recordLatency("LoggedRobot/PeriodicRunnableLoopTime/LowPriority"){
-                lowPriorityPeriodicRunnables.forEach{
-                    it()
-                }
-            }
+            runLowPriorityPeriodicFunctions()
         }catch(e: Exception){
             println("Error has been caught in [robotPeriodic].")
             config.onError(e)
