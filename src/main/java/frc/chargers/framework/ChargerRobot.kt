@@ -8,6 +8,7 @@ import com.pathplanner.lib.pathfinding.Pathfinding
 import edu.wpi.first.apriltag.AprilTagFieldLayout
 import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.wpilibj.RobotBase
+import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.Command
@@ -217,6 +218,8 @@ public open class ChargerRobot(
         AK_LOGGABLE_REAL_TABLE = baseEntry.getSubtable("RealOutputs")
     }
 
+    private val gcTimer = Timer()
+
     /**
      * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
      * that you want ran during disabled, autonomous, teleoperated and test.
@@ -227,6 +230,10 @@ public open class ChargerRobot(
      */
     override fun robotPeriodic() {
         try{
+            if (gcTimer.advanceIfElapsed(5.0)){
+                System.gc()
+            }
+
             recordLatency("LoggedRobot/PeriodicRunnableLoopTime/RegularPriority"){
                 periodicRunnables.forEach{
                     it()
