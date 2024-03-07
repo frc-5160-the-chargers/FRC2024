@@ -218,7 +218,6 @@ public open class ChargerRobot(
         AK_LOGGABLE_REAL_TABLE = baseEntry.getSubtable("RealOutputs")
     }
 
-    private val gcTimer = Timer()
     private fun runTopPriorityPeriodicFunctions(){
         recordLatency("LoggedRobot/PeriodicRunnableLoopTime/RegularPriority"){
             periodicRunnables.forEach{
@@ -245,9 +244,6 @@ public open class ChargerRobot(
      */
     override fun robotPeriodic() {
         try{
-            if (gcTimer.advanceIfElapsed(5.0)){
-                System.gc()
-            }
 
             runTopPriorityPeriodicFunctions()
             // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
