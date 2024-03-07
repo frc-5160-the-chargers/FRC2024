@@ -103,6 +103,19 @@ public class LoggableInputsProvider(
 
     // Stores all auto logged items, in order to update them individually.
     private val allLoggedProperties = mutableListOf<AutoLoggedItem>()
+    private val inputsProcessor = object: LoggableInputs{
+        override fun toLog(table: LogTable) {
+            for (property in allLoggedProperties){
+                property.toLog(table)
+            }
+        }
+
+        override fun fromLog(table: LogTable) {
+            for (property in allLoggedProperties){
+                property.fromLog(table)
+            }
+        }
+    }
 
 
     /*
@@ -114,9 +127,11 @@ public class LoggableInputsProvider(
             allLoggedProperties.add(this)
         }
 
-        abstract val inputsProcessor: LoggableInputs
-
         abstract fun updateInputs()
+
+        abstract fun toLog(table: LogTable)
+
+        abstract fun fromLog(table: LogTable)
     }
 
     init{
@@ -133,13 +148,7 @@ public class LoggableInputsProvider(
                 runAfterInputUpdate?.invoke()
             }
             // processes all the loggable inputs to the log
-            allLoggedProperties.forEach{ property ->
-                try{
-                    Logger.processInputs(namespace, property.inputsProcessor)
-                }catch(_: Exception){
-                    println("Logging has failed for a logged input; this potentially is a problem with initialization.")
-                }
-            }
+            Logger.processInputs(namespace, inputsProcessor)
         }
     }
 
@@ -169,10 +178,8 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?, Int>, AutoLoggedItem(){
         private var field = 0
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) = table.put(name,field)
-            override fun fromLog(table: LogTable) { field = table.get(name,0) }
-        }
+        override fun toLog(table: LogTable) = table.put(name,field)
+        override fun fromLog(table: LogTable) { field = table.get(name,0) }
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): Int = field
 
@@ -208,10 +215,8 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?, Double>, AutoLoggedItem(){
         private var field = 0.0
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) = table.put(name,field)
-            override fun fromLog(table: LogTable) { field = table.get(name,0.0) }
-        }
+        override fun toLog(table: LogTable) = table.put(name,field)
+        override fun fromLog(table: LogTable) { field = table.get(name,0.0) }
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): Double = field
 
@@ -263,10 +268,8 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?, Quantity<D>>, AutoLoggedItem(){
         private var field = Quantity<D>(0.0)
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) = table.put(name, field.siValue)
-            override fun fromLog(table: LogTable) { field = Quantity(table.get(name,0.0)) }
-        }
+        override fun toLog(table: LogTable) = table.put(name, field.siValue)
+        override fun fromLog(table: LogTable) { field = Quantity(table.get(name,0.0)) }
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): Quantity<D> = field
 
@@ -301,10 +304,8 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?,Boolean>, AutoLoggedItem(){
         private var field = false
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) = table.put(name,field)
-            override fun fromLog(table: LogTable) { field = table.get(name,false) }
-        }
+        override fun toLog(table: LogTable) = table.put(name,field)
+        override fun fromLog(table: LogTable) { field = table.get(name,false) }
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): Boolean = field
 
@@ -339,10 +340,9 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?,String>, AutoLoggedItem(){
         private var field = ""
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) = table.put(name,field)
-            override fun fromLog(table: LogTable) { field = table.get(name,"NOTHING") }
-        }
+        override fun toLog(table: LogTable) = table.put(name,field)
+        override fun fromLog(table: LogTable) { field = table.get(name,"NOTHING") }
+
         override fun getValue(thisRef: Any?, property: KProperty<*>): String = field
 
         override fun updateInputs() {
@@ -376,24 +376,23 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?, Int?>, AutoLoggedItem(){
         private var field: Int? = null
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable){
-                // must store as value in order to pass null checks
-                val currentValue = field
-                if (currentValue == null){
-                    table.put("$name/value", 0)
-                    table.put("$name/isValid", false)
-                }else{
-                    table.put("$name/value", currentValue)
-                    table.put("$name/isValid", true)
-                }
+        override fun toLog(table: LogTable){
+            // must store as value in order to pass null checks
+            val currentValue = field
+            if (currentValue == null){
+                table.put("$name/value", 0)
+                table.put("$name/isValid", false)
+            }else{
+                table.put("$name/value", currentValue)
+                table.put("$name/isValid", true)
             }
-            override fun fromLog(table: LogTable) {
-                field = if (table.get("$name/isValid", false)){
-                    table.get("$name/value",0)
-                }else{
-                    null
-                }
+        }
+
+        override fun fromLog(table: LogTable) {
+            field = if (table.get("$name/isValid", false)){
+                table.get("$name/value",0)
+            }else{
+                null
             }
         }
 
@@ -430,24 +429,23 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?, Double?>, AutoLoggedItem(){
         private var field: Double? = null
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable){
-                // must store as value in order to pass null checks
-                val currentValue = field
-                if (currentValue == null){
-                    table.put("$name/value", 0.0)
-                    table.put("$name/isValid", false)
-                }else{
-                    table.put("$name/value", currentValue)
-                    table.put("$name/isValid", true)
-                }
+        override fun toLog(table: LogTable){
+            // must store as value in order to pass null checks
+            val currentValue = field
+            if (currentValue == null){
+                table.put("$name/value", 0.0)
+                table.put("$name/isValid", false)
+            }else{
+                table.put("$name/value", currentValue)
+                table.put("$name/isValid", true)
             }
-            override fun fromLog(table: LogTable) {
-                field = if (table.get("$name/isValid", false)){
-                    table.get("$name/value",0.0)
-                }else{
-                    null
-                }
+        }
+
+        override fun fromLog(table: LogTable) {
+            field = if (table.get("$name/isValid", false)){
+                table.get("$name/value",0.0)
+            }else{
+                null
             }
         }
 
@@ -484,26 +482,26 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?, Quantity<D>?>, AutoLoggedItem(){
         private var field: Quantity<D>? = null
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable){
-                // must store as value in order to pass null checks
-                val currentValue = field
-                if (currentValue == null){
-                    table.put("$name/value", 0.0)
-                    table.put("$name/isValid", false)
-                }else{
-                    table.put("$name/value", currentValue.siValue)
-                    table.put("$name/isValid", true)
-                }
-            }
-            override fun fromLog(table: LogTable) {
-                field = if (table.get("$name/isValid", false)){
-                    Quantity(table.get("$name/value",0.0))
-                }else{
-                    null
-                }
+        override fun toLog(table: LogTable){
+            // must store as value in order to pass null checks
+            val currentValue = field
+            if (currentValue == null){
+                table.put("$name/value", 0.0)
+                table.put("$name/isValid", false)
+            }else{
+                table.put("$name/value", currentValue.siValue)
+                table.put("$name/isValid", true)
             }
         }
+
+        override fun fromLog(table: LogTable) {
+            field = if (table.get("$name/isValid", false)){
+                Quantity(table.get("$name/value",0.0))
+            }else{
+                null
+            }
+        }
+
         override fun getValue(thisRef: Any?, property: KProperty<*>): Quantity<D>? = field
 
         override fun updateInputs() {
@@ -538,10 +536,9 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?,List<Int>>, AutoLoggedItem(){
         private var field = listOf<Int>()
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) = table.put(name,field.map{it.toLong()}.toLongArray())
-            override fun fromLog(table: LogTable) { field = table.get(name,longArrayOf()).map{it.toInt()}}
-        }
+        override fun toLog(table: LogTable) = table.put(name,field.toIntArray())
+
+        override fun fromLog(table: LogTable) { field = table.get(name,intArrayOf()).toList() }
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): List<Int> = field
 
@@ -576,10 +573,9 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?,List<Double>>, AutoLoggedItem(){
         private var field = listOf<Double>()
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) = table.put(name,field.toDoubleArray())
-            override fun fromLog(table: LogTable) { field = table.get(name, doubleArrayOf()).toList() }
-        }
+        override fun toLog(table: LogTable) = table.put(name,field.toDoubleArray())
+
+        override fun fromLog(table: LogTable) { field = table.get(name, doubleArrayOf()).toList() }
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): List<Double> = field
 
@@ -615,10 +611,9 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?,List<Quantity<D>>>, AutoLoggedItem(){
         private var field = listOf<Quantity<D>>()
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) = table.put(name,field.map{it.siValue}.toDoubleArray())
-            override fun fromLog(table: LogTable) { field = table.get(name,doubleArrayOf()).map{Quantity(it)}}
-        }
+        override fun toLog(table: LogTable) = table.put(name,field.map{it.siValue}.toDoubleArray())
+
+        override fun fromLog(table: LogTable) { field = table.get(name,doubleArrayOf()).map{Quantity(it)}}
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): List<Quantity<D>> = field
 
@@ -654,11 +649,9 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?,T>, AutoLoggedItem(){
         private var field: T = default
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) { field.pushToLog(table,name) }
+        override fun toLog(table: LogTable) { field.pushToLog(table,name) }
 
-            override fun fromLog(table: LogTable) { field = field.getFromLog(table,name) }
-        }
+        override fun fromLog(table: LogTable) { field = field.getFromLog(table,name) }
 
         override fun updateInputs() {
             field = get()
@@ -696,17 +689,16 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?,T?>, AutoLoggedItem(){
         private var field: T? = null
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable){
-                (field ?: default).pushToLog(table, name)
-                table.put("$name/isValid", field != null)
-            }
-            override fun fromLog(table: LogTable) {
-                field = if (table.get("$name/isValid", false)){
-                    (field ?: default).getFromLog(table, name)
-                }else{
-                    null
-                }
+        override fun toLog(table: LogTable){
+            (field ?: default).pushToLog(table, name)
+            table.put("$name/isValid", field != null)
+        }
+
+        override fun fromLog(table: LogTable) {
+            field = if (table.get("$name/isValid", false)){
+                (field ?: default).getFromLog(table, name)
+            }else{
+                null
             }
         }
 
@@ -746,43 +738,40 @@ public class LoggableInputsProvider(
     ): ReadWriteProperty<Any?,List<T>>, AutoLoggedItem(){
         private var field: List<T> = listOf()
 
-        override val inputsProcessor = object: LoggableInputs{
+        private var previousNumItems = 0
 
-            private var previousNumItems = 0
-
-            override fun toLog(table: LogTable) {
-                var counter = 1
-                table.put("$name/totalValues", field.size)
-                for (item in field){
-                    item.pushToLog(table, "$name/$counter")
-                    // not used for replay; simply used as useful information so that it can be distinguished
-                    // which logged items are actually within the list or not,
-                    // since items that are removed from the list still have their last logged value preserved.
-                    table.put("$name/$counter/IsPresentInList", true)
-                    counter++
-                }
-
-                // if the num items in previous loop was greater, log the values that are still hanging around
-                // as not present.
-                if (previousNumItems > field.size){
-                    for (i in field.size+1..previousNumItems){
-                        table.put("$name/$i/IsPresentInList", false)
-                    }
-                }
-
-                previousNumItems = field.size
+        override fun toLog(table: LogTable) {
+            var counter = 1
+            table.put("$name/totalValues", field.size)
+            for (item in field){
+                item.pushToLog(table, "$name/$counter")
+                // not used for replay; simply used as useful information so that it can be distinguished
+                // which logged items are actually within the list or not,
+                // since items that are removed from the list still have their last logged value preserved.
+                table.put("$name/$counter/IsPresentInList", true)
+                counter++
             }
 
-            override fun fromLog(table: LogTable) {
-                val totalItems = table.get("$name/totalValues", 0)
-                val newField = mutableListOf<T>()
-                for (counter in 1 ..< totalItems + 1){
-                    newField.add(
-                        default.getFromLog(table, "$name/$counter")
-                    )
+            // if the num items in previous loop was greater, log the values that are still hanging around
+            // as not present.
+            if (previousNumItems > field.size){
+                for (i in field.size+1..previousNumItems){
+                    table.put("$name/$i/IsPresentInList", false)
                 }
-                field = newField
             }
+
+            previousNumItems = field.size
+        }
+
+        override fun fromLog(table: LogTable) {
+            val totalItems = table.get("$name/totalValues", 0)
+            val newField = mutableListOf<T>()
+            for (counter in 1 ..< totalItems + 1){
+                newField.add(
+                    default.getFromLog(table, "$name/$counter")
+                )
+            }
+            field = newField
         }
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): List<T> = field
@@ -827,14 +816,12 @@ public class LoggableInputsProvider(
             set(value)
         }
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) {
-                table.put(name, field)
-            }
+        override fun toLog(table: LogTable) {
+            table.put(name, field)
+        }
 
-            override fun fromLog(table: LogTable) {
-                field = table.get(name, default)
-            }
+        override fun fromLog(table: LogTable) {
+            field = table.get(name, default)
         }
 
         override fun updateInputs() {
@@ -871,14 +858,12 @@ public class LoggableInputsProvider(
             set(value)
         }
 
-        override val inputsProcessor = object: LoggableInputs{
-            override fun toLog(table: LogTable) {
-                table.put(name, field)
-            }
+        override fun toLog(table: LogTable) {
+            table.put(name, field)
+        }
 
-            override fun fromLog(table: LogTable) {
-                field = table.get(name, default)
-            }
+        override fun fromLog(table: LogTable) {
+            field = table.get(name, default)
         }
 
         override fun updateInputs() {
