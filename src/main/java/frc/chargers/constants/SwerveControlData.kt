@@ -2,7 +2,6 @@
 package frc.chargers.constants
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.pathplanner.lib.util.ReplanningConfig
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.pid.PIDConstants
@@ -20,7 +19,7 @@ data class SwerveControlData(
     val closedLoopDiscretizationRate: Double = 1.0,
     val robotRotationPID: PIDConstants = PIDConstants(0.3,0,0),
     val robotTranslationPID: PIDConstants = PIDConstants(0.3,0,0),
-    val pathReplanConfig: ReplanningConfig = ReplanningConfig()
+    //val pathReplanConfig: ReplanningConfig = ReplanningConfig()
 )
 
 

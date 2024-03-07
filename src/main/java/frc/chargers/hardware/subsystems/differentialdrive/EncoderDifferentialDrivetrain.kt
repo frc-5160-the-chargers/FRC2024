@@ -7,7 +7,6 @@ import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
-import com.pathplanner.lib.auto.AutoBuilder
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.DifferentialDriveKinematics
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds
@@ -19,7 +18,6 @@ import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.constants.DiffDriveControlData
 import frc.chargers.constants.DiffDriveHardwareData
 import frc.chargers.controls.pid.SuperPIDController
-import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
 import frc.chargers.hardware.motorcontrol.EncoderMotorController
@@ -35,7 +33,6 @@ import frc.chargers.hardware.subsystems.differentialdrive.lowlevel.DiffDriveIORe
 import frc.chargers.hardware.subsystems.differentialdrive.lowlevel.DiffDriveIOSim
 import frc.chargers.hardware.subsystems.robotposition.DifferentialPoseMonitor
 import frc.chargers.utils.a
-import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.kinematics.ChassisSpeeds
 import org.littletonrobotics.junction.Logger.recordOutput
@@ -174,6 +171,7 @@ public class EncoderDifferentialDrivetrain(
 
     init{
         inverted = hardwareData.invertMotors
+        /*
         when (controlData.pathAlgorithm){
             DiffDriveControlData.PathAlgorithm.LTV -> {
                 AutoBuilder.configureLTV(
@@ -200,6 +198,7 @@ public class EncoderDifferentialDrivetrain(
                 )
             }
         }
+         */
     }
 
     /**

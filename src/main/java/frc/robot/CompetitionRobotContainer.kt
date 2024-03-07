@@ -7,8 +7,7 @@ package frc.robot
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.kauailabs.navx.frc.AHRS
-import com.pathplanner.lib.util.PathPlannerLogging
-import edu.wpi.first.math.geometry.Pose2d
+//import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.GenericHID
@@ -394,7 +393,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     }
 
+
     private fun configurePathPlannerLogging(){
+        /*
         PathPlannerLogging.setLogCurrentPoseCallback {
             recordOutput("Pathplanner/currentPose", Pose2d.struct, it)
         }
@@ -408,6 +409,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             recordOutput("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
             recordOutput("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
         }
+         */
     }
 
     override val autonomousCommand: Command

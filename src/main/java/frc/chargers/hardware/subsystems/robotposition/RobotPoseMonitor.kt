@@ -2,17 +2,9 @@
 package frc.chargers.hardware.subsystems.robotposition
 
 import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.ofUnit
-import com.batterystaple.kmeasure.units.meters
-import com.batterystaple.kmeasure.units.radians
-import com.pathplanner.lib.path.PathPlannerPath
-import edu.wpi.first.wpilibj.Filesystem
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
-import frc.chargers.utils.flipWhenNeeded
-import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
-import java.io.File
 
 /**
  * Represents a pose monitor which combines wheel odometry(and optionally vision data)
@@ -34,6 +26,7 @@ public interface RobotPoseMonitor: HeadingProvider {
     override val heading: Angle get() = robotPose.rotation
 
 
+    /*
     public fun resetToPathplannerTrajectory(pathName: String, useHolonomicPose: Boolean){
         val path = PathPlannerPath.fromPathFile(pathName)
         if (useHolonomicPose){
@@ -76,6 +69,6 @@ public interface RobotPoseMonitor: HeadingProvider {
             ).flipWhenNeeded()
         )
     }
-
+     */
 }
 

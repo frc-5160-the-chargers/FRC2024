@@ -1,16 +1,11 @@
 package frc.robot
 
-import com.batterystaple.kmeasure.quantities.Acceleration
-import com.batterystaple.kmeasure.quantities.Velocity
-import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
-import com.batterystaple.kmeasure.units.seconds
 import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.pathplannerextensions.PathConstraints
+//import frc.chargers.pathplannerextensions.PathConstraints
 import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
-
 /*
 This file stores all global constants on the robot
 which are used in more than one subsystem/command.
@@ -35,12 +30,14 @@ Motors, and their respective configuration(RobotContainer)
 
 const val ODOMETRY_UPDATE_FREQUENCY_HZ = 200.0
 
+/*
 val PATHFIND_CONSTRAINTS = PathConstraints(
     Velocity(4.0),
     Acceleration(6.0),
     500.degrees / 1.seconds,
     650.degrees / 1.seconds / 1.seconds
 )
+ */
 
 val AMP_AUTO_STARTING_POSE_BLUE = UnitPose2d(1.4.meters, 7.3.meters, 90.degrees)
 val ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE = 1.5.meters

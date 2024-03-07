@@ -1,5 +1,5 @@
 package frc.robot.commands.auto
-
+/*
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
@@ -123,3 +123,5 @@ fun speakerAutonomous(
         }
     }
 }
+
+ */

@@ -1,5 +1,5 @@
 package frc.robot.commands.auto.components
-
+/*
 import com.pathplanner.lib.path.PathPlannerPath
 
 data class SpeakerAutoScoreComponent(
@@ -41,3 +41,5 @@ data class SpeakerAutoScoreComponent(
             )
     }
 }
+
+ */

@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 package frc.chargers.pathplannerextensions
-
+/*
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj.Filesystem
 import java.io.File
@@ -24,3 +24,5 @@ object PathPlannerPaths{
         return files.map{ file -> PathPlannerPath.fromChoreoTrajectory(file.nameWithoutExtension) }
     }
 }
+
+ */

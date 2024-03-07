@@ -1,7 +1,6 @@
 @file:Suppress("unused")
 package frc.chargers.constants
 
-import com.pathplanner.lib.util.ReplanningConfig
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.pid.PIDConstants
 
@@ -16,7 +15,7 @@ open class DiffDriveControlData(
     val rightFF: AngularMotorFFEquation,
     val robotRotationPID: PIDConstants = PIDConstants(0.4,0,0),
     val pathAlgorithm: PathAlgorithm = PathAlgorithm.LTV,
-    val pathReplanConfig: ReplanningConfig = ReplanningConfig(),
+    //val pathReplanConfig: ReplanningConfig = ReplanningConfig(),
 ){
     data object None: DiffDriveControlData(
         PIDConstants(0,0,0),

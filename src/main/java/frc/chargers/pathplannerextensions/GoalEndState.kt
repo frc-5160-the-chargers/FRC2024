@@ -1,6 +1,6 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.pathplannerextensions
-
+/*
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.meters
@@ -14,3 +14,5 @@ public fun GoalEndState(
 ): GoalEndState = GoalEndState(
     velocity.inUnit(meters / seconds), rotation.asRotation2d()
 )
+
+ */

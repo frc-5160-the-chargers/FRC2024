@@ -4,7 +4,6 @@ package frc.chargers.framework
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
-import com.pathplanner.lib.pathfinding.Pathfinding
 import edu.wpi.first.apriltag.AprilTagFieldLayout
 import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.wpilibj.RobotBase
@@ -17,7 +16,6 @@ import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.wpilog.WPILOGReader
 import org.littletonrobotics.junction.wpilog.WPILOGWriter
 import edu.wpi.first.wpilibj2.command.CommandScheduler
-import frc.external.pathplanner.LocalADStarAK
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.wpilibextensions.Alert
 import frc.robot.BuildConstants
@@ -135,7 +133,7 @@ public open class ChargerRobot(
             AutoLogOutputManager.addPackage("frc.chargers")
             AutoLogOutputManager.addPackage("frc.robot")
 
-            Pathfinding.setPathfinder(LocalADStarAK())
+            //Pathfinding.setPathfinder(LocalADStarAK())
 
             SmartDashboard.putData("Field", FIELD)
 

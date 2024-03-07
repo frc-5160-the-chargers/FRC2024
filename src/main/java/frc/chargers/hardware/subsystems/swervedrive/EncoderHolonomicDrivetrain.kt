@@ -4,8 +4,6 @@ package frc.chargers.hardware.subsystems.swervedrive
 import com.batterystaple.kmeasure.interop.average
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
-import com.pathplanner.lib.auto.AutoBuilder
-import com.pathplanner.lib.util.HolonomicPathFollowerConfig
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
@@ -28,13 +26,11 @@ import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.gyroscopes.*
 import frc.chargers.hardware.subsystems.robotposition.SwervePoseMonitor
 import frc.chargers.hardware.subsystems.swervedrive.modulelowlevel.*
-import frc.chargers.pathplannerextensions.asPathPlannerConstants
 import frc.chargers.utils.a
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.utils.math.units.VoltageRate
 import frc.chargers.utils.math.units.toKmeasure
 import frc.chargers.utils.math.units.toWPI
-import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitTranslation2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asAngle
@@ -42,8 +38,6 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
 import frc.chargers.wpilibextensions.kinematics.*
 import frc.external.frc6328.SwerveSetpointGenerator
 import org.littletonrobotics.junction.Logger.*
-import java.util.Optional
-import kotlin.math.pow
 import kotlin.math.abs
 
 private val topLeftLogInputs = LoggableInputsProvider("Drivetrain(Swerve)/TopLeftModule")
@@ -259,6 +253,8 @@ public class EncoderHolonomicDrivetrain(
             }
         }
 
+
+        /*
         AutoBuilder.configureHolonomic(
             { poseEstimator.robotPose.inUnit(meters) },
             { poseEstimator.resetPose(it.ofUnit(meters)) },
@@ -283,6 +279,7 @@ public class EncoderHolonomicDrivetrain(
             },
             this
         )
+         */
     }
 
 
