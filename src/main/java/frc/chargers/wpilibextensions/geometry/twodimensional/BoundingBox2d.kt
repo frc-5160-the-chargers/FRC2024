@@ -8,7 +8,9 @@ interface BoundingBox2d {
 
     operator fun contains(other: UnitPose2d): Boolean
 
-    operator fun plus(other: UnitTransform2d)
+    infix fun intersects(other: BoundingBox2d): Boolean
+
+    operator fun plus(other: UnitTransform2d): BoundingBox2d
 
     val area: Area
 

@@ -3,13 +3,11 @@ package frc.robot.hardware.subsystems.pivot
 import com.batterystaple.kmeasure.dimensions.AngleDimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
-import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d
 import edu.wpi.first.wpilibj.util.Color
@@ -17,7 +15,6 @@ import edu.wpi.first.wpilibj.util.Color8Bit
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.constants.DashboardTuner
 import frc.chargers.controls.feedforward.ArmFFEquation
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
@@ -29,23 +26,12 @@ import frc.robot.hardware.subsystems.pivot.lowlevel.PivotIO
 import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 
-object PivotAngle {
-    val AMP: Angle = if (RobotBase.isReal()) 0.55.radians else 30.degrees
-
-    val SOURCE: Angle = if (RobotBase.isReal()) 0.degrees else 0.degrees
-
-    val GROUND_INTAKE_HANDOFF: Angle = if (RobotBase.isReal()) -1.73.radians else -70.degrees
-
-    val STOWED: Angle = GROUND_INTAKE_HANDOFF // same as of now
-
-    val SPEAKER: Angle = GROUND_INTAKE_HANDOFF // same as of now
-}
 
 private val STARTING_TRANSLATION_PIVOT_SIM = Translation3d(0.325, 0.0, 0.75)
 
 class Pivot(
     val io: PivotIO,
-    pidConstants: PIDConstants,
+    private val pidConstants: PIDConstants,
     // null indicates no motion profile
     private val motionProfile: AngularMotionProfile? = null,
     private val feedforward: ArmFFEquation = ArmFFEquation(0.0,0.0,0.0),
@@ -54,16 +40,10 @@ class Pivot(
     private val reverseSoftStop: Angle? = null
 ): SubsystemBase() {
     /* Private Members */
-    private val tuner = DashboardTuner()
-    private val pidConstants by tuner.pidConstants(default = pidConstants)
-
-
-
     @AutoLogOutput
     private val mechanismCanvas = Mechanism2d(3.0, 3.0)
     private val pivotVisualizer: MechanismLigament2d
     private var motionProfileSetpoint = AngularMotionProfileState(io.angle)
-
 
     private fun willExceedSoftStop(movingForward: Boolean): Boolean =
         (forwardSoftStop != null && io.angle >= forwardSoftStop && movingForward) ||
@@ -92,7 +72,6 @@ class Pivot(
     }
 
     /* Public API */
-
     @AutoLogOutput
     var atTarget: Boolean = true
         private set

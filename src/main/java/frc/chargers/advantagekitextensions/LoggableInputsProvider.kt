@@ -788,27 +788,24 @@ public class LoggableInputsProvider(
 
 
     public fun <E: Enum<E>> enum(
-        default: E,
         getValue: () -> E
     ): ReadOnlyLoggableInput<E> = PropertyDelegateProvider { _, property ->
-        AutoLoggedEnum(property.name, default, getValue)
+        AutoLoggedEnum(property.name, getValue)
     }
 
     public fun <E: Enum<E>> enum(
-        default: E,
         getValue: () -> E,
         setValue: (E) -> Unit
     ): ReadWriteLoggableInput<E> = PropertyDelegateProvider { _, property ->
-        AutoLoggedEnum(property.name, default, getValue, setValue)
+        AutoLoggedEnum(property.name, getValue, setValue)
     }
 
     private inner class AutoLoggedEnum <E: Enum<E>>(
         val name: String,
-        val default: E,
         val get: () -> E,
         val set: (E) -> Unit = {}
     ): ReadWriteProperty<Any?, E>, AutoLoggedItem(){
-        private var field = default
+        private var field = get()
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): E = field
 
@@ -821,7 +818,7 @@ public class LoggableInputsProvider(
         }
 
         override fun fromLog(table: LogTable) {
-            field = table.get(name, default)
+            field = table.get(name, field)
         }
 
         override fun updateInputs() {

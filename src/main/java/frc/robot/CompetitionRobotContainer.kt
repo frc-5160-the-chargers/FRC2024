@@ -6,8 +6,6 @@ package frc.robot
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
-import com.kauailabs.navx.frc.AHRS
-import com.pathplanner.lib.path.PathPlannerPath
 import com.pathplanner.lib.util.PathPlannerLogging
 import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.geometry.Pose2d
