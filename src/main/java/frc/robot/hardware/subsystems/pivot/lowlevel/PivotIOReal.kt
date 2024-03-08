@@ -8,6 +8,7 @@ import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.quantities.times
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.controls.pid.SuperPIDController
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 
@@ -22,6 +23,12 @@ class PivotIOReal(
     private val encoderType: EncoderType,
     private val offset: Angle = Angle(0.0)
 ): PivotIO {
+
+    init{
+        ChargerRobot.runPeriodically{
+            println(motor.encoder.angularPosition)
+        }
+    }
 
     sealed class EncoderType{
         /**

@@ -27,8 +27,6 @@ public sealed class SparkFlexEncoderType{
      * Represents a regular Spark Flex encoder.
      */
     public data class Regular(
-        val optimizeStatusFrames: Boolean = true,
-        val category: SparkRelativeEncoder.Type = SparkRelativeEncoder.Type.kHallSensor,
         val averageDepth: Int? = null,
         val inverted: Boolean? = null
     ): SparkFlexEncoderType()

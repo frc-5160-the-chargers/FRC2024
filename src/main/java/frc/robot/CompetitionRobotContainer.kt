@@ -8,6 +8,7 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.kauailabs.navx.frc.AHRS
 import com.pathplanner.lib.util.PathPlannerLogging
+import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
@@ -18,6 +19,7 @@ import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
+import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -32,7 +34,7 @@ import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
-import frc.chargers.hardware.motorcontrol.rev.SparkMaxEncoderType
+import frc.chargers.hardware.motorcontrol.rev.util.PeriodicFrameConfig
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX
@@ -83,7 +85,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val shooter = Shooter(
         if (isReal()){
             ShooterIOReal(
-                topMotor = ChargerTalonFX(SHOOTER_MOTOR_ID),
+                topMotor = ChargerTalonFX(SHOOTER_MOTOR_ID){ inverted = true },
                 gearRatio = shooterRatio
             )
         }else{
@@ -97,18 +99,20 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         if (isReal()){
             PivotIOReal(
                 ChargerSparkMax(PIVOT_MOTOR_ID){
-                    encoderType = SparkMaxEncoderType.Absolute()
+                    periodicFrameConfig = PeriodicFrameConfig.Custom(
+                        10, 10, 10, 10, 10, 10
+                    )
                 },
                 useOnboardPID = false,
-                encoderType = PivotIOReal.EncoderType.IntegratedAbsoluteEncoder,
-                offset = 0.degrees
+                encoderType = PivotIOReal.EncoderType.IntegratedRelativeEncoder(pivotRatio),
+                offset = 1.503.radians
             )
         }else{
             PivotIOSim(
                 DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004)
             )
         },
-        PIDConstants(10.0,0,0),
+        if (isReal()) { PIDConstants(10.0,0,0) } else PIDConstants(1.0, 0.0, 0.0),
         AngularTrapezoidProfile(
             maxVelocity = AngularVelocity(8.0),
             maxAcceleration = AngularAcceleration(12.0)
@@ -117,11 +121,13 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         reverseSoftStop = (-1.576).radians
     )
 
+    private val groundIntakeMotor = ChargerSparkFlex(GROUND_INTAKE_ID)
+
     private val groundIntake = GroundIntakeSerializer(
         if (isReal()){
             GroundIntakeIOReal(
-                topMotor = ChargerSparkFlex(GROUND_INTAKE_ID),
-                conveyorMotor = null, //ChargerSparkMax(CONVEYOR_ID),
+                topMotor = groundIntakeMotor,
+                conveyorMotor = ChargerSparkMax(CONVEYOR_ID){ inverted = true },
                 intakeGearRatio = groundIntakeRatio
             )
         }else{
@@ -134,8 +140,13 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
     private val climber = Climber(
         ClimberIOReal(
-            ChargerSparkMax(CLIMBER_ID_LEFT),
-            ChargerSparkMax(CLIMBER_ID_RIGHT)
+            ChargerSparkMax(CLIMBER_ID_LEFT){
+                inverted = true
+                idleMode = CANSparkBase.IdleMode.kBrake
+            },
+            ChargerSparkMax(CLIMBER_ID_RIGHT){
+                idleMode = CANSparkBase.IdleMode.kBrake
+            }
         )
     )
 
@@ -177,7 +188,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         },
         controlData = SwerveControlData(
             azimuthControl = SwerveAzimuthControl.PID(
-                PIDConstants(7.0,0,0.2),
+                PIDConstants(7.0,0,0.1),
             ),
             openLoopDiscretizationRate = 4.5,
             velocityPID = PIDConstants(0.2,0.0,0.0),
@@ -408,7 +419,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     override val autonomousCommand: Command
-        get() = autoChooser.selected
+        get() = buildCommand {
+            loopFor(3.seconds){
+                groundIntakeMotor.set(-0.3)
+            }
+        }
 
     override val testCommand: Command get() =
         drivetrain.getDriveSysIdRoutine().runAllTests() // chargerlib extension function

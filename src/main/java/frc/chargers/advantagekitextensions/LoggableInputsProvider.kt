@@ -103,20 +103,6 @@ public class LoggableInputsProvider(
 
     // Stores all auto logged items, in order to update them individually.
     private val allLoggedProperties = mutableListOf<AutoLoggedItem>()
-    private val inputsProcessor = object: LoggableInputs{
-        override fun toLog(table: LogTable) {
-            for (property in allLoggedProperties){
-                property.toLog(table)
-            }
-        }
-
-        override fun fromLog(table: LogTable) {
-            for (property in allLoggedProperties){
-                property.fromLog(table)
-            }
-        }
-    }
-
 
     /*
     Represents a Generic auto logged item.
@@ -132,6 +118,20 @@ public class LoggableInputsProvider(
         abstract fun toLog(table: LogTable)
 
         abstract fun fromLog(table: LogTable)
+    }
+
+    private val inputsProcessor = object: LoggableInputs {
+        override fun toLog(table: LogTable) {
+            for (property in allLoggedProperties){
+                property.toLog(table)
+            }
+        }
+
+        override fun fromLog(table: LogTable) {
+            for (property in allLoggedProperties){
+                property.fromLog(table)
+            }
+        }
     }
 
     init{

@@ -17,12 +17,12 @@ class GroundIntakeSerializer(io: GroundIntakeIO): SubsystemBase(), GroundIntakeI
     }
 
     fun intake(){
-        setIntakeVoltage(-10.volts)
+        setIntakeVoltage(-8.volts)
         setConveyorVoltage(-8.volts)
     }
 
     fun outtake(){
-        setIntakeVoltage(10.volts)
+        setIntakeVoltage(8.volts)
         setConveyorVoltage(8.volts)
     }
 

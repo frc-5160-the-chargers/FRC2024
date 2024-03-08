@@ -42,7 +42,7 @@ private val STARTING_TRANSLATION_PIVOT_SIM = Translation3d(0.325, 0.0, 0.75)
 
 class Pivot(
     val io: PivotIO,
-    private val pidConstants: PIDConstants,
+    private val pidConstants: PIDConstants? = null,
     // null indicates no motion profile
     private val motionProfile: AngularMotionProfile? = null,
     private val feedforward: ArmFFEquation = ArmFFEquation(0.0,0.0,0.0),
@@ -116,37 +116,39 @@ class Pivot(
     fun setSpeed(speed: Double) = setVoltage(speed * 12.volts)
 
     fun setAngle(angle: Angle){
-        if (willExceedSoftStop(movingForward = angle > io.angle)){
-            setIdle()
-            atTarget = true
-            return
-        }
+        if (pidConstants != null){
+            if (willExceedSoftStop(movingForward = angle > io.angle)){
+                setIdle()
+                atTarget = true
+                return
+            }
 
-        val setpointPosition: Angle
-        val feedforward: Voltage
+            val setpointPosition: Angle
+            val feedforward: Voltage
 
-        if (motionProfile != null){
-            motionProfileSetpoint = motionProfile.calculate(
-                0.02.seconds,
-                motionProfileSetpoint,
-                AngularMotionProfileState(angle)
+            if (motionProfile != null){
+                motionProfileSetpoint = motionProfile.calculate(
+                    0.02.seconds,
+                    motionProfileSetpoint,
+                    AngularMotionProfileState(angle)
+                )
+                setpointPosition = motionProfileSetpoint.position
+                feedforward = feedforward(io.angle, motionProfileSetpoint.velocity)
+            }else{
+                setpointPosition = angle
+                feedforward = 0.volts
+            }
+            Logger.recordOutput("Pivot/setpoint", setpointPosition.siValue)
+            Logger.recordOutput("Pivot/ff", feedforward.siValue)
+
+            atTarget = (angle - io.angle).within(precision)
+
+            io.setAngleSetpoint(
+                setpointPosition,
+                pidConstants,
+                feedforward
             )
-            setpointPosition = motionProfileSetpoint.position
-            feedforward = feedforward(io.angle, motionProfileSetpoint.velocity)
-        }else{
-            setpointPosition = angle
-            feedforward = 0.volts
         }
-        Logger.recordOutput("Pivot/setpoint", setpointPosition.siValue)
-        Logger.recordOutput("Pivot/ff", feedforward.siValue)
-
-        atTarget = (angle - io.angle).within(precision)
-
-        io.setAngleSetpoint(
-            setpointPosition,
-            pidConstants,
-            feedforward
-        )
     }
 
     fun setAngleCommand(target: Angle): Command =

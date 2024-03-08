@@ -26,12 +26,12 @@ fun runGroundIntake(
 
     if (timeout != null){
         loopFor(timeout){
-            shooter.intake(-0.08) // slight speaker outtake voltage to prevent note from going into it
+            shooter.setIdle()
             groundIntake.intake()
         }
     }else{
         loop{
-            shooter.intake(-0.08) // slight speaker outtake voltage to prevent note from going into it
+            shooter.setIdle()
             groundIntake.intake()
         }
     }

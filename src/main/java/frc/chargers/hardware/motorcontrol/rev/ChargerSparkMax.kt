@@ -316,7 +316,7 @@ public class ChargerSparkMax(
             when (val frameConfig = configuration.periodicFrameConfig){
                 is PeriodicFrameConfig.Custom -> {
                     frameConfig.frames.forEach{ (frame, period) ->
-                        setPeriodicFramePeriod(frame, period).addError()
+                        setPeriodicFramePeriod(frame, period)
                     }
                 }
 

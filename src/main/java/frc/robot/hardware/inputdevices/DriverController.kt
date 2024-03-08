@@ -25,6 +25,44 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     val pointWestTrigger: Trigger = if (DRIVER.rightHanded) povLeft() else b()
 
     val aimToSpeakerTrigger: Trigger = Trigger{ false }
+
+
+
+    val leftHookUpTrigger: Trigger = leftBumper().and(
+        if (DRIVER.rightHanded){
+            y()
+        }else{
+            povUp()
+        }
+    )
+
+    val leftHookDownTrigger: Trigger = leftBumper().and(
+        if (DRIVER.rightHanded){
+            a()
+        }else{
+            povDown()
+        }
+    )
+
+    val rightHookUpTrigger: Trigger = rightBumper().and(
+        if (DRIVER.rightHanded){
+            y()
+        }else{
+            povUp()
+        }
+    )
+
+    val rightHookDownTrigger: Trigger = rightBumper().and(
+        if (DRIVER.rightHanded){
+            a()
+        }else{
+            povDown()
+        }
+    )
+
+
+
+
     val climberUpTrigger: Trigger = rightBumper()
     val climberDownTrigger: Trigger = leftBumper()
 

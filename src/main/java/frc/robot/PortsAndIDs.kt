@@ -27,8 +27,8 @@ object DrivetrainID {
 const val SHOOTER_MOTOR_ID = 7
 const val PIVOT_MOTOR_ID = 9
 //const val PIVOT_ENCODER_ID = 14
-const val GROUND_INTAKE_ID = 15 // TBD!!!!!!
-const val CONVEYOR_ID = 16 // TBD!!!!!!
+const val GROUND_INTAKE_ID = 13
+const val CONVEYOR_ID = 29
 
 const val CLIMBER_ID_LEFT = 6 // TBD MAYBE?
 const val CLIMBER_ID_RIGHT = 8
