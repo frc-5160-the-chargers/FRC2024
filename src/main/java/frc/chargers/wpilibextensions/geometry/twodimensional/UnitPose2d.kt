@@ -18,11 +18,11 @@ import org.littletonrobotics.junction.LogTable
 public data class UnitPose2d(
     val siValue: Pose2d = Pose2d()
 ): AdvantageKitLoggable<UnitPose2d>{
-    public constructor(translation: UnitTranslation2d, rotation: Angle): this(
+    public constructor(translation: UnitTranslation2d, rotation: Angle = Angle(0.0)): this(
         Pose2d(translation.siValue, rotation.asRotation2d())
     )
 
-    public constructor(x: Distance, y: Distance, rotation: Angle): this(
+    public constructor(x: Distance, y: Distance, rotation: Angle = Angle(0.0)): this(
         Pose2d(x.siValue,y.siValue,rotation.asRotation2d())
     )
 

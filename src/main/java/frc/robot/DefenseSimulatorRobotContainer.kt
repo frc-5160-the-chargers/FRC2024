@@ -1,6 +1,7 @@
 package frc.robot
 
 import com.batterystaple.kmeasure.quantities.div
+import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
@@ -22,6 +23,8 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.chargers.utils.math.equations.Polynomial
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitTransform2d
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.robot.hardware.inputdevices.Driver
 import frc.robot.hardware.inputdevices.DriverController
@@ -118,29 +121,36 @@ class DefenseSimulatorRobotContainer: ChargerRobotContainer() {
 
 
     private val drivetrain1 = EncoderHolonomicDrivetrain(
+        logName = "SwerveDrive1",
         dummyTurnMotors, dummySwerveEncoders, dummyDriveMotors,
         standardHardwareData, standardControlData
     ).apply{
         // extension function in chargerlib
         setDefaultRunCommand{
-            swerveDrive(
-                DriverController.swerveOutput,
-                fieldRelative = !DriverController.shouldDisableFieldRelative
-            )
+            swerveDrive(DriverController.swerveOutput)
         }
     }
 
     private val drivetrain2 = EncoderHolonomicDrivetrain(
+        logName = "SwerveDrive2",
         dummyTurnMotors, dummySwerveEncoders, dummyDriveMotors,
         standardHardwareData, standardControlData
     ).apply{
         setDefaultRunCommand{
-            swerveDrive(
-                SecondaryDriverController.swerveOutput,
-                fieldRelative = !SecondaryDriverController.shouldDisableFieldRelative
-            )
+            swerveDrive(SecondaryDriverController.swerveOutput)
         }
     }
+
+
+    fun EncoderHolonomicDrivetrain.getCornerPoses(): List<UnitPose2d> {
+        val pose = poseEstimator.robotPose
+        return moduleTranslationsFromRobotCenter.map{
+            translation -> pose + UnitTransform2d(translation, 0.degrees)
+        }
+    }
+
+
+
 
     override val autonomousCommand: Command
         get() = Commands.idle()

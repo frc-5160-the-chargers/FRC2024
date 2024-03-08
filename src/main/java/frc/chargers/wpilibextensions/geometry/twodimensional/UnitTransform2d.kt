@@ -18,7 +18,7 @@ public data class UnitTransform2d(
 ): AdvantageKitLoggable<UnitTransform2d>{
 
 
-    public constructor(translation: UnitTranslation2d, rotation: Angle): this(
+    public constructor(translation: UnitTranslation2d, rotation: Angle = Angle(0.0)): this(
         Transform2d(translation.siValue,rotation.asRotation2d())
     )
 
@@ -26,7 +26,7 @@ public data class UnitTransform2d(
         Transform2d(initial.siValue,last.siValue)
     )
 
-    public constructor(x: Distance, y: Distance, rotation: Angle): this(
+    public constructor(x: Distance, y: Distance, rotation: Angle = Angle(0.0)): this(
         Transform2d(UnitTranslation2d(x,y).siValue, rotation.asRotation2d())
     )
 

@@ -46,14 +46,6 @@ import java.util.Optional
 import kotlin.math.pow
 import kotlin.math.abs
 
-private val topLeftLogInputs = LoggableInputsProvider("Drivetrain(Swerve)/TopLeftModule")
-
-private val topRightLogInputs = LoggableInputsProvider("Drivetrain(Swerve)/TopRightModule")
-
-private val bottomLeftLogInputs = LoggableInputsProvider("Drivetrain(Swerve)/BottomLeftModule")
-
-private val bottomRightLogInputs = LoggableInputsProvider("Drivetrain(Swerve)/BottomRightModule")
-
 
 /**
  * An implementation of Swerve drive, with encoders, to be used in future robot code.
@@ -65,6 +57,7 @@ private val bottomRightLogInputs = LoggableInputsProvider("Drivetrain(Swerve)/Bo
  * Note: TrackWidth is the horizontal length of the robot, while wheelBase is the vertical length of the robot.
  */
 public class EncoderHolonomicDrivetrain(
+    logName: String = "Drivetrain(Swerve)",
     turnMotors: SwerveMotors<EncoderMotorController>,
     turnEncoders: SwerveEncoders<PositionEncoder>,
     driveMotors: SwerveMotors<EncoderMotorController>,
@@ -112,10 +105,10 @@ public class EncoderHolonomicDrivetrain(
      * Order is always top left, top right, bottom left, bottom right.
      */
     private val moduleIOArray = a[
-        generateModuleIO(topLeftLogInputs, turnMotors.topLeft, turnEncoders.topLeft, driveMotors.topLeft),
-        generateModuleIO(topRightLogInputs, turnMotors.topRight, turnEncoders.topRight, driveMotors.topRight),
-        generateModuleIO(bottomLeftLogInputs, turnMotors.bottomLeft, turnEncoders.bottomLeft, driveMotors.bottomLeft),
-        generateModuleIO(bottomRightLogInputs, turnMotors.bottomRight, turnEncoders.bottomRight, driveMotors.bottomRight)
+        generateModuleIO(LoggableInputsProvider("$logName/TopLeftModule"), turnMotors.topLeft, turnEncoders.topLeft, driveMotors.topLeft),
+        generateModuleIO(LoggableInputsProvider("$logName/TopRightModule"), turnMotors.topRight, turnEncoders.topRight, driveMotors.topRight),
+        generateModuleIO(LoggableInputsProvider("$logName/BottomLeftModule"), turnMotors.bottomLeft, turnEncoders.bottomLeft, driveMotors.bottomLeft),
+        generateModuleIO(LoggableInputsProvider("$logName/BottomRightModule"), turnMotors.bottomRight, turnEncoders.bottomRight, driveMotors.bottomRight)
     ]
 
     /**
@@ -217,13 +210,6 @@ public class EncoderHolonomicDrivetrain(
         }
     }
 
-    private val moduleLocations = listOf(
-        UnitTranslation2d(hardwareData.trackWidth/2,hardwareData.wheelBase/2),
-        UnitTranslation2d(hardwareData.trackWidth/2,-hardwareData.wheelBase/2),
-        UnitTranslation2d(-hardwareData.trackWidth/2,hardwareData.wheelBase/2),
-        UnitTranslation2d(-hardwareData.trackWidth/2,-hardwareData.wheelBase/2)
-    )
-
     private val constraints = SwerveSetpointGenerator.ModuleLimits(
         hardwareData.maxModuleSpeed.siValue,
         hardwareData.maxModuleAcceleration.siValue,
@@ -289,6 +275,17 @@ public class EncoderHolonomicDrivetrain(
 
     /* PUBLIC API */
 
+
+    /**
+     * The locations of all the modules with respect to the robot's center.
+     */
+    public val moduleTranslationsFromRobotCenter = listOf(
+        UnitTranslation2d(hardwareData.trackWidth/2,hardwareData.wheelBase/2),
+        UnitTranslation2d(hardwareData.trackWidth/2,-hardwareData.wheelBase/2),
+        UnitTranslation2d(-hardwareData.trackWidth/2,hardwareData.wheelBase/2),
+        UnitTranslation2d(-hardwareData.trackWidth/2,-hardwareData.wheelBase/2)
+    )
+
     /**
      * The pose estimator of the [EncoderHolonomicDrivetrain].
      *
@@ -327,7 +324,7 @@ public class EncoderHolonomicDrivetrain(
      */
     public val kinematics: SwerveDriveKinematics =
         SwerveDriveKinematics(
-            *moduleLocations.map{ it.inUnit(meters) }.toTypedArray()
+            *moduleTranslationsFromRobotCenter.map{ it.inUnit(meters) }.toTypedArray()
         )
 
 
@@ -336,7 +333,7 @@ public class EncoderHolonomicDrivetrain(
      */
     public val setpointGenerator: SwerveSetpointGenerator = SwerveSetpointGenerator(
         kinematics,
-        moduleLocations.map{ it.inUnit(meters) }.toTypedArray()
+        moduleTranslationsFromRobotCenter.map{ it.inUnit(meters) }.toTypedArray()
     )
 
 
@@ -376,6 +373,9 @@ public class EncoderHolonomicDrivetrain(
                 it.direction.asRotation2d()
             )
         }
+
+    public val moduleAngularVelocities: List<AngularVelocity>
+        get() = moduleIOArray.map{ it.speed }
 
 
     /**

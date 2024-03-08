@@ -19,6 +19,8 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
         InputAxis{ leftY }
             .invertWhen{ SHOULD_INVERT_SHOOTER_SPEED }
             .applyDeadband(0.15)
+            .applyMultiplier(0.6)
+            .square()
 
     val pivotSpeedAxis =
         InputAxis{ rightY }
@@ -41,5 +43,4 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     val groundOuttakeTrigger: Trigger = leftTrigger()
     val passToShooterTrigger: Trigger = rightBumper()
     val shootInSpeakerTrigger: Trigger = leftBumper()
-
 }

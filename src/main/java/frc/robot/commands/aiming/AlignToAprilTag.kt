@@ -54,6 +54,13 @@ enum class AprilTagLocation(
         redAllianceAprilTagId = 5,
         pivotAngle = PivotAngle.AMP,
         0.5.meters
+    ),
+
+    STAGE_LEFT(
+        blueAllianceAprilTagId = 0,
+        redAllianceAprilTagId = 0,
+        pivotAngle = PivotAngle.STOWED,
+        0.7.meters
     )
 }
 

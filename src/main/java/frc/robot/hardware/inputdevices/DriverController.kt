@@ -43,19 +43,11 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     )
 
     val rightHookUpTrigger: Trigger = rightBumper().and(
-        if (DRIVER.rightHanded){
-            y()
-        }else{
-            povUp()
-        }
+        if (DRIVER.rightHanded) y() else povUp()
     )
 
     val rightHookDownTrigger: Trigger = rightBumper().and(
-        if (DRIVER.rightHanded){
-            a()
-        }else{
-            povDown()
-        }
+        if (DRIVER.rightHanded) a() else povDown()
     )
 
     val shouldDisableFieldRelative: Boolean

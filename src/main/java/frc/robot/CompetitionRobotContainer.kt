@@ -7,6 +7,7 @@ package frc.robot
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.kauailabs.navx.frc.AHRS
+import com.pathplanner.lib.path.PathPlannerPath
 import com.pathplanner.lib.util.PathPlannerLogging
 import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.geometry.Pose2d
@@ -15,11 +16,9 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.GenericHID
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
-import edu.wpi.first.wpilibj.SPI
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
-import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -43,7 +42,6 @@ import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
-import frc.chargers.wpilibextensions.runAllTests
 import frc.robot.commands.*
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
@@ -77,15 +75,17 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     // note of reference: an IO class is a low-level component of the robot
     // that integrates advantagekit logging.
 
-    private val gyroIO = ChargerNavX(
-        useFusedHeading = false,
-        ahrs = AHRS(SPI.Port.kMXP, ODOMETRY_UPDATE_FREQUENCY_HZ.toInt().toByte())
-    ).apply{ zeroHeading() }
+    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{ zeroHeading() }
 
     private val shooter = Shooter(
         if (isReal()){
             ShooterIOReal(
-                topMotor = ChargerTalonFX(SHOOTER_MOTOR_ID){ inverted = true },
+                topMotor = ChargerTalonFX(SHOOTER_MOTOR_ID){
+                    ///// FOR NAYAN: Shooter configuration
+                    inverted = true
+                    statorCurrentLimitEnable = true
+                    statorCurrentLimit = 65.amps
+                },
                 gearRatio = shooterRatio
             )
         }else{
@@ -99,26 +99,25 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         if (isReal()){
             PivotIOReal(
                 ChargerSparkMax(PIVOT_MOTOR_ID){
-                    periodicFrameConfig = PeriodicFrameConfig.Custom(
-                        10, 10, 10, 10, 10, 10
-                    )
+                    periodicFrameConfig = PeriodicFrameConfig.Custom(10, 10, 10, 10, 10, 10)
+                    ///// FOR NAYAN: Change Current Limit for Pivot
+                    smartCurrentLimit = SmartCurrentLimit(35.amps)
                 },
                 useOnboardPID = false,
                 encoderType = PivotIOReal.EncoderType.IntegratedRelativeEncoder(pivotRatio),
-                offset = 1.503.radians
+                //offset = 1.503.radians
             )
         }else{
-            PivotIOSim(
-                DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004)
-            )
+            PivotIOSim(DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004))
         },
-        if (isReal()) { PIDConstants(10.0,0,0) } else PIDConstants(1.0, 0.0, 0.0),
+        ///// FOR NAYAN: Pivot PID Constants
+        if (isReal()) PIDConstants(7.0,0,0)  else PIDConstants(10.0, 0.0, 0.0),
         AngularTrapezoidProfile(
             maxVelocity = AngularVelocity(8.0),
-            maxAcceleration = AngularAcceleration(12.0)
+            maxAcceleration = AngularAcceleration(10.0)
         ),
         forwardSoftStop = 1.636.radians,
-        reverseSoftStop = (-1.576).radians
+        //reverseSoftStop = (-1.576).radians
     )
 
     private val groundIntakeMotor = ChargerSparkFlex(GROUND_INTAKE_ID)
@@ -127,7 +126,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         if (isReal()){
             GroundIntakeIOReal(
                 topMotor = groundIntakeMotor,
-                conveyorMotor = ChargerSparkMax(CONVEYOR_ID){ inverted = true },
+                conveyorMotor = ChargerSparkMax(CONVEYOR_ID){
+                    ///// FOR NAYAN: Ground Intake configuration
+                    inverted = true
+                    smartCurrentLimit = SmartCurrentLimit(60.amps)
+                },
                 intakeGearRatio = groundIntakeRatio
             )
         }else{
@@ -141,10 +144,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val climber = Climber(
         ClimberIOReal(
             ChargerSparkMax(CLIMBER_ID_LEFT){
+                ///// FOR NAYAN: Climber Configuration
                 inverted = true
                 idleMode = CANSparkBase.IdleMode.kBrake
             },
             ChargerSparkMax(CLIMBER_ID_RIGHT){
+                ///// FOR NAYAN: Climber Configuration
                 idleMode = CANSparkBase.IdleMode.kBrake
             }
         )
@@ -431,12 +436,30 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     override val autonomousCommand: Command
-        get() = buildCommand {
-            loopFor(3.seconds){
-                groundIntakeMotor.set(-0.3)
-            }
-        }
+        get() = autoChooser.selected
 
-    override val testCommand: Command get() =
-        drivetrain.getDriveSysIdRoutine().runAllTests() // chargerlib extension function
+
+    override val testCommand: Command = FFCharacterize6328(
+        drivetrain, true,
+        FFCharacterize6328.FeedForwardCharacterizationData("DrivetrainDataLeft"),
+        FFCharacterize6328.FeedForwardCharacterizationData("DrivetrainDataRight"),
+        { leftV, rightV ->
+            drivetrain.setDriveVoltages(
+                listOf(
+                    leftV.ofUnit(volts),
+                    rightV.ofUnit(volts),
+                    leftV.ofUnit(volts),
+                    rightV.ofUnit(volts),
+                )
+            )
+        },
+        {
+            val allVelocities = drivetrain.moduleAngularVelocities
+            allVelocities[0].siValue + allVelocities[2].siValue / 2.0
+        },
+        {
+            val allVelocities = drivetrain.moduleAngularVelocities
+            allVelocities[1].siValue + allVelocities[3].siValue / 2.0
+        }
+    )
 }

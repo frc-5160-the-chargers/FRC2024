@@ -3,11 +3,13 @@ package frc.robot.hardware.subsystems.pivot
 import com.batterystaple.kmeasure.dimensions.AngleDimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
+import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d
 import edu.wpi.first.wpilibj.util.Color
@@ -15,6 +17,7 @@ import edu.wpi.first.wpilibj.util.Color8Bit
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.commands.commandbuilder.buildCommand
+import frc.chargers.constants.DashboardTuner
 import frc.chargers.controls.feedforward.ArmFFEquation
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
@@ -27,13 +30,13 @@ import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 
 object PivotAngle {
-    val AMP: Angle = 30.degrees
+    val AMP: Angle = if (RobotBase.isReal()) 0.55.radians else 30.degrees
 
-    val SOURCE: Angle = 0.degrees
+    val SOURCE: Angle = if (RobotBase.isReal()) 0.degrees else 0.degrees
 
-    val STOWED: Angle = -70.degrees
+    val GROUND_INTAKE_HANDOFF: Angle = if (RobotBase.isReal()) -1.73.radians else -70.degrees
 
-    val GROUND_INTAKE_HANDOFF: Angle = -60.degrees
+    val STOWED: Angle = GROUND_INTAKE_HANDOFF // same as of now
 
     val SPEAKER: Angle = GROUND_INTAKE_HANDOFF // same as of now
 }
@@ -42,7 +45,7 @@ private val STARTING_TRANSLATION_PIVOT_SIM = Translation3d(0.325, 0.0, 0.75)
 
 class Pivot(
     val io: PivotIO,
-    private val pidConstants: PIDConstants? = null,
+    pidConstants: PIDConstants,
     // null indicates no motion profile
     private val motionProfile: AngularMotionProfile? = null,
     private val feedforward: ArmFFEquation = ArmFFEquation(0.0,0.0,0.0),
@@ -51,6 +54,11 @@ class Pivot(
     private val reverseSoftStop: Angle? = null
 ): SubsystemBase() {
     /* Private Members */
+    private val tuner = DashboardTuner()
+    private val pidConstants by tuner.pidConstants(default = pidConstants)
+
+
+
     @AutoLogOutput
     private val mechanismCanvas = Mechanism2d(3.0, 3.0)
     private val pivotVisualizer: MechanismLigament2d
@@ -116,39 +124,37 @@ class Pivot(
     fun setSpeed(speed: Double) = setVoltage(speed * 12.volts)
 
     fun setAngle(angle: Angle){
-        if (pidConstants != null){
-            if (willExceedSoftStop(movingForward = angle > io.angle)){
-                setIdle()
-                atTarget = true
-                return
-            }
-
-            val setpointPosition: Angle
-            val feedforward: Voltage
-
-            if (motionProfile != null){
-                motionProfileSetpoint = motionProfile.calculate(
-                    0.02.seconds,
-                    motionProfileSetpoint,
-                    AngularMotionProfileState(angle)
-                )
-                setpointPosition = motionProfileSetpoint.position
-                feedforward = feedforward(io.angle, motionProfileSetpoint.velocity)
-            }else{
-                setpointPosition = angle
-                feedforward = 0.volts
-            }
-            Logger.recordOutput("Pivot/setpoint", setpointPosition.siValue)
-            Logger.recordOutput("Pivot/ff", feedforward.siValue)
-
-            atTarget = (angle - io.angle).within(precision)
-
-            io.setAngleSetpoint(
-                setpointPosition,
-                pidConstants,
-                feedforward
-            )
+        if (willExceedSoftStop(movingForward = angle > io.angle)){
+            setIdle()
+            atTarget = true
+            return
         }
+
+        val setpointPosition: Angle
+        val feedforward: Voltage
+
+        if (motionProfile != null){
+            motionProfileSetpoint = motionProfile.calculate(
+                0.02.seconds,
+                motionProfileSetpoint,
+                AngularMotionProfileState(angle)
+            )
+            setpointPosition = motionProfileSetpoint.position
+            feedforward = feedforward(io.angle, motionProfileSetpoint.velocity)
+        }else{
+            setpointPosition = angle
+            feedforward = 0.volts
+        }
+        Logger.recordOutput("Pivot/setpoint", setpointPosition.siValue)
+        Logger.recordOutput("Pivot/ff", feedforward.siValue)
+
+        atTarget = (angle - io.angle).within(precision)
+
+        io.setAngleSetpoint(
+            setpointPosition,
+            pidConstants,
+            feedforward
+        )
     }
 
     fun setAngleCommand(target: Angle): Command =

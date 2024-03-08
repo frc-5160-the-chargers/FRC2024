@@ -35,7 +35,7 @@ class AutoChooser(
 
     private val ampScoreNote2Component = AmpAutoScoreComponent.fromPathPlanner(
         grabPathName = "AmpGrabG1",
-        scorePathName = "AmpScoreG1",
+        scorePathName = if (aprilTagVision != null) "AmpScoreG1" else "AmpScoreG1NoVision",
         type = AmpAutoScoreComponent.Type.SCORE_NOTE
     )
 
