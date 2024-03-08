@@ -264,7 +264,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureDefaultCommands(){
-        drivetrain.setDefaultRunCommand(endBehavior = ::rumbleControllerOnInterrupt){
+        drivetrain.setDefaultRunCommand{
             drivetrain.swerveDrive(
                 DriverController.swerveOutput,
                 fieldRelative = !DriverController.shouldDisableFieldRelative
@@ -282,6 +282,24 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
         pivot.setDefaultRunCommand(endBehavior = pivot::setIdle){
             pivot.setSpeed(OperatorInterface.pivotSpeedAxis())
+        }
+
+        climber.setDefaultRunCommand{
+            if (DriverController.leftHookUpTrigger.asBoolean){
+                climber.moveLeftHook(1.0)
+            }else if (DriverController.leftHookDownTrigger.asBoolean){
+                climber.moveLeftHook(-1.0)
+            }else{
+                climber.moveLeftHook(0.0)
+            }
+
+            if (DriverController.rightHookUpTrigger.asBoolean){
+                climber.moveRightHook(1.0)
+            }else if (DriverController.rightHookDownTrigger.asBoolean){
+                climber.moveRightHook(-1.0)
+            }else{
+                climber.moveRightHook(0.0)
+            }
         }
     }
 
@@ -314,13 +332,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             pointWestTrigger.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
 
-            climberUpTrigger
-                .whileTrue(loopCommand(climber){ climber.runUpwards() })
-                .onFalse(runOnceCommand(climber){ climber.setIdle() })
 
-            climberDownTrigger
-                .whileTrue(loopCommand(climber){ climber.runDownwards() })
-                .onFalse(runOnceCommand(climber){ climber.setIdle() })
         }
 
         OperatorInterface.apply{

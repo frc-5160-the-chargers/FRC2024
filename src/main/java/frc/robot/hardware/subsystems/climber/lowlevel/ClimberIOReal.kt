@@ -4,6 +4,7 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.revrobotics.CANSparkMax
 
+
 class ClimberIOReal(
     private val leftMotor: CANSparkMax,
     private val rightMotor: CANSparkMax
@@ -28,9 +29,19 @@ class ClimberIOReal(
         rightEncoder.velocity.ofUnit(rotations / minutes)
     }
 
-    override fun setVoltages(leftVoltage: Voltage, rightVoltage: Voltage) {
-        rightMotor.setVoltage(rightVoltage.inUnit(volts))
+    override val leftPosition by ClimberLog.quantity{
+        leftEncoder.position.ofUnit(rotations)
+    }
+
+    override val rightPosition by ClimberLog.quantity{
+        rightEncoder.position.ofUnit(rotations)
+    }
+
+    override fun setLeftVoltage(voltage: Voltage) {
         leftMotor.setVoltage(leftVoltage.inUnit(volts))
     }
 
+    override fun setRightVoltage(voltage: Voltage) {
+        rightMotor.setVoltage(rightVoltage.inUnit(volts))
+    }
 }

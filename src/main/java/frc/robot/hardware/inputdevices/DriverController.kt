@@ -26,8 +26,6 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
     val aimToSpeakerTrigger: Trigger = Trigger{ false }
 
-
-
     val leftHookUpTrigger: Trigger = leftBumper().and(
         if (DRIVER.rightHanded){
             y()
@@ -59,12 +57,6 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
             povDown()
         }
     )
-
-
-
-
-    val climberUpTrigger: Trigger = rightBumper()
-    val climberDownTrigger: Trigger = leftBumper()
 
     val shouldDisableFieldRelative: Boolean
         get() = start().asBoolean || back().asBoolean
@@ -113,6 +105,8 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
             .withModifier{ 1.0 / it }
             .log("DriverController/precisionPower")
+
+
 
 
 

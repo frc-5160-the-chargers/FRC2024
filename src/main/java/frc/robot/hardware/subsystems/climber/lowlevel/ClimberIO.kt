@@ -1,6 +1,7 @@
 @file:Suppress("unused")
 package frc.robot.hardware.subsystems.climber.lowlevel
 
+import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Voltage
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
@@ -15,5 +16,10 @@ interface ClimberIO {
     val leftSpeed: AngularVelocity
     val rightSpeed: AngularVelocity
 
-    fun setVoltages(leftVoltage: Voltage, rightVoltage: Voltage)
+    val leftPosition: Angle
+    val rightPosition: Angle
+
+
+    fun setLeftVoltage(voltage: Voltage)
+    fun setRightVoltage(voltage: Voltage)
 }
