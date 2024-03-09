@@ -19,6 +19,9 @@ interface PivotIO {
     val appliedCurrent: Current
     val tempCelsius: Double
 
+    /**
+     * Sets the voltage of the pivot motor.
+     */
     fun setVoltage(voltage: Voltage)
 
     /**
@@ -29,6 +32,15 @@ interface PivotIO {
         pidConstants: PIDConstants,
         ffOutput: Voltage = Voltage(0.0)
     )
+
+    /**
+     * Sets the angle of the pivot to a certain value.
+     *
+     * Simulation does not utilize this function
+     */
+    fun zeroAngle(target: Angle){}
+
+
 
     // not intended to be overriden
     fun getRioPIDController() = SuperPIDController(

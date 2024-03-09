@@ -8,10 +8,6 @@ import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d
-import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d
-import edu.wpi.first.wpilibj.util.Color
-import edu.wpi.first.wpilibj.util.Color8Bit
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.commands.commandbuilder.buildCommand
@@ -40,9 +36,6 @@ class Pivot(
     private val reverseSoftStop: Angle? = null
 ): SubsystemBase() {
     /* Private Members */
-    @AutoLogOutput
-    private val mechanismCanvas = Mechanism2d(3.0, 3.0)
-    private val pivotVisualizer: MechanismLigament2d
     private var motionProfileSetpoint = AngularMotionProfileState(io.angle)
 
     private fun willExceedSoftStop(movingForward: Boolean): Boolean =
@@ -50,25 +43,7 @@ class Pivot(
         (reverseSoftStop != null && io.angle <= reverseSoftStop && !movingForward)
 
     init{
-        val root = mechanismCanvas.getRoot("PivotingShooter", 2.0, 0.0)
-
-        val staticJoint = root.append(
-            MechanismLigament2d(
-                "staticJoint",
-                0.5,
-                90.0
-            )
-        )
-
-        pivotVisualizer = staticJoint.append(
-            MechanismLigament2d(
-                "pivot",
-                0.2,
-                180.0,
-                3.0,
-                Color8Bit(Color.kRed)
-            )
-        )
+        io.zeroAngle(PivotAngle.STOWED) // assumes pivot is stowed at the start
     }
 
     /* Public API */
@@ -148,8 +123,6 @@ class Pivot(
         }
 
     override fun periodic(){
-        pivotVisualizer.angle = io.angle.inUnit(degrees)
-
         if (DriverStation.isDisabled()){
             setIdle()
         }

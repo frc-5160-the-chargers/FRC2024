@@ -199,6 +199,9 @@
         "open": true
       },
       "SmartDashboard": {
+        "AutoOptions": {
+          "open": true
+        },
         "NoteVisualizer": {
           "open": true
         },

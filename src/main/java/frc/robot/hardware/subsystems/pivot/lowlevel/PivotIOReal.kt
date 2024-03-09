@@ -20,9 +20,7 @@ class PivotIOReal(
     private val motor: SmartEncoderMotorController,
     useOnboardPID: Boolean = true,
     private val encoderType: EncoderType,
-    private val offset: Angle = Angle(0.0)
 ): PivotIO {
-
     sealed class EncoderType{
         /**
          * Represents an encoder type where the absolute encoder is "integrated"/plugged into the motor.
@@ -48,12 +46,18 @@ class PivotIOReal(
         ): EncoderType()
     }
 
+
+    private var offset = Angle(0.0)
+
     private val rioController: SuperPIDController<AngleDimension, VoltageDimension>? =
         if (useOnboardPID){
             null
         }else{
             getRioPIDController()
         }
+
+
+
 
     override val appliedVoltage by PivotLog.quantity{
         motor.appliedVoltage
@@ -75,6 +79,10 @@ class PivotIOReal(
     
     override val tempCelsius by PivotLog.double{
         motor.tempCelsius
+    }
+
+    override fun zeroAngle(target: Angle){
+        offset = angle - target
     }
 
     override fun setVoltage(voltage: Voltage) {

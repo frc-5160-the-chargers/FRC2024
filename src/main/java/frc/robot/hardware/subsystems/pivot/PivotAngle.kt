@@ -10,7 +10,7 @@ object PivotAngle {
 
     val SOURCE: Angle = if (RobotBase.isReal()) 0.degrees else 0.degrees
 
-    val GROUND_INTAKE_HANDOFF: Angle = if (RobotBase.isReal()) -1.73.radians else -70.degrees
+    val GROUND_INTAKE_HANDOFF: Angle = if (RobotBase.isReal()) -1.7.radians else -70.degrees
 
     val STOWED: Angle = GROUND_INTAKE_HANDOFF // same as of now
 

@@ -46,7 +46,7 @@ class Shooter(val io: ShooterIO): SubsystemBase() {
             io.setIntakeVoltage(0.volts)
         }else{
             io.setIntakeVoltage(voltage)
-            if (voltage < -2.volts){
+            if (abs(voltage) > 2.volts){
                 NoteVisualizer.setHasNote(true)
             }
         }

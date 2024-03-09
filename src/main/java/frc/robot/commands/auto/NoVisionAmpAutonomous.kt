@@ -41,13 +41,11 @@ fun noVisionAmpAutonomous(
         )
     }
 
-    runParallelUntilAllFinish{
-        +AutoBuilder.followPath(
-            PathPlannerPath.fromPathFile("DriveToAmp")
-        )
+    +AutoBuilder.followPath(
+        PathPlannerPath.fromPathFile("DriveToAmp")
+    )
 
-        +pivot.setAngleCommand(PivotAngle.AMP)
-    }
+    +pivot.setAngleCommand(PivotAngle.AMP)
 
     loopFor(0.2.seconds){
         shooter.outtake(0.5)
@@ -81,6 +79,8 @@ fun noVisionAmpAutonomous(
 
             +passSerializedNote(groundIntake, shooter, pivot)
         }
+
+        +pivot.setAngleCommand(PivotAngle.AMP)
 
         loopFor(0.2.seconds){
             shooter.outtake(0.5)

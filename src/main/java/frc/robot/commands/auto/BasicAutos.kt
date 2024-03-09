@@ -9,6 +9,7 @@ fun basicTaxi(drivetrain: EncoderHolonomicDrivetrain): Command =
     buildCommand {
         loopFor(2.seconds){
             drivetrain.swerveDrive(-0.3,0.0,0.0, fieldRelative = false)
+            println("hello!")
         }
 
         runOnce{

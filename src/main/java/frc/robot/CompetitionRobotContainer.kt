@@ -115,7 +115,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             maxAcceleration = AngularAcceleration(10.0)
         ),
         forwardSoftStop = 1.636.radians,
-        //reverseSoftStop = (-1.576).radians
+        reverseSoftStop = (-1.8).radians
     )
 
     private val groundIntakeMotor = ChargerSparkFlex(GROUND_INTAKE_ID)
