@@ -10,6 +10,7 @@ import com.pathplanner.lib.util.PathPlannerLogging
 import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.system.plant.DCMotor
+import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.GenericHID
 import edu.wpi.first.wpilibj.RobotBase.isReal
@@ -79,6 +80,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val shooter = Shooter(
         if (isReal()){
             ShooterIOReal(
+                beamBreakSensor = DigitalInput(9),
                 topMotor = ChargerTalonFX(SHOOTER_MOTOR_ID){
                     ///// FOR NAYAN: Shooter configuration
                     inverted = true
@@ -335,8 +337,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             pointSouthTrigger.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
 
             pointWestTrigger.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
-
-
         }
 
         OperatorInterface.apply{
