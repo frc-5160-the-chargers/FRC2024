@@ -43,7 +43,7 @@ class Pivot(
         (reverseSoftStop != null && io.angle <= reverseSoftStop && !movingForward)
 
     init{
-        io.zeroAngle(PivotAngle.STOWED) // assumes pivot is stowed at the start
+        resetToStowPosition() // assumes pivot is stowed at the start
     }
 
     /* Public API */
@@ -61,6 +61,10 @@ class Pivot(
 
     val angle: Angle
         get() = io.angle
+
+    fun resetToStowPosition(){
+        io.zeroAngle(PivotAngle.STOWED)
+    }
 
     fun setIdle(){
         io.setVoltage(0.volts)

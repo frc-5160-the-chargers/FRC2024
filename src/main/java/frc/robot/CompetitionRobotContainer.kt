@@ -368,6 +368,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
 
+            resetPivotAngleTrigger.onTrue(
+                runOnceCommand(pivot){
+                    pivot.resetToStowPosition()
+                }
+            )
+
             // vision stuff commented out for now
             /*
             // when "double clicked" and held, the buttons will auto drive and move the pivot
