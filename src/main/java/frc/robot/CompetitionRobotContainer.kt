@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
+import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -433,9 +434,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     }
 
-    override val autonomousCommand: Command
-        get() = autoChooser.selected
-
 
     override val testCommand: Command = FFCharacterize6328(
         drivetrain, true,
@@ -460,4 +458,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             allVelocities[1].siValue + allVelocities[3].siValue / 2.0
         }
     )
+
+    override val autonomousCommand: Command
+        get() = buildCommand{
+            runUntil(
+                {drivetrain.distanceTraveled >= 20.feet},
+                testCommand
+            )
+        }
 }

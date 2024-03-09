@@ -216,7 +216,7 @@ public class EncoderHolonomicDrivetrain(
         hardwareData.maxModuleRotationSpeed.siValue
     )
 
-    private fun averageEncoderPosition() = moduleIOArray.map{it.wheelTravel}.average()
+    private fun averageEncoderPosition() = moduleIOArray.map{ it.wheelTravel }.average()
 
     private val distanceOffset: Distance = averageEncoderPosition() * wheelRadius
 
