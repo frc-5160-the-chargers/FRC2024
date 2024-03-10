@@ -4,7 +4,6 @@ import com.batterystaple.kmeasure.quantities.Time
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
-import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 
@@ -14,14 +13,11 @@ import frc.robot.hardware.subsystems.shooter.Shooter
  */
 fun runGroundIntake(
     groundIntake: GroundIntakeSerializer,
-    pivot: Pivot,
     shooter: Shooter,
 
     timeout: Time? = null
 ): Command = buildCommand{
-    addRequirements(groundIntake, pivot, shooter)
-
-    //+pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+    addRequirements(groundIntake, shooter)
 
     if (timeout != null){
         loopFor(timeout){
@@ -38,6 +34,5 @@ fun runGroundIntake(
     onEnd{
         shooter.setIdle()
         groundIntake.setIdle()
-        pivot.setIdle()
     }
 }

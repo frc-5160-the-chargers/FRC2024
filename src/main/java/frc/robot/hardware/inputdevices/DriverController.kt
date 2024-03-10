@@ -7,12 +7,16 @@ import frc.chargers.hardware.inputdevices.InputAxis
 import frc.chargers.utils.math.equations.Polynomial
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.robot.DRIVER_CONTROLLER_PORT
+import org.littletonrobotics.junction.networktables.LoggedDashboardBoolean
 
 
 object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     /* Top-Level constants */
     private const val DEFAULT_DEADBAND = 0.1
     private val DRIVER = Driver.NAYAN
+
+    private val shouldInvertForward = LoggedDashboardBoolean("ShouldInvertForward", false)
+    private val shouldInvertStrafe = LoggedDashboardBoolean("ShouldInvertStrafe", false)
 
 
     /* Public API */
@@ -62,28 +66,14 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     private val forwardAxis =
         InputAxis{ if (DRIVER.rightHanded) rightY else leftY }
             .applyDeadband(DEFAULT_DEADBAND)
-            /*
-            .invertWhen{
-                (DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
-                    !IS_KEYBOARD_SIM_CONTROLLER) ||
-                    shouldDisableFieldRelative
-            }
-
-             */
+            .invertWhen{ shouldInvertForward.get() }
             .applyMultiplier(0.6)
             .log("DriverController/xPower")
 
     private val strafeAxis =
         InputAxis{ if (DRIVER.rightHanded) rightX else leftX }
             .applyDeadband(DEFAULT_DEADBAND)
-            /*
-            .invertWhen{
-                (DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
-                    !IS_KEYBOARD_SIM_CONTROLLER) ||
-                    shouldDisableFieldRelative
-            }
-
-             */
+            .invertWhen{ shouldInvertStrafe.get() }
             .applyMultiplier(0.6)
             .log("DriverController/yPower")
 

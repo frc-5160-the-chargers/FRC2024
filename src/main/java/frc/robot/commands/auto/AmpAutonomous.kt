@@ -98,7 +98,9 @@ fun ampAutonomous(
                     drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
                 }
 
-                +runGroundIntake(groundIntake, pivot, shooter)
+                +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+
+                +runGroundIntake(groundIntake, shooter)
             }
         }
 
@@ -111,7 +113,11 @@ fun ampAutonomous(
                 runParallelUntilAllFinish{
                     +followPathOptimal(drivetrain, autoComponent.grabPath)
 
-                    +passSerializedNote(groundIntake, shooter, pivot)
+                    runSequentially{
+                        +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+
+                        +passSerializedNote(groundIntake, shooter)
+                    }
                 }
 
                 loopFor(0.5.seconds){
@@ -130,7 +136,11 @@ fun ampAutonomous(
                     followPathCommand = -runParallelUntilAllFinish{
                         +followPathOptimal(drivetrain, autoComponent.scorePath)
 
-                        +passSerializedNote(groundIntake, shooter, pivot)
+                        runSequentially{
+                            +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+
+                            +passSerializedNote(groundIntake, shooter)
+                        }
                     } // negative sign removes the block from the command builder, as the parallel command is added to the builder by default
                 )
 

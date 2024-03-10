@@ -1,6 +1,5 @@
 package frc.robot.commands.auto
 
-import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
@@ -8,8 +7,6 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
-import frc.chargers.wpilibextensions.geometry.ofUnit
-import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
 import frc.robot.AMP_AUTO_STARTING_POSE_BLUE
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
 import frc.robot.commands.followPathOptimal
@@ -32,7 +29,6 @@ fun noVisionAmpAutonomous(
     taxiAtEnd: Boolean = false,
     additionalComponents: List<AmpAutoScoreComponent> = listOf() // used to control further notes pursued.
 ): Command = buildCommand {
-
     addRequirements(drivetrain, shooter, pivot)
 
     runOnce{
@@ -47,8 +43,12 @@ fun noVisionAmpAutonomous(
 
     +pivot.setAngleCommand(PivotAngle.AMP)
 
+    loopUntil({!shooter.hasNote}){
+        shooter.outtake(0.3)
+    }
+
     loopFor(0.2.seconds){
-        shooter.outtake(0.5)
+        shooter.outtake(0.3)
     }
 
     runOnce{
@@ -57,33 +57,40 @@ fun noVisionAmpAutonomous(
 
 
     for (autoComponent in additionalComponents){
-        val grabPathStartPose = autoComponent.grabPath.pathPoses.last().ofUnit(meters).flipWhenNeeded()
         runParallelUntilFirstCommandFinishes{
             // parallel #1
-            +followPathOptimal(drivetrain, autoComponent.grabPath)
+            runSequentially{
+                +followPathOptimal(drivetrain, autoComponent.grabPath)
+
+                waitFor(1.seconds)
+            }
 
             // parallel #2
             runSequentially{
-                // sets pivot angle while note intake does not start yet
-                runUntil(
-                    { drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE },
-                    pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
-                )
+                +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
 
-                +runGroundIntake(groundIntake, pivot, shooter)
+                +runGroundIntake(groundIntake, shooter)
             }
         }
 
         runParallelUntilAllFinish{
             +followPathOptimal(drivetrain, autoComponent.scorePath)
 
-            +passSerializedNote(groundIntake, shooter, pivot)
+            runSequentially{
+                +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+
+                +passSerializedNote(groundIntake, shooter)
+            }
         }
 
         +pivot.setAngleCommand(PivotAngle.AMP)
 
+        loopUntil({!shooter.hasNote}){
+            shooter.outtake(0.3)
+        }
+
         loopFor(0.2.seconds){
-            shooter.outtake(0.5)
+            shooter.outtake(0.3)
         }
 
         runOnce{

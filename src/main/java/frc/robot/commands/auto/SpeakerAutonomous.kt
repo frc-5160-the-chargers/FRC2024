@@ -74,7 +74,9 @@ fun speakerAutonomous(
                     drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
                 }
 
-                +runGroundIntake(groundIntake, pivot, shooter)
+                +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+
+                +runGroundIntake(groundIntake, shooter)
             }
         }
 
@@ -86,6 +88,8 @@ fun speakerAutonomous(
             runParallelUntilFirstCommandFinishes{
                 +AutoBuilder.followPath(autoComponent.scorePath)
 
+                +pivot.setAngleCommand(PivotAngle.SPEAKER)
+
                 if (autoComponent.shooterShouldStartDuringPath){
                     loop{
                         // just run shooting to bring the shooter up to speed
@@ -93,8 +97,6 @@ fun speakerAutonomous(
                         groundIntake.setConveyorVoltage(-0.5.volts) // sets a small voltage so that note won't entirely go into shooter
                     }
                 }
-
-                +pivot.setAngleCommand(PivotAngle.SPEAKER)
             }
         }
 

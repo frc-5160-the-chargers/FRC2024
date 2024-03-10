@@ -10,9 +10,7 @@ import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.utils.Precision
 import frc.robot.hardware.subsystems.climber.lowlevel.ClimberIO
-
-
-
+import org.littletonrobotics.junction.Logger
 
 
 // change this to voltage requests / positions requests
@@ -46,7 +44,17 @@ class Climber(
 
      */
 
-    private fun surpassedLimit(hookSpeed: Double, position: Angle): Boolean{
+    private fun willSurpassLimit(hookSpeed: Double, position: Angle): Boolean{
+
+        Logger.recordOutput("Climber/HighLimitNotNull", highLimit != null)
+        Logger.recordOutput("Climber/HookSpeedGreaterThanZero", hookSpeed > 0.0)
+        Logger.recordOutput("Climber/PositionGreaterThanHighLimit", highLimit != null && position >= highLimit)
+
+        Logger.recordOutput("Climber/LowLimitNotNull", lowLimit != null)
+        Logger.recordOutput("Climber/HookSpeedLessThanZero", hookSpeed < 0.0)
+        Logger.recordOutput("Climber/PositionLessThanLowLimit", lowLimit != null && position <= lowLimit)
+
+
         val surpassedUpperLimit: Boolean = highLimit != null && hookSpeed > 0.0 && position >= highLimit
         val surpassedLowerLimit: Boolean = lowLimit != null && hookSpeed < 0.0 && position <= lowLimit
 
@@ -54,7 +62,7 @@ class Climber(
     }
 
     fun moveLeftHook(speed: Double){
-        if (surpassedLimit(speed, io.leftPosition)){
+        if (willSurpassLimit(speed, io.leftPosition)){
             io.setLeftVoltage(0.volts)
         }else{
             io.setLeftVoltage(speed * climbMaxVoltage)
@@ -62,7 +70,7 @@ class Climber(
     }
 
     fun moveRightHook(speed: Double){
-        if (surpassedLimit(speed, io.rightPosition)){
+        if (willSurpassLimit(speed, io.rightPosition)){
             io.setRightVoltage(0.volts)
         }else{
             io.setRightVoltage(speed * climbMaxVoltage)

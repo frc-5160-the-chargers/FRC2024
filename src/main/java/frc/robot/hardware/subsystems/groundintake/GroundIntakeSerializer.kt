@@ -27,7 +27,7 @@ class GroundIntakeSerializer(io: GroundIntakeIO): SubsystemBase(), GroundIntakeI
     }
 
     fun passToShooter(){
-        setConveyorVoltage(-8.volts)
+        setConveyorVoltage(-10.volts)
         setIntakeVoltage(-6.volts) // intakes a little just in case the note is still in the ground intake portion
     }
 

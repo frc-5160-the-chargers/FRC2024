@@ -22,7 +22,7 @@ class ShooterIOReal(
     }
 
     override val hasNote by ShooterLog.boolean{
-        beamBreakSensor?.get() ?: false
+        !(beamBreakSensor?.get() ?: false) // readings must be inverted
     }
 
     override val hasNoteDetector by ShooterLog.boolean{

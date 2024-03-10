@@ -67,12 +67,18 @@ class Pivot(
     }
 
     fun setIdle(){
+        if (motionProfile != null){
+            motionProfileSetpoint.position = io.angle
+        }
         io.setVoltage(0.volts)
     }
 
     fun setVoltage(voltage: Voltage){
+        if (motionProfile != null){
+            motionProfileSetpoint.position = io.angle
+        }
         if (willExceedSoftStop(movingForward = voltage > 0.volts)){
-            setIdle()
+            io.setVoltage(0.volts)
             atTarget = true
             return
         }
@@ -83,7 +89,7 @@ class Pivot(
 
     fun setAngle(angle: Angle){
         if (willExceedSoftStop(movingForward = angle > io.angle)){
-            setIdle()
+            io.setVoltage(0.volts)
             atTarget = true
             return
         }

@@ -10,6 +10,7 @@ import com.pathplanner.lib.util.PathPlannerLogging
 import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.system.plant.DCMotor
+import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.GenericHID
 import edu.wpi.first.wpilibj.RobotBase.isReal
@@ -78,12 +79,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val shooter = Shooter(
         if (isReal()){
             ShooterIOReal(
-                //beamBreakSensor = DigitalInput(9),
+                beamBreakSensor = DigitalInput(9),
                 topMotor = ChargerTalonFX(SHOOTER_MOTOR_ID){
                     ///// FOR NAYAN: Shooter configuration
                     inverted = true
                     statorCurrentLimitEnable = true
-                    statorCurrentLimit = 65.amps
+                    statorCurrentLimit = 35.amps
                 },
                 gearRatio = shooterRatio
             )
@@ -128,7 +129,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 conveyorMotor = ChargerSparkMax(CONVEYOR_ID){
                     ///// FOR NAYAN: Ground Intake configuration
                     inverted = true
-                    smartCurrentLimit = SmartCurrentLimit(60.amps)
+                    smartCurrentLimit = SmartCurrentLimit(35.amps)
                 },
                 intakeGearRatio = groundIntakeRatio
             )
@@ -219,7 +220,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
                 DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
             )
-        }
+        },
+        highLimit = -100.radians,
     )
 
     //private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
@@ -344,7 +346,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
         OperatorInterface.apply{
             groundIntakeTrigger
-                .whileTrue(runGroundIntake(groundIntake, pivot, shooter))
+                .whileTrue(runGroundIntake(groundIntake, shooter))
                 .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
 
             groundOuttakeTrigger
@@ -352,7 +354,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 .onFalse(runOnceCommand(groundIntake){ groundIntake.setIdle() })
 
             passToShooterTrigger
-                .whileTrue(passSerializedNote(groundIntake, shooter, pivot))
+                .whileTrue(passSerializedNote(groundIntake, shooter))
                 .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
 
             // when only held, the buttons will just cause the pivot to PID to the appropriate position

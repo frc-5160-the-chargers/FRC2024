@@ -44,7 +44,7 @@ public class ChargerNavX(
             }
             println("AHRS has finished calibrating.")
 
-            headingOffset  = if (ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance && useFusedHeading){
+            headingOffset = if (ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance && useFusedHeading){
                 ahrs.fusedHeading.toDouble().ofUnit(degrees) + angle
             }else{
                 ahrs.angle.ofUnit(degrees) + angle
