@@ -43,7 +43,7 @@ class Pivot(
         (reverseSoftStop != null && io.angle <= reverseSoftStop && !movingForward)
 
     init{
-        resetToStowPosition() // assumes pivot is stowed at the start
+        resetToStartingPosition() // assumes pivot is stowed at the start
     }
 
     /* Public API */
@@ -62,8 +62,8 @@ class Pivot(
     val angle: Angle
         get() = io.angle
 
-    fun resetToStowPosition(){
-        io.zeroAngle(PivotAngle.STOWED)
+    fun resetToStartingPosition(){
+        io.zeroAngle(PivotAngle.STARTING)
     }
 
     fun setIdle(){
@@ -99,6 +99,7 @@ class Pivot(
             )
             setpointPosition = motionProfileSetpoint.position
             feedforward = feedforward(io.angle, motionProfileSetpoint.velocity)
+            Logger.recordOutput("Pivot/motionProfileGoal", angle.siValue)
         }else{
             setpointPosition = angle
             feedforward = 0.volts
@@ -129,6 +130,9 @@ class Pivot(
     override fun periodic(){
         if (DriverStation.isDisabled()){
             setIdle()
+            io.setBrakeMode(false)
+        }else{
+            io.setBrakeMode(true)
         }
     }
 }

@@ -6,13 +6,12 @@ import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 
 fun basicTaxi(drivetrain: EncoderHolonomicDrivetrain): Command =
-    buildCommand {
-        loopFor(2.seconds){
-            drivetrain.swerveDrive(-0.3,0.0,0.0, fieldRelative = false)
-            println("hello!")
+    buildCommand{
+        loopFor(5.seconds, drivetrain){
+            drivetrain.swerveDrive(-0.2,0.0,0.0, fieldRelative = false)
         }
 
-        runOnce{
+        onEnd{
             drivetrain.stop()
         }
     }

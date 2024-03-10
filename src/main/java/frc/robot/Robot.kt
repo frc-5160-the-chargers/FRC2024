@@ -9,6 +9,7 @@ val ROBOT = ChargerRobot(
         isReplay = false,
         tuningMode = false,
         onError = {},
-        hardwareConfigRetryLimit = 3
+        hardwareConfigRetryLimit = 3,
+        //logToNetworkTables = false
     )
 )

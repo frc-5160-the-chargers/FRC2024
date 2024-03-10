@@ -38,7 +38,14 @@ interface PivotIO {
      *
      * Simulation does not utilize this function
      */
-    fun zeroAngle(target: Angle){}
+    fun zeroAngle(target: Angle){
+        println("Empty Angle zero impl: set to $target")
+    }
+
+    /**
+     * Sets the brake mode.
+     */
+    fun setBrakeMode(shouldBrake: Boolean){}
 
 
 

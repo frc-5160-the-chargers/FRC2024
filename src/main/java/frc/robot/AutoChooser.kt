@@ -62,9 +62,9 @@ class AutoChooser(
 
     init{
         sendableChooser.apply{
-            addOption("Do Nothing", InstantCommand())
-
             addDefaultOption("Just Taxi", basicTaxi(drivetrain))
+
+            addOption("Do Nothing", InstantCommand())
 
             addOption(
                 "1 Note Amp(NO VISION)",

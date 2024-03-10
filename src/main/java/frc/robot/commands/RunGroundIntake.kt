@@ -5,7 +5,6 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
-import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 
@@ -22,7 +21,7 @@ fun runGroundIntake(
 ): Command = buildCommand{
     addRequirements(groundIntake, pivot, shooter)
 
-    +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+    //+pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
 
     if (timeout != null){
         loopFor(timeout){

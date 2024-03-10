@@ -101,6 +101,9 @@
             "open": true
           }
         },
+        "Climber": {
+          "open": true
+        },
         "Drivetrain(Swerve)": {
           "BottomLeftModule": {
             "open": true
@@ -213,8 +216,7 @@
         },
         "TunableValues": {
           "open": true
-        },
-        "open": true
+        }
       },
       "limelight": {
         "open": true

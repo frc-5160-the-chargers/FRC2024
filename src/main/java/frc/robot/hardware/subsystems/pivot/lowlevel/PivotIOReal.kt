@@ -82,7 +82,28 @@ class PivotIOReal(
     }
 
     override fun zeroAngle(target: Angle){
-        offset = angle - target
+        offset = angle + offset - target
+    }
+
+    override fun setBrakeMode(shouldBrake: Boolean) {
+        /*
+        if (motor is CANSparkBase){
+            if (shouldBrake){
+                motor.idleMode = CANSparkBase.IdleMode.kBrake
+            }else{
+                motor.idleMode = CANSparkBase.IdleMode.kCoast
+            }
+        }else if (motor is TalonFX){
+            val configuration = TalonFXConfiguration()
+            motor.configurator.refresh(configuration)
+            if (shouldBrake){
+                configuration.MotorOutput.NeutralMode = NeutralModeValue.Brake
+            }else{
+                configuration.MotorOutput.NeutralMode = NeutralModeValue.Coast
+            }
+            motor.configurator.apply(configuration)
+        }
+         */
     }
 
     override fun setVoltage(voltage: Voltage) {

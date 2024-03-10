@@ -10,7 +10,6 @@ import com.pathplanner.lib.util.PathPlannerLogging
 import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.system.plant.DCMotor
-import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.GenericHID
 import edu.wpi.first.wpilibj.RobotBase.isReal
@@ -18,7 +17,6 @@ import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
-import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -27,7 +25,6 @@ import frc.chargers.constants.SwerveAzimuthControl
 import frc.chargers.constants.SwerveControlData
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
-import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
@@ -47,6 +44,7 @@ import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.climber.Climber
 import frc.robot.hardware.subsystems.climber.lowlevel.ClimberIOReal
+import frc.robot.hardware.subsystems.climber.lowlevel.ClimberIOSim
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOReal
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOSim
@@ -68,7 +66,7 @@ import kotlin.jvm.optionals.getOrNull
 class CompetitionRobotContainer: ChargerRobotContainer() {
 
     private val shooterRatio = 5.0 * (14.0 / 26.0) // torque * sprocket
-    private val pivotRatio = 64.0
+    private val pivotRatio = 96.0
     private val groundIntakeRatio = 15.0 / 12.0
     private val conveyorRatio = 1.0
 
@@ -80,7 +78,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val shooter = Shooter(
         if (isReal()){
             ShooterIOReal(
-                beamBreakSensor = DigitalInput(9),
+                //beamBreakSensor = DigitalInput(9),
                 topMotor = ChargerTalonFX(SHOOTER_MOTOR_ID){
                     ///// FOR NAYAN: Shooter configuration
                     inverted = true
@@ -112,21 +110,21 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             PivotIOSim(DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004))
         },
         ///// FOR NAYAN: Pivot PID Constants
-        if (isReal()) PIDConstants(7.0,0,0)  else PIDConstants(10.0, 0.0, 0.0),
+        if (isReal()) PIDConstants(6.0,0,0)  else PIDConstants(10.0, 0.0, 0.0),
+        /*
         AngularTrapezoidProfile(
             maxVelocity = AngularVelocity(8.0),
             maxAcceleration = AngularAcceleration(10.0)
         ),
+         */
         forwardSoftStop = 1.636.radians,
         reverseSoftStop = (-1.8).radians
     )
 
-    private val groundIntakeMotor = ChargerSparkFlex(GROUND_INTAKE_ID)
-
     private val groundIntake = GroundIntakeSerializer(
         if (isReal()){
             GroundIntakeIOReal(
-                topMotor = groundIntakeMotor,
+                topMotor = ChargerSparkFlex(GROUND_INTAKE_ID),
                 conveyorMotor = ChargerSparkMax(CONVEYOR_ID){
                     ///// FOR NAYAN: Ground Intake configuration
                     inverted = true
@@ -140,20 +138,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 conveyorMotorSim = DCMotorSim(DCMotor.getNEO(1), conveyorRatio, 0.004)
             )
         }
-    )
-
-    private val climber = Climber(
-        ClimberIOReal(
-            ChargerSparkMax(CLIMBER_ID_LEFT){
-                ///// FOR NAYAN: Climber Configuration
-                inverted = true
-                idleMode = CANSparkBase.IdleMode.kBrake
-            },
-            ChargerSparkMax(CLIMBER_ID_RIGHT){
-                ///// FOR NAYAN: Climber Configuration
-                idleMode = CANSparkBase.IdleMode.kBrake
-            }
-        )
     )
 
 
@@ -199,7 +183,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             openLoopDiscretizationRate = 4.5,
             velocityPID = PIDConstants(0.2,0.0,0.0),
             velocityFF = if (isReal()){
-                AngularMotorFFEquation(0.12117,0.13210)
+                AngularMotorFFEquation(0.2523, 0.08909)
             }else{
                 AngularMotorFFEquation(0.0081299, 0.13396)
             },
@@ -214,6 +198,28 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             trackWidth = 32.inches, wheelBase = 32.inches
         ),
         gyro = if (isReal()) gyroIO else null,
+    )
+
+    private val climber = Climber(
+        if (isReal()){
+            ClimberIOReal(
+                leftMotor = ChargerSparkMax(CLIMBER_ID_LEFT){
+                    ///// FOR NAYAN: Climber Configuration
+                    inverted = false
+                    idleMode = CANSparkBase.IdleMode.kBrake
+                },
+                rightMotor = ChargerSparkMax(CLIMBER_ID_RIGHT){
+                    ///// FOR NAYAN: Climber Configuration
+                    inverted = true
+                    idleMode = CANSparkBase.IdleMode.kBrake
+                }
+            )
+        }else{
+            ClimberIOSim(
+                DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
+                DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
+            )
+        }
     )
 
     //private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
@@ -291,20 +297,17 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         climber.setDefaultRunCommand{
-            if (DriverController.leftHookUpTrigger.asBoolean){
-                climber.moveLeftHook(1.0)
-            }else if (DriverController.leftHookDownTrigger.asBoolean){
-                climber.moveLeftHook(-1.0)
+            if (DriverController.climbersUpTrigger.asBoolean){
+                println("Climbers up")
+                moveLeftHook(1.0)
+                moveRightHook(1.0)
+            }else if (DriverController.climbersDownTrigger.asBoolean){
+                println("Climbers down")
+                moveLeftHook(-1.0)
+                moveRightHook(-1.0)
             }else{
-                climber.moveLeftHook(0.0)
-            }
-
-            if (DriverController.rightHookUpTrigger.asBoolean){
-                climber.moveRightHook(1.0)
-            }else if (DriverController.rightHookDownTrigger.asBoolean){
-                climber.moveRightHook(-1.0)
-            }else{
-                climber.moveRightHook(0.0)
+                moveLeftHook(0.0)
+                moveRightHook(0.0)
             }
         }
     }
@@ -370,7 +373,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             resetPivotAngleTrigger.onTrue(
                 runOnceCommand(pivot){
-                    pivot.resetToStowPosition()
+                    pivot.resetToStartingPosition()
                 }
             )
 
@@ -441,8 +444,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
 
+
     override val testCommand: Command = FFCharacterize6328(
-        drivetrain, true,
+        drivetrain, false,
         FFCharacterize6328.FeedForwardCharacterizationData("DrivetrainDataLeft"),
         FFCharacterize6328.FeedForwardCharacterizationData("DrivetrainDataRight"),
         { leftV, rightV ->
@@ -452,6 +456,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     rightV.ofUnit(volts),
                     leftV.ofUnit(volts),
                     rightV.ofUnit(volts),
+                )
+            )
+
+            drivetrain.setTurnDirections(
+                listOf(
+                    0.degrees, 0.degrees, 0.degrees, 0.degrees
                 )
             )
         },
@@ -465,11 +475,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     )
 
+
+
     override val autonomousCommand: Command
-        get() = buildCommand{
-            runUntil(
-                {drivetrain.distanceTraveled >= 20.feet},
-                testCommand
-            )
-        }
+        get() = autoChooser.selected
 }
+
+// ks: 0.2523
+// kv: 0.08908

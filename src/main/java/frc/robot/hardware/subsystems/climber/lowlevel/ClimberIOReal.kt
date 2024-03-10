@@ -38,10 +38,10 @@ class ClimberIOReal(
     }
 
     override fun setLeftVoltage(voltage: Voltage) {
-        leftMotor.setVoltage(leftVoltage.inUnit(volts))
+        leftMotor.set(voltage.siValue / 12.0)
     }
 
     override fun setRightVoltage(voltage: Voltage) {
-        rightMotor.setVoltage(rightVoltage.inUnit(volts))
+        rightMotor.set(voltage.siValue / 12.0)
     }
 }

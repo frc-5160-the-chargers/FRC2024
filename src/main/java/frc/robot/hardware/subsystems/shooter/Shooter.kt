@@ -34,7 +34,7 @@ class Shooter(val io: ShooterIO): SubsystemBase() {
     }
 
     fun receiveFromGroundIntake(){
-        intake(5.volts)
+        intake(3.volts)
     }
 
     fun intake(percentOut: Double){
