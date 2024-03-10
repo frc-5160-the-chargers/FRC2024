@@ -66,7 +66,9 @@ public class EncoderHolonomicDrivetrain(
     private val useOnboardPID: Boolean = false,
     public val gyro: HeadingProvider? = null,
     startingPose: UnitPose2d = UnitPose2d(),
-    poseSuppliers: List<VisionPoseSupplier> = listOf()
+    poseSuppliers: List<VisionPoseSupplier> = listOf(),
+    invertPoseX: Boolean = false,
+    invertPoseY: Boolean = false
 ): SubsystemBase(), HeadingProvider {
     
     /* Private Implementation */
@@ -293,8 +295,9 @@ public class EncoderHolonomicDrivetrain(
      */
     public var poseEstimator: RobotPoseMonitor = SwervePoseMonitor(
         drivetrain = this,
-        startingPose = startingPose,
-        *poseSuppliers.toTypedArray(),
+        poseSuppliers.toMutableList(),
+        startingPose,
+        invertPoseX, invertPoseY
     )
 
     /**

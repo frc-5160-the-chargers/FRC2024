@@ -64,6 +64,27 @@ class AutoChooser(
         sendableChooser.apply{
             addDefaultOption("Just Taxi", basicTaxi(drivetrain))
 
+            addOption(
+                "2 Note Amp(NO VISION)",
+                noVisionAmpAutonomous(
+                    drivetrain, shooter, pivot,
+                    groundIntake,
+                    taxiAtEnd = false,
+                    additionalComponents = listOf(ampScoreNote2Component)
+                )
+            )
+
+
+            addOption(
+                "2 Note Amp + Taxi(NO VISION)",
+                noVisionAmpAutonomous(
+                    drivetrain, shooter, pivot,
+                    groundIntake,
+                    taxiAtEnd = true,
+                    additionalComponents = listOf(ampScoreNote2Component)
+                )
+            )
+
             addOption("Do Nothing", InstantCommand())
 
             addOption(
@@ -81,26 +102,6 @@ class AutoChooser(
                     drivetrain, shooter, pivot,
                     groundIntake,
                     taxiAtEnd = true
-                )
-            )
-
-            addOption(
-                "2 Note Amp(NO VISION)",
-                noVisionAmpAutonomous(
-                    drivetrain, shooter, pivot,
-                    groundIntake,
-                    taxiAtEnd = false,
-                    additionalComponents = listOf(ampScoreNote2Component)
-                )
-            )
-
-            addOption(
-                "2 Note Amp + Taxi(NO VISION)",
-                noVisionAmpAutonomous(
-                    drivetrain, shooter, pivot,
-                    groundIntake,
-                    taxiAtEnd = true,
-                    additionalComponents = listOf(ampScoreNote2Component)
                 )
             )
 

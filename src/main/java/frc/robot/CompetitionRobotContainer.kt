@@ -13,6 +13,7 @@ import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.GenericHID
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
@@ -31,6 +32,7 @@ import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
+import frc.chargers.hardware.motorcontrol.rev.SparkMaxEncoderType
 import frc.chargers.hardware.motorcontrol.rev.util.PeriodicFrameConfig
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
@@ -84,7 +86,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     ///// FOR NAYAN: Shooter configuration
                     inverted = true
                     statorCurrentLimitEnable = true
-                    statorCurrentLimit = 35.amps
+                    statorCurrentLimit = 55.amps
                 },
                 gearRatio = shooterRatio
             )
@@ -199,6 +201,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             trackWidth = 32.inches, wheelBase = 32.inches
         ),
         gyro = if (isReal()) gyroIO else null,
+        invertPoseX = true,
+        invertPoseY = true
     )
 
     private val climber = Climber(
@@ -300,11 +304,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
         climber.setDefaultRunCommand{
             if (DriverController.climbersUpTrigger.asBoolean){
-                println("Climbers up")
                 moveLeftHook(1.0)
                 moveRightHook(1.0)
             }else if (DriverController.climbersDownTrigger.asBoolean){
-                println("Climbers down")
                 moveLeftHook(-1.0)
                 moveRightHook(-1.0)
             }else{
@@ -342,6 +344,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             pointSouthTrigger.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
 
             pointWestTrigger.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
+
+            /*
+            zeroHeadingTrigger.onTrue(
+                runOnceCommand{
+                    gyroIO.zeroHeading()
+                }
+            )
+             */
         }
 
         OperatorInterface.apply{

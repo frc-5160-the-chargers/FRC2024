@@ -4,6 +4,7 @@ package frc.robot.hardware.inputdevices
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.hardware.inputdevices.InputAxis
+import frc.chargers.hardware.inputdevices.withDoubleClick
 import frc.chargers.utils.math.equations.Polynomial
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.robot.DRIVER_CONTROLLER_PORT
@@ -57,6 +58,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
     val climbersUpTrigger: Trigger = povUp()
     val climbersDownTrigger: Trigger = povDown()
+    val zeroHeadingTrigger: Trigger = start().or(back()).withDoubleClick()
 
     val shouldDisableFieldRelative: Boolean
         get() = start().asBoolean || back().asBoolean

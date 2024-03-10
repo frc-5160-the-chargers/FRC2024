@@ -21,6 +21,7 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.ofUnit
+import frc.chargers.wpilibextensions.geometry.twodimensional.asAngle
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
 import org.littletonrobotics.junction.Logger.*
 
@@ -35,21 +36,20 @@ import org.littletonrobotics.junction.Logger.*
 public class SwervePoseMonitor(
     private val drivetrain: EncoderHolonomicDrivetrain,
     private val visionPoseSuppliers: MutableList<VisionPoseSupplier>,
-    startingPose: UnitPose2d = UnitPose2d()
+    startingPose: UnitPose2d = UnitPose2d(),
+    private val invertX: Boolean = false,
+    private val invertY: Boolean = false
 ): SubsystemBase(), RobotPoseMonitor {
 
-    /* Public API */
-    public constructor(
-        drivetrain: EncoderHolonomicDrivetrain,
-        startingPose: UnitPose2d = UnitPose2d(),
-        vararg poseSuppliers: VisionPoseSupplier,
-    ): this(
-        drivetrain,
-        poseSuppliers.toMutableList(),
-        startingPose
-    )
+    private fun applyInverts(basePose: UnitPose2d): UnitPose2d{
+        val x = (if (invertX) -1.0 else 1.0) * basePose.x
+        val y = (if (invertX) -1.0 else 1.0) * basePose.y
+        return UnitPose2d(x, y, basePose.rotation)
+    }
 
-    override val robotPose: UnitPose2d get() = poseEstimator.latestPose.ofUnit(meters)
+    /* Public API */
+    override val robotPose: UnitPose2d get() =
+        applyInverts(poseEstimator.latestPose.ofUnit(meters))
 
     override fun resetPose(pose: UnitPose2d){
         poseEstimator.resetPose(pose.inUnit(meters))
