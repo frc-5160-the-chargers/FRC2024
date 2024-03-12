@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
+import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -83,7 +84,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     // note of reference: an IO class is a low-level component of the robot
     // that integrates advantagekit logging.
 
-    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{ zeroHeading(180.degrees) }
+    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{ zeroHeading(0.degrees) }
 
     private val shooter = Shooter(
         if (isReal()){
@@ -103,6 +104,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
         }
     )
+
 
     private val pivot = Pivot(
         if (isReal()){
@@ -173,10 +175,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             bottomRightZero = 0.661.radians,
         ),
         driveMotors = sparkMaxSwerveMotors(
-            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE),
-            topRight = ChargerSparkMax(DrivetrainID.TR_DRIVE){ inverted = true },
-            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE),
-            bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE){ inverted = true }
+            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE){ inverted = true },
+            topRight = ChargerSparkMax(DrivetrainID.TR_DRIVE),
+            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE){ inverted = true },
+            bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE)
         ){
             smartCurrentLimit = SmartCurrentLimit(45.amps)
             voltageCompensationNominalVoltage = 12.volts
@@ -202,12 +204,18 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             turnMotorType = DCMotor.getNEO(1),
             driveMotorType = DCMotor.getNEO(1),
             maxModuleSpeed = 4.5.meters / 1.seconds,
-            trackWidth = 32.inches, wheelBase = 32.inches
+            trackWidth = 32.inches, wheelBase = 32.inches,
+            //useCouplingRatio = true
         ),
         gyro = if (isReal()) gyroIO else null,
     )
 
     private val climber = Climber(
+        ClimberIOSim(
+            DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
+            DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
+        ),
+        /*
         if (isReal()){
             ClimberIOReal(
                 leftMotor = ChargerSparkMax(CLIMBER_ID_LEFT){
@@ -227,16 +235,17 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
             )
         },
+         */
         highLimit = -100.radians,
     )
 
-    private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
+    //private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
 
 
 
     private val autoChooser = AutoChooser(
-        aprilTagVision = vision.fusedTagPipeline,
-        noteDetector = vision.notePipeline,
+        aprilTagVision = null, //vision.fusedTagPipeline,
+        noteDetector = null, //vision.notePipeline,
         drivetrain, shooter, pivot, groundIntake
     )
 
@@ -460,6 +469,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
 
+
     override val testCommand: Command = FFCharacterize6328(
         drivetrain, false,
         FFCharacterize6328.FeedForwardCharacterizationData("DrivetrainDataLeft"),
@@ -493,7 +503,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
     override val autonomousCommand: Command
-        get() = autoChooser.speakerAuto
+        get() = AutoBuilder.followPath(
+            PathPlannerPath.fromPathFile("Test Path")
+        )
 }
 
 // ks: 0.2523

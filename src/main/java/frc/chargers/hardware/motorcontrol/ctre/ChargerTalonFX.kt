@@ -133,7 +133,7 @@ public class ChargerTalonFX(
     private val tempSignal = deviceTemp
 
     override val appliedVoltage: Voltage
-        get() = voltageSignal.refresh(true).value.ofUnit(volts)
+        get() = voltageSignal.refresh(true).value.ofUnit(volts) * get()
 
     override val appliedCurrent: Current
         get() = currentSignal.refresh(true).value.ofUnit(amps)

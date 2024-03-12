@@ -5,6 +5,7 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.RobotController
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+import frc.chargers.advantagekitextensions.recordOutput
 import frc.chargers.constants.DEFAULT_GEAR_RATIO
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobot
@@ -28,24 +29,6 @@ class ModuleIOReal(
     private val driveGearRatio: Double = DEFAULT_GEAR_RATIO,
     couplingRatio: Double? = null
 ): ModuleIO() {
-
-    private var couplingOffset = 0.degrees
-
-    init{
-        if (useOnboardPID){
-            require(driveMotor is SmartEncoderMotorController && turnMotor is SmartEncoderMotorController){
-                "Your drive and turn motors must have onboard pid control available."
-            }
-            disableDefaultControllers()
-        }
-        if (couplingRatio != null){
-            ChargerRobot.runPeriodically {
-                couplingOffset -= couplingRatio * direction
-            }
-        }
-    }
-
-
     private val startingWheelTravel = driveMotor.encoder.angularPosition
 
     private val batteryVoltageIssueAlert = Alert.warning(
@@ -97,6 +80,25 @@ class ModuleIOReal(
             turnMotor.appliedCurrent
         }else{
             Current(0.0)
+        }
+    }
+
+    private val startingTurnEncoderPosition = direction
+    private var couplingOffset = 0.degrees
+
+    init{
+        if (useOnboardPID){
+            require(driveMotor is SmartEncoderMotorController && turnMotor is SmartEncoderMotorController){
+                "Your drive and turn motors must have onboard pid control available."
+            }
+            disableDefaultControllers()
+        }
+
+        if (couplingRatio != null){
+            ChargerRobot.runPeriodically {
+                couplingOffset -= couplingRatio * (direction - startingTurnEncoderPosition).inputModulus(0.degrees..361.degrees)
+                recordOutput(logInputs.namespace + "/couplingOffset", couplingOffset)
+            }
         }
     }
 

@@ -68,14 +68,16 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     private val forwardAxis =
         InputAxis{ if (DRIVER.rightHanded) rightY else leftY }
             .applyDeadband(DEFAULT_DEADBAND)
-            .invertWhen{ shouldInvertForward.get() }
+            .invert()
+            //.invertWhen{ shouldInvertForward.get() }
             .applyMultiplier(0.6)
             .log("DriverController/xPower")
 
     private val strafeAxis =
         InputAxis{ if (DRIVER.rightHanded) rightX else leftX }
             .applyDeadband(DEFAULT_DEADBAND)
-            .invertWhen{ shouldInvertStrafe.get() }
+            .invert()
+            //.invertWhen{ shouldInvertStrafe.get() }
             .applyMultiplier(0.6)
             .log("DriverController/yPower")
 

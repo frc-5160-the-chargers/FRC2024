@@ -30,7 +30,7 @@ class ShooterIOReal(
     }
 
     override val intakeVoltages by ShooterLog.quantityList{
-        allMotors.map{ it.appliedVoltage }
+        allMotors.map{ it.appliedVoltage * it.get() }
     }
 
     override val intakeSpeeds by ShooterLog.quantityList{

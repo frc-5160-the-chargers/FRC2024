@@ -523,7 +523,7 @@ public class EncoderHolonomicDrivetrain(
         yVelocity: Velocity,
         rotationVelocity: AngularVelocity,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
-    ): Unit = velocityDrive(ChassisSpeeds(xVelocity,yVelocity,rotationVelocity), fieldRelative)
+    ): Unit = velocityDrive(ChassisSpeeds(xVelocity, yVelocity, rotationVelocity), fieldRelative)
 
 
     /**

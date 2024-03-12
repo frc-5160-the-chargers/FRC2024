@@ -4,6 +4,7 @@
   "holonomicMode": true,
   "pathFolders": [
     "Auto Paths",
+    "Debug Paths",
     "Teleop Paths"
   ],
   "autoFolders": [],
