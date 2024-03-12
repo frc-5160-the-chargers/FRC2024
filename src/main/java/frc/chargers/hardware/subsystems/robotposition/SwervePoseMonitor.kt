@@ -145,7 +145,7 @@ public class SwervePoseMonitor(
             /*
             Records the robot's pose on the field and in AdvantageScope.
              */
-            ChargerRobot.FIELD.robotPose = poseEstimator.latestPose
+            ChargerRobot.FIELD.robotPose = robotPose.inUnit(meters)
             recordOutput("Drivetrain(Swerve)/Pose2d", Pose2d.struct, poseEstimator.latestPose)
             recordOutput("Drivetrain(Swerve)/realGyroUsedInPoseEstimation", drivetrain.gyro != null)
             recordOutput("Drivetrain(Swerve)/realGyroHeadingRad", drivetrain.gyro?.heading?.inUnit(radians) ?: 0.0)

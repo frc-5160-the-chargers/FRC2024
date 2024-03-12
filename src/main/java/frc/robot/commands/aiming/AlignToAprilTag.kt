@@ -82,7 +82,6 @@ fun alignToAprilTag(
 ): Command = buildCommand(name = "Aim To AprilTag($tagLocation)", logIndividualCommands = true) {
 
     // these values have their internal value evaluated once they are accessed.
-
     val targetId by lazy {
         when (DriverStation.getAlliance().getOrNull()){
             DriverStation.Alliance.Blue, null -> tagLocation.blueAllianceAprilTagId
@@ -99,10 +98,7 @@ fun alignToAprilTag(
             .ofUnit(meters)
     }
 
-    val headingToFaceAprilTag by lazy {
-        (tagPose.toPose2d().rotation + 180.degrees)
-            .inputModulus(0.degrees..360.degrees) // pretty sure this is the right formula
-    }
+    val headingToFaceAprilTag by lazy { tagPose.toPose2d().rotation }
 
     // there is a new aiming controller fetched every time the command is run.
     val aimingController by getOnceDuringRun {

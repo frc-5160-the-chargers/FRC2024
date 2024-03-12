@@ -4,12 +4,11 @@ package frc.robot.hardware.subsystems.shooter
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
 
 // standard: + = outtake, - = intake; regardless of voltage set
-class Shooter(val io: ShooterIO): SubsystemBase() {
+class Shooter(private val io: ShooterIO): SubsystemBase() {
     val hasNoteDetector: Boolean get() = io.hasNoteDetector
 
     val hasNote: Boolean get() = io.hasNote
@@ -18,15 +17,12 @@ class Shooter(val io: ShooterIO): SubsystemBase() {
         io.setIntakeVoltage(0.volts)
     }
 
-    fun shootInAmp(){
+    fun outtakeAtAmpSpeed(){
         outtake(4.volts)
     }
 
-    fun shootInSpeaker(visualize: Boolean = RobotBase.isSimulation()){
+    fun outtakeAtSpeakerSpeed() {
         outtake(11.volts)
-        if (visualize && !NoteVisualizer.isShootingInSpeaker){
-            NoteVisualizer.shootInSpeakerCommand().schedule()
-        }
     }
 
     fun receiveFromSource(){

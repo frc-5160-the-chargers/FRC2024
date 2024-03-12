@@ -5,7 +5,6 @@ import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
-import frc.chargers.hardware.sensors.vision.VisionTarget
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.hardware.inputdevices.DriverController
 import kotlin.math.abs
@@ -23,9 +22,9 @@ fun pursueNoteElseTeleopDrive(
     acceptableDistanceToNoteMargin: Distance = 2.meters
 ): Command =
     buildCommand {
-        fun getNotePursuitSpeed(visionTarget: VisionTarget.Object): Double{
+        fun getNotePursuitSpeed(): Double{
             val swerveOutput = DriverController.swerveOutput
-            return max(abs(swerveOutput.xPower), abs(swerveOutput.yPower)) * (1.0 - visionTarget.tx / 50.0) // scales based off of the vision target error
+            return max(abs(swerveOutput.xPower), abs(swerveOutput.yPower)) * (1.0 - (noteDetector.bestTarget?.tx ?: 0.0) / 50.0) // scales based off of the vision target error
         }
 
         // regular drive occurs until suitable target found
@@ -37,12 +36,6 @@ fun pursueNoteElseTeleopDrive(
         }
 
         // then, note pursuit is run
-        +pursueNote(drivetrain, noteDetector, ::getNotePursuitSpeed)
-
-        // after no more note detected, still drive in the same rough direction
-        loop{
-            drivetrain.swerveDrive(
-                -abs(getNotePursuitSpeed(VisionTarget.Object.Dummy)), 0.0, 0.0, fieldRelative = false
-            )
-        }
+        // never ends until command is interrupted
+        +pursueNote(drivetrain, noteDetector, ::getNotePursuitSpeed, endCondition = { false })
     }

@@ -9,6 +9,8 @@ import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.chargers.utils.flipWhenNeeded
+import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
@@ -24,8 +26,8 @@ import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
-private val CLOSE_RANGE_SPEAKER_SHOOT_TIMEOUT = 0.4.seconds
-private val FAR_RANGE_SPEAKER_SHOOT_TIMEOUT = 0.6.seconds
+private val CLOSE_RANGE_SPEAKER_SHOOT_TIMEOUT = 0.8.seconds
+private val FAR_RANGE_SPEAKER_SHOOT_TIMEOUT = 1.0.seconds
 
 /**
  * A modular autonomous command for speaker-side autos.
@@ -42,12 +44,13 @@ fun speakerAutonomous(
     additionalComponents: List<SpeakerAutoScoreComponent>
 ): Command = buildCommand {
     val speakerRotationOverride = getSpeakerRotationOverride(apriltagVision)
+    val noteRotationOverride = getNoteRotationOverride(noteDetector)
 
     runOnce{
-        drivetrain.poseEstimator.resetPose(startingPose.pose)
+        drivetrain.poseEstimator.resetPose(startingPose.pose.flipWhenNeeded())
     }
 
-    +shootInSpeaker(shooter, groundIntake, pivot, timeout = CLOSE_RANGE_SPEAKER_SHOOT_TIMEOUT)
+    +shootInSpeaker(shooter, groundIntake, pivot)
 
     for (autoComponent in additionalComponents){
         val grabPathStartPose: UnitPose2d = autoComponent.grabPath.pathPoses.last().ofUnit(meters)
@@ -58,23 +61,22 @@ fun speakerAutonomous(
                 +AutoBuilder.followPath(autoComponent.grabPath)
 
                 // drives out further in case the path missed the note
-                +pursueNote(drivetrain, noteDetector)
+                +pursueNote(
+                    drivetrain, noteDetector,
+                    endCondition = { groundIntake.hasNote },
+                    setRotationOverride = false
+                ).withTimeout(2.0)
             }
 
             // parallel #2
             runSequentially{
                 // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
                 // along the path.
-                runUntil(
-                    { drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE },
-                    pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
-                )
+                waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }
 
                 runOnce{
-                    drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
+                    drivetrain.setRotationOverride(noteRotationOverride)
                 }
-
-                +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
 
                 +runGroundIntake(groundIntake, shooter)
             }
@@ -88,35 +90,20 @@ fun speakerAutonomous(
             runParallelUntilFirstCommandFinishes{
                 +AutoBuilder.followPath(autoComponent.scorePath)
 
-                +pivot.setAngleCommand(PivotAngle.SPEAKER)
-
                 if (autoComponent.shooterShouldStartDuringPath){
                     loop{
                         // just run shooting to bring the shooter up to speed
-                        shooter.shootInSpeaker()
-                        groundIntake.setConveyorVoltage(-0.5.volts) // sets a small voltage so that note won't entirely go into shooter
+                        shooter.outtakeAtSpeakerSpeed()
+                        groundIntake.setConveyorVoltage(-2.volts) // sets a small voltage so that note won't entirely go into shooter
                     }
                 }
             }
         }
 
-
-        loopUntil({speakerRotationOverride.atSetpoint}){
-            if (autoComponent.shooterShouldStartDuringPath){
-                shooter.shootInSpeaker()
-            }
-        }
-
-
         if (autoComponent.shouldShootOnEnd){
             +shootInSpeaker(
                 shooter, groundIntake, pivot,
-                shooterSpinUpTime = if (autoComponent.shooterShouldStartDuringPath) 0.seconds else 0.3.seconds,
-                timeout = if (autoComponent.isFarRangeShot){
-                    FAR_RANGE_SPEAKER_SHOOT_TIMEOUT
-                }else{
-                    CLOSE_RANGE_SPEAKER_SHOOT_TIMEOUT
-                }
+                shooterSpinUpTime = if (autoComponent.shooterShouldStartDuringPath) 0.seconds else 0.3.seconds
             )
         }
 

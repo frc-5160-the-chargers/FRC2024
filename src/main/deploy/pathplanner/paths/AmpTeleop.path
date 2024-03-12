@@ -17,11 +17,11 @@
     {
       "anchor": {
         "x": 1.823572994714199,
-        "y": 7.5373212683669575
+        "y": 7.595790280548532
       },
       "prevControl": {
         "x": 1.8192950983446303,
-        "y": 7.548520854204055
+        "y": 7.6069898663856295
       },
       "nextControl": null,
       "isLocked": false,
@@ -33,19 +33,19 @@
   "eventMarkers": [],
   "globalConstraints": {
     "maxVelocity": 3.0,
-    "maxAcceleration": 4.5,
+    "maxAcceleration": 2.5,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0
   },
   "goalEndState": {
-    "velocity": 0.5,
-    "rotation": 90.0,
+    "velocity": 0.0,
+    "rotation": -90.0,
     "rotateFast": false
   },
   "reversed": false,
   "folder": "Teleop Paths",
   "previewStartingState": {
-    "rotation": 90.0,
+    "rotation": -90.0,
     "velocity": 0
   },
   "useDefaultConstraints": false

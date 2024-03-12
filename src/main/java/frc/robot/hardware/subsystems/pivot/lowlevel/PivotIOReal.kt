@@ -8,47 +8,20 @@ import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
+import frc.chargers.commands.runOnceCommand
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
-import frc.chargers.hardware.sensors.encoders.PositionEncoder
-
-
-
+import frc.robot.hardware.inputdevices.OperatorInterface
+import frc.robot.hardware.subsystems.pivot.PivotEncoderType
 
 
 @Suppress("unused")
 class PivotIOReal(
     private val motor: SmartEncoderMotorController,
     useOnboardPID: Boolean = true,
-    private val encoderType: EncoderType,
+    private val encoderType: PivotEncoderType,
 ): PivotIO {
-    sealed class EncoderType{
-        /**
-         * Represents an encoder type where the absolute encoder is "integrated"/plugged into the motor.
-         * in other words, the motor is configured to return absolute encoder readings
-         * from motor.encoder.angularPosition.
-         */
-        data object IntegratedAbsoluteEncoder: EncoderType()
-
-        /**
-         * Represents an encoder type where there is no absolute encoder,
-         * and a relative encoder is used for positions.
-         */
-        data class IntegratedRelativeEncoder(
-            val motorGearRatio: Double
-        ): EncoderType()
-
-        /**
-         * Represents an encoder type where an external absolute encoder is used.
-         */
-        data class ExternalAbsoluteEncoder(
-            val absoluteEncoder: PositionEncoder,
-            val motorGearRatio: Double,
-        ): EncoderType()
-    }
-
-
     private var offset = Angle(0.0)
 
     private val rioController: SuperPIDController<AngleDimension, VoltageDimension>? =
@@ -67,11 +40,11 @@ class PivotIOReal(
     
     override val angle by PivotLog.quantity{
         when (encoderType){
-            EncoderType.IntegratedAbsoluteEncoder -> motor.encoder.angularPosition
+            is PivotEncoderType.IntegratedAbsoluteEncoder -> motor.encoder.angularPosition
 
-            is EncoderType.ExternalAbsoluteEncoder -> encoderType.absoluteEncoder.angularPosition
+            is PivotEncoderType.ExternalAbsoluteEncoder -> encoderType.absoluteEncoder.angularPosition
 
-            is EncoderType.IntegratedRelativeEncoder -> (motor.encoder.angularPosition / encoderType.motorGearRatio)
+            is PivotEncoderType.IntegratedRelativeEncoder -> (motor.encoder.angularPosition / encoderType.motorGearRatio)
         } - offset
     }
     
@@ -83,12 +56,35 @@ class PivotIOReal(
         motor.tempCelsius
     }
 
-    override fun zeroAngle(target: Angle){
-        offset = angle + offset - target
+
+
+
+    init{
+        when(encoderType){
+            is PivotEncoderType.IntegratedRelativeEncoder -> {
+                offset = this.angle - encoderType.startingAngle
+
+                // allows debug heading zeroing here
+                OperatorInterface.resetPivotAngleTrigger.onTrue(
+                    runOnceCommand{ offset = this.angle + offset - encoderType.startingAngle }
+                )
+            }
+
+            is PivotEncoderType.ExternalAbsoluteEncoder -> {
+                this.offset = encoderType.offset
+            }
+
+            is PivotEncoderType.IntegratedAbsoluteEncoder -> {
+                this.offset = encoderType.offset
+            }
+        }
     }
 
+
+
+
+    /*
     override fun setBrakeMode(shouldBrake: Boolean) {
-        /*
         if (motor is CANSparkBase){
             if (shouldBrake){
                 motor.idleMode = CANSparkBase.IdleMode.kBrake
@@ -105,8 +101,8 @@ class PivotIOReal(
             }
             motor.configurator.apply(configuration)
         }
-         */
     }
+     */
 
     override fun setVoltage(voltage: Voltage) {
         motor.setVoltage(voltage.siValue)
@@ -122,28 +118,22 @@ class PivotIOReal(
             setVoltage(voltageOut)
         }else{
             when (encoderType){
-                EncoderType.IntegratedAbsoluteEncoder -> {
-                    motor.setAngularPosition(position, pidConstants)
-                }
+                is PivotEncoderType.IntegratedAbsoluteEncoder -> motor.setAngularPosition(position, pidConstants)
 
-                is EncoderType.ExternalAbsoluteEncoder -> {
-                    motor.setAngularPosition(
-                        position,
-                        pidConstants,
-                        absoluteEncoder = encoderType.absoluteEncoder,
-                        gearRatio = encoderType.motorGearRatio
-                    )
-                }
+                is PivotEncoderType.ExternalAbsoluteEncoder -> motor.setAngularPosition(
+                    position,
+                    pidConstants,
+                    absoluteEncoder = encoderType.absoluteEncoder,
+                    gearRatio = encoderType.motorGearRatio
+                )
 
-                is EncoderType.IntegratedRelativeEncoder -> {
-                    motor.setAngularPosition(
-                        // position is in the same field of reference as the position value,
-                        // which is motor.encoder.angularPosition / gearRatio.
-                        // thus, gear ratio is multiplied to restore it to the original position.
-                        position * encoderType.motorGearRatio,
-                        pidConstants
-                    )
-                }
+                is PivotEncoderType.IntegratedRelativeEncoder -> motor.setAngularPosition(
+                    // position is in the same field of reference as the position value,
+                    // which is motor.encoder.angularPosition / gearRatio.
+                    // thus, gear ratio is multiplied to restore it to the original position.
+                    position * encoderType.motorGearRatio,
+                    pidConstants
+                )
             }
         }
     }

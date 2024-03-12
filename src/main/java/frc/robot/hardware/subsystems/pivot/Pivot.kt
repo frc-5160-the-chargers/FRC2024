@@ -23,10 +23,12 @@ import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 
 
-private val STARTING_TRANSLATION_PIVOT_SIM = Translation3d(0.325, 0.0, 0.75)
+private val STARTING_TRANSLATION_PIVOT_SIM = Translation3d(-0.32, 0.0, 0.72)
+
+// Translation3d(0.0,0.0, 0.0) // -0.25, 0.0, 0.7
 
 class Pivot(
-    val io: PivotIO,
+    private val io: PivotIO,
     private val pidConstants: PIDConstants,
     // null indicates no motion profile
     private val motionProfile: AngularMotionProfile? = null,
@@ -42,10 +44,6 @@ class Pivot(
         (forwardSoftStop != null && io.angle >= forwardSoftStop && movingForward) ||
         (reverseSoftStop != null && io.angle <= reverseSoftStop && !movingForward)
 
-    init{
-        resetToStartingPosition() // assumes pivot is stowed at the start
-    }
-
     /* Public API */
     @AutoLogOutput
     var atTarget: Boolean = true
@@ -56,15 +54,11 @@ class Pivot(
     val mechanism3dPose: Pose3d
         get() = Pose3d(
             STARTING_TRANSLATION_PIVOT_SIM,
-            Rotation3d(0.degrees, io.angle, 0.degrees) // custom overload function that accepts kmeasure quantities
+            Rotation3d(0.degrees, -io.angle, 0.degrees) // custom overload function that accepts kmeasure quantities
         )
 
     val angle: Angle
         get() = io.angle
-
-    fun resetToStartingPosition(){
-        io.zeroAngle(PivotAngle.STARTING)
-    }
 
     fun setIdle(){
         if (motionProfile != null){

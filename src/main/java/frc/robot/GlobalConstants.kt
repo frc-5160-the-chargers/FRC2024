@@ -36,8 +36,8 @@ Motors, and their respective configuration(RobotContainer)
 const val ODOMETRY_UPDATE_FREQUENCY_HZ = 200.0
 
 val PATHFIND_CONSTRAINTS = PathConstraints(
-    Velocity(4.0),
-    Acceleration(6.0),
+    Velocity(3.0),
+    Acceleration(5.0),
     500.degrees / 1.seconds,
     650.degrees / 1.seconds / 1.seconds
 )

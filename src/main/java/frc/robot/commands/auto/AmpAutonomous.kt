@@ -63,13 +63,7 @@ fun ampAutonomous(
         AprilTagLocation.AMP
     )
 
-    loopFor(0.3.seconds){
-        shooter.outtake(0.5)
-    }
-
-    runOnce{
-        shooter.setIdle()
-    }
+    +shootInAmp(shooter, pivot)
 
     for (autoComponent in additionalComponents){
         val grabPathStartPose = autoComponent.grabPath.pathPoses.last().ofUnit(meters).flipWhenNeeded()
@@ -77,12 +71,14 @@ fun ampAutonomous(
         runParallelUntilFirstCommandFinishes{
             // parallel #1
             runSequentially{
-                +followPathOptimal(drivetrain, autoComponent.grabPath)
+                +AutoBuilder.followPath(autoComponent.grabPath)
 
                 // drives out further in case the path missed the note
-                +pursueNote(drivetrain, noteDetector)
-
-                waitFor(0.2.seconds) // waits a little so that the note can fully go in
+                +pursueNote(
+                    drivetrain, noteDetector,
+                    endCondition = { groundIntake.hasNote },
+                    setRotationOverride = false
+                ).withTimeout(2.0)
             }
 
             // parallel #2
@@ -111,7 +107,7 @@ fun ampAutonomous(
         when (autoComponent.type){
             AmpAutoScoreComponent.Type.FERRY_NOTE -> {
                 runParallelUntilAllFinish{
-                    +followPathOptimal(drivetrain, autoComponent.grabPath)
+                    +AutoBuilder.followPath(autoComponent.grabPath)
 
                     runSequentially{
                         +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
@@ -120,13 +116,7 @@ fun ampAutonomous(
                     }
                 }
 
-                loopFor(0.5.seconds){
-                    groundIntake.outtake()
-                }
-
-                runOnce{
-                    groundIntake.setIdle()
-                }
+                +shootInAmp(shooter, pivot)
             }
 
             AmpAutoScoreComponent.Type.SCORE_NOTE -> {
@@ -134,7 +124,7 @@ fun ampAutonomous(
                     drivetrain, apriltagVision, pivot,
                     AprilTagLocation.AMP,
                     followPathCommand = -runParallelUntilAllFinish{
-                        +followPathOptimal(drivetrain, autoComponent.scorePath)
+                        +AutoBuilder.followPath(autoComponent.scorePath)
 
                         runSequentially{
                             +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)

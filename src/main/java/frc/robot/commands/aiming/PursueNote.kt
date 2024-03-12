@@ -1,57 +1,49 @@
 package frc.robot.commands.aiming
 
-import com.batterystaple.kmeasure.quantities.Distance
 import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.sensors.vision.VisionTarget
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
 import kotlin.math.abs
+
+@PublishedApi
+internal val DISTANCE_TO_TARGET_MARGIN = 2.meters
 
 /**
  * Causes the drivetrain to pursue a note; making it drive to it
  * until the note is no longer visible(likely indicating that it has been intaken).
  */
-fun pursueNote(
+inline fun pursueNote(
     drivetrain: EncoderHolonomicDrivetrain,
     noteDetector: ObjectVisionPipeline,
-    getNotePursuitSpeed: (VisionTarget.Object) -> Double = { visionTarget -> 0.6 * (0.5 - visionTarget.tx / 100.0) },
-    acceptableDistanceToNoteMargin: Distance = 2.meters, // determines the maximum distance that vision targets can be from the robot before being rejected
+    crossinline getNotePursuitSpeed: () -> Double = {
+        val bestTarget = noteDetector.bestTarget
+        if (bestTarget != null){
+            0.6 * (0.5 - bestTarget.tx / 100.0)
+        }else{
+            0.3
+        }
+    },
+    crossinline endCondition: () -> Boolean = { noteDetector.bestTarget == null },
+    setRotationOverride: Boolean = true
 ): Command = buildCommand {
-    lateinit var currentTarget: VisionTarget.Object
-
-    fun shouldContinuePursuit(): Boolean {
-        val allTargets = noteDetector.visionTargets
-
-        if (allTargets.isEmpty()) return false
-
-        for (target in allTargets){
-            // notes are on the ground; thus, no height is factored in
-            val distance = noteDetector.robotToTargetDistance(targetHeight = 0.meters, target)
-            if (distance != null && distance < acceptableDistanceToNoteMargin){
-                currentTarget = target
-                return true
-            }
+    if (setRotationOverride){
+        runOnce{
+            drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
         }
-
-        return false
     }
 
-    runOnce{
-        drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
-    }
 
-    loopWhile(::shouldContinuePursuit){
-        val notePursuitPower = try{
-            -abs(getNotePursuitSpeed(currentTarget))
-        }catch(e: UninitializedPropertyAccessException){ // runs the block below if the property has not been initialized with a value
-            0.0
-        }
-
+    loopUntil({
+        val targetDistance = noteDetector.robotToTargetDistance(targetHeight = 0.meters)
+        endCondition() || (targetDistance != null && targetDistance < DISTANCE_TO_TARGET_MARGIN)
+    }){
         // no rotation needed because rotation override set
-        drivetrain.swerveDrive(notePursuitPower,0.0,0.0, fieldRelative = false)
+        drivetrain.swerveDrive(-abs(getNotePursuitSpeed()),0.0,0.0, fieldRelative = false)
     }
 
     onEnd{

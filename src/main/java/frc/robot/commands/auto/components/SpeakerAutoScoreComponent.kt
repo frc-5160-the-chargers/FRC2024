@@ -6,7 +6,6 @@ data class SpeakerAutoScoreComponent(
     val grabPath: PathPlannerPath,
     val scorePath: PathPlannerPath? = null,
     val shooterShouldStartDuringPath: Boolean = false,
-    val isFarRangeShot: Boolean = false,
     val shouldShootOnEnd: Boolean = true,
 ){
     companion object{
@@ -14,14 +13,12 @@ data class SpeakerAutoScoreComponent(
             grabPathName: String,
             scorePathName: String? = null,
             shooterShouldStartDuringPath: Boolean = false,
-            isFarRangeShot: Boolean = false,
             shouldShootOnEnd: Boolean = true
         ): SpeakerAutoScoreComponent =
             SpeakerAutoScoreComponent(
                 PathPlannerPath.fromChoreoTrajectory(grabPathName),
                 if (scorePathName != null) PathPlannerPath.fromChoreoTrajectory(scorePathName) else null,
                 shooterShouldStartDuringPath,
-                isFarRangeShot,
                 shouldShootOnEnd
             )
 
@@ -29,14 +26,12 @@ data class SpeakerAutoScoreComponent(
             grabPathName: String,
             scorePathName: String? = null,
             shooterShouldStartDuringPath: Boolean = false,
-            isFarRangeShot: Boolean = false,
             shouldShootOnEnd: Boolean = true
         ): SpeakerAutoScoreComponent =
             SpeakerAutoScoreComponent(
                 PathPlannerPath.fromPathFile(grabPathName),
                 if (scorePathName != null) PathPlannerPath.fromPathFile(scorePathName) else null,
                 shooterShouldStartDuringPath,
-                isFarRangeShot,
                 shouldShootOnEnd
             )
     }

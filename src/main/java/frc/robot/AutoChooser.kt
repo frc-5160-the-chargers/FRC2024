@@ -10,7 +10,10 @@ import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.ampAutonomous
 import frc.robot.commands.auto.basicTaxi
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
+import frc.robot.commands.auto.components.SpeakerAutoScoreComponent
+import frc.robot.commands.auto.components.SpeakerAutoStartingPose
 import frc.robot.commands.auto.noVisionAmpAutonomous
+import frc.robot.commands.auto.speakerAutonomous
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -59,6 +62,22 @@ class AutoChooser(
         )
     )
      */
+
+    val speakerAuto = if (aprilTagVision != null && noteDetector != null){
+        speakerAutonomous(
+            aprilTagVision, noteDetector, drivetrain,
+            shooter, pivot, groundIntake,
+            startingPose = SpeakerAutoStartingPose.CENTER,
+            additionalComponents = listOf(
+                SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2", shooterShouldStartDuringPath = true,),
+                SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", shooterShouldStartDuringPath = true,),
+                SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6", shooterShouldStartDuringPath = true,),
+                SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8", shooterShouldStartDuringPath = true,)
+            )
+        )
+    }else{
+        InstantCommand()
+    }
 
     init{
         sendableChooser.apply{
@@ -189,23 +208,10 @@ class AutoChooser(
                     )
                 )
 
-                /*
                 addOption(
                     "4-5 Piece Speaker",
-                    speakerAutonomous(
-                        aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake,
-                        startingPose = SpeakerAutoStartingPose.CENTER,
-                        additionalComponents = listOf(
-                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2", shooterShouldStartDuringPath = true,),
-                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", shooterShouldStartDuringPath = true,),
-                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6", shooterShouldStartDuringPath = true,),
-                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8", shooterShouldStartDuringPath = true,)
-                        )
-                    )
+                    speakerAuto
                 )
-                 */
-
             }
         }
     }

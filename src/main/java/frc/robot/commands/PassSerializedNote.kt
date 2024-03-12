@@ -6,8 +6,6 @@ import frc.chargers.commands.commandbuilder.buildCommand
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.shooter.Shooter
 
-val DEFAULT_PASS_TIME_WHEN_NO_SENSOR_PRESENT = 0.5.seconds
-
 fun passSerializedNote(
     groundIntake: GroundIntakeSerializer,
     shooter: Shooter,
@@ -17,13 +15,12 @@ fun passSerializedNote(
     if (shooter.hasNoteDetector){
         loopUntil({shooter.hasNote}){
             shooter.receiveFromGroundIntake()
-            groundIntake.passToShooter()
+            groundIntake.passToShooterSlow()
         }
     }else{
-        loopFor(DEFAULT_PASS_TIME_WHEN_NO_SENSOR_PRESENT){
-            println("No sensor No sensor!")
+        loopFor(0.5.seconds){
             shooter.receiveFromGroundIntake()
-            groundIntake.passToShooter()
+            groundIntake.passToShooterSlow()
         }
     }
 

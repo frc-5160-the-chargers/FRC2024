@@ -413,6 +413,30 @@ public open class CommandBuilder{
         return SequentialCommandGroup(*commandsSet.toTypedArray()).also(::addCommand)
     }
 
+    /**
+     * Runs certain commands sequentially for a certain [Time].
+     */
+    public inline fun runSequentiallyFor(time: Time, vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
+        val sequentialCommand = runSequentially(*commands, block = block)
+        this.commands.remove(sequentialCommand)
+        return sequentialCommand.withTimeout(time.inUnit(seconds))
+    }
+
+    /**
+     * Runs certain commands sequentially **until** a certain condition is met.
+     */
+    public inline fun runSequentiallyUntil(noinline condition: () -> Boolean, vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
+        val sequentialCommand = runSequentially(*commands, block = block)
+        this.commands.remove(sequentialCommand)
+        return sequentialCommand.unless(condition)
+    }
+
+    /**
+     * Runs certain commands sequentially **until** a certain condition is met.
+     */
+    public inline fun runSequentiallyWhile(crossinline condition: () -> Boolean, vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command =
+        runSequentiallyUntil({ !condition() }, *commands, block = block)
+
 
     /**
      * Adds a command that will schedule the given commands provided

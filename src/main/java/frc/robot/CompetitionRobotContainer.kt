@@ -6,6 +6,8 @@ package frc.robot
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
+import com.pathplanner.lib.auto.AutoBuilder
+import com.pathplanner.lib.path.PathPlannerPath
 import com.pathplanner.lib.util.PathPlannerLogging
 import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.geometry.Pose2d
@@ -13,7 +15,6 @@ import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.GenericHID
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
@@ -27,12 +28,13 @@ import frc.chargers.constants.SwerveAzimuthControl
 import frc.chargers.constants.SwerveControlData
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
+import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
+import frc.chargers.hardware.inputdevices.onClickAndHold
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
-import frc.chargers.hardware.motorcontrol.rev.SparkMaxEncoderType
 import frc.chargers.hardware.motorcontrol.rev.util.PeriodicFrameConfig
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
@@ -53,18 +55,23 @@ import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOReal
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOSim
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
+import frc.robot.hardware.subsystems.pivot.PivotEncoderType
 import frc.robot.hardware.subsystems.pivot.lowlevel.PivotIOReal
 import frc.robot.hardware.subsystems.pivot.lowlevel.PivotIOSim
 import frc.robot.hardware.subsystems.shooter.NoteVisualizer
 import frc.robot.hardware.subsystems.shooter.Shooter
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOReal
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOSim
+import frc.robot.hardware.subsystems.vision.VisionManager
 import org.littletonrobotics.junction.Logger.recordOutput
 import kotlin.jvm.optionals.getOrNull
 
 
 /**
  * The robot container for the official competition robot.
+ *
+ * IMPORTANT: Ground intake side is considered the front of the robot.
+ * Pivot side is considered the back.
  */
 class CompetitionRobotContainer: ChargerRobotContainer() {
 
@@ -76,7 +83,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     // note of reference: an IO class is a low-level component of the robot
     // that integrates advantagekit logging.
 
-    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{ zeroHeading() }
+    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{ zeroHeading(180.degrees) }
 
     private val shooter = Shooter(
         if (isReal()){
@@ -106,20 +113,17 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     smartCurrentLimit = SmartCurrentLimit(35.amps)
                 },
                 useOnboardPID = false,
-                encoderType = PivotIOReal.EncoderType.IntegratedRelativeEncoder(pivotRatio),
-                //offset = 1.503.radians
+                encoderType = PivotEncoderType.IntegratedRelativeEncoder(pivotRatio),
             )
         }else{
             PivotIOSim(DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004))
         },
         ///// FOR NAYAN: Pivot PID Constants
         if (isReal()) PIDConstants(6.0,0,0)  else PIDConstants(10.0, 0.0, 0.0),
-        /*
         AngularTrapezoidProfile(
             maxVelocity = AngularVelocity(8.0),
             maxAcceleration = AngularAcceleration(10.0)
         ),
-         */
         forwardSoftStop = 1.636.radians,
         reverseSoftStop = (-1.8).radians
     )
@@ -169,10 +173,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             bottomRightZero = 0.661.radians,
         ),
         driveMotors = sparkMaxSwerveMotors(
-            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE){ inverted = true },
-            topRight = ChargerSparkMax(DrivetrainID.TR_DRIVE),
-            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE){ inverted = true },
-            bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE)
+            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE),
+            topRight = ChargerSparkMax(DrivetrainID.TR_DRIVE){ inverted = true },
+            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE),
+            bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE){ inverted = true }
         ){
             smartCurrentLimit = SmartCurrentLimit(45.amps)
             voltageCompensationNominalVoltage = 12.volts
@@ -191,7 +195,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 AngularMotorFFEquation(0.0081299, 0.13396)
             },
             robotRotationPID = PIDConstants(1.3,0,0.1),
-            robotTranslationPID = PIDConstants(0.3,0,0.03)
+            robotTranslationPID = PIDConstants(0.8,0,0.03)
         ),
         useOnboardPID = false,
         hardwareData = SwerveHardwareData.mk4iL2(
@@ -201,8 +205,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             trackWidth = 32.inches, wheelBase = 32.inches
         ),
         gyro = if (isReal()) gyroIO else null,
-        invertPoseX = true,
-        invertPoseY = true
     )
 
     private val climber = Climber(
@@ -228,13 +230,13 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         highLimit = -100.radians,
     )
 
-    //private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
+    private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
 
 
 
     private val autoChooser = AutoChooser(
-        aprilTagVision = null,
-        noteDetector = null,
+        aprilTagVision = vision.fusedTagPipeline,
+        noteDetector = vision.notePipeline,
         drivetrain, shooter, pivot, groundIntake
     )
 
@@ -383,10 +385,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
 
-            resetPivotAngleTrigger.onTrue(
-                runOnceCommand(pivot){
-                    pivot.resetToStartingPosition()
-                }
+            ampScoreTrigger.onClickAndHold(
+                AutoBuilder.pathfindThenFollowPath(
+                    PathPlannerPath.fromPathFile("AmpTeleop"),
+                    PATHFIND_CONSTRAINTS
+                )
             )
 
             // vision stuff commented out for now
@@ -490,7 +493,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
     override val autonomousCommand: Command
-        get() = autoChooser.selected
+        get() = autoChooser.speakerAuto
 }
 
 // ks: 0.2523

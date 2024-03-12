@@ -12,6 +12,7 @@ import frc.robot.commands.auto.components.AmpAutoScoreComponent
 import frc.robot.commands.followPathOptimal
 import frc.robot.commands.runGroundIntake
 import frc.robot.commands.passSerializedNote
+import frc.robot.commands.shootInAmp
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
@@ -41,20 +42,7 @@ fun noVisionAmpAutonomous(
         PathPlannerPath.fromPathFile("DriveToAmp")
     )
 
-    +pivot.setAngleCommand(PivotAngle.AMP)
-
-    loopUntil({!shooter.hasNote}){
-        shooter.outtake(0.3)
-    }
-
-    loopFor(0.2.seconds){
-        shooter.outtake(0.3)
-    }
-
-    runOnce{
-        shooter.setIdle()
-    }
-
+    +shootInAmp(shooter, pivot)
 
     for (autoComponent in additionalComponents){
         runParallelUntilFirstCommandFinishes{
@@ -83,19 +71,7 @@ fun noVisionAmpAutonomous(
             }
         }
 
-        +pivot.setAngleCommand(PivotAngle.AMP)
-
-        loopUntil({!shooter.hasNote}){
-            shooter.outtake(0.3)
-        }
-
-        loopFor(0.2.seconds){
-            shooter.outtake(0.3)
-        }
-
-        runOnce{
-            shooter.setIdle()
-        }
+        +shootInAmp(shooter, pivot)
     }
 
     runParallelUntilAllFinish{

@@ -10,6 +10,15 @@ import frc.chargers.controls.pid.SuperPIDController
 // handles logging and replay for the pivot subsystem.
 val PivotLog = LoggableInputsProvider("Pivot")
 
+context(PivotIO)
+fun getRioPIDController() = SuperPIDController(
+    PIDConstants(0.3,0,0),
+    getInput = { angle },
+    target = 0.degrees,
+    outputRange = (-12).volts..12.volts
+)
+
+
 /**
  * Represents the low level component of the pivot subsystem.
  */
@@ -34,26 +43,7 @@ interface PivotIO {
     )
 
     /**
-     * Sets the angle of the pivot to a certain value.
-     *
-     * Simulation does not utilize this function
-     */
-    fun zeroAngle(target: Angle){
-        println("Empty Angle zero impl: set to $target")
-    }
-
-    /**
      * Sets the brake mode.
      */
     fun setBrakeMode(shouldBrake: Boolean){}
-
-
-
-    // not intended to be overriden
-    fun getRioPIDController() = SuperPIDController(
-        PIDConstants(0.3,0,0),
-        getInput = { angle },
-        target = 0.degrees,
-        outputRange = (-12).volts..12.volts
-    )
 }

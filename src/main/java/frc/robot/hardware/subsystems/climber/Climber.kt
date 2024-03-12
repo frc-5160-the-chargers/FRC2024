@@ -16,13 +16,10 @@ import org.littletonrobotics.junction.Logger
 // change this to voltage requests / positions requests
 // and/or make it stall in the same position when no power is put
 class Climber(
-    val io: ClimberIO,
-
+    private val io: ClimberIO,
     private val climbMaxVoltage: Voltage = 8.volts,
-
     val highLimit: Angle? = null,
     val lowLimit: Angle? = null,
-
     private val climbSetpointPrecision: Precision<AngleDimension> = Precision.Within(2.degrees)
 ): SubsystemBase() {
     /*
@@ -45,16 +42,6 @@ class Climber(
      */
 
     private fun willSurpassLimit(hookSpeed: Double, position: Angle): Boolean{
-
-        Logger.recordOutput("Climber/HighLimitNotNull", highLimit != null)
-        Logger.recordOutput("Climber/HookSpeedGreaterThanZero", hookSpeed > 0.0)
-        Logger.recordOutput("Climber/PositionGreaterThanHighLimit", highLimit != null && position >= highLimit)
-
-        Logger.recordOutput("Climber/LowLimitNotNull", lowLimit != null)
-        Logger.recordOutput("Climber/HookSpeedLessThanZero", hookSpeed < 0.0)
-        Logger.recordOutput("Climber/PositionLessThanLowLimit", lowLimit != null && position <= lowLimit)
-
-
         val surpassedUpperLimit: Boolean = highLimit != null && hookSpeed > 0.0 && position >= highLimit
         val surpassedLowerLimit: Boolean = lowLimit != null && hookSpeed < 0.0 && position <= lowLimit
 

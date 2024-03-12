@@ -39,13 +39,13 @@
   },
   "goalEndState": {
     "velocity": 0.0,
-    "rotation": -60.0,
+    "rotation": 120.0,
     "rotateFast": false
   },
   "reversed": false,
   "folder": "Teleop Paths",
   "previewStartingState": {
-    "rotation": -60.0,
+    "rotation": 120.0,
     "velocity": 0
   },
   "useDefaultConstraints": false
