@@ -2,15 +2,13 @@ package frc.robot.commands.auto
 
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
-import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.auto.AutoBuilder
+import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
-import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
@@ -20,20 +18,15 @@ import frc.robot.commands.auto.components.SpeakerAutoStartingPose
 import frc.robot.commands.runGroundIntake
 import frc.robot.commands.shootInSpeaker
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
-import frc.robot.controls.rotationoverride.getSpeakerRotationOverride
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
-import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
-private val CLOSE_RANGE_SPEAKER_SHOOT_TIMEOUT = 0.8.seconds
-private val FAR_RANGE_SPEAKER_SHOOT_TIMEOUT = 1.0.seconds
 
 /**
  * A modular autonomous command for speaker-side autos.
  */
 fun speakerAutonomous(
-    apriltagVision: AprilTagVisionPipeline,
     noteDetector: ObjectVisionPipeline,
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
@@ -43,7 +36,6 @@ fun speakerAutonomous(
     startingPose: SpeakerAutoStartingPose,
     additionalComponents: List<SpeakerAutoScoreComponent>
 ): Command = buildCommand {
-    val speakerRotationOverride = getSpeakerRotationOverride(apriltagVision)
     val noteRotationOverride = getNoteRotationOverride(noteDetector)
 
     runOnce{
@@ -63,7 +55,7 @@ fun speakerAutonomous(
                 // drives out further in case the path missed the note
                 +pursueNote(
                     drivetrain, noteDetector,
-                    endCondition = { groundIntake.hasNote },
+                    endCondition = { if (isReal()) groundIntake.hasNote else noteDetector.bestTarget == null },
                     setRotationOverride = false
                 ).withTimeout(2.0)
             }
@@ -72,6 +64,7 @@ fun speakerAutonomous(
             runSequentially{
                 // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
                 // along the path.
+                // robotPose getter is a UnitPose2d; a wrapper with support for kmeasure units
                 waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }
 
                 runOnce{
@@ -83,7 +76,7 @@ fun speakerAutonomous(
         }
 
         runOnce{
-            drivetrain.setRotationOverride(speakerRotationOverride)
+            drivetrain.removeRotationOverride()
         }
 
         if (autoComponent.scorePath != null){
@@ -94,21 +87,14 @@ fun speakerAutonomous(
                     loop{
                         // just run shooting to bring the shooter up to speed
                         shooter.outtakeAtSpeakerSpeed()
-                        groundIntake.setConveyorVoltage(-2.volts) // sets a small voltage so that note won't entirely go into shooter
                     }
                 }
             }
-        }
 
-        if (autoComponent.shouldShootOnEnd){
             +shootInSpeaker(
                 shooter, groundIntake, pivot,
-                shooterSpinUpTime = if (autoComponent.shooterShouldStartDuringPath) 0.seconds else 0.3.seconds
+                shooterSpinUpTime = if (autoComponent.shooterShouldStartDuringPath) 0.seconds else 0.5.seconds
             )
-        }
-
-        runOnce{
-            drivetrain.removeRotationOverride()
         }
     }
 }

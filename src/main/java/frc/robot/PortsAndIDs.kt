@@ -30,5 +30,5 @@ const val PIVOT_MOTOR_ID = 9
 const val GROUND_INTAKE_ID = 13
 const val CONVEYOR_ID = 29
 
-const val CLIMBER_ID_LEFT = 6 // TBD MAYBE?
+const val CLIMBER_ID_LEFT = 6
 const val CLIMBER_ID_RIGHT = 8

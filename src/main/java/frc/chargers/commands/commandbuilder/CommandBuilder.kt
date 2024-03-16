@@ -498,7 +498,6 @@ public open class CommandBuilder{
      * Adds a command that does nothing for a specified [timeInterval], then completes.
      *
      * Useful if a delay is needed between two commands in a [SequentialCommandGroup].
-     * Note that running this in parallel with other commands is unlikely to be useful.
      */
     public fun waitFor(timeInterval: Time): WaitCommand =
         WaitCommand(timeInterval.inUnit(seconds)).also(::addCommand)
@@ -507,13 +506,12 @@ public open class CommandBuilder{
      * Adds a command that does nothing until a [condition] is met, then completes.
      *
      * Useful if some condition must be met before proceeding to the next command in a [SequentialCommandGroup].
-     * Note that running this in parallel with other commands is unlikely to be useful.
      */
     public fun waitUntil(condition: () -> Boolean): WaitUntilCommand =
         WaitUntilCommand(condition).also(::addCommand)
 
     /**
-     * Creates values that will refresh once during run;
+     * Creates a value that will refresh once during run;
      * at the point of which this statement is placed within the command.
      *
      * In order to do this, read-only properties(val)
@@ -527,7 +525,7 @@ public open class CommandBuilder{
      *      val armStartingPosition by getOnceDuringRun{ arm.position }
      *
      *      runOnce{
-     *          // because this is called in a function(CodeBlockContext) block,
+     *          // because this is called in a function block(CodeBlockContext),
      *          // it will print the new armStartingPosition whenever the command runs.
      *          println(armStartingPosition)
      *      }

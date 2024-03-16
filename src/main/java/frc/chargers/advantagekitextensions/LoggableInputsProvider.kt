@@ -60,7 +60,7 @@ public typealias ReadWriteLoggableInput<T> = PropertyDelegateProvider<Any?, Read
  *      override var appliedVoltage by ArmLog.quantity(
  *          getValue = {...},
  *          setValue = {...}
- *       )
+ *      )
  *
  *      // logged under "Arm/otherProperty"
  *      // always use lowercase version of class name for delegates, for example:
@@ -737,26 +737,23 @@ public class LoggableInputsProvider(
         val set: (List<T>) -> Unit = {}
     ): ReadWriteProperty<Any?,List<T>>, AutoLoggedItem(){
         private var field: List<T> = listOf()
-
         private var previousNumItems = 0
 
         override fun toLog(table: LogTable) {
-            var counter = 1
-            table.put("$name/totalValues", field.size)
-            for (item in field){
-                item.pushToLog(table, "$name/$counter")
+            table.put("$name/_numValues", field.size)
+            for (i in field.indices){
+                field[i].pushToLog(table, "$name/$i")
                 // not used for replay; simply used as useful information so that it can be distinguished
                 // which logged items are actually within the list or not,
                 // since items that are removed from the list still have their last logged value preserved.
-                table.put("$name/$counter/IsPresentInList", true)
-                counter++
+                table.put("$name/$i/_isPresentInList", true)
             }
 
             // if the num items in previous loop was greater, log the values that are still hanging around
             // as not present.
             if (previousNumItems > field.size){
-                for (i in field.size+1..previousNumItems){
-                    table.put("$name/$i/IsPresentInList", false)
+                for (i in field.size..<previousNumItems){
+                    table.put("$name/$i/_isPresentInList", false)
                 }
             }
 
@@ -764,14 +761,11 @@ public class LoggableInputsProvider(
         }
 
         override fun fromLog(table: LogTable) {
-            val totalItems = table.get("$name/totalValues", 0)
-            val newField = mutableListOf<T>()
-            for (counter in 1 ..< totalItems + 1){
-                newField.add(
-                    default.getFromLog(table, "$name/$counter")
-                )
+            val totalItems = table.get("$name/numValues", 0)
+
+            field = List(totalItems){
+                i -> default.getFromLog(table, "$name/$i")
             }
-            field = newField
         }
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): List<T> = field

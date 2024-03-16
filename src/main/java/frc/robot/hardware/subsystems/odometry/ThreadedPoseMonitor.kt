@@ -82,6 +82,7 @@ class ThreadedPoseMonitor(
 
 
     init{
+        OdometryThread.getInstance().start()
         // waits, then burns flashes for motors
         delay(0.02.seconds)
         topLeftOdoSource.burnMotorFlashes()

@@ -5,6 +5,7 @@ import com.batterystaple.kmeasure.dimensions.AngleDimension
 import com.batterystaple.kmeasure.dimensions.ScalarDimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.meters
+import com.batterystaple.kmeasure.units.radians
 import edu.wpi.first.math.controller.PIDController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
@@ -146,6 +147,8 @@ class AimToAprilTagRotationOverride(
         }
     }
 
+    private val visionSystemYaw = visionSystem.cameraConstants.robotToCameraTransform.rotation.z.ofUnit(radians)
+
     private val poseAimController = PIDController(angleToVelocityPID.kP, angleToVelocityPID.kI, angleToVelocityPID.kD).apply{
         if (poseAimPrecision is Precision.Within){
             this.setTolerance( (poseAimPrecision.allowableError.endInclusive - poseAimPrecision.allowableError.start).siValue )
@@ -197,10 +200,11 @@ class AimToAprilTagRotationOverride(
             val targetHeading = atan2(
                 drivetrainToTagTranslation.y.inUnit(meters),
                 drivetrainToTagTranslation.x.inUnit(meters)
-            )
+            ) + visionSystemYaw
             // uses pid control to reach that pose
             val output = poseAimController.calculate(
-                drivetrain.heading.siValue, targetHeading.siValue
+                drivetrain.heading.siValue.inputModulus(0.0..2 * PI),
+                targetHeading.siValue.inputModulus(0.0..2 * PI)
             )
 
             recordOutput("AimToAprilTag/poseAim/controllerError", poseAimController.positionError)

@@ -88,10 +88,14 @@
           }
         },
         "AprilTagCamRight": {
+          "open": true,
           "robotPoseEstimates": {
             "open": true
           },
           "visionTargets": {
+            "0": {
+              "open": true
+            },
             "Value#1": {
               "open": true
             },
@@ -133,6 +137,9 @@
         "ObjectDetector": {
           "open": true,
           "visionTargets": {
+            "0": {
+              "open": true
+            },
             "Value#1": {
               "open": true
             },
@@ -176,8 +183,7 @@
             },
             "TopRightModule": {
               "open": true
-            },
-            "open": true
+            }
           },
           "Pathplanner": {
             "deviationFromTargetPose": {

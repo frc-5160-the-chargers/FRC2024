@@ -1,6 +1,7 @@
 @file:Suppress("unused")
 package frc.robot.hardware.inputdevices
 
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.hardware.inputdevices.InputAxis
@@ -68,31 +69,24 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     private val forwardAxis =
         InputAxis{ if (DRIVER.rightHanded) rightY else leftY }
             .applyDeadband(DEFAULT_DEADBAND)
-            .invert()
+            .invertWhen(RobotBase::isReal)
             //.invertWhen{ shouldInvertForward.get() }
-            .applyMultiplier(0.6)
+            .applyMultiplier(0.7)
             .log("DriverController/xPower")
 
     private val strafeAxis =
         InputAxis{ if (DRIVER.rightHanded) rightX else leftX }
             .applyDeadband(DEFAULT_DEADBAND)
-            .invert()
+            .invertWhen(RobotBase::isReal)
             //.invertWhen{ shouldInvertStrafe.get() }
-            .applyMultiplier(0.6)
+            .applyMultiplier(0.7)
             .log("DriverController/yPower")
 
     private val rotationAxis =
         InputAxis{ if (DRIVER.rightHanded) leftX else rightX }
             .applyDeadband(DEFAULT_DEADBAND)
-            /*
-            .invertWhen{
-                (DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red &&
-                        !IS_KEYBOARD_SIM_CONTROLLER) ||
-                        shouldDisableFieldRelative
-            }
-             */
             .square()
-            .applyEquation(Polynomial(0.1,0.0,0.4,0.0))
+            .applyEquation(Polynomial(0.2,0.0,0.4,0.0))
             .log("DriverController/rotationPower")
 
 

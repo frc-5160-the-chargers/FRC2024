@@ -27,7 +27,7 @@ fun shootInAmp(
         }
     }
 
-    onEnd {
+    onEnd{
         pivot.setIdle()
         shooter.setIdle()
     }

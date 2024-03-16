@@ -6,10 +6,7 @@ package frc.robot
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
-import com.pathplanner.lib.auto.AutoBuilder
-import com.pathplanner.lib.path.PathPlannerPath
 import com.pathplanner.lib.util.PathPlannerLogging
-import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DigitalInput
@@ -20,7 +17,6 @@ import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
-import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -32,7 +28,6 @@ import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
-import frc.chargers.hardware.inputdevices.onClickAndHold
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
@@ -46,10 +41,10 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
 import frc.robot.commands.*
+import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.climber.Climber
-import frc.robot.hardware.subsystems.climber.lowlevel.ClimberIOReal
 import frc.robot.hardware.subsystems.climber.lowlevel.ClimberIOSim
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOReal
@@ -76,7 +71,7 @@ import kotlin.jvm.optionals.getOrNull
  */
 class CompetitionRobotContainer: ChargerRobotContainer() {
 
-    private val shooterRatio = 5.0 * (14.0 / 26.0) // torque * sprocket
+    private val shooterRatio = 1.0
     private val pivotRatio = 96.0
     private val groundIntakeRatio = 15.0 / 12.0
     private val conveyorRatio = 1.0
@@ -94,7 +89,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     ///// FOR NAYAN: Shooter configuration
                     inverted = true
                     statorCurrentLimitEnable = true
-                    statorCurrentLimit = 55.amps
+                    statorCurrentLimit = 40.amps
                 },
                 gearRatio = shooterRatio
             )
@@ -194,10 +189,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             velocityFF = if (isReal()){
                 AngularMotorFFEquation(0.2523, 0.08909)
             }else{
-                AngularMotorFFEquation(0.0081299, 0.13396)
+                AngularMotorFFEquation(0.0, 0.13)
             },
-            robotRotationPID = PIDConstants(1.3,0,0.1),
-            robotTranslationPID = PIDConstants(0.8,0,0.03)
+            robotRotationPID = PIDConstants(1.0,0,0.1),
+            robotTranslationPID = PIDConstants(0.2,0,0.03)
         ),
         useOnboardPID = false,
         hardwareData = SwerveHardwareData.mk4iL2(
@@ -239,13 +234,13 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         highLimit = -100.radians,
     )
 
-    //private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
+    private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
 
 
 
     private val autoChooser = AutoChooser(
-        aprilTagVision = null, //vision.fusedTagPipeline,
-        noteDetector = null, //vision.notePipeline,
+        aprilTagVision = vision.tagPipeline,
+        noteDetector = vision.notePipeline,
         drivetrain, shooter, pivot, groundIntake
     )
 
@@ -263,6 +258,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
         }
          */
+
+        if (isSimulation()){
+            vision.enableVisionPoseEstimation()
+        }
 
         DriverStation.silenceJoystickConnectionWarning(true)
         DashboardTuner.tuningMode = false
@@ -325,6 +324,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 moveRightHook(0.0)
             }
         }
+
+        groundIntake.setDefaultRunCommand{
+            groundIntake.setIdle()
+        }
     }
 
     private fun configureBindings(){
@@ -356,27 +359,22 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             pointWestTrigger.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
 
-            /*
+
             zeroHeadingTrigger.onTrue(
                 runOnceCommand{
-                    gyroIO.zeroHeading()
+                    gyroIO.zeroHeading(180.degrees)
                 }
             )
-             */
         }
 
         OperatorInterface.apply{
-            groundIntakeTrigger
-                .whileTrue(runGroundIntake(groundIntake, shooter))
-                .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
+            groundIntakeTrigger.whileTrue(runGroundIntake(groundIntake, shooter))
 
-            groundOuttakeTrigger
-                .whileTrue(loopCommand(groundIntake){ groundIntake.outtake() })
-                .onFalse(runOnceCommand(groundIntake){ groundIntake.setIdle() })
+            groundOuttakeTrigger.whileTrue(loopCommand(groundIntake){ groundIntake.outtake() })
 
-            passToShooterTrigger
-                .whileTrue(passSerializedNote(groundIntake, shooter))
-                .onFalse(loopCommand(groundIntake){ groundIntake.setIdle() })
+            passToShooterTrigger.whileTrue(passSerializedNote(groundIntake, shooter))
+
+            shootInSpeakerTrigger.whileTrue(shootInSpeaker(shooter, groundIntake, pivot))
 
             // when only held, the buttons will just cause the pivot to PID to the appropriate position
             // interrupt behavior set as to prevent command scheduling conflicts
@@ -392,62 +390,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
             )
 
+
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
-
-            ampScoreTrigger.onClickAndHold(
-                AutoBuilder.pathfindThenFollowPath(
-                    PathPlannerPath.fromPathFile("AmpTeleop"),
-                    PATHFIND_CONSTRAINTS
-                )
-            )
-
-            // vision stuff commented out for now
-            /*
-            // when "double clicked" and held, the buttons will auto drive and move the pivot
-            ampScoreTrigger.onClickAndHold(
-                alignToAprilTag(
-                    drivetrain,
-                    vision.fusedTagPipeline,
-                    pivot,
-                    AprilTagLocation.AMP,
-                    followPathCommand = followPathOptimal(
-                        drivetrain,
-                        PathPlannerPath.fromPathFile("AmpTeleop")
-                    )
-                )
-            )
-
-            sourceIntakeLeftTrigger.onClickAndHold(
-                alignToAprilTag(
-                    drivetrain,
-                    vision.fusedTagPipeline,
-                    pivot,
-                    AprilTagLocation.SOURCE_LEFT,
-                    followPathCommand = followPathOptimal(
-                        drivetrain,
-                        PathPlannerPath.fromPathFile("SourceLeftTeleop")
-                    )
-                )
-            )
-
-            sourceIntakeRightTrigger.onClickAndHold(
-                alignToAprilTag(
-                    drivetrain,
-                    vision.fusedTagPipeline,
-                    pivot,
-                    AprilTagLocation.SOURCE_RIGHT,
-                    followPathCommand = followPathOptimal(
-                        drivetrain,
-                        PathPlannerPath.fromPathFile("SourceRightTeleop")
-                    )
-                )
-            )
 
             driveToNoteTrigger.whileTrue(
                 pursueNoteElseTeleopDrive(drivetrain, vision.notePipeline)
             )
-
-             */
         }
     }
 
@@ -464,6 +412,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             recordOutput("Pathplanner/deviationFromTargetPose/xMeters", it.x - currPose.x)
             recordOutput("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
             recordOutput("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
+        }
+    }
+
+
+    override fun teleopInit(){
+        // only enabled during teleop for now
+        if (isReal()){
+            vision.enableVisionPoseEstimation()
         }
     }
 
@@ -503,9 +459,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
     override val autonomousCommand: Command
-        get() = AutoBuilder.followPath(
-            PathPlannerPath.fromPathFile("Test Path")
-        )
+        get() = autoChooser.speakerAuto
 }
 
 // ks: 0.2523

@@ -65,7 +65,7 @@ class AutoChooser(
 
     val speakerAuto = if (aprilTagVision != null && noteDetector != null){
         speakerAutonomous(
-            aprilTagVision, noteDetector, drivetrain,
+            noteDetector, drivetrain,
             shooter, pivot, groundIntake,
             startingPose = SpeakerAutoStartingPose.CENTER,
             additionalComponents = listOf(
