@@ -42,7 +42,7 @@ val PATHFIND_CONSTRAINTS = PathConstraints(
     650.degrees / 1.seconds / 1.seconds
 )
 
-val AMP_AUTO_STARTING_POSE_BLUE = UnitPose2d(1.4.meters, 7.3.meters, 90.degrees)
+val AMP_AUTO_STARTING_POSE_BLUE = UnitPose2d(1.38.meters, 7.29.meters, -90.degrees)
 val ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE = 1.5.meters
 
 // alerts

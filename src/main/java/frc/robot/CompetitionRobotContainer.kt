@@ -111,10 +111,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     smartCurrentLimit = SmartCurrentLimit(35.amps)
                 },
                 useOnboardPID = false,
+                encoderType = PivotEncoderType.IntegratedRelativeEncoder(pivotRatio)
+                /*
                 encoderType = PivotEncoderType.ExternalAbsoluteEncoder(
                     absoluteEncoder = ChargerDutyCycleEncoder(PIVOT_ENCODER_ID),
                     motorGearRatio = pivotRatio
                 ),
+
+                 */
             )
         }else{
             PivotIOSim(DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004))

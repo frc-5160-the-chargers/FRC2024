@@ -58,7 +58,7 @@ public class ChargerDutyCycleEncoder: DutyCycleEncoder, PositionEncoder,
     public constructor(dutyCycle: DutyCycle): super(dutyCycle)
 
     override val angularPosition: Angle
-        get() = get().ofUnit(rotations)
+        get() = absolutePosition.ofUnit(rotations)
 
     override fun configure(configuration: DutyCycleEncoderConfiguration) {
         configuration.connectedFrequencyThreshold?.let { setConnectedFrequencyThreshold(it) }
