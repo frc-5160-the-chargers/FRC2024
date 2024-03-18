@@ -7,6 +7,7 @@ import com.batterystaple.kmeasure.quantities.Distance
 import com.batterystaple.kmeasure.quantities.abs
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Pose3d
+import edu.wpi.first.math.interpolation.Interpolatable
 import frc.chargers.advantagekitextensions.AdvantageKitLoggable
 import frc.chargers.utils.math.units.KmeasureUnit
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
@@ -17,7 +18,7 @@ import org.littletonrobotics.junction.LogTable
  */
 public data class UnitPose2d(
     val siValue: Pose2d = Pose2d()
-): AdvantageKitLoggable<UnitPose2d>{
+): AdvantageKitLoggable<UnitPose2d>, Interpolatable<UnitPose2d> {
     public constructor(translation: UnitTranslation2d, rotation: Angle = Angle(0.0)): this(
         Pose2d(translation.siValue, rotation.asRotation2d())
     )
@@ -82,5 +83,8 @@ public data class UnitPose2d(
 
     override fun getFromLog(table: LogTable, category: String): UnitPose2d =
         UnitPose2d(table.get(category, Pose2d.struct, Pose2d()))
+
+    override fun interpolate(endValue: UnitPose2d, t: Double): UnitPose2d =
+        UnitPose2d(siValue.interpolate(endValue.siValue, t))
 
 }

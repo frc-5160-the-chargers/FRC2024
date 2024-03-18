@@ -35,16 +35,13 @@ fun shootInSpeaker(
     }
 
     if (shooter.hasNoteDetector){
-        // only runs for max 3 seconds
-        runSequentiallyFor(3.seconds){
-            // runs until note passes through the shooter once
-            loopUntil({shooter.hasNote}){ runShooting() }
-            loopUntil({!shooter.hasNote}){ runShooting() }
-            // then, runs the shooter for a short period of time
-            loopFor(0.4.seconds){ runShooting() }
-        }
-    }else{
+        // runs until note passes through the shooter once
+        loopUntil({shooter.hasNote}){ runShooting() }
+        loopUntil({!shooter.hasNote}){ runShooting() }
+        // then, runs the shooter for a short period of time
         loopFor(1.seconds){ runShooting() }
+    }else{
+        loopFor(1.5.seconds){ runShooting() }
     }
 
     onEnd{

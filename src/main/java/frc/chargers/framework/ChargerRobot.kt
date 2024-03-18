@@ -5,15 +5,16 @@ import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.pathfinding.Pathfinding
+import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.apriltag.AprilTagFieldLayout
 import edu.wpi.first.apriltag.AprilTagFields
+import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
-import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.advantagekitextensions.*
-import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.wpilog.WPILOGReader
 import org.littletonrobotics.junction.wpilog.WPILOGWriter
 import edu.wpi.first.wpilibj2.command.CommandScheduler
@@ -21,12 +22,8 @@ import frc.external.pathplanner.LocalADStarAK
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.wpilibextensions.Alert
 import frc.robot.BuildConstants
-import org.littletonrobotics.junction.AutoLogOutputManager
-import org.littletonrobotics.junction.LogTable
-import org.littletonrobotics.junction.LoggedRobot
-import org.littletonrobotics.junction.Logger.*
+import org.littletonrobotics.junction.*
 import org.littletonrobotics.junction.networktables.NT4Publisher
-import java.io.File
 
 
 /**
@@ -124,6 +121,7 @@ public open class ChargerRobot(
             hardwareConfigRetryLimit = config.hardwareConfigRetryLimit
             LOOP_PERIOD = config.loopPeriod
             configureAdvantageKit()
+            configurePathPlannerLogging()
 
             DashboardTuner.tuningMode = config.tuningMode
 
@@ -141,81 +139,88 @@ public open class ChargerRobot(
 
             CommandScheduler.getInstance().apply{
                 onCommandInitialize{
-                    recordOutput("/ActiveCommands/${it.name}", true)
+                    Logger.recordOutput("/ActiveCommands/${it.name}", true)
                 }
 
                 onCommandFinish {
-                    recordOutput("/ActiveCommands/${it.name}", false)
+                    Logger.recordOutput("/ActiveCommands/${it.name}", false)
                 }
 
                 onCommandInterrupt {it ->
-                    recordOutput("/ActiveCommands/${it.name}", false)
+                    Logger.recordOutput("/ActiveCommands/${it.name}", false)
                 }
             }
         }catch(e: Exception){
             println("Error has been caught in [robotInit].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
 
     }
 
     private fun configureAdvantageKit(){
-        setUseTiming(
-            RobotBase.isReal() || !config.isReplay
-        )
-        recordMetadata(
-            "Robot", if (RobotBase.isReal()) "REAL" else if (config.isReplay) "REPLAY" else "SIM"
-        )
-        recordMetadata("ProjectName", BuildConstants.MAVEN_NAME)
-        recordMetadata("BuildDate", BuildConstants.BUILD_DATE)
-        recordMetadata("GitSHA", BuildConstants.GIT_SHA)
-        recordMetadata("GitBranch", BuildConstants.GIT_BRANCH)
+        setUseTiming(RobotBase.isReal() || !config.replayModeActive)
+
+        Logger.recordMetadata("Robot", if (RobotBase.isReal()) "REAL" else if (config.replayModeActive) "REPLAY" else "SIM")
+        Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME)
+        Logger.recordMetadata("BuildDate", BuildConstants.BUILD_DATE)
+        Logger.recordMetadata("GitSHA", BuildConstants.GIT_SHA)
+        Logger.recordMetadata("GitBranch", BuildConstants.GIT_BRANCH)
         when(BuildConstants.DIRTY){
-            0 -> recordMetadata("GitDirty", "All changes committed")
-            1 -> recordMetadata("GitDirty", "Uncommitted changes")
-            else -> recordMetadata("GitDirty", "Unknown")
+            0 -> Logger.recordMetadata("GitDirty", "All changes committed")
+            1 -> Logger.recordMetadata("GitDirty", "Uncommitted changes")
+            else -> Logger.recordMetadata("GitDirty", "Unknown")
         }
-
-
-
 
         if (RobotBase.isReal()){
             // real robot
-            val availablePaths = File("/media/").listFiles()?.map{ it.path } ?: listOf()
-            recordMetadata("All File Paths Available", availablePaths.toString())
-            var noLogHappening = true
-            for (filePathSuffix in config.filePathOptions){
-                val filePathOption = "/media/$filePathSuffix"
-                if (filePathOption in availablePaths){
-                    addDataReceiver(WPILOGWriter(filePathOption))
-                    noLogHappening = false
-                    break
+            Logger.addDataReceiver(
+                if (config.logFilePath != null){
+                    WPILOGWriter(config.logFilePath)
+                }else{
+                    WPILOGWriter()
                 }
-            }
-            if (noLogHappening){
-                noUsbSignalAlert.active = true
-            }
-        }else if (config.isReplay){
+            )
+        }else if (config.replayModeActive){
             // replay mode; sim
-            val path = config.logFilePath ?: LogFileUtil.findReplayLog()
-            setReplaySource(WPILOGReader(path))
-            addDataReceiver(WPILOGWriter(LogFileUtil.addPathSuffix(path, "_replayed")))
+            val path = config.replayFilePath ?: LogFileUtil.findReplayLog()
+            Logger.setReplaySource(WPILOGReader(path))
+            Logger.addDataReceiver(WPILOGWriter(LogFileUtil.addPathSuffix(path, "_replayed")))
         }
 
-        if (config.logToNetworkTables && !config.isReplay){
-            addDataReceiver(NT4Publisher())
+        if (!DriverStation.isFMSAttached() && !config.replayModeActive){
+            Logger.addDataReceiver(NT4Publisher())
         }
 
         config.extraLoggerConfig()
 
         // no more configuration from this point on
-        start()
+        Logger.start()
 
         // configuration for AdvantageKitLoggable
         val baseEntry = LogTable(0)
         AK_LOGGABLE_REPLAY_TABLE = baseEntry.getSubtable("ReplayOutputs")
         AK_LOGGABLE_REAL_TABLE = baseEntry.getSubtable("RealOutputs")
+    }
+
+    private fun configurePathPlannerLogging(){
+        var currPose = Pose2d()
+        PathPlannerLogging.setLogCurrentPoseCallback {
+            currPose = it
+            Logger.recordOutput("Pathplanner/currentPose", it)
+        }
+
+        // Logging callback for target robot pose
+        PathPlannerLogging.setLogTargetPoseCallback {
+            Logger.recordOutput("Pathplanner/targetPose", Pose2d.struct, it)
+
+            Logger.recordOutput("Pathplanner/deviationFromTargetPose/xMeters", it.x - currPose.x)
+            Logger.recordOutput("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
+            Logger.recordOutput(
+                "Pathplanner/deviationFromTargetPose/rotationRad",
+                (it.rotation - currPose.rotation).radians
+            )
+        }
     }
 
     private fun runTopPriorityPeriodicFunctions(){
@@ -244,7 +249,6 @@ public open class ChargerRobot(
      */
     override fun robotPeriodic() {
         try{
-
             runTopPriorityPeriodicFunctions()
             // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
             // commands, running already-scheduled commands, removing finished or interrupted commands,
@@ -254,10 +258,9 @@ public open class ChargerRobot(
             runLowPriorityPeriodicFunctions()
         }catch(e: Exception){
             println("Error has been caught in [robotPeriodic].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
-
     }
 
     /** This function is called once each time the robot enters Disabled mode.  */
@@ -266,7 +269,7 @@ public open class ChargerRobot(
             robotContainer.disabledInit()
         }catch(e: Exception){
             println("Error has been caught in [disabledInit].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
     }
@@ -276,7 +279,7 @@ public open class ChargerRobot(
             robotContainer.disabledPeriodic()
         }catch(e: Exception){
             println("Error has been caught in [disabledPeriodic].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
     }
@@ -290,7 +293,7 @@ public open class ChargerRobot(
             autonomousCommand.schedule()
         }catch(e: Exception){
             println("Error has been caught in [autonomousInit].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
     }
@@ -301,7 +304,7 @@ public open class ChargerRobot(
             robotContainer.autonomousPeriodic()
         }catch(e: Exception){
             println("Error has been caught in [autonomousPeriodic].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
     }
@@ -313,7 +316,7 @@ public open class ChargerRobot(
             cancelCommand{ testCommand }
         }catch(e: Exception){
             println("Error has been caught in [teleopInit].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
     }
@@ -324,7 +327,7 @@ public open class ChargerRobot(
             robotContainer.teleopPeriodic()
         }catch(e: Exception){
             println("Error has been caught in [teleopPeriodic].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
     }
@@ -338,7 +341,7 @@ public open class ChargerRobot(
             testCommand.schedule()
         }catch(e: Exception){
             println("Error has been caught in [testInit].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
     }
@@ -349,7 +352,7 @@ public open class ChargerRobot(
             robotContainer.testPeriodic()
         }catch(e: Exception){
             println("Error has been caught in [testPeriodic].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
     }
@@ -360,7 +363,7 @@ public open class ChargerRobot(
             robotContainer.simulationInit()
         }catch(e: Exception){
             println("Error has been caught in [simulationInit].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
     }
@@ -371,7 +374,7 @@ public open class ChargerRobot(
             robotContainer.simulationPeriodic()
         }catch(e: Exception){
             println("Error has been caught in [simulationPeriodic].")
-            config.onError(e)
+            config.defaultExceptionHandler(e)
             throw e
         }
     }

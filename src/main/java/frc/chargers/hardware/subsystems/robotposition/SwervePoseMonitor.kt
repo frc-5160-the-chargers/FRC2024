@@ -39,6 +39,7 @@ public class SwervePoseMonitor(
     private val invertX: Boolean = false,
     private val invertY: Boolean = false
 ): SubsystemBase(), RobotPoseMonitor {
+    private val robotObject = ChargerRobot.FIELD.getObject(drivetrain.logName)
 
     private fun applyInverts(basePose: UnitPose2d): UnitPose2d{
         val x = (if (invertX) -1.0 else 1.0) * basePose.x
@@ -144,7 +145,7 @@ public class SwervePoseMonitor(
             /*
             Records the robot's pose on the field and in AdvantageScope.
              */
-            ChargerRobot.FIELD.robotPose = robotPose.inUnit(meters)
+            robotObject.pose = robotPose.inUnit(meters)
             recordOutput("Drivetrain(Swerve)/Pose2d", Pose2d.struct, robotPose.inUnit(meters))
             recordOutput("Drivetrain(Swerve)/realGyroUsedInPoseEstimation", drivetrain.gyro != null)
             recordOutput("Drivetrain(Swerve)/realGyroHeadingRad", drivetrain.gyro?.heading?.inUnit(radians) ?: 0.0)

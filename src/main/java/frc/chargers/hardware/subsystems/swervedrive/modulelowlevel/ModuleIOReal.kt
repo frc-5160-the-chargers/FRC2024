@@ -96,7 +96,7 @@ class ModuleIOReal(
 
         if (couplingRatio != null){
             ChargerRobot.runPeriodically {
-                couplingOffset -= couplingRatio * (direction - startingTurnEncoderPosition).inputModulus(0.degrees..361.degrees)
+                couplingOffset -= couplingRatio * (direction - startingTurnEncoderPosition).inputModulus(-180.degrees..180.degrees)
                 recordOutput(logInputs.namespace + "/couplingOffset", couplingOffset)
             }
         }

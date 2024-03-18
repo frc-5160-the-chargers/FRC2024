@@ -42,6 +42,7 @@ public class ChargerNavX(
                 // Wait for 1 second (hardware initialization) before zeroing heading
                 Thread.sleep(1000)
             }
+
             println("AHRS has finished calibrating.")
 
             headingOffset = if (ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance && useFusedHeading){
@@ -49,6 +50,7 @@ public class ChargerNavX(
             }else{
                 ahrs.angle.ofUnit(degrees) + angle
             }
+
             println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
         }else{
             headingOffset = -IMUSimulation.getHeading()

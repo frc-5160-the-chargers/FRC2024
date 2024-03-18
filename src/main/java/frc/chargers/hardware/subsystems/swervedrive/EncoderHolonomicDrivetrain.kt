@@ -6,6 +6,7 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig
+import edu.wpi.first.math.filter.SlewRateLimiter
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
@@ -14,9 +15,11 @@ import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
+import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
+import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.constants.*
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.motionprofiling.optimizeForContinuousInput
@@ -57,7 +60,7 @@ import kotlin.math.abs
  * Note: TrackWidth is the horizontal length of the robot, while wheelBase is the vertical length of the robot.
  */
 public class EncoderHolonomicDrivetrain(
-    logName: String = "Drivetrain(Swerve)",
+    public val logName: String = "Drivetrain(Swerve)",
     turnMotors: SwerveMotors<EncoderMotorController>,
     turnEncoders: SwerveEncoders<PositionEncoder>,
     driveMotors: SwerveMotors<EncoderMotorController>,
@@ -614,6 +617,18 @@ public class EncoderHolonomicDrivetrain(
             it.setDriveVoltage(0.volts)
         }
     }
+
+    /*
+    public fun characterizeWheelRadiusCommand(clockwise: Boolean): Command = buildCommand {
+
+        require(gyro != null){ "Gyro must be valid to characterize wheel radius" }
+
+        var lastGyroYaw = Angle(0.0)
+        var accumGyroAngle = Angle(0.0)
+
+        val omegaLimiter = SlewRateLimiter(1.0)
+    }
+     */
 
 
     /**

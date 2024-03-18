@@ -3,13 +3,12 @@ package frc.robot
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.RobotConfig
 
-val ROBOT = ChargerRobot(
+class Robot: ChargerRobot(
     getRobotContainer = { CompetitionRobotContainer() },
     config = RobotConfig(
-        isReplay = false,
+        replayModeActive = false,
         tuningMode = false,
-        onError = {},
         hardwareConfigRetryLimit = 3,
-        //logToNetworkTables = false
+        logFilePath = if (isReal()) "/U/logs/March18Test-1" else null
     )
 )

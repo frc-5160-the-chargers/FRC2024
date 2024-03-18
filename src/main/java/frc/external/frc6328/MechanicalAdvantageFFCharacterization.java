@@ -1,4 +1,4 @@
-package frc.robot;
+package frc.external.frc6328;
 
 // Copyright (c) 2023 FRC 6328
 // http://github.com/Mechanical-Advantage
@@ -19,7 +19,7 @@ import Jama.Matrix;
 import Jama.QRDecomposition;
 
 @SuppressWarnings("ALL")
-public class FFCharacterize6328 extends Command {
+public class MechanicalAdvantageFFCharacterization extends Command {
     /**
      * The {@code PolynomialRegression} class performs a polynomial regression on an set of <em>N</em>
      * data points (<em>y<sub>i</sub></em>, <em>x<sub>i</sub></em>). That is, it fits a polynomial
@@ -221,7 +221,7 @@ public class FFCharacterize6328 extends Command {
     private final Timer timer = new Timer();
 
     /** Creates a new FeedForwardCharacterization for a differential drive. */
-    public FFCharacterize6328(
+    public MechanicalAdvantageFFCharacterization(
             Subsystem drive,
             boolean forwards,
             FeedForwardCharacterizationData leftData,
@@ -241,7 +241,7 @@ public class FFCharacterize6328 extends Command {
     }
 
     /** Creates a new FeedForwardCharacterization for a simple subsystem. */
-    public FFCharacterize6328(
+    public MechanicalAdvantageFFCharacterization(
             Subsystem subsystem,
             boolean forwards,
             FeedForwardCharacterizationData data,

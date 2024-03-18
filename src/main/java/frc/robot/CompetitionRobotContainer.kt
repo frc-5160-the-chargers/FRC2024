@@ -6,8 +6,7 @@ package frc.robot
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
-import com.pathplanner.lib.util.PathPlannerLogging
-import edu.wpi.first.math.geometry.Pose2d
+import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
@@ -28,23 +27,26 @@ import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
-import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.PeriodicFrameConfig
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
+import frc.chargers.hardware.sensors.encoders.absolute.ChargerDutyCycleEncoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
+import frc.external.frc6328.MechanicalAdvantageFFCharacterization
 import frc.robot.commands.*
 import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
+import frc.robot.commands.auto.AutoChooser
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.climber.Climber
+import frc.robot.hardware.subsystems.climber.lowlevel.ClimberIOReal
 import frc.robot.hardware.subsystems.climber.lowlevel.ClimberIOSim
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIOReal
@@ -71,25 +73,24 @@ import kotlin.jvm.optionals.getOrNull
  */
 class CompetitionRobotContainer: ChargerRobotContainer() {
 
-    private val shooterRatio = 1.0
+    private val shooterRatio = 1.698
     private val pivotRatio = 96.0
     private val groundIntakeRatio = 15.0 / 12.0
-    private val conveyorRatio = 1.0
+    private val conveyorRatio = 7.5 / 1.0
 
     // note of reference: an IO class is a low-level component of the robot
     // that integrates advantagekit logging.
 
-    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{ zeroHeading(0.degrees) }
+    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{ zeroHeading(180.degrees) }
 
     private val shooter = Shooter(
         if (isReal()){
             ShooterIOReal(
                 beamBreakSensor = DigitalInput(9),
-                topMotor = ChargerTalonFX(SHOOTER_MOTOR_ID){
+                topMotor = ChargerSparkFlex(SHOOTER_MOTOR_ID){
                     ///// FOR NAYAN: Shooter configuration
                     inverted = true
-                    statorCurrentLimitEnable = true
-                    statorCurrentLimit = 40.amps
+                    smartCurrentLimit = SmartCurrentLimit(40.amps)
                 },
                 gearRatio = shooterRatio
             )
@@ -110,7 +111,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     smartCurrentLimit = SmartCurrentLimit(35.amps)
                 },
                 useOnboardPID = false,
-                encoderType = PivotEncoderType.IntegratedRelativeEncoder(pivotRatio),
+                encoderType = PivotEncoderType.ExternalAbsoluteEncoder(
+                    absoluteEncoder = ChargerDutyCycleEncoder(PIVOT_ENCODER_ID),
+                    motorGearRatio = pivotRatio
+                ),
             )
         }else{
             PivotIOSim(DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004))
@@ -206,11 +210,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     )
 
     private val climber = Climber(
-        ClimberIOSim(
-            DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
-            DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
-        ),
-        /*
+
         if (isReal()){
             ClimberIOReal(
                 leftMotor = ChargerSparkMax(CLIMBER_ID_LEFT){
@@ -230,7 +230,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
             )
         },
-         */
         highLimit = -100.radians,
     )
 
@@ -275,8 +274,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             headingSupplier = { drivetrain.heading },
             chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
-
-        configurePathPlannerLogging()
 
         if (isSimulation()){
             NoteVisualizer.setRobotPoseSupplier { drivetrain.poseEstimator.robotPose }
@@ -374,7 +371,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             passToShooterTrigger.whileTrue(passSerializedNote(groundIntake, shooter))
 
-            shootInSpeakerTrigger.whileTrue(shootInSpeaker(shooter, groundIntake, pivot))
+            shootInSpeakerTrigger.whileTrue(shootInSpeaker(shooter, groundIntake, pivot, shooterSpinUpTime = 1.seconds))
 
             // when only held, the buttons will just cause the pivot to PID to the appropriate position
             // interrupt behavior set as to prevent command scheduling conflicts
@@ -399,23 +396,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     }
 
-    private fun configurePathPlannerLogging(){
-        PathPlannerLogging.setLogCurrentPoseCallback {
-            recordOutput("Pathplanner/currentPose", Pose2d.struct, it)
-        }
-
-        // Logging callback for target robot pose
-        PathPlannerLogging.setLogTargetPoseCallback {
-            recordOutput("Pathplanner/targetPose", Pose2d.struct, it)
-
-            val currPose = drivetrain.poseEstimator.robotPose.inUnit(meters)
-            recordOutput("Pathplanner/deviationFromTargetPose/xMeters", it.x - currPose.x)
-            recordOutput("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
-            recordOutput("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
-        }
-    }
-
-
     override fun teleopInit(){
         // only enabled during teleop for now
         if (isReal()){
@@ -426,10 +406,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
 
-    override val testCommand: Command = FFCharacterize6328(
+    override val testCommand: Command = MechanicalAdvantageFFCharacterization(
         drivetrain, false,
-        FFCharacterize6328.FeedForwardCharacterizationData("DrivetrainDataLeft"),
-        FFCharacterize6328.FeedForwardCharacterizationData("DrivetrainDataRight"),
+        MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("DrivetrainDataLeft"),
+        MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("DrivetrainDataRight"),
         { leftV, rightV ->
             drivetrain.setDriveVoltages(
                 listOf(
@@ -459,7 +439,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
     override val autonomousCommand: Command
-        get() = autoChooser.speakerAuto
+        get() = autoChooser.selected
 }
 
 // ks: 0.2523

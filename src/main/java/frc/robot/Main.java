@@ -14,7 +14,7 @@ public class Main {
      */
     public static void main(String[] args){
         // @java-ignore
-        RobotBase.startRobot(RobotKt::getROBOT);
+        RobotBase.startRobot(Robot::new);
     }
 
 }

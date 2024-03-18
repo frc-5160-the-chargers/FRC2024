@@ -1,4 +1,4 @@
-package frc.robot
+package frc.robot.commands.auto
 
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
@@ -7,13 +7,9 @@ import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.commands.aiming.pursueNote
-import frc.robot.commands.auto.ampAutonomous
-import frc.robot.commands.auto.basicTaxi
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
 import frc.robot.commands.auto.components.SpeakerAutoScoreComponent
 import frc.robot.commands.auto.components.SpeakerAutoStartingPose
-import frc.robot.commands.auto.noVisionAmpAutonomous
-import frc.robot.commands.auto.speakerAutonomous
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.shooter.Shooter
