@@ -30,7 +30,7 @@ fun noVisionAmpAutonomous(
     taxiAtEnd: Boolean = false,
     additionalComponents: List<AmpAutoScoreComponent> = listOf() // used to control further notes pursued.
 ): Command = buildCommand {
-    addRequirements(drivetrain, shooter, pivot)
+    addRequirements(drivetrain, shooter, pivot, groundIntake)
 
     runOnce{
         drivetrain.poseEstimator.resetPose(
@@ -61,7 +61,7 @@ fun noVisionAmpAutonomous(
             }
         }
 
-        runParallelUntilAllFinish{
+        runParallelUntilFirstCommandFinishes{
             +followPathOptimal(drivetrain, autoComponent.scorePath)
 
             runSequentially{

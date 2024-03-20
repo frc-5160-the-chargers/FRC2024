@@ -1,154 +1,107 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.hardware.subsystems.robotposition
 
-import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.degrees
+import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.Distance
+import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
-import edu.wpi.first.math.VecBuilder
+import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
 import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import frc.external.frc6328.MechanicalAdvantagePoseEstimator
-import frc.external.frc6328.MechanicalAdvantagePoseEstimator.TimestampedVisionUpdate
-import frc.external.frc6995.NomadAprilTagUtil
-import frc.chargers.advantagekitextensions.recordLatency
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.wpilibextensions.fpgaTimestamp
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.ofUnit
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
-import org.littletonrobotics.junction.Logger.*
 
-/**
- * A Helper class used to get the pose of an [EncoderHolonomicDrivetrain],
- * with heading-supplying utilities.
- *
- * Most of the time, you will not need to instantiate this class directly;
- * instead, call drivetrainInstance.poseEstimator to access the built-in pose estimator
- * of the drivetrain.
- */
-public class SwervePoseMonitor(
+class SwervePoseMonitor(
     private val drivetrain: EncoderHolonomicDrivetrain,
-    private val visionPoseSuppliers: MutableList<VisionPoseSupplier>,
-    startingPose: UnitPose2d = UnitPose2d(),
-    private val invertX: Boolean = false,
-    private val invertY: Boolean = false
+    visionEstimators: List<VisionPoseSupplier>,
+    startingPose: UnitPose2d
 ): SubsystemBase(), RobotPoseMonitor {
+    private val poseEstimator = SwerveDrivePoseEstimator(
+        drivetrain.kinematics,
+        Rotation2d(0.0),
+        drivetrain.modulePositions.toTypedArray(),
+        Pose2d()
+    )
+
+    private var gyroHeading: Angle = Angle(0.0)
+
+    private val visionEstimators: MutableList<VisionPoseSupplier> = mutableListOf()
+
     private val robotObject = ChargerRobot.FIELD.getObject(drivetrain.logName)
 
-    private fun applyInverts(basePose: UnitPose2d): UnitPose2d{
-        val x = (if (invertX) -1.0 else 1.0) * basePose.x
-        val y = (if (invertY) -1.0 else 1.0) * basePose.y
-        return UnitPose2d(x, y, basePose.rotation)
+    private var previousWheelTravelDistances: MutableList<Distance> =
+        drivetrain.modulePositions.map{ it.distanceMeters.ofUnit(meters) }.toMutableList()
+
+
+    init{
+        addPoseSuppliers(*visionEstimators.toTypedArray())
+        resetPose(startingPose)
     }
 
-    /* Public API */
-    override val robotPose: UnitPose2d get() =
-        applyInverts(poseEstimator.latestPose.ofUnit(meters))
 
-    override fun resetPose(pose: UnitPose2d){
-        poseEstimator.resetPose(pose.inUnit(meters))
+    override val robotPose: UnitPose2d
+        get() = poseEstimator.estimatedPosition.ofUnit(meters)
+
+    override fun resetPose(pose: UnitPose2d) {
         if (drivetrain.gyro is ZeroableHeadingProvider){
             drivetrain.gyro.zeroHeading(pose.rotation)
-        }else if (drivetrain.gyro == null){
-            println(poseEstimator.latestPose)
+            gyroHeading = drivetrain.gyro.heading
+        }else{
+            gyroHeading = pose.rotation
         }
+
+        poseEstimator.resetPosition(
+            gyroHeading.asRotation2d(),
+            drivetrain.modulePositions.toTypedArray(),
+            pose.inUnit(meters)
+        )
     }
 
-    override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier){
-        this.visionPoseSuppliers.addAll(visionSystems)
+    override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier) {
+        visionEstimators.addAll(visionSystems)
     }
 
-    /* Private Implementation */
-    private val poseEstimator = MechanicalAdvantagePoseEstimator(
-        VecBuilder.fill(0.003, 0.003, 0.00001),
-    ).also{ it.resetPose(startingPose.inUnit(meters)) }
-
-    // Array used because members should be mutable, but adding members should not be allowed
-    private val previousDistances: Array<Distance> = drivetrain.modulePositions.map{ it.distanceMeters.ofUnit(meters) }.toTypedArray()
-    private var lastGyroHeading = Angle(0.0)
-    private var wheelDeltas = List(4){ Distance(0.0) }
-    private val visionUpdates: MutableList<TimestampedVisionUpdate> = mutableListOf()
 
     override fun periodic(){
-        recordLatency("SwervePoseMonitorLoopTime"){
-            /*
-            Calculates the pose and heading from the data from the swerve modules; results in a Twist2d object.
-             */
-            val currentPositions = drivetrain.modulePositions // uses getter variable; thus, value must be fetched once
-
-            wheelDeltas = currentPositions.mapIndexed{ i, modPosition ->
-                val currentDistance = modPosition.distanceMeters.ofUnit(meters)
-                val delta = currentDistance - previousDistances[i]
-                previousDistances[i] = currentDistance
-                return@mapIndexed delta
+        if (drivetrain.gyro != null){
+            gyroHeading = drivetrain.gyro.heading
+        }else{
+            val wheelDeltas = drivetrain.modulePositions.mapIndexed{i, value ->
+                val delta = value.distanceMeters - previousWheelTravelDistances[i].inUnit(meters)
+                previousWheelTravelDistances[i] = value.distanceMeters.ofUnit(meters)
+                SwerveModulePosition(delta, value.angle)
             }
 
-            val twist = drivetrain.kinematics.toTwist2d(
-                *Array(4){ index ->
-                    SwerveModulePosition(wheelDeltas[index].siValue, currentPositions[index].angle)
-                }
-            )
-
-            recordOutput("calculatedHeadingRad",poseEstimator.latestPose.rotation.radians + twist.dtheta)
-
-            /*
-            If a gyro is given, replace the calculated heading with the gyro's heading before adding the twist to the pose estimator.
-             */
-            if (drivetrain.gyro != null){
-                val currentGyroHeading = drivetrain.gyro.heading
-                twist.dtheta = (currentGyroHeading - lastGyroHeading).inUnit(radians)
-                lastGyroHeading = currentGyroHeading
-                recordOutput("Drivetrain(Swerve)/calculatedHeadingUsed", false)
-            }else{
-                recordOutput("Drivetrain(Swerve)/calculatedHeadingUsed", true)
-            }
-            poseEstimator.addDriveData(fpgaTimestamp().inUnit(seconds), twist)
-
-
-            /*
-            Sends all pose data to the pose estimator.
-             */
-            visionUpdates.clear()
-
-            for (visionPoseSupplier in visionPoseSuppliers){
-                for (poseEstimate in visionPoseSupplier.robotPoseEstimates){
-                    val poseDelta = poseEstimate.value - robotPose
-                    if ( abs(poseDelta.translation.norm) > 1.meters || abs(poseDelta.rotation) > 90.degrees){
-                        println("Pose reading ignored!")
-                        continue
-                    }
-
-                    val stdDevVector = NomadAprilTagUtil.calculateVisionUncertainty(
-                        poseEstimate.value.x.siValue,
-                        heading.asRotation2d(),
-                        visionPoseSupplier.cameraYaw.asRotation2d(),
-                    )
-
-                    visionUpdates.add(
-                        TimestampedVisionUpdate(
-                            poseEstimate.timestamp.inUnit(seconds),
-                            poseEstimate.value.inUnit(meters),
-                            stdDevVector
-                        )
-                    )
-                }
-            }
-
-            if (visionUpdates.size != 0) poseEstimator.addVisionData(visionUpdates)
-
-            /*
-            Records the robot's pose on the field and in AdvantageScope.
-             */
-            robotObject.pose = robotPose.inUnit(meters)
-            recordOutput("Drivetrain(Swerve)/Pose2d", Pose2d.struct, robotPose.inUnit(meters))
-            recordOutput("Drivetrain(Swerve)/realGyroUsedInPoseEstimation", drivetrain.gyro != null)
-            recordOutput("Drivetrain(Swerve)/realGyroHeadingRad", drivetrain.gyro?.heading?.inUnit(radians) ?: 0.0)
+            gyroHeading += drivetrain
+                .kinematics
+                .toTwist2d(*wheelDeltas.toTypedArray())
+                .dtheta
+                .ofUnit(radians)
         }
+
+        poseEstimator.update(
+            gyroHeading.asRotation2d(),
+            drivetrain.modulePositions.toTypedArray()
+        )
+
+        for (visionEstimator in visionEstimators){
+            for (visionEstimate in visionEstimator.robotPoseEstimates){
+                poseEstimator.addVisionMeasurement(
+                    visionEstimate.value.inUnit(meters),
+                    visionEstimate.timestamp.inUnit(seconds)
+                )
+            }
+        }
+
+        robotObject.pose = poseEstimator.estimatedPosition
     }
 }

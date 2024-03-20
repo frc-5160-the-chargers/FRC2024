@@ -9,6 +9,6 @@ class Robot: ChargerRobot(
         replayModeActive = false,
         tuningMode = false,
         hardwareConfigRetryLimit = 3,
-        logFilePath = if (isReal()) "/media/sda/March18Test-1" else null
+        logFilePath = null
     )
 )

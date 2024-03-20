@@ -48,23 +48,23 @@ class DefenseSimulatorRobotContainer: ChargerRobotContainer() {
         /* Private implementation */
         private val forwardAxis =
             InputAxis{ if (DRIVER.rightHanded) rightY else leftY }
-                .applyDeadband(DEFAULT_DEADBAND)
+                .withDeadband(DEFAULT_DEADBAND)
                 .invertWhen{ DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red || shouldDisableFieldRelative }
-                .applyMultiplier(0.6)
+                .withMultiplier(0.6)
                 .log("SecondaryDriverController/xPower")
 
         private val strafeAxis =
             InputAxis{ if (DRIVER.rightHanded) rightX else leftX }
-                .applyDeadband(DEFAULT_DEADBAND)
+                .withDeadband(DEFAULT_DEADBAND)
                 .invertWhen{ DriverStation.getAlliance().getOrNull() != DriverStation.Alliance.Red || shouldDisableFieldRelative }
-                .applyMultiplier(0.6)
+                .withMultiplier(0.6)
                 .log("SecondaryDriverController/yPower")
 
         private val rotationAxis =
             InputAxis{ if (DRIVER.rightHanded) leftX else rightX }
-                .applyDeadband(DEFAULT_DEADBAND)
+                .withDeadband(DEFAULT_DEADBAND)
                 .square()
-                .applyEquation(Polynomial(-0.1,0.0,-0.4,0.0))
+                .withEquation(Polynomial(-0.1,0.0,-0.4,0.0))
                 .log("SecondaryDriverController/rotationPower")
 
         private val precisionAxis =

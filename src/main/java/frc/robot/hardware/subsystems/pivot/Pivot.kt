@@ -33,7 +33,7 @@ class Pivot(
     // null indicates no motion profile
     private val motionProfile: AngularMotionProfile? = null,
     private val feedforward: ArmFFEquation = ArmFFEquation(0.0,0.0,0.0),
-    private val precision: Precision.Within<AngleDimension> = Precision.Within(1.5.degrees),
+    private val precision: Precision.Within<AngleDimension> = Precision.Within(3.degrees),
     private val forwardSoftStop: Angle? = null,
     private val reverseSoftStop: Angle? = null
 ): SubsystemBase() {

@@ -10,13 +10,13 @@ import edu.wpi.first.wpilibj.DigitalSource
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
-import edu.wpi.first.wpilibj.Encoder as QuadratureEncoder
+import edu.wpi.first.wpilibj.Encoder as WPILibQuadratureEncoder
 
 /**
  * An adapter from the WPILib Encoder class to the ChargerLib Encoder interface.
  */
 public class ChargerQuadEncoder:
-    QuadratureEncoder, Encoder, HardwareConfigurable<QuadEncoderConfiguration> {
+    WPILibQuadratureEncoder, Encoder, HardwareConfigurable<QuadEncoderConfiguration> {
 
     override val angularPosition: Angle
         get() = get() * anglePerPulse

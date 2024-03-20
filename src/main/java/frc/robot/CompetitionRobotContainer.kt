@@ -6,6 +6,8 @@ package frc.robot
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
+import com.pathplanner.lib.auto.AutoBuilder
+import com.pathplanner.lib.path.PathPlannerPath
 import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DigitalInput
@@ -16,6 +18,7 @@ import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
+import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -27,18 +30,19 @@ import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
+import frc.chargers.hardware.inputdevices.onClickAndHold
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.PeriodicFrameConfig
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
-import frc.chargers.hardware.sensors.encoders.absolute.ChargerDutyCycleEncoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
+import frc.chargers.utils.flipWhenNeeded
 import frc.external.frc6328.MechanicalAdvantageFFCharacterization
 import frc.robot.commands.*
 import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
@@ -61,7 +65,6 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOReal
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIOSim
 import frc.robot.hardware.subsystems.vision.VisionManager
-import org.littletonrobotics.junction.Logger.recordOutput
 import kotlin.jvm.optionals.getOrNull
 
 
@@ -117,7 +120,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     absoluteEncoder = ChargerDutyCycleEncoder(PIVOT_ENCODER_ID),
                     motorGearRatio = pivotRatio
                 ),
-
                  */
             )
         }else{
@@ -172,10 +174,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             bottomRight = ChargerCANcoder(DrivetrainID.BR_ENCODER),
             useAbsoluteSensor = true
         ).withOffsets(
-            topLeftZero = 6.207.radians,
-            topRightZero = 4.941.radians,
-            bottomLeftZero = 1.4.radians,
-            bottomRightZero = 0.661.radians,
+            topLeftZero = 6.243.radians,
+            topRightZero = 4.971.radians,
+            bottomLeftZero = 1.37.radians,
+            bottomRightZero = 0.621.radians,
         ),
         driveMotors = sparkMaxSwerveMotors(
             topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE){ inverted = true },
@@ -192,15 +194,16 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             azimuthControl = SwerveAzimuthControl.PID(
                 PIDConstants(7.0,0,0.1),
             ),
-            openLoopDiscretizationRate = 4.5,
+            openLoopDiscretizationRate = 1.0,
+            closedLoopDiscretizationRate = 0.0,
             velocityPID = PIDConstants(0.2,0.0,0.0),
             velocityFF = if (isReal()){
-                AngularMotorFFEquation(0.2523, 0.08909)
+                AngularMotorFFEquation(0.16, 0.133)
             }else{
                 AngularMotorFFEquation(0.0, 0.13)
             },
-            robotRotationPID = PIDConstants(1.0,0,0.1),
-            robotTranslationPID = PIDConstants(0.2,0,0.03)
+            robotRotationPID = PIDConstants(3.5, 0, 0.001),
+            robotTranslationPID = PIDConstants(3.5,0,0.001)
         ),
         useOnboardPID = false,
         hardwareData = SwerveHardwareData.mk4iL2(
@@ -208,22 +211,15 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             driveMotorType = DCMotor.getNEO(1),
             maxModuleSpeed = 4.5.meters / 1.seconds,
             trackWidth = 32.inches, wheelBase = 32.inches,
-            //useCouplingRatio = true
         ),
         gyro = if (isReal()) gyroIO else null,
     )
 
     private val climber = Climber(
-
         if (isReal()){
             ClimberIOReal(
-                leftMotor = ChargerSparkMax(CLIMBER_ID_LEFT){
-                    ///// FOR NAYAN: Climber Configuration
-                    inverted = false
-                    idleMode = CANSparkBase.IdleMode.kBrake
-                },
+                leftMotor = ChargerSparkMax(CLIMBER_ID_LEFT){ idleMode = CANSparkBase.IdleMode.kBrake },
                 rightMotor = ChargerSparkMax(CLIMBER_ID_RIGHT){
-                    ///// FOR NAYAN: Climber Configuration
                     inverted = true
                     idleMode = CANSparkBase.IdleMode.kBrake
                 }
@@ -249,6 +245,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
     init{
+        // disabled due to potential memory issues
         /*
         if (isReal() || hasReplaySource()){
             drivetrain.poseEstimator = ThreadedPoseMonitor(
@@ -262,24 +259,21 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
          */
 
-        if (isSimulation()){
-            vision.enableVisionPoseEstimation()
-        }
-
         DriverStation.silenceJoystickConnectionWarning(true)
         DashboardTuner.tuningMode = false
-        recordOutput("Tuning Mode", DashboardTuner.tuningMode)
         LiveWindow.disableAllTelemetry()
 
         configureBindings()
         configureDefaultCommands()
 
-        IMUSimulation.configure(
-            headingSupplier = { drivetrain.heading },
-            chassisSpeedsSupplier = { drivetrain.currentSpeeds }
-        )
-
         if (isSimulation()){
+            vision.enableVisionPoseEstimation()
+
+            IMUSimulation.configure(
+                headingSupplier = { drivetrain.heading },
+                chassisSpeedsSupplier = { drivetrain.currentSpeeds }
+            )
+
             NoteVisualizer.setRobotPoseSupplier { drivetrain.poseEstimator.robotPose }
             NoteVisualizer.setLauncherTransformSupplier { pivot.mechanism3dPose }
         }
@@ -352,6 +346,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         DriverController.apply{
+            /*
             pointNorthTrigger.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
 
             pointEastTrigger.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
@@ -359,6 +354,34 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             pointSouthTrigger.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
 
             pointWestTrigger.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
+
+             */
+
+            pointNorthTrigger.whileTrue(
+                buildCommand{
+                    runOnce{
+                        drivetrain.poseEstimator.resetPose(
+                            AMP_AUTO_STARTING_POSE_BLUE.flipWhenNeeded()
+                        )
+                    }
+
+                    +AutoBuilder.followPath(
+                        PathPlannerPath.fromPathFile("DriveToAmp")
+                    )
+                }
+            )
+
+            pointEastTrigger.whileTrue(
+                AutoBuilder.followPath(
+                    PathPlannerPath.fromPathFile("AmpGrabG1")
+                )
+            )
+
+            pointSouthTrigger.whileTrue(
+                AutoBuilder.followPath(
+                    PathPlannerPath.fromPathFile("AmpScoreG1")
+                )
+            )
 
 
             zeroHeadingTrigger.onTrue(
@@ -385,6 +408,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
             )
 
+            ampScoreTrigger.onClickAndHold(
+                followPathOptimal(drivetrain, PathPlannerPath.fromPathFile("AmpTeleopNew"))
+            )
+
             sourceIntakeLeftTrigger.or(sourceIntakeRightTrigger).whileTrue(
                 pivot
                     .setAngleCommand(PivotAngle.SOURCE)
@@ -401,10 +428,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     override fun teleopInit(){
+        /*
         // only enabled during teleop for now
         if (isReal()){
             vision.enableVisionPoseEstimation()
         }
+         */
     }
 
 
@@ -432,19 +461,40 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         },
         {
             val allVelocities = drivetrain.moduleAngularVelocities
-            allVelocities[0].siValue + allVelocities[2].siValue / 2.0
+            (allVelocities[0].siValue + allVelocities[2].siValue) / 2.0
         },
         {
             val allVelocities = drivetrain.moduleAngularVelocities
-            allVelocities[1].siValue + allVelocities[3].siValue / 2.0
+            (allVelocities[1].siValue + allVelocities[3].siValue) / 2.0
         }
     )
 
 
 
+    /*
     override val autonomousCommand: Command
-        get() = autoChooser.selected
-}
+        get() = buildCommand {
+            val path = PathPlannerPath.fromPathFile("Test Path")
+            runOnce{
+                drivetrain.poseEstimator.resetPose(path.previewStartingHolonomicPose.ofUnit(meters))
+            }
+        }
 
-// ks: 0.2523
-// kv: 0.08908
+
+     */
+
+    override val autonomousCommand: Command
+        get() = buildCommand {
+            runOnce{
+                drivetrain.poseEstimator.resetToPathplannerTrajectory("DriveToAmp", useHolonomicPose = true)
+            }
+
+            for (pathName in listOf("DriveToAmp", /*"AmpGrabG1", "AmpScoreG1"*/)){
+                +AutoBuilder.followPath(
+                    PathPlannerPath.fromPathFile(pathName)
+                )
+
+                waitFor(3.seconds)
+            }
+        }
+}

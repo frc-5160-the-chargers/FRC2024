@@ -37,6 +37,7 @@ public class ChargerNavX(
      */
     override fun zeroHeading(angle: Angle){
         if (isReal()){
+            /*
             while (ahrs.isCalibrating){
                 println("Waiting for AHRS to calibrate...")
                 // Wait for 1 second (hardware initialization) before zeroing heading
@@ -44,8 +45,9 @@ public class ChargerNavX(
             }
 
             println("AHRS has finished calibrating.")
+             */
 
-            headingOffset = if (ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance && useFusedHeading){
+            headingOffset = if (useFusedHeading && ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance){
                 ahrs.fusedHeading.toDouble().ofUnit(degrees) + angle
             }else{
                 ahrs.angle.ofUnit(degrees) + angle
@@ -77,7 +79,7 @@ public class ChargerNavX(
     override val heading: Angle by ImuLog.quantity{
         (if (isReal()) {
             // Negative sign because the navX reports clockwise as positive, whereas we want counterclockwise to be positive
-            if (ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance && useFusedHeading){
+            if (useFusedHeading && ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance){
                 -ahrs.fusedHeading.toDouble().ofUnit(degrees)
             }else{
                 -ahrs.angle.ofUnit(degrees)

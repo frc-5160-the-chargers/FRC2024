@@ -11,7 +11,6 @@ import org.littletonrobotics.junction.Logger
 import kotlin.math.abs
 import kotlin.properties.ReadOnlyProperty
 
-public typealias TriggerValue = Double
 
 /**
  * An extension of a Double-supplying function designed for pre-processing driver controller axis inputs.
@@ -22,6 +21,7 @@ public typealias TriggerValue = Double
 public class InputAxis(
     private val get: () -> TriggerValue
 ): () -> TriggerValue, ReadOnlyProperty<Any?, Double> by ReadOnlyProperty({ _, _ -> get() }) {
+
     public fun getBaseValue(): TriggerValue = get()
 
     override operator fun invoke(): TriggerValue {
@@ -44,13 +44,13 @@ public class InputAxis(
         return this
     }
 
-    public fun applyDeadband(value: Double): InputAxis =
+    public fun withDeadband(value: Double): InputAxis =
         withModifier { MathUtil.applyDeadband(it, value, 1.0) }
 
-    public fun applyMultiplier(value: Double): InputAxis =
+    public fun withMultiplier(value: Double): InputAxis =
         withModifier { it * value }
 
-    public fun applyEquation(equation: Polynomial): InputAxis =
+    public fun withEquation(equation: Polynomial): InputAxis =
         withModifier(equation)
 
     public fun mapToRange(range: ClosedRange<Double>): InputAxis =
@@ -62,7 +62,6 @@ public class InputAxis(
                 initialValue
             }
         }
-
 
     public fun rateLimit(positiveLimit: Frequency, negativeLimit: Frequency): InputAxis{
         val rateLimiter = SlewRateLimiter(positiveLimit.siValue, negativeLimit.siValue, 0.0)
@@ -88,11 +87,4 @@ public class InputAxis(
             Logger.recordOutput(namespace, it)
             it
         }
-}
-
-/**
- * Represents a generic function that can modify an input axis.
- */
-public fun interface AxisModifier{
-    public fun modifyAxis(input: TriggerValue): TriggerValue
 }

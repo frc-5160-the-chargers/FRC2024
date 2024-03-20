@@ -69,9 +69,7 @@ public class EncoderHolonomicDrivetrain(
     private val useOnboardPID: Boolean = false,
     public val gyro: HeadingProvider? = null,
     startingPose: UnitPose2d = UnitPose2d(),
-    poseSuppliers: List<VisionPoseSupplier> = listOf(),
-    invertPoseX: Boolean = false,
-    invertPoseY: Boolean = false
+    poseSuppliers: List<VisionPoseSupplier> = listOf()
 ): SubsystemBase(), HeadingProvider {
     
     /* Private Implementation */
@@ -279,8 +277,6 @@ public class EncoderHolonomicDrivetrain(
 
 
     /* PUBLIC API */
-
-
     /**
      * The locations of all the modules with respect to the robot's center.
      */
@@ -292,6 +288,14 @@ public class EncoderHolonomicDrivetrain(
     )
 
     /**
+     * The kinematics class for the drivetrain.
+     */
+    public val kinematics: SwerveDriveKinematics =
+        SwerveDriveKinematics(
+            *moduleTranslationsFromRobotCenter.map{ it.inUnit(meters) }.toTypedArray()
+        )
+
+    /**
      * The pose estimator of the [EncoderHolonomicDrivetrain].
      *
      * This can be changed to a different pose monitor if necessary.
@@ -299,8 +303,7 @@ public class EncoderHolonomicDrivetrain(
     public var poseEstimator: RobotPoseMonitor = SwervePoseMonitor(
         drivetrain = this,
         poseSuppliers.toMutableList(),
-        startingPose,
-        invertPoseX, invertPoseY
+        startingPose
     )
 
     /**
@@ -323,16 +326,6 @@ public class EncoderHolonomicDrivetrain(
      */
     override val heading: Angle get() =
         (gyro?.heading ?: poseEstimator.heading).inputModulus(0.degrees..360.degrees)
-
-
-    /**
-     * The kinematics class for the drivetrain.
-     */
-    public val kinematics: SwerveDriveKinematics =
-        SwerveDriveKinematics(
-            *moduleTranslationsFromRobotCenter.map{ it.inUnit(meters) }.toTypedArray()
-        )
-
 
     /**
      * A class that generates swerve setpoints for the drivetrain.
@@ -618,17 +611,23 @@ public class EncoderHolonomicDrivetrain(
         }
     }
 
-    /*
-    public fun characterizeWheelRadiusCommand(clockwise: Boolean): Command = buildCommand {
 
+    public fun wheelRadiusCharacterizationCommand(clockwise: Boolean): Command = buildCommand {
         require(gyro != null){ "Gyro must be valid to characterize wheel radius" }
+        addRequirements(this@EncoderHolonomicDrivetrain)
 
         var lastGyroYaw = Angle(0.0)
         var accumGyroAngle = Angle(0.0)
 
         val omegaLimiter = SlewRateLimiter(1.0)
+
+        runOnce{
+            omegaLimiter.reset(0.0)
+
+        }
+
+
     }
-     */
 
 
     /**

@@ -327,6 +327,7 @@ public class MechanicalAdvantageFFCharacterization extends Command {
 
         public void print() {
             if (velocityData.size() == 0 || voltageData.size() == 0) {
+                System.out.println("NO DATA!!!!!!!!!!");
                 return;
             }
 

@@ -44,7 +44,7 @@ public class ChargerPhotonCamera(
 
     init{
         ChargerRobot.runPeriodically{
-            Logger.recordOutput("PhotonCamera$name/pipelineIndex", pipelineIndex)
+            Logger.recordOutput("PhotonCamera($name)/pipelineIndex", pipelineIndex)
         }
     }
 

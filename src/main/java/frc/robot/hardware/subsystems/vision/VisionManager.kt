@@ -30,15 +30,23 @@ class VisionManager(private val poseEstimator: RobotPoseMonitor, tunableCamerasI
     private val noteTargetModel = TargetModel(14.inches, 14.inches, 2.inches) // custom overload
 
     // handles logging & replay for vision cameras
-    private val leftCamLog = LoggableInputsProvider("AprilTagCamLeft")
-    private val rightCamLog = LoggableInputsProvider("AprilTagCamRight")
+    private val aprilTagCamLog = LoggableInputsProvider("AprilTagArducam")
     private val noteDetectorLog = LoggableInputsProvider("ObjectDetector")
 
     // transforms for vision cameras
-    private val robotToArducam = UnitTransform3d(
-        UnitTranslation3d(x = 0.meters, y = 0.meters, z = 20.inches),
-        Rotation3d(roll = 0.degrees, pitch = (-45).degrees, yaw = 180.degrees)
-    ) // tbd atm
+    private val robotToArducam = if (RobotBase.isReal()){
+        // from ground intake pov:
+        // 3 inch backward, 12 inches to the right, 42 inches up
+        UnitTransform3d(
+            UnitTranslation3d(x = -3.inches, y = 0.meters, z = 20.inches),
+            Rotation3d(roll = 0.degrees, pitch = 0.degrees, yaw = 180.degrees)
+        )
+    }else{
+        UnitTransform3d(
+            UnitTranslation3d(x = 0.meters, y = 0.meters, z = 20.inches),
+            Rotation3d(roll = 0.degrees, pitch = (-45).degrees, yaw = 180.degrees)
+        )
+    }
     private val robotToMLWebcam = UnitTransform3d(
         UnitTranslation3d(x = 0.meters, y = 0.meters, z = 10.inches),
         Rotation3d(roll = 0.degrees, pitch = 37.degrees, yaw = 0.degrees)
@@ -51,7 +59,7 @@ class VisionManager(private val poseEstimator: RobotPoseMonitor, tunableCamerasI
 
     // all of these are automatically akit loggable and replayable
     // via LoggableInputsProvider
-    private val rightTagPipeline: AprilTagVisionPipeline // apriltag pipeline on right(arducam from orange pi)
+    private val aprilTagPipeline: AprilTagVisionPipeline // apriltag pipeline on right(arducam from orange pi)
     val notePipeline: ObjectVisionPipeline // object pipeline(webcam from orange pi)
 
     init{
@@ -59,10 +67,13 @@ class VisionManager(private val poseEstimator: RobotPoseMonitor, tunableCamerasI
             val photonArducam = ChargerPhotonCamera(name = "AprilTag Arducam", robotToCamera = robotToArducam)
             val photonWebcam = ChargerPhotonCamera(name = "ML Webcam", robotToCamera = robotToMLWebcam)
 
-            rightTagPipeline = photonArducam.AprilTagPipeline(index = 0, rightCamLog, usePoseEstimation = true)
+            aprilTagPipeline = photonArducam.AprilTagPipeline(index = 1, aprilTagCamLog, usePoseEstimation = true)
                 .also{ poseSources.add(it) }
 
             notePipeline = photonWebcam.ObjectPipeline(index = 0, noteDetectorLog)
+
+            aprilTagPipeline.reset()
+            notePipeline.reset()
         }else{
             val photonArducamSim = VisionCameraSim(poseEstimator, robotToArducam, SimCameraProperties.PI4_LIFECAM_640_480())
             val photonWebcamSim = VisionCameraSim(poseEstimator, robotToMLWebcam, SimCameraProperties())
@@ -78,7 +89,7 @@ class VisionManager(private val poseEstimator: RobotPoseMonitor, tunableCamerasI
                 }
             }
 
-            rightTagPipeline = photonArducamSim.AprilTagPipeline(rightCamLog)
+            aprilTagPipeline = photonArducamSim.AprilTagPipeline(aprilTagCamLog)
                 .also{ poseSources.add(it) }
 
             notePipeline = photonWebcamSim.ObjectPipeline(noteDetectorLog, mlTargetField)
@@ -93,7 +104,7 @@ class VisionManager(private val poseEstimator: RobotPoseMonitor, tunableCamerasI
     }
 
     // fuses the left and right apriltag pipelines together
-    val tagPipeline: AprilTagVisionPipeline = rightTagPipeline // tbd for now
+    val tagPipeline: AprilTagVisionPipeline = aprilTagPipeline // tbd for now
 
     fun enableVisionPoseEstimation(){
         poseEstimator.addPoseSuppliers(*poseSources.toTypedArray())
@@ -108,7 +119,7 @@ class VisionManager(private val poseEstimator: RobotPoseMonitor, tunableCamerasI
     }
 
     override fun periodic(){
-        Logger.recordOutput("AprilTagCam/robotToTargetDistance", tagPipeline.robotToTargetDistance(targetHeight = 1.35582.meters)?.siValue ?: 0.0)
-        Logger.recordOutput("MLCam/robotToTargetDistance", notePipeline.robotToTargetDistance(targetHeight = 0.inches)?.siValue ?: 0.0)
+        Logger.recordOutput("AprilTagArducam/robotToTargetDistance", tagPipeline.robotToTargetDistance(targetHeight = 1.35582.meters)?.siValue ?: 0.0)
+        Logger.recordOutput("MLWebcam/robotToTargetDistance", notePipeline.robotToTargetDistance(targetHeight = 0.inches)?.siValue ?: 0.0)
     }
 }

@@ -2,7 +2,7 @@ package frc.robot.commands.auto
 
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
-import frc.chargers.commands.runOnceCommand
+import edu.wpi.first.wpilibj2.command.PrintCommand
 import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
@@ -29,12 +29,12 @@ class AutoChooser(
     /**
      * The selected command of our auto chooser.
      */
-    val selected: Command get() = sendableChooser.get() ?: runOnceCommand{ println("WARNING: An Auto command was requested, but none were set.") }
+    val selected: Command get() = sendableChooser.get() ?: PrintCommand("WARNING: An Auto command was requested, but none were set.")
 
 
     private val ampScoreNote2Component = AmpAutoScoreComponent.fromPathPlanner(
         grabPathName = "AmpGrabG1",
-        scorePathName = if (aprilTagVision != null) "AmpScoreG1" else "AmpScoreG1NoVision",
+        scorePathName = "AmpScoreG1",
         type = AmpAutoScoreComponent.Type.SCORE_NOTE
     )
 
@@ -74,6 +74,13 @@ class AutoChooser(
     }else{
         InstantCommand()
     }
+
+    val ampAuto = noVisionAmpAutonomous(
+        drivetrain, shooter, pivot,
+        groundIntake,
+        taxiAtEnd = false,
+        additionalComponents = listOf(ampScoreNote2Component)
+    )
 
     init{
         sendableChooser.apply{

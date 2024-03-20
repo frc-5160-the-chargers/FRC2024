@@ -68,25 +68,25 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     /* Private implementation */
     private val forwardAxis =
         InputAxis{ if (DRIVER.rightHanded) rightY else leftY }
-            .applyDeadband(DEFAULT_DEADBAND)
+            .withDeadband(DEFAULT_DEADBAND)
             .invertWhen(RobotBase::isReal)
             //.invertWhen{ shouldInvertForward.get() }
-            .applyMultiplier(0.7)
+            .withMultiplier(0.7)
             .log("DriverController/xPower")
 
     private val strafeAxis =
         InputAxis{ if (DRIVER.rightHanded) rightX else leftX }
-            .applyDeadband(DEFAULT_DEADBAND)
+            .withDeadband(DEFAULT_DEADBAND)
             .invertWhen(RobotBase::isReal)
             //.invertWhen{ shouldInvertStrafe.get() }
-            .applyMultiplier(0.7)
+            .withMultiplier(0.7)
             .log("DriverController/yPower")
 
     private val rotationAxis =
         InputAxis{ if (DRIVER.rightHanded) leftX else rightX }
-            .applyDeadband(DEFAULT_DEADBAND)
+            .withDeadband(DEFAULT_DEADBAND)
             .square()
-            .applyEquation(Polynomial(0.2,0.0,0.4,0.0))
+            .withEquation(Polynomial(0.2,0.0,0.4,0.0))
             .log("DriverController/rotationPower")
 
 

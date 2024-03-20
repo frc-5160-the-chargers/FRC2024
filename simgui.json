@@ -69,6 +69,15 @@
   "NetworkTables": {
     "transitory": {
       "AdvantageKit": {
+        "AprilTagArducam": {
+          "open": true,
+          "visionTargets": {
+            "0": {
+              "open": true
+            },
+            "open": true
+          }
+        },
         "AprilTagCamLeft": {
           "open": true,
           "robotPoseEstimates": {
