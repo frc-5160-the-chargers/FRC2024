@@ -11,7 +11,7 @@ import edu.wpi.first.math.MathUtil
  * @see MathUtil.inputModulus
  */
 public fun Double.inputModulus(min: Double, max: Double): Double =
-    MathUtil.inputModulus(this,min,max)
+    MathUtil.inputModulus(this, min, max)
 
 /**
  * Returns the modulus of a Double.
@@ -27,7 +27,7 @@ public fun Double.inputModulus(range: ClosedRange<Double>): Double =
  * @see MathUtil.inputModulus
  */
 public fun <D: Dimension<*, *, *, *>> Quantity<D>.inputModulus(min: Quantity<D>, max: Quantity<D>): Quantity<D> =
-    Quantity(siValue.inputModulus(min.siValue,max.siValue))
+    Quantity(MathUtil.inputModulus(siValue, min.siValue, max.siValue))
 
 /**
  * Returns the modulus of a [Quantity].
@@ -35,4 +35,4 @@ public fun <D: Dimension<*, *, *, *>> Quantity<D>.inputModulus(min: Quantity<D>,
  * @see MathUtil.inputModulus
  */
 public fun <D: Dimension<*, *, *, *>> Quantity<D>.inputModulus(range: ClosedRange<Quantity<D>>): Quantity<D> =
-    inputModulus(range.start,range.endInclusive)
+    inputModulus(range.start, range.endInclusive)

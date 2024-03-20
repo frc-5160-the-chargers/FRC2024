@@ -16,7 +16,7 @@ fun runGroundIntake(
     shooter: Shooter,
 
     timeout: Time? = null
-): Command = buildCommand{
+): Command = buildCommand("Run Ground Intake"){
     addRequirements(groundIntake, shooter)
 
     if (timeout != null){

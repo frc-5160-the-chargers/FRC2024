@@ -20,8 +20,8 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
         InputAxis{ leftY }
             .invertWhen{ SHOULD_INVERT_SHOOTER_SPEED }
             .withDeadband(0.15)
-            .withMultiplier(0.6)
-            .square()
+            .withMultiplier(0.8)
+            .log("Shooter/outtakingSpeed")
 
     val pivotSpeedAxis =
         InputAxis{ rightY }
@@ -29,6 +29,7 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
             .withDeadband(0.33)
             .withMultiplier(0.33)
             .square()
+            .log("Shooter/pivotSpeed")
 
     fun keyPressTrigger(key: String): Trigger =
         Trigger{ keyboardNTInterface.getEntry(key).getString("") == key }

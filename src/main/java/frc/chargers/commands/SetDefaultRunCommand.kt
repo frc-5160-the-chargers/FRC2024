@@ -19,6 +19,7 @@ fun <S: Subsystem> S.setDefaultRunCommand(
     defaultCommand =
         RunCommand({toRun()}, this, *requirements)
             .finallyDo{ interrupted -> endBehavior(interrupted) }
+            .withName("Default Command of $this")
 }
 
 /**
@@ -36,6 +37,7 @@ fun <S: Subsystem> S.setDefaultRunCommand(
     defaultCommand =
         RunCommand({toRun()}, this, *requirements)
             .finallyDo(endBehavior)
+            .withName("Default Command of $this")
 }
 
 

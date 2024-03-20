@@ -9,7 +9,7 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 fun passSerializedNote(
     groundIntake: GroundIntakeSerializer,
     shooter: Shooter,
-): Command = buildCommand {
+): Command = buildCommand("Pass Serialized Note") {
     addRequirements(groundIntake, shooter)
 
     if (shooter.hasNoteDetector){

@@ -36,8 +36,11 @@ public class ChargerNavX(
      * Does not zero the yaw; call navX.gyroscope.zeroYaw() if this is desired instead.
      */
     override fun zeroHeading(angle: Angle){
+        repeat(5){
+            println("HELLO!!!!")
+        }
+
         if (isReal()){
-            /*
             while (ahrs.isCalibrating){
                 println("Waiting for AHRS to calibrate...")
                 // Wait for 1 second (hardware initialization) before zeroing heading
@@ -45,15 +48,16 @@ public class ChargerNavX(
             }
 
             println("AHRS has finished calibrating.")
-             */
 
-            headingOffset = if (useFusedHeading && ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance){
-                ahrs.fusedHeading.toDouble().ofUnit(degrees) + angle
-            }else{
-                ahrs.angle.ofUnit(degrees) + angle
-            }
+            headingOffset = -heading + headingOffset + angle
 
             println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
+            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
+            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
+            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
+            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
+            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
+
         }else{
             headingOffset = -IMUSimulation.getHeading()
             println("AHRS heading has been offset in sim.")
@@ -72,6 +76,8 @@ public class ChargerNavX(
      * Returns if the NavX is connected or not. Automatically false during simulation.
      */
     public val isConnected: Boolean by ImuLog.boolean{ ahrs.isConnected && isReal() }
+
+    // initial value: a degrees
 
     /**
      * The heading of the NavX. Reports a value in between 0-360 degrees.

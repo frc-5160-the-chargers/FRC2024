@@ -10,7 +10,7 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 fun shootInAmp(
     shooter: Shooter,
     pivot: Pivot
-): Command = buildCommand {
+): Command = buildCommand("Shoot In Amp"){
     +pivot.setAngleCommand(PivotAngle.AMP)
 
     if (shooter.hasNoteDetector){

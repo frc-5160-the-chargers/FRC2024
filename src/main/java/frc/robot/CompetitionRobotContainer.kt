@@ -294,9 +294,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
         }
 
-        shooter.setDefaultRunCommand(endBehavior = shooter::setIdle){
+        shooter.setDefaultRunCommand{
             val speed = OperatorInterface.shooterSpeedAxis()
             if (speed > 0.0){
+                println("OUttaking!!!!!!!!!")
                 shooter.outtake(speed)
             }else{
                 shooter.intake(speed)
@@ -486,15 +487,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     override val autonomousCommand: Command
         get() = buildCommand {
             runOnce{
-                drivetrain.poseEstimator.resetToPathplannerTrajectory("DriveToAmp", useHolonomicPose = true)
-            }
-
-            for (pathName in listOf("DriveToAmp", /*"AmpGrabG1", "AmpScoreG1"*/)){
-                +AutoBuilder.followPath(
-                    PathPlannerPath.fromPathFile(pathName)
+                drivetrain.poseEstimator.resetPose(
+                    AMP_AUTO_STARTING_POSE_BLUE.flipWhenNeeded()
                 )
-
-                waitFor(3.seconds)
             }
         }
 }

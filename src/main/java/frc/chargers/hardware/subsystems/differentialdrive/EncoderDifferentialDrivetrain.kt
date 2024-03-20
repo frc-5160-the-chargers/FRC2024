@@ -40,15 +40,12 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.kinematics.ChassisSpeeds
 import org.littletonrobotics.junction.Logger.recordOutput
 
-
-private val standardLogInputs = LoggableInputsProvider(namespace = "Drivetrain(Differential)")
-
-
 /**
  * A convenience function to create a [EncoderDifferentialDrivetrain]
  * using SparkMax motor controllers.
  */
 public inline fun sparkMaxDrivetrain(
+    logName: String = "Drivetrain(Differential)",
     topLeft: ChargerSparkMax,
     topRight: ChargerSparkMax,
     bottomLeft: ChargerSparkMax,
@@ -61,7 +58,7 @@ public inline fun sparkMaxDrivetrain(
     configure: ChargerSparkMaxConfiguration.() -> Unit = {}
 ): EncoderDifferentialDrivetrain =
     EncoderDifferentialDrivetrain(
-        topLeft, topRight, bottomLeft, bottomRight, hardwareData, controlData,
+        logName, topLeft, topRight, bottomLeft, bottomRight, hardwareData, controlData,
         DifferentialDrivetrainSim.KitbotMotor.kDoubleNEOPerSide,
         gyro, startingPose, *poseSuppliers,
         configuration = ChargerSparkMaxConfiguration().apply(configure)
@@ -73,6 +70,7 @@ public inline fun sparkMaxDrivetrain(
  * using Talon FX motor controllers.
  */
 public inline fun talonFXDrivetrain(
+    logName: String = "Drivetrain(Differential)",
     topLeft: ChargerTalonFX,
     topRight: ChargerTalonFX,
     bottomLeft: ChargerTalonFX,
@@ -85,7 +83,7 @@ public inline fun talonFXDrivetrain(
     configure: ChargerTalonFXConfiguration.() -> Unit = {}
 ): EncoderDifferentialDrivetrain =
     EncoderDifferentialDrivetrain(
-        topLeft, topRight, bottomLeft, bottomRight, hardwareData, controlData,
+        logName, topLeft, topRight, bottomLeft, bottomRight, hardwareData, controlData,
         DifferentialDrivetrainSim.KitbotMotor.kDoubleFalcon500PerSide,
         gyro, startingPose, *poseSuppliers,
         configuration = ChargerTalonFXConfiguration().apply(configure)
@@ -98,6 +96,7 @@ public inline fun talonFXDrivetrain(
  * Here, C represents the configuration of the motor, while M represents the motor controllers themselves.
  */
 public fun <M, C : HardwareConfiguration> EncoderDifferentialDrivetrain(
+    logName: String = "Drivetrain(Differential)",
     topLeft: M,
     topRight: M,
     bottomLeft: M,
@@ -113,23 +112,24 @@ public fun <M, C : HardwareConfiguration> EncoderDifferentialDrivetrain(
     where M: EncoderMotorController, M: HardwareConfigurable<C> {
     val lowLevel = if (RobotBase.isReal()){
         DiffDriveIOReal(
-            standardLogInputs,
+            LoggableInputsProvider(logName),
             topLeft.apply{ configure(configuration) },
             topRight.apply{ configure(configuration) },
             bottomLeft.apply{ configure(configuration) },
             bottomRight.apply{ configure(configuration) }
         )
     }else{
-        DiffDriveIOSim(standardLogInputs, simMotors)
+        DiffDriveIOSim(LoggableInputsProvider(logName), simMotors)
     }
 
-    return EncoderDifferentialDrivetrain(lowLevel, hardwareData, controlData, gyro, startingPose, *poseSuppliers)
+    return EncoderDifferentialDrivetrain(logName, lowLevel, hardwareData, controlData, gyro, startingPose, *poseSuppliers)
 }
 
 
 
 @Suppress("MemberVisibilityCanBePrivate", "CanBeParameter")
 public class EncoderDifferentialDrivetrain(
+    public val logName: String = "Drivetrain(Differential)",
     lowLevel: DiffDriveIO,
     public val hardwareData: DiffDriveHardwareData = DiffDriveHardwareData.andyMark(),
     public val controlData: DiffDriveControlData = DiffDriveControlData.None,
@@ -139,6 +139,8 @@ public class EncoderDifferentialDrivetrain(
 ): SubsystemBase(), DifferentialDrivetrain, HeadingProvider, DiffDriveIO by lowLevel {
 
     /* Private implementation */
+    private val standardLogInputs = LoggableInputsProvider(logName)
+
     private val wheelRadius = hardwareData.wheelDiameter / 2
 
     internal val wheelTravelPerMotorRadian = wheelRadius / hardwareData.gearRatio
@@ -206,7 +208,9 @@ public class EncoderDifferentialDrivetrain(
      * The pose estimator of the differential drivetrain.
      */
     public var poseEstimator: RobotPoseMonitor = DifferentialPoseMonitor(
-        this, startingPose = startingPose, *poseSuppliers
+        this,
+        visionEstimators = poseSuppliers.toList(),
+        startingPose = startingPose
     )
 
     /**
@@ -292,8 +296,7 @@ public class EncoderDifferentialDrivetrain(
     }
 
     override fun periodic(){
-        recordOutput("Drivetrain(Differential)/distanceTraveledMeters",distanceTraveled.inUnit(meters))
-        recordOutput("Drivetrain(Differential)/calculatedHeadingRad", heading.inUnit(radians))
+        recordOutput("$logName/distanceTraveledMeters",distanceTraveled.inUnit(meters))
+        recordOutput("$logName/calculatedHeadingRad", heading.inUnit(radians))
     }
-
 }

@@ -6,7 +6,6 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig
-import edu.wpi.first.math.filter.SlewRateLimiter
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
@@ -15,11 +14,9 @@ import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
-import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
-import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.constants.*
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.motionprofiling.optimizeForContinuousInput
@@ -68,14 +65,14 @@ public class EncoderHolonomicDrivetrain(
     private val controlData: SwerveControlData,
     private val useOnboardPID: Boolean = false,
     public val gyro: HeadingProvider? = null,
-    startingPose: UnitPose2d = UnitPose2d(),
+    startingPose: UnitPose2d = UnitPose2d(Distance(0.0), Distance(0.0), gyro?.heading ?: Angle(0.0)),
     poseSuppliers: List<VisionPoseSupplier> = listOf()
 ): SubsystemBase(), HeadingProvider {
     
     /* Private Implementation */
     private val wheelRadius = hardwareData.wheelDiameter / 2.0
     
-    private fun generateModuleIO(
+    private fun createModuleIO(
         logInputs: LoggableInputsProvider,
         turnMotor: EncoderMotorController,
         turnEncoder: PositionEncoder,
@@ -108,10 +105,10 @@ public class EncoderHolonomicDrivetrain(
      * Order is always top left, top right, bottom left, bottom right.
      */
     private val moduleIOArray = a[
-        generateModuleIO(LoggableInputsProvider("$logName/TopLeftModule"), turnMotors.topLeft, turnEncoders.topLeft, driveMotors.topLeft),
-        generateModuleIO(LoggableInputsProvider("$logName/TopRightModule"), turnMotors.topRight, turnEncoders.topRight, driveMotors.topRight),
-        generateModuleIO(LoggableInputsProvider("$logName/BottomLeftModule"), turnMotors.bottomLeft, turnEncoders.bottomLeft, driveMotors.bottomLeft),
-        generateModuleIO(LoggableInputsProvider("$logName/BottomRightModule"), turnMotors.bottomRight, turnEncoders.bottomRight, driveMotors.bottomRight)
+        createModuleIO(LoggableInputsProvider("$logName/TopLeftModule"), turnMotors.topLeft, turnEncoders.topLeft, driveMotors.topLeft),
+        createModuleIO(LoggableInputsProvider("$logName/TopRightModule"), turnMotors.topRight, turnEncoders.topRight, driveMotors.topRight),
+        createModuleIO(LoggableInputsProvider("$logName/BottomLeftModule"), turnMotors.bottomLeft, turnEncoders.bottomLeft, driveMotors.bottomLeft),
+        createModuleIO(LoggableInputsProvider("$logName/BottomRightModule"), turnMotors.bottomRight, turnEncoders.bottomRight, driveMotors.bottomRight)
     ]
 
     /**
@@ -254,7 +251,7 @@ public class EncoderHolonomicDrivetrain(
             { currentSpeeds },
             { speeds ->
                 velocityDrive(speeds, fieldRelative = false)
-                recordOutput("Drivetrain(Swerve)/pathplanningChassisSpeeds", speeds)
+                recordOutput("$logName/pathplanningChassisSpeeds", speeds)
             },
             HolonomicPathFollowerConfig(
                 controlData.robotTranslationPID.asPathPlannerConstants(),
@@ -325,7 +322,7 @@ public class EncoderHolonomicDrivetrain(
      * @see HeadingProvider
      */
     override val heading: Angle get() =
-        (gyro?.heading ?: poseEstimator.heading).inputModulus(0.degrees..360.degrees)
+        poseEstimator.heading.inputModulus(0.degrees..360.degrees)
 
     /**
      * A class that generates swerve setpoints for the drivetrain.
@@ -339,17 +336,18 @@ public class EncoderHolonomicDrivetrain(
     /**
      * The distance the robot has traveled in total.
      */
-    public val distanceTraveled: Distance get() =
-        (averageEncoderPosition() * wheelRadius) - distanceOffset
+    public val distanceTraveled: Distance
+        get() = (averageEncoderPosition() * wheelRadius) - distanceOffset
 
 
     /**
      * The current overall velocity of the robot.
      */
-    public val velocity: Velocity get(){
-        val speeds = currentSpeeds
-        return hypot(speeds.xVelocity, speeds.yVelocity)
-    }
+    public val velocity: Velocity
+        get(){
+            val speeds = currentSpeeds
+            return hypot(speeds.xVelocity, speeds.yVelocity)
+        }
 
 
     /**
@@ -373,6 +371,9 @@ public class EncoderHolonomicDrivetrain(
             )
         }
 
+    /**
+     * A list of each module's angular velocity
+     */
     public val moduleAngularVelocities: List<AngularVelocity>
         get() = moduleIOArray.map{ it.speed }
 
@@ -429,7 +430,7 @@ public class EncoderHolonomicDrivetrain(
     ): SysIdRoutine = SysIdRoutine(
         SysIdRoutine.Config(
             quasistaticRampRate?.toWPI(), dynamicStepVoltage?.toWPI(), timeout?.toWPI(),
-        ) { recordOutput("Drivetrain(Swerve)/DriveSysIDState", it.toString()) },
+        ) { recordOutput("$logName/DriveSysIDState", it.toString()) },
         SysIdRoutine.Mechanism(
             { voltage ->
                 setDriveVoltages(List(4){ voltage.toKmeasure() })
@@ -450,7 +451,7 @@ public class EncoderHolonomicDrivetrain(
     ): SysIdRoutine = SysIdRoutine(
         SysIdRoutine.Config(
             quasistaticRampRate?.toWPI(), dynamicStepVoltage?.toWPI(), timeout?.toWPI(),
-        ) { recordOutput("Drivetrain(Swerve)/AzimuthSysIDState", it.toString()) },
+        ) { recordOutput("$logName/AzimuthSysIDState", it.toString()) },
         SysIdRoutine.Mechanism(
             { voltage ->
                 setDriveVoltages(List(4){ Voltage(0.0) })
@@ -499,7 +500,7 @@ public class EncoderHolonomicDrivetrain(
             powers.yPower * maxLinearVelocity.siValue,
             powers.rotationPower * maxRotationalVelocity.siValue
         )
-        recordOutput("Drivetrain(Swerve)/BareGoal", ChassisSpeeds.struct, goal)
+        recordOutput("$logName/GoalWithoutModifiers", ChassisSpeeds.struct, goal)
         if (fieldRelative){
             goal = ChassisSpeeds.fromFieldRelativeSpeeds(goal, heading.asRotation2d())
         }
@@ -540,7 +541,7 @@ public class EncoderHolonomicDrivetrain(
         }else{
             speeds
         }
-        recordOutput("Drivetrain(Swerve)/BareGoal", ChassisSpeeds.struct, goal)
+        recordOutput("$logName/GoalWithoutModifiers", ChassisSpeeds.struct, goal)
     }
 
 
@@ -612,6 +613,7 @@ public class EncoderHolonomicDrivetrain(
     }
 
 
+    /*
     public fun wheelRadiusCharacterizationCommand(clockwise: Boolean): Command = buildCommand {
         require(gyro != null){ "Gyro must be valid to characterize wheel radius" }
         addRequirements(this@EncoderHolonomicDrivetrain)
@@ -623,23 +625,23 @@ public class EncoderHolonomicDrivetrain(
 
         runOnce{
             omegaLimiter.reset(0.0)
-
         }
 
 
     }
+     */
 
 
     /**
      * Called periodically in the subsystem.
      */
     override fun periodic() {
-        recordOutput("Drivetrain(Swerve)/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
-        recordOutput("Drivetrain(Swerve)/OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
-        recordOutput("Drivetrain(Swerve)/DesiredModuleStates", *setpoint.moduleStates)
-        recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Setpoint)", ChassisSpeeds.struct, setpoint.chassisSpeeds)
-        recordOutput("Drivetrain(Swerve)/ChassisSpeeds(Goal)", ChassisSpeeds.struct, goal)
-        recordOutput("Drivetrain(Swerve)/HasRotationOverride", rotationOverride != null)
+        recordOutput("$logName/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
+        recordOutput("$logName/OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
+        recordOutput("$logName/DesiredModuleStates", *setpoint.moduleStates)
+        recordOutput("$logName/ChassisSpeeds(Setpoint)", ChassisSpeeds.struct, setpoint.chassisSpeeds)
+        recordOutput("$logName/ChassisSpeeds(Goal)", ChassisSpeeds.struct, goal)
+        recordOutput("$logName/HasRotationOverride", rotationOverride != null)
 
         if (DriverStation.isDisabled()) {
             stop()

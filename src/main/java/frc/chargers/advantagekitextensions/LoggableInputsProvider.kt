@@ -26,6 +26,7 @@ public typealias ReadOnlyLoggableInput<T> = PropertyDelegateProvider<Any?, ReadO
 public typealias ReadWriteLoggableInput<T> = PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>>
 
 
+
 /**
  * A wrapper around AdvantageKit which manages logging and replaying loggable inputs
  * with kotlin's property delegates.
@@ -109,7 +110,7 @@ public class LoggableInputsProvider(
      */
     private abstract inner class AutoLoggedItem {
         init{
-            //@Suppress("LeakingThis") // safe; works similarly to the java VirtualSubsystem
+            @Suppress("LeakingThis") // safe; works similarly to the java VirtualSubsystem
             allLoggedProperties.add(this)
         }
 

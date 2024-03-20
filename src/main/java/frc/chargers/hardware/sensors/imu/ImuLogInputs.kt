@@ -8,11 +8,13 @@ The classes below manage logging + log replay for all classes that implement the
  */
 
 internal val ImuLog: LoggableInputsProvider = LoggableInputsProvider(
-    namespace = "IMU"
+    namespace = "IMU",
+    updateInputs = true
 )
 
 internal val GyroLog: LoggableInputsProvider = LoggableInputsProvider(
-    namespace = "IMU/gyroscope"
+    namespace = "IMU/gyroscope",
+    updateInputs = true
 )
 
 internal val SpeedometerLog: LoggableInputsProvider = LoggableInputsProvider(

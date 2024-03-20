@@ -16,7 +16,7 @@ fun shootInSpeaker(
     groundIntake: GroundIntakeSerializer,
     pivot: Pivot,
     shooterSpinUpTime: Time = 0.3.seconds,
-): Command = buildCommand {
+): Command = buildCommand("Shoot In Speaker"){
     addRequirements(shooter, groundIntake, pivot)
 
     if (RobotBase.isSimulation()){
