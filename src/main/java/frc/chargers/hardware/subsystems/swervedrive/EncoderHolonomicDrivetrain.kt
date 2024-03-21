@@ -322,7 +322,7 @@ public class EncoderHolonomicDrivetrain(
      * @see HeadingProvider
      */
     override val heading: Angle get() =
-        poseEstimator.heading.inputModulus(0.degrees..360.degrees)
+        (gyro?.heading ?: poseEstimator.heading).inputModulus(0.degrees..360.degrees)
 
     /**
      * A class that generates swerve setpoints for the drivetrain.
