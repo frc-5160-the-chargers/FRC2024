@@ -22,7 +22,7 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
     }
 
     fun outtakeAtSpeakerSpeed() {
-        outtake(11.volts)
+        outtake(12.volts)
     }
 
     fun receiveFromSource(){

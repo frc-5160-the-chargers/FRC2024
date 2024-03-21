@@ -42,10 +42,8 @@ import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
-import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
-import frc.external.frc6328.MechanicalAdvantageFFCharacterization
 import frc.robot.commands.*
 import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
 import frc.robot.commands.auto.AutoChooser
@@ -221,11 +219,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val climber = Climber(
         if (isReal()){
             ClimberIOReal(
-                leftMotor = ChargerSparkMax(CLIMBER_ID_LEFT){ idleMode = CANSparkBase.IdleMode.kBrake },
-                rightMotor = ChargerSparkMax(CLIMBER_ID_RIGHT){
+                leftMotor = ChargerSparkMax(CLIMBER_ID_LEFT){
                     inverted = true
                     idleMode = CANSparkBase.IdleMode.kBrake
-                }
+                },
+                rightMotor = ChargerSparkMax(CLIMBER_ID_RIGHT){ idleMode = CANSparkBase.IdleMode.kBrake }
             )
         }else{
             ClimberIOSim(
@@ -233,7 +231,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
             )
         },
-        highLimit = -100.radians,
+        //highLimit = -100.radians,
     )
 
     private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
@@ -452,7 +450,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
     override val testCommand: Command = buildCommand {
-        val path = PathPlannerPath.fromPathFile("Path TEST!")
+        val path = PathPlannerPath.fromPathFile("DebuggingAmpGrabG1")
         runOnce{
             drivetrain.poseEstimator.resetPose(
                 path.previewStartingHolonomicPose.ofUnit(meters).flipWhenNeeded()

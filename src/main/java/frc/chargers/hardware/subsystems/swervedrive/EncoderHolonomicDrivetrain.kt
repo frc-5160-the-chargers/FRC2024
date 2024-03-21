@@ -43,6 +43,7 @@ import frc.chargers.wpilibextensions.kinematics.*
 import frc.external.frc6328.SwerveSetpointGenerator
 import org.littletonrobotics.junction.Logger.*
 import java.util.Optional
+import kotlin.jvm.optionals.getOrNull
 import kotlin.math.pow
 import kotlin.math.abs
 
@@ -238,6 +239,14 @@ public class EncoderHolonomicDrivetrain(
     )
 
 
+    private val allianceFieldRelativeOffset
+        get() = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
+            180.degrees
+        }else{
+            0.degrees
+        }
+
+
     init{
         if (hardwareData.invertTurnMotors && RobotBase.isReal()){
             turnMotors.forEach{
@@ -288,9 +297,7 @@ public class EncoderHolonomicDrivetrain(
      * The kinematics class for the drivetrain.
      */
     public val kinematics: SwerveDriveKinematics =
-        SwerveDriveKinematics(
-            *moduleTranslationsFromRobotCenter.map{ it.inUnit(meters) }.toTypedArray()
-        )
+        SwerveDriveKinematics(*moduleTranslationsFromRobotCenter.map{ it.inUnit(meters) }.toTypedArray())
 
     /**
      * The pose estimator of the [EncoderHolonomicDrivetrain].
@@ -502,7 +509,7 @@ public class EncoderHolonomicDrivetrain(
         )
         recordOutput("$logName/GoalWithoutModifiers", ChassisSpeeds.struct, goal)
         if (fieldRelative){
-            goal = ChassisSpeeds.fromFieldRelativeSpeeds(goal, heading.asRotation2d())
+            goal = ChassisSpeeds.fromFieldRelativeSpeeds(goal, (heading + allianceFieldRelativeOffset).asRotation2d())
         }
     }
 
@@ -537,7 +544,7 @@ public class EncoderHolonomicDrivetrain(
     ){
         currentControlMode = ControlMode.CLOSED_LOOP
         goal = if (fieldRelative){
-            ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading.asRotation2d())
+            ChassisSpeeds.fromFieldRelativeSpeeds(speeds, (heading + allianceFieldRelativeOffset).asRotation2d())
         }else{
             speeds
         }

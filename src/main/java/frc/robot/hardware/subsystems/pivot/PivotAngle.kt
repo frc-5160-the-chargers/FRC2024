@@ -10,7 +10,7 @@ object PivotAngle {
 
     val SOURCE: Angle = 0.degrees
 
-    val GROUND_INTAKE_HANDOFF: Angle = -0.85.radians
+    val GROUND_INTAKE_HANDOFF: Angle = -0.9.radians
 
     val STOWED: Angle = GROUND_INTAKE_HANDOFF // same as of now
 

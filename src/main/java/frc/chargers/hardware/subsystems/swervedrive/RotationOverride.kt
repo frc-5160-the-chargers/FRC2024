@@ -42,7 +42,8 @@ class AimToAngleRotationOverride(
     private val targetAngle: Angle,
     angleToVelocityPID: PIDConstants,
     private val motionProfile: AngularMotionProfile? = null,
-    private val aimPrecision: Precision<AngleDimension> = Precision.AllowOvershoot
+    private val aimPrecision: Precision<AngleDimension> = Precision.AllowOvershoot,
+    private val invert: Boolean = false
 ): RotationOverride {
 
     private lateinit var motionState: AngularMotionProfileState
@@ -65,7 +66,7 @@ class AimToAngleRotationOverride(
     }
 
     override fun invoke(drivetrain: EncoderHolonomicDrivetrain): RotationOverrideResult {
-        val output: Double
+        var output: Double
 
         if (motionProfile != null){
             if (::motionState.isInitialized){
@@ -91,6 +92,8 @@ class AimToAngleRotationOverride(
             )
         }
 
+        output *= if (invert) -1.0 else 1.0
+
         return RotationOverrideResult(
             output / drivetrain.maxRotationalVelocity.siValue,
             AngularVelocity(output),
@@ -103,7 +106,8 @@ class AimToAngleRotationOverride(
 class AimToObjectRotationOverride  (
     private val visionSystem: ObjectVisionPipeline,
     cameraYawToVelocityPID: PIDConstants,
-    private val aimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot
+    private val aimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
+    private val invert: Boolean = false
 ): RotationOverride { // implements function type in order to be passed into rotation override acceptor
     private val pidController = PIDController(cameraYawToVelocityPID.kP, cameraYawToVelocityPID.kI, cameraYawToVelocityPID.kD).apply{
         if (aimPrecision is Precision.Within){
@@ -118,7 +122,7 @@ class AimToObjectRotationOverride  (
     override fun invoke(drivetrain: EncoderHolonomicDrivetrain): RotationOverrideResult? {
         // if no targets are found, don't override rotation
         val bestTarget = visionSystem.bestTarget ?: return null
-        val output = -pidController.calculate(bestTarget.tx, 0.0)
+        val output = -pidController.calculate(bestTarget.tx, 0.0) * if (invert) -1.0 else 1.0
         return RotationOverrideResult(
             output / drivetrain.maxRotationalVelocity.siValue,
             AngularVelocity(output)
@@ -132,6 +136,7 @@ class AimToAprilTagRotationOverride(
     private val visionSystem: AprilTagVisionPipeline,
     cameraYawToVelocityPID: PIDConstants,
     visionAimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
+    private val invertVisionAim: Boolean = false,
     /**
      * Option to control whether the rotation override
      * should aim to the AprilTag's pose instead of a detected target
@@ -139,7 +144,8 @@ class AimToAprilTagRotationOverride(
      */
     private val aimToTagPoseIfNotFound: Boolean = false,
     angleToVelocityPID: PIDConstants = PIDConstants(cameraYawToVelocityPID.kP * 3.0, 0, cameraYawToVelocityPID.kD * 3.0),
-    poseAimPrecision: Precision<AngleDimension> = Precision.AllowOvershoot
+    poseAimPrecision: Precision<AngleDimension> = Precision.AllowOvershoot,
+    private val invertPoseAim: Boolean = false
 ): RotationOverride {
     private val visionAimController = PIDController(cameraYawToVelocityPID.kP, cameraYawToVelocityPID.kI, cameraYawToVelocityPID.kD).apply{
         if (visionAimPrecision is Precision.Within){
@@ -176,7 +182,7 @@ class AimToAprilTagRotationOverride(
                 continue
             }
 
-            val output = -visionAimController.calculate(visionTarget.tx, 0.0)
+            val output = -visionAimController.calculate(visionTarget.tx, 0.0) * if (invertVisionAim) -1.0 else 1.0
 
 
             recordOutput("AimToAprilTag/cameraAim/controllerError", visionAimController.positionError)
@@ -205,7 +211,7 @@ class AimToAprilTagRotationOverride(
             val output = poseAimController.calculate(
                 drivetrain.heading.siValue.inputModulus(0.0..2 * PI),
                 targetHeading.siValue.inputModulus(0.0..2 * PI)
-            )
+            ) * if (invertPoseAim) -1.0 else 1.0
 
             recordOutput("AimToAprilTag/poseAim/controllerError", poseAimController.positionError)
             recordOutput("AimToAprilTag/poseAim/controllerOutput", output)

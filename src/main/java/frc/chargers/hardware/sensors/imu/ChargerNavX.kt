@@ -52,12 +52,6 @@ public class ChargerNavX(
             headingOffset = -heading + headingOffset + angle
 
             println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
-            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
-            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
-            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
-            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
-            println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
-
         }else{
             headingOffset = -IMUSimulation.getHeading()
             println("AHRS heading has been offset in sim.")
@@ -88,7 +82,7 @@ public class ChargerNavX(
             if (useFusedHeading && ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance){
                 -ahrs.fusedHeading.toDouble().ofUnit(degrees)
             }else{
-                ahrs.angle.ofUnit(degrees)
+                -ahrs.angle.ofUnit(degrees)
             }
         }else{
             IMUSimulation.getHeading()

@@ -2,7 +2,7 @@
 package frc.robot.hardware.inputdevices
 
 import edu.wpi.first.wpilibj.RobotBase
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController
+import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.hardware.inputdevices.InputAxis
 import frc.chargers.utils.math.equations.Polynomial
@@ -11,7 +11,7 @@ import frc.robot.DRIVER_CONTROLLER_PORT
 import org.littletonrobotics.junction.networktables.LoggedDashboardBoolean
 
 
-object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
+object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
     /* Top-Level constants */
     private const val DEFAULT_DEADBAND = 0.1
     private val DRIVER = Driver.NAYAN
@@ -21,10 +21,10 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
 
     /* Public API */
-    val pointNorthTrigger: Trigger = if (DRIVER.rightHanded) povUp() else y()
-    val pointSouthTrigger: Trigger = if (DRIVER.rightHanded) povDown() else a()
-    val pointEastTrigger: Trigger = if (DRIVER.rightHanded) povRight() else x()
-    val pointWestTrigger: Trigger = if (DRIVER.rightHanded) povLeft() else b()
+    val pointNorthTrigger: Trigger = if (DRIVER.rightHanded) povUp() else triangle()
+    val pointSouthTrigger: Trigger = if (DRIVER.rightHanded) povDown() else cross()
+    val pointEastTrigger: Trigger = if (DRIVER.rightHanded) povRight() else circle()
+    val pointWestTrigger: Trigger = if (DRIVER.rightHanded) povLeft() else square()
 
     val aimToSpeakerTrigger: Trigger = Trigger{ false }
 
@@ -58,7 +58,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
     val climbersUpTrigger: Trigger = povUp()
     val climbersDownTrigger: Trigger = povDown()
-    val zeroHeadingTrigger: Trigger = start().or(back())
+    val zeroHeadingTrigger: Trigger = touchpad()
 
     val shouldDisableFieldRelative: Boolean
         get() = false
@@ -90,13 +90,13 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
 
 
     private val turboAxis =
-        InputAxis{ rightTriggerAxis }
+        InputAxis{ r2Axis }
             .mapToRange(1.0..2.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
             .log("DriverController/turboPower")
 
     private val precisionAxis =
-        InputAxis{ leftTriggerAxis }
+        InputAxis{ l2Axis }
             .mapToRange(1.0..4.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
             .withModifier{ 1.0 / it }
