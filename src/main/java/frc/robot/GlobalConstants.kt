@@ -9,7 +9,6 @@ import com.batterystaple.kmeasure.units.seconds
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.pathplannerextensions.PathConstraints
 import frc.chargers.wpilibextensions.Alert
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 
 /*
 This file stores all global constants on the robot
@@ -42,8 +41,8 @@ val PATHFIND_CONSTRAINTS = PathConstraints(
     650.degrees / 1.seconds / 1.seconds
 )
 
-val AMP_AUTO_STARTING_POSE_BLUE = UnitPose2d(1.38.meters, 7.29.meters, -90.degrees)
 val ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE = 1.5.meters
+val ACCEPTABLE_DISTANCE_BEFORE_NOTE_SPINUP = 1.5.meters
 
 // alerts
 val NO_TARGET_FOUND_ALERT = Alert.warning(text = "A command is attempting to aim to a target using vision, but none can be found.")

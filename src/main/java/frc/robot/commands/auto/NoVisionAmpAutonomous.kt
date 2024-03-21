@@ -7,8 +7,8 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
-import frc.robot.AMP_AUTO_STARTING_POSE_BLUE
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
+import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.commands.followPathOptimal
 import frc.robot.commands.runGroundIntake
 import frc.robot.commands.passSerializedNote
@@ -34,7 +34,7 @@ fun noVisionAmpAutonomous(
 
     runOnce{
         drivetrain.poseEstimator.resetPose(
-            AMP_AUTO_STARTING_POSE_BLUE.flipWhenNeeded()
+            AutoStartingPose.AMP_BLUE.flipWhenNeeded()
         )
     }
 

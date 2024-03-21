@@ -47,6 +47,7 @@ import frc.external.frc6328.MechanicalAdvantageFFCharacterization
 import frc.robot.commands.*
 import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
 import frc.robot.commands.auto.AutoChooser
+import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.climber.Climber
@@ -362,7 +363,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 buildCommand{
                     runOnce{
                         drivetrain.poseEstimator.resetPose(
-                            AMP_AUTO_STARTING_POSE_BLUE.flipWhenNeeded()
+                            AutoStartingPose.AMP_BLUE.flipWhenNeeded()
                         )
                     }
 
@@ -424,6 +425,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             driveToNoteTrigger.whileTrue(
                 pursueNoteElseTeleopDrive(drivetrain, vision.notePipeline)
+                    .alongWith(runGroundIntake(groundIntake, shooter))
             )
         }
     }
@@ -485,11 +487,5 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
      */
 
     override val autonomousCommand: Command
-        get() = buildCommand {
-            runOnce{
-                drivetrain.poseEstimator.resetPose(
-                    AMP_AUTO_STARTING_POSE_BLUE.flipWhenNeeded()
-                )
-            }
-        }
+        get() = autoChooser.ampAuto
 }

@@ -13,12 +13,12 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
-import frc.robot.AMP_AUTO_STARTING_POSE_BLUE
 import frc.robot.commands.*
 import frc.robot.commands.aiming.AprilTagLocation
 import frc.robot.commands.aiming.alignToAprilTag
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.AmpAutoScoreComponent
+import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
@@ -45,7 +45,7 @@ fun ampAutonomous(
     addRequirements(drivetrain, shooter, pivot, groundIntake)
 
     runOnce{
-        drivetrain.poseEstimator.resetPose(AMP_AUTO_STARTING_POSE_BLUE.flipWhenNeeded())
+        drivetrain.poseEstimator.resetPose(AutoStartingPose.AMP_BLUE.flipWhenNeeded())
     }
 
     loopFor(0.2.seconds){

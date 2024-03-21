@@ -205,17 +205,29 @@ public open class ChargerRobot(
 
     private fun configurePathPlannerLogging(){
         var currPose = Pose2d()
+
+        Logger.recordOutput("Pathplanner/currentPose", Pose2d.struct, Pose2d())
+        Logger.recordOutput("Pathplanner/targetPose", Pose2d.struct, Pose2d())
+        Logger.recordOutput("Pathplanner/deviationFromTargetPose/xMeters", 0.0)
+        Logger.recordOutput("Pathplanner/deviationFromTargetPose/yMeters", 0.0)
+        Logger.recordOutput("Pathplanner/deviationFromTargetPose/rotationRad", 0.0)
+
         PathPlannerLogging.setLogCurrentPoseCallback {
             currPose = it
-            Logger.recordOutput("Pathplanner/currentPose", it)
+            Logger.recordOutput("Pathplanner/currentPose", Pose2d.struct, it)
         }
 
         // Logging callback for target robot pose
         PathPlannerLogging.setLogTargetPoseCallback {
             Logger.recordOutput("Pathplanner/targetPose", Pose2d.struct, it)
-
-            Logger.recordOutput("Pathplanner/deviationFromTargetPose/xMeters", it.x - currPose.x)
-            Logger.recordOutput("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
+            Logger.recordOutput(
+                "Pathplanner/deviationFromTargetPose/xMeters",
+                it.x - currPose.x
+            )
+            Logger.recordOutput(
+                "Pathplanner/deviationFromTargetPose/yMeters",
+                it.y - currPose.y
+            )
             Logger.recordOutput(
                 "Pathplanner/deviationFromTargetPose/rotationRad",
                 (it.rotation - currPose.rotation).radians

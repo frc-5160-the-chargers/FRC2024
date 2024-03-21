@@ -12,9 +12,9 @@ import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
+import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_SPINUP
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.SpeakerAutoScoreComponent
-import frc.robot.commands.auto.components.SpeakerAutoStartingPose
 import frc.robot.commands.runGroundIntake
 import frc.robot.commands.shootInSpeaker
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
@@ -24,7 +24,7 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 
 
 /**
- * A modular autonomous command for speaker-side autos.
+ * A modular autonomous command for speaker-scoring autos with advanced path planning.
  */
 fun speakerAutonomous(
     noteDetector: ObjectVisionPipeline,
@@ -33,13 +33,13 @@ fun speakerAutonomous(
     pivot: Pivot,
     groundIntake: GroundIntakeSerializer,
 
-    startingPose: SpeakerAutoStartingPose,
+    blueStartingPose: UnitPose2d,
     additionalComponents: List<SpeakerAutoScoreComponent>
 ): Command = buildCommand {
     val noteRotationOverride = getNoteRotationOverride(noteDetector)
 
     runOnce{
-        drivetrain.poseEstimator.resetPose(startingPose.pose.flipWhenNeeded())
+        drivetrain.poseEstimator.resetPose(blueStartingPose.flipWhenNeeded())
     }
 
     +shootInSpeaker(shooter, groundIntake, pivot)
@@ -84,9 +84,13 @@ fun speakerAutonomous(
                 +AutoBuilder.followPath(autoComponent.scorePath)
 
                 if (autoComponent.shooterShouldStartDuringPath){
-                    loop{
-                        // just run shooting to bring the shooter up to speed
-                        shooter.outtakeAtSpeakerSpeed()
+                    runSequentially{
+                        waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_SPINUP }
+
+                        loop{
+                            // just run shooting to bring the shooter up to speed
+                            shooter.outtakeAtSpeakerSpeed()
+                        }
                     }
                 }
             }
