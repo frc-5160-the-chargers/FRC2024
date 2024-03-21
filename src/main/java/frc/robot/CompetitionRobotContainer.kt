@@ -42,7 +42,9 @@ import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
+import frc.chargers.pathplannerextensions.PathPlannerPaths
 import frc.chargers.utils.flipWhenNeeded
+import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.external.frc6328.MechanicalAdvantageFFCharacterization
 import frc.robot.commands.*
 import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
@@ -359,6 +361,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
              */
 
+
             pointNorthTrigger.whileTrue(
                 buildCommand{
                     runOnce{
@@ -383,6 +386,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 AutoBuilder.followPath(
                     PathPlannerPath.fromPathFile("AmpScoreG1")
                 )
+            )
+
+            pointWestTrigger.onTrue(
+                runOnceCommand{
+                    gyroIO.zeroHeading(180.degrees)
+                }
             )
 
 
@@ -442,35 +451,48 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
 
-    override val testCommand: Command = MechanicalAdvantageFFCharacterization(
-        drivetrain, false,
-        MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("DrivetrainDataLeft"),
-        MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("DrivetrainDataRight"),
-        { leftV, rightV ->
-            drivetrain.setDriveVoltages(
-                listOf(
-                    leftV.ofUnit(volts),
-                    rightV.ofUnit(volts),
-                    leftV.ofUnit(volts),
-                    rightV.ofUnit(volts),
-                )
+    override val testCommand: Command = buildCommand {
+        val path = PathPlannerPath.fromPathFile("Path TEST!")
+        runOnce{
+            drivetrain.poseEstimator.resetPose(
+                path.previewStartingHolonomicPose.ofUnit(meters).flipWhenNeeded()
             )
-
-            drivetrain.setTurnDirections(
-                listOf(
-                    0.degrees, 0.degrees, 0.degrees, 0.degrees
-                )
-            )
-        },
-        {
-            val allVelocities = drivetrain.moduleAngularVelocities
-            (allVelocities[0].siValue + allVelocities[2].siValue) / 2.0
-        },
-        {
-            val allVelocities = drivetrain.moduleAngularVelocities
-            (allVelocities[1].siValue + allVelocities[3].siValue) / 2.0
         }
-    )
+
+        +AutoBuilder.followPath(path)
+    }
+
+        /*
+        MechanicalAdvantageFFCharacterization(
+            drivetrain, false,
+            MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("DrivetrainDataLeft"),
+            MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("DrivetrainDataRight"),
+            { leftV, rightV ->
+                drivetrain.setDriveVoltages(
+                    listOf(
+                        leftV.ofUnit(volts),
+                        rightV.ofUnit(volts),
+                        leftV.ofUnit(volts),
+                        rightV.ofUnit(volts),
+                    )
+                )
+
+                drivetrain.setTurnDirections(
+                    listOf(
+                        0.degrees, 0.degrees, 0.degrees, 0.degrees
+                    )
+                )
+            },
+            {
+                val allVelocities = drivetrain.moduleAngularVelocities
+                (allVelocities[0].siValue + allVelocities[2].siValue) / 2.0
+            },
+            {
+                val allVelocities = drivetrain.moduleAngularVelocities
+                (allVelocities[1].siValue + allVelocities[3].siValue) / 2.0
+            }
+        )
+         */
 
 
 
@@ -482,8 +504,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 drivetrain.poseEstimator.resetPose(path.previewStartingHolonomicPose.ofUnit(meters))
             }
         }
-
-
      */
 
     override val autonomousCommand: Command

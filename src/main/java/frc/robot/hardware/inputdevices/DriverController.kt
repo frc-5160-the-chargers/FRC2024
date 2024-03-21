@@ -61,7 +61,7 @@ object DriverController: CommandXboxController(DRIVER_CONTROLLER_PORT){
     val zeroHeadingTrigger: Trigger = start().or(back())
 
     val shouldDisableFieldRelative: Boolean
-        get() = start().asBoolean || back().asBoolean
+        get() = false
 
 
     /* Private implementation */

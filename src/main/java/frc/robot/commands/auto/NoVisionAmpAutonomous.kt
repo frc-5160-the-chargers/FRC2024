@@ -50,7 +50,7 @@ fun noVisionAmpAutonomous(
             runSequentially{
                 +followPathOptimal(drivetrain, autoComponent.grabPath)
 
-                waitFor(1.seconds)
+                waitFor(0.5.seconds)
             }
 
             // parallel #2
