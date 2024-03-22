@@ -47,7 +47,6 @@ import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.robot.commands.*
 import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
 import frc.robot.commands.auto.AutoChooser
-import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.inputdevices.OperatorInterface
 import frc.robot.hardware.subsystems.climber.Climber
@@ -301,7 +300,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         shooter.setDefaultRunCommand{
             val speed = OperatorInterface.shooterSpeedAxis()
             if (speed > 0.0){
-                println("OUttaking!!!!!!!!!")
                 shooter.outtake(speed)
             }else{
                 shooter.intake(speed)
@@ -351,7 +349,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         DriverController.apply{
-            /*
             pointNorthTrigger.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
 
             pointEastTrigger.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
@@ -359,42 +356,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             pointSouthTrigger.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
 
             pointWestTrigger.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
-
-             */
-
-
-            pointNorthTrigger.whileTrue(
-                buildCommand{
-                    runOnce{
-                        drivetrain.poseEstimator.resetPose(
-                            AutoStartingPose.AMP_BLUE.flipWhenNeeded()
-                        )
-                    }
-
-                    +AutoBuilder.followPath(
-                        PathPlannerPath.fromPathFile("DriveToAmp")
-                    )
-                }
-            )
-
-            pointEastTrigger.whileTrue(
-                AutoBuilder.followPath(
-                    PathPlannerPath.fromPathFile("AmpGrabG1")
-                )
-            )
-
-            pointSouthTrigger.whileTrue(
-                AutoBuilder.followPath(
-                    PathPlannerPath.fromPathFile("AmpScoreG1")
-                )
-            )
-
-            pointWestTrigger.onTrue(
-                runOnceCommand{
-                    gyroIO.zeroHeading(180.degrees)
-                }
-            )
-
 
             zeroHeadingTrigger.onTrue(
                 runOnceCommand{

@@ -6,6 +6,7 @@ import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
+import org.littletonrobotics.junction.Logger.recordOutput
 
 // standard: + = outtake, - = intake; regardless of voltage set
 class Shooter(private val io: ShooterIO): SubsystemBase() {
@@ -46,6 +47,8 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
                 NoteVisualizer.setHasNote(true)
             }
         }
+        recordOutput("Shooter/isOuttaking", false)
+        recordOutput("Shooter/isIntaking", true)
     }
 
     fun outtake(percentOut: Double){
@@ -57,6 +60,8 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
         require(voltage >= 0.volts){ "Applied voltage must be > 0.volts. To intake, call intake(voltage) or intake(speed) instead." }
         NoteVisualizer.setHasNote(false)
         io.setIntakeVoltage(voltage)
+        recordOutput("Shooter/isOuttaking", true)
+        recordOutput("Shooter/isIntaking", false)
     }
 
     override fun periodic(){
