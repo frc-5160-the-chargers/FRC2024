@@ -1,5 +1,7 @@
 package frc.robot.hardware.subsystems.groundintake
 
+import com.batterystaple.kmeasure.interop.average
+import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
@@ -12,7 +14,7 @@ import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIO
 // standard: + = outtake, - = intake for both conveyor and ground intake components
 class GroundIntakeSerializer(io: GroundIntakeIO): SubsystemBase(), GroundIntakeIO by io{ // implements GroundIntakeIO to inherit necessary functions from io layer
 
-    val hasNote: Boolean get() = false
+    val hasNote: Boolean get() = intakeCurrents.average() > 35.amps
 
     fun setIdle(){
         setIntakeVoltage(0.volts)

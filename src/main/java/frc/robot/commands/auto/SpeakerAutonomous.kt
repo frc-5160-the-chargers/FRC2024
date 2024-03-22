@@ -27,7 +27,7 @@ import frc.robot.hardware.subsystems.shooter.Shooter
  * A modular autonomous command for speaker-scoring autos with advanced path planning.
  */
 fun speakerAutonomous(
-    noteDetector: ObjectVisionPipeline,
+    noteDetector: ObjectVisionPipeline? = null,
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
     pivot: Pivot,
@@ -36,7 +36,11 @@ fun speakerAutonomous(
     blueStartingPose: UnitPose2d,
     additionalComponents: List<SpeakerAutoScoreComponent>
 ): Command = buildCommand {
-    val noteRotationOverride = getNoteRotationOverride(noteDetector)
+    val noteRotationOverride = if (noteDetector != null){
+        getNoteRotationOverride(noteDetector)
+    }else{
+        null
+    }
 
     runOnce{
         drivetrain.poseEstimator.resetPose(blueStartingPose.flipWhenNeeded())
@@ -53,22 +57,26 @@ fun speakerAutonomous(
                 +AutoBuilder.followPath(autoComponent.grabPath)
 
                 // drives out further in case the path missed the note
-                +pursueNote(
-                    drivetrain, noteDetector,
-                    endCondition = { if (isReal()) groundIntake.hasNote else noteDetector.bestTarget == null },
-                    setRotationOverride = false
-                ).withTimeout(2.0)
+                if (noteDetector != null){
+                    +pursueNote(
+                        drivetrain, noteDetector,
+                        endCondition = { if (isReal()) groundIntake.hasNote else noteDetector.bestTarget == null },
+                        setRotationOverride = false
+                    ).withTimeout(2.0)
+                }
             }
 
             // parallel #2
             runSequentially{
-                // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
-                // along the path.
-                // robotPose getter is a UnitPose2d; a wrapper with support for kmeasure units
-                waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }
+                if (noteRotationOverride != null){
+                    // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
+                    // along the path.
+                    // robotPose getter is a UnitPose2d; a wrapper with support for kmeasure units
+                    waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }
 
-                runOnce{
-                    drivetrain.setRotationOverride(noteRotationOverride)
+                    runOnce{
+                        drivetrain.setRotationOverride(noteRotationOverride)
+                    }
                 }
 
                 +runGroundIntake(groundIntake, shooter)

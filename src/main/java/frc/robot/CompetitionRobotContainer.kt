@@ -220,10 +220,13 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         if (isReal()){
             ClimberIOReal(
                 leftMotor = ChargerSparkMax(CLIMBER_ID_LEFT){
-                    inverted = true
+                    inverted = false
                     idleMode = CANSparkBase.IdleMode.kBrake
                 },
-                rightMotor = ChargerSparkMax(CLIMBER_ID_RIGHT){ idleMode = CANSparkBase.IdleMode.kBrake }
+                rightMotor = ChargerSparkMax(CLIMBER_ID_RIGHT){
+                    inverted = true
+                    idleMode = CANSparkBase.IdleMode.kBrake
+                }
             )
         }else{
             ClimberIOSim(
@@ -450,7 +453,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
 
     override val testCommand: Command = buildCommand {
-        val path = PathPlannerPath.fromPathFile("DebuggingAmpGrabG1")
+        val path = PathPlannerPath.fromPathFile("RotationTest")
         runOnce{
             drivetrain.poseEstimator.resetPose(
                 path.previewStartingHolonomicPose.ofUnit(meters).flipWhenNeeded()
@@ -505,5 +508,5 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
      */
 
     override val autonomousCommand: Command
-        get() = autoChooser.ampAuto
+        get() = autoChooser.selected
 }

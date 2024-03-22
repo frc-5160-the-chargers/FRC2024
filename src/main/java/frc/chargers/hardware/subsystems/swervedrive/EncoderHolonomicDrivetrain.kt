@@ -259,7 +259,11 @@ public class EncoderHolonomicDrivetrain(
             { poseEstimator.resetPose(it.ofUnit(meters)) },
             { currentSpeeds },
             { speeds ->
-                velocityDrive(speeds, fieldRelative = false)
+                // have to invert rotation for some reason...idk
+                velocityDrive(
+                    ChassisSpeeds(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond, -speeds.omegaRadiansPerSecond),
+                    fieldRelative = false
+                )
                 recordOutput("$logName/pathplanningChassisSpeeds", speeds)
             },
             HolonomicPathFollowerConfig(

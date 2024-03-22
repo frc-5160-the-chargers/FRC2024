@@ -49,5 +49,6 @@ inline fun pursueNote(
     onEnd{
         drivetrain.stop()
         drivetrain.removeRotationOverride()
+        println("Pursue note has stopped.")
     }
 }

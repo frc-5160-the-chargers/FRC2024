@@ -122,7 +122,7 @@ class AimToObjectRotationOverride  (
     override fun invoke(drivetrain: EncoderHolonomicDrivetrain): RotationOverrideResult? {
         // if no targets are found, don't override rotation
         val bestTarget = visionSystem.bestTarget ?: return null
-        val output = -pidController.calculate(bestTarget.tx, 0.0) * if (invert) -1.0 else 1.0
+        val output = pidController.calculate(bestTarget.tx, 0.0) * if (invert) -1.0 else 1.0
         return RotationOverrideResult(
             output / drivetrain.maxRotationalVelocity.siValue,
             AngularVelocity(output)

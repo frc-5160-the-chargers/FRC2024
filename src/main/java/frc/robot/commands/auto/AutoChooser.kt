@@ -34,7 +34,7 @@ class AutoChooser(
 
     private val ampScoreNote2Component = AmpAutoScoreComponent.fromPathPlanner(
         grabPathName = "AmpGrabG1",
-        scorePathName = "AmpScoreG1NoVision",
+        scorePathName = "AmpScoreG1",
         type = AmpAutoScoreComponent.Type.SCORE_NOTE
     )
 
@@ -59,7 +59,7 @@ class AutoChooser(
     )
      */
 
-    val speakerAuto = if (aprilTagVision != null && noteDetector != null){
+    val speakerAutoTest = if (aprilTagVision != null && noteDetector != null){
         speakerAutonomous(
             noteDetector, drivetrain,
             shooter, pivot, groundIntake,
@@ -74,13 +74,6 @@ class AutoChooser(
     }else{
         InstantCommand()
     }
-
-    val ampAuto = noVisionAmpAutonomous(
-        drivetrain, shooter, pivot,
-        groundIntake,
-        taxiAtEnd = false,
-        additionalComponents = listOf(ampScoreNote2Component)
-    )
 
     init{
         sendableChooser.apply{
@@ -213,7 +206,17 @@ class AutoChooser(
 
                 addOption(
                     "4-5 Piece Speaker",
-                    speakerAuto
+                    speakerAutonomous(
+                        noteDetector, drivetrain,
+                        shooter, pivot, groundIntake,
+                        blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
+                        additionalComponents = listOf(
+                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2", shooterShouldStartDuringPath = true,),
+                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", shooterShouldStartDuringPath = true,),
+                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6", shooterShouldStartDuringPath = true,),
+                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8", shooterShouldStartDuringPath = true,)
+                        )
+                    )
                 )
             }
         }

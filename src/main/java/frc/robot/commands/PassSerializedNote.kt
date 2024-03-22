@@ -18,7 +18,7 @@ fun passSerializedNote(
             groundIntake.passToShooterSlow()
         }
 
-        loopFor(0.2.seconds){
+        loopFor(0.3.seconds){
             shooter.receiveFromGroundIntake()
             groundIntake.passToShooterSlow()
         }

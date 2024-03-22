@@ -44,6 +44,11 @@ fun noVisionAmpAutonomous(
 
     +shootInAmp(shooter, pivot)
 
+    runFor(
+        0.5.seconds,
+        runGroundIntake(groundIntake, shooter)
+    )
+
     for (autoComponent in additionalComponents){
         runParallelUntilFirstCommandFinishes{
             // parallel #1
@@ -54,11 +59,10 @@ fun noVisionAmpAutonomous(
             }
 
             // parallel #2
-            runSequentially{
-                +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+            +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
 
-                +runGroundIntake(groundIntake, shooter)
-            }
+            // parallel #3
+            +runGroundIntake(groundIntake, shooter)
         }
 
         runParallelUntilFirstCommandFinishes{

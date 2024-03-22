@@ -1,7 +1,6 @@
 package frc.robot.commands.aiming
 
 import com.batterystaple.kmeasure.units.meters
-import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
@@ -35,7 +34,6 @@ fun pursueNoteElseTeleopDrive(
     }
 
     // then, note pursuit is run
-    +pursueNote(drivetrain, noteDetector, ::getNotePursuitSpeed)
-
-    waitFor(0.5.seconds)
+    // command does not end unless interrupted
+    +pursueNote(drivetrain, noteDetector, ::getNotePursuitSpeed, endCondition = {false})
 }
