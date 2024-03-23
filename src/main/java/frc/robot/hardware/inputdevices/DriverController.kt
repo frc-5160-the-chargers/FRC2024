@@ -5,6 +5,7 @@ import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.hardware.inputdevices.InputAxis
+import frc.chargers.hardware.inputdevices.withDoubleClick
 import frc.chargers.utils.math.equations.Polynomial
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.robot.DRIVER_CONTROLLER_PORT
@@ -58,10 +59,10 @@ object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
 
     val climbersUpTrigger: Trigger = povUp()
     val climbersDownTrigger: Trigger = povDown()
-    val zeroHeadingTrigger: Trigger = touchpad()
+    val zeroHeadingTrigger: Trigger = touchpad().withDoubleClick()
 
     val shouldDisableFieldRelative: Boolean
-        get() = false
+        get() = touchpad().asBoolean
 
 
     /* Private implementation */

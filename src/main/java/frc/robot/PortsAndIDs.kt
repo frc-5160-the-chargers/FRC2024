@@ -26,7 +26,7 @@ object DrivetrainID {
 // mechanism IDs
 const val SHOOTER_MOTOR_ID = 7
 const val PIVOT_MOTOR_ID = 9
-const val PIVOT_ENCODER_ID = 1
+const val PIVOT_ENCODER_ID = 0
 const val GROUND_INTAKE_ID = 13
 const val CONVEYOR_ID = 29
 

@@ -9,6 +9,7 @@ import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.AmpAutoComponent
+import frc.robot.commands.auto.components.AmpAutoTaxiMode
 import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.commands.auto.components.SpeakerAutoComponent
 import frc.robot.commands.followPathOptimal
@@ -87,7 +88,6 @@ class AutoChooser(
                 noVisionAmpAutonomous(
                     drivetrain, shooter, pivot,
                     groundIntake,
-                    taxiAtEnd = false,
                     additionalComponents = listOf(ampScoreNote2Component)
                 )
             )
@@ -98,8 +98,8 @@ class AutoChooser(
                 noVisionAmpAutonomous(
                     drivetrain, shooter, pivot,
                     groundIntake,
-                    taxiAtEnd = true,
-                    additionalComponents = listOf(ampScoreNote2Component)
+                    additionalComponents = listOf(ampScoreNote2Component),
+                    taxiMode = AmpAutoTaxiMode.TAXI_LONG
                 )
             )
 
@@ -113,8 +113,16 @@ class AutoChooser(
                 "1 Note Amp(NO VISION)",
                 noVisionAmpAutonomous(
                     drivetrain, shooter, pivot,
+                    groundIntake
+                )
+            )
+
+            addOption(
+                "1 Note Amp + Short Taxi(NO VISION)",
+                noVisionAmpAutonomous(
+                    drivetrain, shooter, pivot,
                     groundIntake,
-                    taxiAtEnd = false,
+                    taxiMode = AmpAutoTaxiMode.TAXI_SHORT
                 )
             )
 
@@ -123,7 +131,6 @@ class AutoChooser(
                 noVisionAmpAutonomous(
                     drivetrain, shooter, pivot,
                     groundIntake,
-                    taxiAtEnd = true,
                     additionalComponents = listOf(ampScoreNote2Component)
                 )
             )
@@ -138,15 +145,7 @@ class AutoChooser(
                     "1 Note Amp",
                     ampAutonomous(
                         aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake, taxiAtEnd = false,
-                    )
-                )
-
-                addOption(
-                    "1 Note Amp + Taxi",
-                    ampAutonomous(
-                        aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake, taxiAtEnd = true,
+                        shooter, pivot, groundIntake
                     )
                 )
 
@@ -154,7 +153,7 @@ class AutoChooser(
                     "2 Note Amp",
                     ampAutonomous(
                         aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake, taxiAtEnd = false,
+                        shooter, pivot, groundIntake,
                         additionalComponents = listOf(ampScoreNote2Component)
                     )
                 )
@@ -163,7 +162,7 @@ class AutoChooser(
                     "2 Note Amp + Taxi",
                     ampAutonomous(
                         aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake, taxiAtEnd = true,
+                        shooter, pivot, groundIntake, taxiMode = AmpAutoTaxiMode.TAXI_LONG,
                         additionalComponents = listOf(ampScoreNote2Component)
                     )
                 )
@@ -184,10 +183,12 @@ class AutoChooser(
                     "3 Note Amp",
                     ampAutonomous(
                         aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake, taxiAtEnd = false,
+                        shooter, pivot, groundIntake,
                         additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component)
                     )
                 )
+
+
 
                 addOption(
                     "4-5 Piece Speaker",
@@ -203,6 +204,7 @@ class AutoChooser(
                         )
                     )
                 )
+
             }
         }
     }

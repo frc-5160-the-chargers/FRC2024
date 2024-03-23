@@ -10,6 +10,7 @@ import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.framework.ChargerRobot
@@ -34,7 +35,28 @@ class SwervePoseMonitor(
     visionEstimators: List<VisionPoseSupplier>,
     startingPose: UnitPose2d
 ): SubsystemBase(), RobotPoseMonitor {
+    companion object{
+        private var logVisionlessPose: Boolean = true
+
+        /**
+         * Disables logging of the calculated pose without vision.
+         */
+        @Suppress("unused")
+        fun disableVisionlessPoseLogging(){
+            logVisionlessPose = false
+        }
+    }
+
+    // the wpilib pose estimator that powers the pose monitor.
     private val poseEstimator = SwerveDrivePoseEstimator(
+        drivetrain.kinematics,
+        Rotation2d(0.0),
+        drivetrain.modulePositions.toTypedArray(),
+        Pose2d()
+    )
+
+    // purely for logging/comparison purposes for debugging
+    private val noVisionPoseEstimator = SwerveDriveOdometry(
         drivetrain.kinematics,
         Rotation2d(0.0),
         drivetrain.modulePositions.toTypedArray(),
@@ -118,5 +140,16 @@ class SwervePoseMonitor(
 
         recordOutput(drivetrain.logName + "/Pose2d", Pose2d.struct, poseEstimator.estimatedPosition)
         robotObject.pose = poseEstimator.estimatedPosition
+
+        if (logVisionlessPose && visionEstimators.size > 0){
+            recordOutput(
+                drivetrain.logName + "/Pose2dWithoutVisionEstimation",
+                Pose2d.struct,
+                noVisionPoseEstimator.update(
+                    gyroHeading.asRotation2d(),
+                    drivetrain.modulePositions.toTypedArray()
+                )
+            )
+        }
     }
 }

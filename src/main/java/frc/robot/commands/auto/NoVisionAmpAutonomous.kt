@@ -8,6 +8,7 @@ import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
 import frc.robot.commands.auto.components.AmpAutoComponent
+import frc.robot.commands.auto.components.AmpAutoTaxiMode
 import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.commands.followPathOptimal
 import frc.robot.commands.runGroundIntake
@@ -27,8 +28,8 @@ fun noVisionAmpAutonomous(
     pivot: Pivot,
     groundIntake: GroundIntakeSerializer,
 
-    taxiAtEnd: Boolean = false,
-    additionalComponents: List<AmpAutoComponent> = listOf() // used to control further notes pursued.
+    additionalComponents: List<AmpAutoComponent> = listOf(), // used to control further notes pursued.
+    taxiMode: AmpAutoTaxiMode = AmpAutoTaxiMode.NO_TAXI
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, pivot, groundIntake)
 
@@ -91,14 +92,19 @@ fun noVisionAmpAutonomous(
                 }
             }
         }
-
     }
 
-    runParallelUntilAllFinish{
-        if (taxiAtEnd){
+    +pivot.setAngleCommand(PivotAngle.STOWED)
+
+    when (taxiMode){
+        AmpAutoTaxiMode.TAXI_SHORT -> {
+            +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
+        }
+
+        AmpAutoTaxiMode.TAXI_LONG -> {
             +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpSideTaxi"))
         }
 
-        +pivot.setAngleCommand(PivotAngle.STOWED)
+        AmpAutoTaxiMode.NO_TAXI -> {}
     }
 }

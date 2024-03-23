@@ -35,11 +35,15 @@ class VisionManager(private val poseEstimator: RobotPoseMonitor, tunableCamerasI
 
     // transforms for vision cameras
     private val robotToArducam = if (RobotBase.isReal()){
-        // from ground intake pov:
-        // 3 inch backward, 12 inches to the right, 42 inches up
+        // From ground intake POV
+        // Alert alert: these numbers are kinda suspicious
+        // rotation 3d not right yet
+        // 30 30
         UnitTransform3d(
-            UnitTranslation3d(x = -3.inches, y = 0.meters, z = 20.inches),
-            Rotation3d(roll = 0.degrees, pitch = 0.degrees, yaw = 180.degrees)
+            // 42 inches up, 2 inches forward from center, 10.5 inches left from center
+            UnitTranslation3d(x = 10.5.inches, y = 2.meters, z = 45.inches),
+            // 30 degrees up, 30 degrees to the right
+            Rotation3d(roll = -30.degrees, pitch = 30.degrees, yaw = 180.degrees)
         )
     }else{
         UnitTransform3d(

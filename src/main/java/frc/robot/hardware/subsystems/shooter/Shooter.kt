@@ -1,15 +1,21 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate")
 package frc.robot.hardware.subsystems.shooter
 
+import com.batterystaple.kmeasure.dimensions.DistanceDimension
+import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.chargers.wpilibextensions.interpolation.InterpolatingQuantityTreeMap
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
 import org.littletonrobotics.junction.Logger.recordOutput
 
 // standard: + = outtake, - = intake; regardless of voltage set
 class Shooter(private val io: ShooterIO): SubsystemBase() {
+
+    private val shooterVoltageTreeMap = InterpolatingQuantityTreeMap<DistanceDimension, VoltageDimension>()
+
     val hasNoteDetector: Boolean get() = io.hasNoteDetector
 
     val hasNote: Boolean get() = io.hasNote

@@ -6,19 +6,16 @@ package frc.robot
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
-import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.GenericHID
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
-import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -36,14 +33,13 @@ import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.PeriodicFrameConfig
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
+import frc.chargers.hardware.sensors.encoders.absolute.ChargerDutyCycleEncoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
-import frc.chargers.utils.flipWhenNeeded
-import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.robot.commands.*
 import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
 import frc.robot.commands.auto.AutoChooser
@@ -84,7 +80,13 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     // note of reference: an IO class is a low-level component of the robot
     // that integrates advantagekit logging.
 
-    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{ zeroHeading(180.degrees) }
+    private val gyroIO = ChargerNavX(useFusedHeading = false).apply{
+        if (DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Red){
+            zeroHeading(180.degrees)
+        }else{
+            zeroHeading(0.degrees)
+        }
+    }
 
     private val shooter = Shooter(
         if (isReal()){
@@ -114,19 +116,18 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     smartCurrentLimit = SmartCurrentLimit(35.amps)
                 },
                 useOnboardPID = false,
-                encoderType = PivotEncoderType.IntegratedRelativeEncoder(pivotRatio)
-                /*
                 encoderType = PivotEncoderType.ExternalAbsoluteEncoder(
-                    absoluteEncoder = ChargerDutyCycleEncoder(PIVOT_ENCODER_ID),
-                    motorGearRatio = pivotRatio
+                    // TODO: Fix position offset configuration(currently using withOffset instead)
+                    absoluteEncoder = ChargerDutyCycleEncoder(PIVOT_ENCODER_ID){ inverted = true },
+                    motorGearRatio = pivotRatio,
+                    offset = (-0.23).rotations
                 ),
-                 */
             )
         }else{
             PivotIOSim(DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004))
         },
         ///// FOR NAYAN: Pivot PID Constants
-        if (isReal()) PIDConstants(6.0,0,0)  else PIDConstants(10.0, 0.0, 0.0),
+        if (isReal()) PIDConstants(7.0,0,0)  else PIDConstants(10.0, 0.0, 0.0),
         AngularTrapezoidProfile(
             maxVelocity = AngularVelocity(8.0),
             maxAcceleration = AngularAcceleration(10.0)
@@ -283,21 +284,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     }
 
-    /*
-    private val absoluteEncoderTest = DutyCycleEncoder(2).also{
-        ChargerRobot.runPeriodically {
-            Logger.recordOutput("DutyCycleEncoderReading", it.absolutePosition)
-        }
-    }
-     */
-
-    private fun rumbleControllerOnInterrupt(){
-        if (DriverStation.isEnabled()){
-            println("Rumbling!")
-            DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 0.2)
-        }
-    }
-
     private fun configureDefaultCommands(){
         drivetrain.setDefaultRunCommand{
             drivetrain.swerveDrive(
@@ -356,6 +342,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 AimToAngleRotationOverride(
                     heading + allianceAngleCompensation + targetAngleOffset,
                     ANGLE_TO_ROTATIONAL_VELOCITY_PID,
+                    invert = isReal()
                 )
             )
         }
@@ -363,11 +350,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         DriverController.apply{
             pointNorthTrigger.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
 
-            pointEastTrigger.onTrue(targetAngle(90.degrees)).onFalse(resetAimToAngle())
+            pointEastTrigger.onTrue(targetAngle(-90.degrees)).onFalse(resetAimToAngle())
 
-            pointSouthTrigger.onTrue(targetAngle(180.degrees)).onFalse(resetAimToAngle())
+            pointSouthTrigger.onTrue(targetAngle(-180.degrees)).onFalse(resetAimToAngle())
 
-            pointWestTrigger.onTrue(targetAngle(270.degrees)).onFalse(resetAimToAngle())
+            pointWestTrigger.onTrue(targetAngle(-270.degrees)).onFalse(resetAimToAngle())
 
             zeroHeadingTrigger.onTrue(
                 runOnceCommand{
@@ -376,6 +363,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
         }
 
+        // loopCommand and runOnceCommand are wrappers around RunCommand and InstantCommand
+        // which allows for outer lambda block syntax
         OperatorInterface.apply{
             groundIntakeTrigger.whileTrue(runGroundIntake(groundIntake, shooter))
 
@@ -383,13 +372,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             passToShooterTrigger.whileTrue(passSerializedNote(groundIntake, shooter))
 
-            spinUpShooterTrigger.whileTrue(
-                loopCommand(shooter){
-                    shooter.outtakeAtSpeakerSpeed()
-                }
-            )
+            //spinUpShooterTrigger.whileTrue(loopCommand(shooter){ shooter.outtakeAtSpeakerSpeed() })
 
-            shootInSpeakerTrigger.whileTrue(shootInSpeaker(shooter, groundIntake, pivot, shooterSpinUpTime = 0.seconds))
+            shootInSpeakerTrigger.whileTrue(
+                shootInSpeaker(shooter, groundIntake, pivot, shooterSpinUpTime = 2.seconds)
+            )
 
             // when only held, the buttons will just cause the pivot to PID to the appropriate position
             // interrupt behavior set as to prevent command scheduling conflicts

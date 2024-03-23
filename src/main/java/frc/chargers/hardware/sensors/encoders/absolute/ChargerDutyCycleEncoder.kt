@@ -3,6 +3,7 @@ package frc.chargers.hardware.sensors.encoders.absolute
 
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.ofUnit
+import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.rotations
 import edu.wpi.first.wpilibj.DigitalSource
 import edu.wpi.first.wpilibj.DutyCycle
@@ -57,8 +58,10 @@ public class ChargerDutyCycleEncoder: DutyCycleEncoder, PositionEncoder,
     public constructor(source: DigitalSource): super(source)
     public constructor(dutyCycle: DutyCycle): super(dutyCycle)
 
+    private var inverted: Boolean = false
+
     override val angularPosition: Angle
-        get() = absolutePosition.ofUnit(rotations)
+        get() = (if (inverted) -1.0 else 1.0) * absolutePosition.ofUnit(rotations)
 
     override fun configure(configuration: DutyCycleEncoderConfiguration) {
         configuration.connectedFrequencyThreshold?.let { setConnectedFrequencyThreshold(it) }
@@ -68,6 +71,10 @@ public class ChargerDutyCycleEncoder: DutyCycleEncoder, PositionEncoder,
         configuration.positionOffset?.let{
             positionOffset = it
         }
+
+        configuration.inverted?.let{
+            inverted = it
+        }
     }
 
 }
@@ -75,5 +82,6 @@ public class ChargerDutyCycleEncoder: DutyCycleEncoder, PositionEncoder,
 public data class DutyCycleEncoderConfiguration(
     var connectedFrequencyThreshold: Int? = null,
     var dutyCycleRange: ClosedRange<Double>? = null,
-    var positionOffset: Double? = null
+    var positionOffset: Double? = null,
+    var inverted: Boolean? = null,
 ): HardwareConfiguration

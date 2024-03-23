@@ -18,6 +18,7 @@ import frc.robot.commands.aiming.AprilTagLocation
 import frc.robot.commands.aiming.alignToAprilTag
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.AmpAutoComponent
+import frc.robot.commands.auto.components.AmpAutoTaxiMode
 import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
@@ -40,7 +41,7 @@ fun ampAutonomous(
     groundIntake: GroundIntakeSerializer,
 
     additionalComponents: List<AmpAutoComponent> = listOf(), // used to control further notes pursued.
-    taxiAtEnd: Boolean = false,
+    taxiMode: AmpAutoTaxiMode = AmpAutoTaxiMode.NO_TAXI
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, pivot, groundIntake)
 
@@ -145,11 +146,17 @@ fun ampAutonomous(
         }
     }
 
-    runParallelUntilAllFinish{
-        if (taxiAtEnd){
+    +pivot.setAngleCommand(PivotAngle.STOWED)
+
+    when (taxiMode){
+        AmpAutoTaxiMode.TAXI_SHORT -> {
+            +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
+        }
+
+        AmpAutoTaxiMode.TAXI_LONG -> {
             +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpSideTaxi"))
         }
 
-        +pivot.setAngleCommand(PivotAngle.STOWED)
+        AmpAutoTaxiMode.NO_TAXI -> {}
     }
 }

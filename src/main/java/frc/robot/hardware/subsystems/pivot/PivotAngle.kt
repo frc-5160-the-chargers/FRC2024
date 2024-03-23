@@ -14,7 +14,7 @@ object PivotAngle {
 
     val STOWED: Angle = GROUND_INTAKE_HANDOFF // same as of now
 
-    val SPEAKER: Angle = GROUND_INTAKE_HANDOFF // same as of now
+    val SPEAKER: Angle = -0.85.radians // same as of now
 
     val STARTING: Angle = -1.15.radians
 }

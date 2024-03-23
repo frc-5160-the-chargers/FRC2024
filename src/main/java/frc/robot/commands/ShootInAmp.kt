@@ -14,15 +14,19 @@ fun shootInAmp(
     +pivot.setAngleCommand(PivotAngle.AMP)
 
     if (shooter.hasNoteDetector){
+        loopUntil({shooter.hasNote}, shooter){
+            shooter.outtakeAtAmpSpeed()
+        }
+
         loopWhile({shooter.hasNote}, shooter){
             shooter.outtakeAtAmpSpeed()
         }
 
-        loopFor(0.3.seconds, shooter){
+        loopFor(0.5.seconds, shooter){
             shooter.outtakeAtAmpSpeed()
         }
     }else{
-        loopFor(1.seconds, shooter){
+        loopFor(0.9.seconds, shooter){
             shooter.outtakeAtAmpSpeed()
         }
     }

@@ -16,4 +16,4 @@ fun resetPoseThenFollowPath(
     drivetrain.poseEstimator.resetPose(path.previewStartingHolonomicPose.ofUnit(meters).flipWhenNeeded())
 }.andThen(
     AutoBuilder.followPath(path)
-)
+).withName("Path Follow + Reset Pose")
