@@ -17,7 +17,7 @@ import frc.robot.commands.*
 import frc.robot.commands.aiming.AprilTagLocation
 import frc.robot.commands.aiming.alignToAprilTag
 import frc.robot.commands.aiming.pursueNote
-import frc.robot.commands.auto.components.AmpAutoScoreComponent
+import frc.robot.commands.auto.components.AmpAutoComponent
 import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
@@ -39,7 +39,7 @@ fun ampAutonomous(
     pivot: Pivot,
     groundIntake: GroundIntakeSerializer,
 
-    additionalComponents: List<AmpAutoScoreComponent> = listOf(), // used to control further notes pursued.
+    additionalComponents: List<AmpAutoComponent> = listOf(), // used to control further notes pursued.
     taxiAtEnd: Boolean = false,
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, pivot, groundIntake)
@@ -105,7 +105,7 @@ fun ampAutonomous(
         }
 
         when (autoComponent.type){
-            AmpAutoScoreComponent.Type.FERRY_NOTE -> {
+            AmpAutoComponent.Type.FERRY_NOTE -> {
                 runParallelUntilAllFinish{
                     +AutoBuilder.followPath(autoComponent.grabPath)
 
@@ -119,7 +119,7 @@ fun ampAutonomous(
                 +shootInAmp(shooter, pivot)
             }
 
-            AmpAutoScoreComponent.Type.SCORE_NOTE -> {
+            AmpAutoComponent.Type.SCORE_NOTE -> {
                 +alignToAprilTag(
                     drivetrain, apriltagVision, pivot,
                     AprilTagLocation.AMP,

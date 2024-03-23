@@ -2,32 +2,27 @@ package frc.robot.commands.auto.components
 
 import com.pathplanner.lib.path.PathPlannerPath
 
-data class SpeakerAutoScoreComponent(
+data class SpeakerAutoComponent(
     val grabPath: PathPlannerPath,
     val scorePath: PathPlannerPath? = null,
-    val shooterShouldStartDuringPath: Boolean = false,
 ){
     companion object{
         fun fromChoreo(
             grabPathName: String,
-            scorePathName: String? = null,
-            shooterShouldStartDuringPath: Boolean = false
-        ): SpeakerAutoScoreComponent =
-            SpeakerAutoScoreComponent(
+            scorePathName: String? = null
+        ): SpeakerAutoComponent =
+            SpeakerAutoComponent(
                 PathPlannerPath.fromChoreoTrajectory(grabPathName),
                 if (scorePathName != null) PathPlannerPath.fromChoreoTrajectory(scorePathName) else null,
-                shooterShouldStartDuringPath,
             )
 
         fun fromPathPlanner(
             grabPathName: String,
-            scorePathName: String? = null,
-            shooterShouldStartDuringPath: Boolean = false
-        ): SpeakerAutoScoreComponent =
-            SpeakerAutoScoreComponent(
+            scorePathName: String? = null
+        ): SpeakerAutoComponent =
+            SpeakerAutoComponent(
                 PathPlannerPath.fromPathFile(grabPathName),
                 if (scorePathName != null) PathPlannerPath.fromPathFile(scorePathName) else null,
-                shooterShouldStartDuringPath,
             )
     }
 }

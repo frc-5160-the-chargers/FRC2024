@@ -10,12 +10,11 @@ import com.pathplanner.lib.path.PathPlannerPath
  * This component can either direct an autonomous command to score an additional note,
  * or ferry a note.
  */
-data class AmpAutoScoreComponent(
+data class AmpAutoComponent(
     val grabPath: PathPlannerPath,
     val scorePath: PathPlannerPath,
     val type: Type = Type.SCORE_NOTE
 ){
-
     enum class Type{
         SCORE_NOTE, FERRY_NOTE
     }
@@ -25,8 +24,8 @@ data class AmpAutoScoreComponent(
             grabPathName: String,
             scorePathName: String,
             type: Type = Type.SCORE_NOTE
-        ): AmpAutoScoreComponent =
-            AmpAutoScoreComponent(
+        ): AmpAutoComponent =
+            AmpAutoComponent(
                 PathPlannerPath.fromChoreoTrajectory(grabPathName),
                 PathPlannerPath.fromChoreoTrajectory(scorePathName),
                 type
@@ -36,8 +35,8 @@ data class AmpAutoScoreComponent(
             grabPathName: String,
             scorePathName: String,
             type: Type = Type.SCORE_NOTE
-        ): AmpAutoScoreComponent =
-            AmpAutoScoreComponent(
+        ): AmpAutoComponent =
+            AmpAutoComponent(
                 PathPlannerPath.fromPathFile(grabPathName),
                 PathPlannerPath.fromPathFile(scorePathName),
                 type

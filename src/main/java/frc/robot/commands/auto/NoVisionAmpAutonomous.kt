@@ -7,7 +7,7 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
-import frc.robot.commands.auto.components.AmpAutoScoreComponent
+import frc.robot.commands.auto.components.AmpAutoComponent
 import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.commands.followPathOptimal
 import frc.robot.commands.runGroundIntake
@@ -28,7 +28,7 @@ fun noVisionAmpAutonomous(
     groundIntake: GroundIntakeSerializer,
 
     taxiAtEnd: Boolean = false,
-    additionalComponents: List<AmpAutoScoreComponent> = listOf() // used to control further notes pursued.
+    additionalComponents: List<AmpAutoComponent> = listOf() // used to control further notes pursued.
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, pivot, groundIntake)
 
@@ -44,12 +44,11 @@ fun noVisionAmpAutonomous(
 
     +shootInAmp(shooter, pivot)
 
-    runFor(
-        0.5.seconds,
-        runGroundIntake(groundIntake, shooter)
-    )
 
     for (autoComponent in additionalComponents){
+        // starts ground intake a little before path
+        +runGroundIntake(groundIntake, shooter, timeout = 0.5.seconds)
+
         runParallelUntilFirstCommandFinishes{
             // parallel #1
             runSequentially{
@@ -65,17 +64,34 @@ fun noVisionAmpAutonomous(
             +runGroundIntake(groundIntake, shooter)
         }
 
-        runParallelUntilFirstCommandFinishes{
-            +followPathOptimal(drivetrain, autoComponent.scorePath)
+        when (autoComponent.type){
+            AmpAutoComponent.Type.SCORE_NOTE -> {
+                runParallelUntilFirstCommandFinishes{
+                    +followPathOptimal(drivetrain, autoComponent.scorePath)
 
-            runSequentially{
-                +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+                    runSequentially{
+                        +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
 
-                +passSerializedNote(groundIntake, shooter)
+                        +passSerializedNote(groundIntake, shooter)
+                    }
+                }
+
+                +shootInAmp(shooter, pivot)
+            }
+
+            AmpAutoComponent.Type.FERRY_NOTE -> {
+                +followPathOptimal(drivetrain, autoComponent.scorePath)
+
+                loopFor(1.seconds){
+                    groundIntake.outtake()
+                }
+
+                runOnce{
+                    groundIntake.setIdle()
+                }
             }
         }
 
-        +shootInAmp(shooter, pivot)
     }
 
     runParallelUntilAllFinish{

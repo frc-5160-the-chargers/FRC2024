@@ -1,5 +1,6 @@
 package frc.robot.commands.auto
 
+import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
 import edu.wpi.first.wpilibj2.command.PrintCommand
@@ -7,9 +8,10 @@ import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.commands.aiming.pursueNote
-import frc.robot.commands.auto.components.AmpAutoScoreComponent
+import frc.robot.commands.auto.components.AmpAutoComponent
 import frc.robot.commands.auto.components.AutoStartingPose
-import frc.robot.commands.auto.components.SpeakerAutoScoreComponent
+import frc.robot.commands.auto.components.SpeakerAutoComponent
+import frc.robot.commands.followPathOptimal
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.shooter.Shooter
@@ -32,16 +34,16 @@ class AutoChooser(
     val selected: Command get() = sendableChooser.get() ?: PrintCommand("WARNING: An Auto command was requested, but none were set.")
 
 
-    private val ampScoreNote2Component = AmpAutoScoreComponent.fromPathPlanner(
+    private val ampScoreNote2Component = AmpAutoComponent.fromPathPlanner(
         grabPathName = "AmpGrabG1",
         scorePathName = "AmpScoreG1",
-        type = AmpAutoScoreComponent.Type.SCORE_NOTE
+        type = AmpAutoComponent.Type.SCORE_NOTE
     )
 
-    private val ampScoreNote3Component = AmpAutoScoreComponent.fromPathPlanner(
+    private val ampScoreNote3Component = AmpAutoComponent.fromPathPlanner(
         grabPathName = "AmpGrabG3",
         scorePathName = "AmpScoreG3",
-        type = AmpAutoScoreComponent.Type.SCORE_NOTE
+        type = AmpAutoComponent.Type.SCORE_NOTE
     )
 
     /*
@@ -65,10 +67,10 @@ class AutoChooser(
             shooter, pivot, groundIntake,
             blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
             additionalComponents = listOf(
-                SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2", shooterShouldStartDuringPath = true,),
-                SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", shooterShouldStartDuringPath = true,),
-                SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6", shooterShouldStartDuringPath = true,),
-                SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8", shooterShouldStartDuringPath = true,)
+                SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
+                SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4",),
+                SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
+                SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
             )
         )
     }else{
@@ -79,6 +81,7 @@ class AutoChooser(
         sendableChooser.apply{
             addDefaultOption("Just Taxi", basicTaxi(drivetrain))
 
+            // known to work
             addOption(
                 "2 Note Amp(NO VISION)",
                 noVisionAmpAutonomous(
@@ -102,6 +105,10 @@ class AutoChooser(
 
             addOption("Do Nothing", InstantCommand())
 
+            addOption("Trolling Speaker Side", followPathOptimal(drivetrain, PathPlannerPath.fromPathFile("Trolling")))
+
+            addOption("Trolling Source Side", followPathOptimal(drivetrain, PathPlannerPath.fromPathFile("Trolling2")))
+
             addOption(
                 "1 Note Amp(NO VISION)",
                 noVisionAmpAutonomous(
@@ -110,28 +117,6 @@ class AutoChooser(
                     taxiAtEnd = false,
                 )
             )
-
-            addOption(
-                "1 Note Amp + Taxi(NO VISION)",
-                noVisionAmpAutonomous(
-                    drivetrain, shooter, pivot,
-                    groundIntake,
-                    taxiAtEnd = true
-                )
-            )
-
-            /*
-            addOption(
-                "2 Note Amp + 1-2 Ferry(NO VISION)",
-                noVisionAmpAutonomous(
-                    drivetrain, shooter, pivot,
-                    groundIntake,
-                    taxiAtEnd = true,
-                    additionalComponents = listOf(ampScoreNote2Component) + ferryComponents
-                )
-            )
-
-             */
 
             addOption(
                 "3 Note Amp(NO VISION)",
@@ -211,10 +196,10 @@ class AutoChooser(
                         shooter, pivot, groundIntake,
                         blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
                         additionalComponents = listOf(
-                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2", shooterShouldStartDuringPath = true,),
-                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", shooterShouldStartDuringPath = true,),
-                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6", shooterShouldStartDuringPath = true,),
-                            SpeakerAutoScoreComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8", shooterShouldStartDuringPath = true,)
+                            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
+                            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4",),
+                            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
+                            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
                         )
                     )
                 )

@@ -93,7 +93,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 topMotor = ChargerSparkFlex(SHOOTER_MOTOR_ID){
                     ///// FOR NAYAN: Shooter configuration
                     inverted = true
-                    smartCurrentLimit = SmartCurrentLimit(40.amps)
+                    smartCurrentLimit = SmartCurrentLimit(50.amps)
                 },
                 gearRatio = shooterRatio
             )
@@ -233,7 +233,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 DCMotorSim(DCMotor.getNEO(1), 10.0, 0.02),
             )
         },
-        //highLimit = -100.radians,
+        highLimit = -100.radians,
     )
 
     private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
@@ -270,6 +270,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         configureDefaultCommands()
 
         if (isSimulation()){
+            // vision pose estimation not tested on real robot
             vision.enableVisionPoseEstimation()
 
             IMUSimulation.configure(
@@ -281,6 +282,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             NoteVisualizer.setLauncherTransformSupplier { pivot.mechanism3dPose }
         }
     }
+
+    /*
+    private val absoluteEncoderTest = DutyCycleEncoder(2).also{
+        ChargerRobot.runPeriodically {
+            Logger.recordOutput("DutyCycleEncoderReading", it.absolutePosition)
+        }
+    }
+     */
 
     private fun rumbleControllerOnInterrupt(){
         if (DriverStation.isEnabled()){
@@ -329,6 +338,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureBindings(){
+        // used to make pivot side the front instead of the ground intake side
+        val targetAngleOffset = 180.degrees
+
         fun resetAimToAngle() = runOnceCommand{
             drivetrain.removeRotationOverride()
         }
@@ -342,7 +354,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             drivetrain.setRotationOverride(
                 AimToAngleRotationOverride(
-                    heading + allianceAngleCompensation,
+                    heading + allianceAngleCompensation + targetAngleOffset,
                     ANGLE_TO_ROTATIONAL_VELOCITY_PID,
                 )
             )
@@ -371,7 +383,13 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             passToShooterTrigger.whileTrue(passSerializedNote(groundIntake, shooter))
 
-            shootInSpeakerTrigger.whileTrue(shootInSpeaker(shooter, groundIntake, pivot, shooterSpinUpTime = 1.seconds))
+            spinUpShooterTrigger.whileTrue(
+                loopCommand(shooter){
+                    shooter.outtakeAtSpeakerSpeed()
+                }
+            )
+
+            shootInSpeakerTrigger.whileTrue(shootInSpeaker(shooter, groundIntake, pivot, shooterSpinUpTime = 0.seconds))
 
             // when only held, the buttons will just cause the pivot to PID to the appropriate position
             // interrupt behavior set as to prevent command scheduling conflicts
@@ -401,28 +419,13 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
     }
 
-    override fun teleopInit(){
-        /*
-        // only enabled during teleop for now
-        if (isReal()){
-            vision.enableVisionPoseEstimation()
-        }
-         */
-    }
 
 
 
-
-    override val testCommand: Command = buildCommand {
-        val path = PathPlannerPath.fromPathFile("RotationTest")
-        runOnce{
-            drivetrain.poseEstimator.resetPose(
-                path.previewStartingHolonomicPose.ofUnit(meters).flipWhenNeeded()
-            )
-        }
-
-        +AutoBuilder.followPath(path)
-    }
+    override val testCommand: Command get() = resetPoseThenFollowPath(
+        drivetrain,
+        PathPlannerPath.fromPathFile("RotationTest")
+    )
 
         /*
         MechanicalAdvantageFFCharacterization(
@@ -455,18 +458,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }
         )
          */
-
-
-
-    /*
-    override val autonomousCommand: Command
-        get() = buildCommand {
-            val path = PathPlannerPath.fromPathFile("Test Path")
-            runOnce{
-                drivetrain.poseEstimator.resetPose(path.previewStartingHolonomicPose.ofUnit(meters))
-            }
-        }
-     */
 
     override val autonomousCommand: Command
         get() = autoChooser.selected

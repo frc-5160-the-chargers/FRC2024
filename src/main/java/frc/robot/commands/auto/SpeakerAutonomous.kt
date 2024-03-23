@@ -14,7 +14,7 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_SPINUP
 import frc.robot.commands.aiming.pursueNote
-import frc.robot.commands.auto.components.SpeakerAutoScoreComponent
+import frc.robot.commands.auto.components.SpeakerAutoComponent
 import frc.robot.commands.runGroundIntake
 import frc.robot.commands.shootInSpeaker
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
@@ -34,7 +34,7 @@ fun speakerAutonomous(
     groundIntake: GroundIntakeSerializer,
 
     blueStartingPose: UnitPose2d,
-    additionalComponents: List<SpeakerAutoScoreComponent>
+    additionalComponents: List<SpeakerAutoComponent>
 ): Command = buildCommand {
     val noteRotationOverride = if (noteDetector != null){
         getNoteRotationOverride(noteDetector)
@@ -89,23 +89,26 @@ fun speakerAutonomous(
 
         if (autoComponent.scorePath != null){
             runParallelUntilFirstCommandFinishes{
-                +AutoBuilder.followPath(autoComponent.scorePath)
+                // gives at least 2 seconds for the shooter to spin up
+                runParallelUntilAllFinish{
+                    +AutoBuilder.followPath(autoComponent.scorePath)
 
-                if (autoComponent.shooterShouldStartDuringPath){
-                    runSequentially{
-                        waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_SPINUP }
+                    waitFor(2.seconds)
+                }
 
-                        loop{
-                            // just run shooting to bring the shooter up to speed
-                            shooter.outtakeAtSpeakerSpeed()
-                        }
+                runSequentially{
+                    waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_SPINUP }
+
+                    loop{
+                        // just run shooting to bring the shooter up to speed
+                        shooter.outtakeAtSpeakerSpeed()
                     }
                 }
             }
 
             +shootInSpeaker(
                 shooter, groundIntake, pivot,
-                shooterSpinUpTime = if (autoComponent.shooterShouldStartDuringPath) 0.seconds else 0.5.seconds
+                shooterSpinUpTime = 0.seconds
             )
         }
     }
