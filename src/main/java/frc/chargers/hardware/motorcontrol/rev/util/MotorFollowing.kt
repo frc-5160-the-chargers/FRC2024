@@ -1,8 +1,8 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.hardware.motorcontrol.rev.util
 
-import com.revrobotics.CANSparkLowLevel.*
 import com.revrobotics.CANSparkBase
+import com.revrobotics.CANSparkLowLevel.PeriodicFrame
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 
 internal fun addFollowers(

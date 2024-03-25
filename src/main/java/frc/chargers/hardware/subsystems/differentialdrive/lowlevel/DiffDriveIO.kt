@@ -1,7 +1,9 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.hardware.subsystems.differentialdrive.lowlevel
 
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.AngularVelocity
+import com.batterystaple.kmeasure.quantities.Voltage
 
 
 /**

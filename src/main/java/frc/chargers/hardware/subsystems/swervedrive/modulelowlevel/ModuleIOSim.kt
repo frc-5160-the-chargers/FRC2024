@@ -1,9 +1,9 @@
 package frc.chargers.hardware.subsystems.swervedrive.modulelowlevel
 
-import edu.wpi.first.wpilibj.simulation.DCMotorSim
-import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
+import edu.wpi.first.wpilibj.simulation.DCMotorSim
+import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.utils.math.inputModulus
 

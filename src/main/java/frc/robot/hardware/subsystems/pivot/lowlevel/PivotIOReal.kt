@@ -6,8 +6,6 @@ import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.quantities.times
-import com.batterystaple.kmeasure.units.volts
-import edu.wpi.first.wpilibj.DriverStation
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.controls.pid.SuperPIDController
@@ -111,11 +109,7 @@ class PivotIOReal(
     override fun setAngleSetpoint(position: Angle, pidConstants: PIDConstants, ffOutput: Voltage) {
         if (rioController != null){
             rioController.constants = pidConstants
-            var voltageOut = rioController.calculateOutput(position) + ffOutput
-            if (DriverStation.isAutonomous()){
-                voltageOut = voltageOut.coerceAtMost(4.volts)
-            }
-            setVoltage(voltageOut)
+            setVoltage(rioController.calculateOutput(position) + ffOutput)
         }else{
             when (encoderType){
                 is PivotEncoderType.IntegratedAbsoluteEncoder -> motor.setAngularPosition(position, pidConstants)

@@ -1,10 +1,10 @@
 @file:Suppress("unused")
 package frc.chargers.wpilibextensions.interpolation
 
-import edu.wpi.first.math.interpolation.InterpolatingTreeMap
 import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.quantities.Quantity
 import edu.wpi.first.math.MathUtil
+import edu.wpi.first.math.interpolation.InterpolatingTreeMap
 import edu.wpi.first.math.interpolation.Interpolator
 import edu.wpi.first.math.interpolation.InverseInterpolator
 

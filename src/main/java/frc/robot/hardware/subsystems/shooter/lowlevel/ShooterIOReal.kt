@@ -1,6 +1,9 @@
 package frc.robot.hardware.subsystems.shooter.lowlevel
 
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.quantities.div
+import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DigitalInput
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController

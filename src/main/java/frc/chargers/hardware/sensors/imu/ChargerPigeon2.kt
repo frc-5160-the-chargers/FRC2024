@@ -8,6 +8,7 @@ import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.standardGravities
 import com.ctre.phoenix6.BaseStatusSignal
 import com.ctre.phoenix6.StatusCode
+import com.ctre.phoenix6.configs.Pigeon2Configuration
 import com.ctre.phoenix6.hardware.Pigeon2
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
@@ -18,7 +19,6 @@ import frc.chargers.hardware.configuration.safeConfigure
 import frc.chargers.hardware.sensors.imu.gyroscopes.ThreeAxisGyroscope
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.wpilibextensions.delay
-import com.ctre.phoenix6.configs.Pigeon2Configuration
 
 /**
  * Creates a [ChargerPigeon2] with inline configuration.

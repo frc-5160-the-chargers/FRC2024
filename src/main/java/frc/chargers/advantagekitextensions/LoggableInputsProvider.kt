@@ -6,6 +6,7 @@ import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.quantities.Quantity
 import edu.wpi.first.util.WPISerializable
 import edu.wpi.first.util.function.BooleanConsumer
+import frc.chargers.advantagekitextensions.LoggableInputsProvider.QuantityConsumer
 import frc.chargers.framework.ChargerRobot
 import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.Logger

@@ -2,7 +2,6 @@
 package frc.chargers.utils.math.units
 
 import com.batterystaple.kmeasure.dimensions.*
-import com.batterystaple.kmeasure.dimensions.MagneticFluxDimension
 import com.batterystaple.kmeasure.quantities.*
 import kotlin.internal.LowPriorityInOverloadResolution
 

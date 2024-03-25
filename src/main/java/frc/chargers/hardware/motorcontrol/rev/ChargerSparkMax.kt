@@ -2,14 +2,18 @@
 package frc.chargers.hardware.motorcontrol.rev
 
 import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.*
+import com.batterystaple.kmeasure.units.amps
+import com.batterystaple.kmeasure.units.milli
+import com.batterystaple.kmeasure.units.seconds
+import com.batterystaple.kmeasure.units.volts
 import com.revrobotics.*
-import com.revrobotics.CANSparkLowLevel.*
+import com.revrobotics.CANSparkLowLevel.MotorType
 import edu.wpi.first.wpilibj.RobotBase
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.safeConfigure
-import frc.chargers.hardware.motorcontrol.*
+import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
+import frc.chargers.hardware.motorcontrol.rev.SparkMaxEncoderType.*
 import frc.chargers.hardware.motorcontrol.rev.util.*
 import frc.chargers.utils.revertIfInvalid
 import frc.chargers.wpilibextensions.delay
@@ -368,7 +372,12 @@ public class ChargerSparkMax(
                 null -> {}
             }
 
-            return@safeConfigure allConfigErrors.isEmpty()
+            for (configError in allConfigErrors){
+                if (configError != REVLibError.kOk){
+                    return@safeConfigure false
+                }
+            }
+            return@safeConfigure true
         }
 
         if (RobotBase.isReal()) {

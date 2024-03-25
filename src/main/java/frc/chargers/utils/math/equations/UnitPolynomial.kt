@@ -2,7 +2,9 @@
 package frc.chargers.utils.math.equations
 
 import com.batterystaple.kmeasure.dimensions.Dimension
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Quantity
+import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.quantities.ofUnit
 import frc.chargers.utils.math.units.KmeasureUnit
 import frc.chargers.utils.math.units.siUnit
 import kotlin.math.pow

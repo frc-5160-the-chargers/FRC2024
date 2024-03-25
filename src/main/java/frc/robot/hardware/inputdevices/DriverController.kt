@@ -98,7 +98,7 @@ object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
 
     private val precisionAxis =
         InputAxis{ l2Axis }
-            .mapToRange(1.0..4.0)
+            .mapToRange(1.0..5.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
             .withModifier{ 1.0 / it }
             .log("DriverController/precisionPower")

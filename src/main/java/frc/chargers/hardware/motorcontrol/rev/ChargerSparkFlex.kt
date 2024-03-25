@@ -12,6 +12,7 @@ import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.safeConfigure
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
+import frc.chargers.hardware.motorcontrol.rev.SparkFlexEncoderType.*
 import frc.chargers.hardware.motorcontrol.rev.util.*
 import frc.chargers.utils.revertIfInvalid
 import frc.chargers.wpilibextensions.delay
@@ -375,7 +376,12 @@ public class ChargerSparkFlex(
                 null -> {}
             }
 
-            return@safeConfigure allConfigErrors.isEmpty()
+            for (configError in allConfigErrors){
+                if (configError != REVLibError.kOk){
+                    return@safeConfigure false
+                }
+            }
+            return@safeConfigure true
         }
 
         if (RobotBase.isReal()) {

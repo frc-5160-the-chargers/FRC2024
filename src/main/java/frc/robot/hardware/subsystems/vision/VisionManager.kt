@@ -123,7 +123,7 @@ class VisionManager(private val poseEstimator: RobotPoseMonitor, tunableCamerasI
     }
 
     override fun periodic(){
-        Logger.recordOutput("AprilTagArducam/robotToTargetDistance", tagPipeline.robotToTargetDistance(targetHeight = 1.35582.meters)?.siValue ?: 0.0)
-        Logger.recordOutput("MLWebcam/robotToTargetDistance", notePipeline.robotToTargetDistance(targetHeight = 0.inches)?.siValue ?: 0.0)
+        Logger.recordOutput("PhotonCamera(AprilTagArducam)/robotToTargetDistance", tagPipeline.robotToTargetDistance(targetHeight = 1.35582.meters)?.siValue ?: 0.0)
+        Logger.recordOutput("PhotonCamera(MLWebcam)/robotToTargetDistance", notePipeline.robotToTargetDistance(targetHeight = 0.inches)?.siValue ?: 0.0)
     }
 }

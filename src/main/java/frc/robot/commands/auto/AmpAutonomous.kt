@@ -13,20 +13,21 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
-import frc.robot.commands.*
 import frc.robot.commands.aiming.AprilTagLocation
 import frc.robot.commands.aiming.alignToAprilTag
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.AmpAutoComponent
 import frc.robot.commands.auto.components.AmpAutoTaxiMode
 import frc.robot.commands.auto.components.AutoStartingPose
+import frc.robot.commands.passSerializedNote
+import frc.robot.commands.runGroundIntake
+import frc.robot.commands.shootInAmp
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 import kotlin.jvm.optionals.getOrNull
-
 
 
 /**

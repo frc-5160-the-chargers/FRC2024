@@ -3,7 +3,9 @@ package frc.robot.hardware.subsystems.shooter
 
 import com.batterystaple.kmeasure.dimensions.DistanceDimension
 import com.batterystaple.kmeasure.dimensions.VoltageDimension
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.quantities.abs
+import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
@@ -25,7 +27,7 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
     }
 
     fun outtakeAtAmpSpeed(){
-        outtake(4.volts)
+        outtake(7.volts)
     }
 
     fun outtakeAtSpeakerSpeed() {

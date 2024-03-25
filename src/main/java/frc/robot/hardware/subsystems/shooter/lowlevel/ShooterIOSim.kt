@@ -1,7 +1,13 @@
 package frc.robot.hardware.subsystems.shooter.lowlevel
 
-import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.*
+import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.quantities.div
+import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.quantities.ofUnit
+import com.batterystaple.kmeasure.units.amps
+import com.batterystaple.kmeasure.units.radians
+import com.batterystaple.kmeasure.units.seconds
+import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import frc.chargers.framework.ChargerRobot
 

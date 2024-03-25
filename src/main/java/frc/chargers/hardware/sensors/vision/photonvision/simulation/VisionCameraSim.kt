@@ -26,7 +26,6 @@ import org.photonvision.simulation.PhotonCameraSim
 import org.photonvision.simulation.SimCameraProperties
 import org.photonvision.simulation.VisionSystemSim
 import java.util.*
-import kotlin.collections.LinkedHashSet
 
 private val APRILTAG_FIELD_SIM = VisionSystemSim("AprilTags").apply{
     addAprilTags(ChargerRobot.APRILTAG_LAYOUT)

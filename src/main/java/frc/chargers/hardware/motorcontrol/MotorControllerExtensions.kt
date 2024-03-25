@@ -1,7 +1,8 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.hardware.motorcontrol
 
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.motorcontrol.MotorController
 

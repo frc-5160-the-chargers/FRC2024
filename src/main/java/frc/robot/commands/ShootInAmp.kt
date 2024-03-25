@@ -22,7 +22,7 @@ fun shootInAmp(
             shooter.outtakeAtAmpSpeed()
         }
 
-        loopFor(0.5.seconds, shooter){
+        loopFor(0.4.seconds, shooter){
             shooter.outtakeAtAmpSpeed()
         }
     }else{

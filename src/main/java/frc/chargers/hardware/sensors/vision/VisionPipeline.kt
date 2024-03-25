@@ -1,8 +1,12 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.hardware.sensors.vision
 
-import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.*
+import com.batterystaple.kmeasure.quantities.Distance
+import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.quantities.ofUnit
+import com.batterystaple.kmeasure.units.degrees
+import com.batterystaple.kmeasure.units.meters
+import com.batterystaple.kmeasure.units.radians
 import org.photonvision.PhotonUtils
 
 public typealias AprilTagVisionPipeline = VisionPipeline<VisionTarget.AprilTag>

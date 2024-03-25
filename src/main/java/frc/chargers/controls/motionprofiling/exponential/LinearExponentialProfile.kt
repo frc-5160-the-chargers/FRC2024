@@ -4,7 +4,8 @@ package frc.chargers.controls.motionprofiling.exponential
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.trajectory.ExponentialProfile
-import frc.chargers.controls.motionprofiling.*
+import frc.chargers.controls.motionprofiling.LinearMotionProfile
+import frc.chargers.controls.motionprofiling.LinearMotionProfileState
 import frc.chargers.utils.math.units.VoltagePerAcceleration
 import frc.chargers.utils.math.units.VoltagePerVelocity
 

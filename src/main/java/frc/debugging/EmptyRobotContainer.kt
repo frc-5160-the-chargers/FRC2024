@@ -1,27 +1,8 @@
 package frc.debugging
 
-import com.batterystaple.kmeasure.quantities.div
-import com.batterystaple.kmeasure.units.*
-import edu.wpi.first.math.system.plant.DCMotor
-import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
-import frc.chargers.commands.setDefaultRunCommand
-import frc.chargers.constants.SwerveAzimuthControl
-import frc.chargers.constants.SwerveControlData
-import frc.chargers.constants.SwerveHardwareData
-import frc.chargers.controls.feedforward.AngularMotorFFEquation
-import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
-import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
-import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
-import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
-import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
-import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
-import frc.robot.DrivetrainID
-import frc.robot.hardware.inputdevices.DriverController
 
 class EmptyRobotContainer: ChargerRobotContainer() {
     override val autonomousCommand: Command = InstantCommand()

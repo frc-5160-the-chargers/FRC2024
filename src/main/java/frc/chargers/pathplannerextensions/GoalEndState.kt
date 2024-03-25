@@ -1,7 +1,9 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.pathplannerextensions
 
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.Velocity
+import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds

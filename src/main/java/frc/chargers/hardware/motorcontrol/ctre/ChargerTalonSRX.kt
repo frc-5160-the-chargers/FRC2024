@@ -2,13 +2,16 @@
 package frc.chargers.hardware.motorcontrol.ctre
 
 import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.*
+import com.batterystaple.kmeasure.units.milli
+import com.batterystaple.kmeasure.units.rotations
+import com.batterystaple.kmeasure.units.seconds
+import com.batterystaple.kmeasure.units.volts
 import com.ctre.phoenix.ErrorCode
 import com.ctre.phoenix.motorcontrol.*
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
-import frc.chargers.hardware.motorcontrol.*
+import frc.chargers.hardware.motorcontrol.EncoderMotorController
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
 import kotlin.math.roundToInt

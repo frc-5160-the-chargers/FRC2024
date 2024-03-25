@@ -1,7 +1,9 @@
 package frc.robot.hardware.subsystems.pivot
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts

@@ -4,8 +4,8 @@ package frc.chargers.hardware.subsystems.swervedrive
 import com.batterystaple.kmeasure.quantities.Angle
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
-import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoderConfiguration
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
+import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoderConfiguration
 import frc.chargers.hardware.sensors.withOffset
 
 /**

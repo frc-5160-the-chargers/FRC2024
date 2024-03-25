@@ -1,9 +1,9 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.utils
 
+import edu.wpi.first.cameraserver.CameraServer
 import edu.wpi.first.networktables.NetworkTableEntry
 import edu.wpi.first.networktables.NetworkTableInstance
-import edu.wpi.first.cameraserver.CameraServer
 
 /**
  * Wraps WPILib's [CameraServer]; being used to handle driver cameras.

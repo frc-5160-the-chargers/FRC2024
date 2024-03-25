@@ -1,7 +1,8 @@
 @file:Suppress("RedundantVisibilityModifier", "unused")
 package frc.chargers.hardware.sensors.encoders
 
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.AngularVelocity
 
 /**
  * Represents a generic encoder.

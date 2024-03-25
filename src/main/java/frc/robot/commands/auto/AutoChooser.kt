@@ -1,5 +1,6 @@
 package frc.robot.commands.auto
 
+import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
@@ -38,12 +39,13 @@ class AutoChooser(
     private val ampScoreNote2Component = AmpAutoComponent.fromPathPlanner(
         grabPathName = "AmpGrabG1",
         scorePathName = "AmpScoreG1",
-        type = AmpAutoComponent.Type.SCORE_NOTE
+        type = AmpAutoComponent.Type.SCORE_NOTE,
+        groundIntakePreSpinupTime = 0.5.seconds
     )
 
     private val ampScoreNote3Component = AmpAutoComponent.fromPathPlanner(
-        grabPathName = "AmpGrabG3",
-        scorePathName = "AmpScoreG3",
+        grabPathName = "AmpGrabG2",
+        scorePathName = "AmpScoreG2",
         type = AmpAutoComponent.Type.SCORE_NOTE
     )
 
@@ -69,7 +71,7 @@ class AutoChooser(
             blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
             additionalComponents = listOf(
                 SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
-                SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4",),
+                SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", spinupShooterDuringGrabPath = false), // path is longer
                 SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
                 SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
             )
@@ -77,6 +79,13 @@ class AutoChooser(
     }else{
         InstantCommand()
     }
+
+    val ampAutoTest =
+        noVisionAmpAutonomous(
+            drivetrain, shooter, pivot,
+            groundIntake,
+            additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component)
+        )
 
     init{
         sendableChooser.apply{
@@ -127,11 +136,11 @@ class AutoChooser(
             )
 
             addOption(
-                "3 Note Amp(NO VISION)",
+                "2.5-3 Note Amp(NO VISION)",
                 noVisionAmpAutonomous(
                     drivetrain, shooter, pivot,
                     groundIntake,
-                    additionalComponents = listOf(ampScoreNote2Component)
+                    additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component)
                 )
             )
 

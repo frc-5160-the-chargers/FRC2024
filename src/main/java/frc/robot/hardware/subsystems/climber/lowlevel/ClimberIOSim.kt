@@ -1,7 +1,8 @@
 package frc.robot.hardware.subsystems.climber.lowlevel
 
-import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.minutes
+import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
@@ -23,15 +24,8 @@ class ClimberIOSim(
         0.volts
     }
 
-    override val rightVoltage: Voltage by ClimberLog.quantity{
+    override val rightVoltage: Voltage by ClimberLog.quantity {
         0.volts
-    }
-
-    override val leftSpeed: AngularVelocity by ClimberLog.quantity{
-        leftMotorSim.angularVelocityRPM.ofUnit(rotations / minutes)
-    }
-    override val rightSpeed: AngularVelocity by ClimberLog.quantity{
-        rightMotorSim.angularVelocityRPM.ofUnit(rotations / minutes)
     }
 
     override val leftPosition by ClimberLog.quantity{

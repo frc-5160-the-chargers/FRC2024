@@ -14,16 +14,16 @@ import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.Command
-import frc.chargers.advantagekitextensions.*
-import org.littletonrobotics.junction.wpilog.WPILOGReader
-import org.littletonrobotics.junction.wpilog.WPILOGWriter
 import edu.wpi.first.wpilibj2.command.CommandScheduler
-import frc.external.pathplanner.LocalADStarAK
+import frc.chargers.advantagekitextensions.recordLatency
 import frc.chargers.constants.DashboardTuner
 import frc.chargers.wpilibextensions.Alert
+import frc.external.pathplanner.LocalADStarAK
 import frc.robot.BuildConstants
 import org.littletonrobotics.junction.*
 import org.littletonrobotics.junction.networktables.NT4Publisher
+import org.littletonrobotics.junction.wpilog.WPILOGReader
+import org.littletonrobotics.junction.wpilog.WPILOGWriter
 
 
 /**

@@ -6,6 +6,8 @@ import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs
 import com.ctre.phoenix6.configs.Slot0Configs
+import com.ctre.phoenix6.configs.TalonFXConfiguration
+import com.ctre.phoenix6.controls.*
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
 import edu.wpi.first.wpilibj.RobotBase
@@ -13,11 +15,9 @@ import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
 import frc.chargers.hardware.configuration.safeConfigure
-import frc.chargers.hardware.motorcontrol.*
+import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
 import frc.chargers.utils.math.inputModulus
-import com.ctre.phoenix6.configs.TalonFXConfiguration
-import com.ctre.phoenix6.controls.*
 
 /**
  * An adaptor to the encoder of a [TalonFX].

@@ -1,8 +1,9 @@
 @file:Suppress("RedundantVisibilityModifier", "unused")
 package frc.chargers.commands.commandbuilder
 
-import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.*
+import com.batterystaple.kmeasure.quantities.Time
+import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.wpilibj2.command.*
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand

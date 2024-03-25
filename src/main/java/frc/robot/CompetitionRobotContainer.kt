@@ -4,7 +4,10 @@
 @file:Suppress("unused")
 package frc.robot
 
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.AngularAcceleration
+import com.batterystaple.kmeasure.quantities.AngularVelocity
+import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.path.PathPlannerPath
 import com.revrobotics.CANSparkBase
@@ -30,6 +33,7 @@ import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.inputdevices.onClickAndHold
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
+import frc.chargers.hardware.motorcontrol.rev.util.MotorData
 import frc.chargers.hardware.motorcontrol.rev.util.PeriodicFrameConfig
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
@@ -91,7 +95,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val shooter = Shooter(
         if (isReal()){
             ShooterIOReal(
-                beamBreakSensor = DigitalInput(9),
+                beamBreakSensor = DigitalInput(BEAM_BREAK_SENSOR_ID),
                 topMotor = ChargerSparkFlex(SHOOTER_MOTOR_ID){
                     ///// FOR NAYAN: Shooter configuration
                     inverted = true
@@ -111,13 +115,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         if (isReal()){
             PivotIOReal(
                 ChargerSparkMax(PIVOT_MOTOR_ID){
-                    periodicFrameConfig = PeriodicFrameConfig.Custom(10, 10, 10, 10, 10, 10)
+                    periodicFrameConfig = PeriodicFrameConfig.Optimized()
                     ///// FOR NAYAN: Change Current Limit for Pivot
                     smartCurrentLimit = SmartCurrentLimit(35.amps)
                 },
                 useOnboardPID = false,
                 encoderType = PivotEncoderType.ExternalAbsoluteEncoder(
-                    // TODO: Fix position offset configuration(currently using withOffset instead)
                     absoluteEncoder = ChargerDutyCycleEncoder(PIVOT_ENCODER_ID){ inverted = true },
                     motorGearRatio = pivotRatio,
                     offset = (-0.23).rotations
@@ -127,7 +130,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             PivotIOSim(DCMotorSim(DCMotor.getNEO(1), pivotRatio, 0.004))
         },
         ///// FOR NAYAN: Pivot PID Constants
-        if (isReal()) PIDConstants(7.0,0,0)  else PIDConstants(10.0, 0.0, 0.0),
+        if (isReal()) PIDConstants(7.0,0,0) else PIDConstants(10.0, 0.0, 0.0),
         AngularTrapezoidProfile(
             maxVelocity = AngularVelocity(8.0),
             maxAcceleration = AngularAcceleration(10.0)
@@ -163,6 +166,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             ChargerSparkMax(DrivetrainID.BL_TURN){ inverted = true },
             ChargerSparkMax(DrivetrainID.BR_TURN)
         ){
+            periodicFrameConfig = PeriodicFrameConfig.Optimized()
             smartCurrentLimit = SmartCurrentLimit(30.amps)
             voltageCompensationNominalVoltage = 12.volts
             openLoopRampRate = 48.0
@@ -186,6 +190,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE){ inverted = true },
             bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE)
         ){
+            periodicFrameConfig = PeriodicFrameConfig.Optimized()
             smartCurrentLimit = SmartCurrentLimit(45.amps)
             voltageCompensationNominalVoltage = 12.volts
             openLoopRampRate = 48.0
@@ -203,8 +208,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             }else{
                 AngularMotorFFEquation(0.0, 0.13)
             },
-            robotRotationPID = PIDConstants(3.5, 0, 0.001),
-            robotTranslationPID = PIDConstants(3.5,0,0.001)
+            robotRotationPID = PIDConstants(6.0, 0, 0.001),
+            robotTranslationPID = PIDConstants(4.0,0,0.001)
         ),
         useOnboardPID = false,
         hardwareData = SwerveHardwareData.mk4iL2(
@@ -220,10 +225,16 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         if (isReal()){
             ClimberIOReal(
                 leftMotor = ChargerSparkMax(CLIMBER_ID_LEFT){
+                    periodicFrameConfig = PeriodicFrameConfig.Optimized(
+                        utilizedData = listOf(MotorData.POSITION, MotorData.VOLTAGE)
+                    )
                     inverted = false
                     idleMode = CANSparkBase.IdleMode.kBrake
                 },
                 rightMotor = ChargerSparkMax(CLIMBER_ID_RIGHT){
+                    periodicFrameConfig = PeriodicFrameConfig.Optimized(
+                        utilizedData = listOf(MotorData.POSITION, MotorData.VOLTAGE)
+                    )
                     inverted = true
                     idleMode = CANSparkBase.IdleMode.kBrake
                 }
@@ -246,6 +257,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         noteDetector = vision.notePipeline,
         drivetrain, shooter, pivot, groundIntake
     )
+
+    override fun teleopInit(){
+        vision.enableVisionPoseEstimation()
+    }
 
 
     init{
@@ -447,5 +462,5 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
          */
 
     override val autonomousCommand: Command
-        get() = autoChooser.selected
+        get() = if (isSimulation()) autoChooser.ampAutoTest else autoChooser.selected
 }

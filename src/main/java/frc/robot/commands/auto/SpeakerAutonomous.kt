@@ -12,10 +12,8 @@ import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
-import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_SPINUP
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.SpeakerAutoComponent
-import frc.robot.commands.runGroundIntake
 import frc.robot.commands.shootInSpeaker
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
@@ -36,6 +34,8 @@ fun speakerAutonomous(
     blueStartingPose: UnitPose2d,
     additionalComponents: List<SpeakerAutoComponent>
 ): Command = buildCommand {
+    addRequirements(drivetrain, shooter, pivot, groundIntake)
+
     val noteRotationOverride = if (noteDetector != null){
         getNoteRotationOverride(noteDetector)
     }else{
@@ -79,7 +79,14 @@ fun speakerAutonomous(
                     }
                 }
 
-                +runGroundIntake(groundIntake, shooter)
+                loop{
+                    if (autoComponent.spinupShooterDuringGrabPath){
+                        shooter.outtakeAtSpeakerSpeed()
+                    }else{
+                        shooter.setIdle()
+                    }
+                    groundIntake.intake()
+                }
             }
         }
 
@@ -89,20 +96,11 @@ fun speakerAutonomous(
 
         if (autoComponent.scorePath != null){
             runParallelUntilFirstCommandFinishes{
-                // gives at least 2 seconds for the shooter to spin up
-                runParallelUntilAllFinish{
-                    +AutoBuilder.followPath(autoComponent.scorePath)
+                +AutoBuilder.followPath(autoComponent.scorePath)
 
-                    waitFor(2.seconds)
-                }
-
-                runSequentially{
-                    waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_SPINUP }
-
-                    loop{
-                        // just run shooting to bring the shooter up to speed
-                        shooter.outtakeAtSpeakerSpeed()
-                    }
+                loop{
+                    // just run shooting to bring the shooter up to speed
+                    shooter.outtakeAtSpeakerSpeed()
                 }
             }
 

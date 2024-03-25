@@ -17,17 +17,21 @@ import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
-import frc.chargers.constants.*
+import frc.chargers.constants.SwerveAzimuthControl
+import frc.chargers.constants.SwerveControlData
+import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.motionprofiling.optimizeForContinuousInput
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.EncoderMotorController
-import frc.chargers.hardware.subsystems.robotposition.RobotPoseMonitor
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
-import frc.chargers.hardware.sensors.imu.gyroscopes.*
+import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
+import frc.chargers.hardware.subsystems.robotposition.RobotPoseMonitor
 import frc.chargers.hardware.subsystems.robotposition.SwervePoseMonitor
-import frc.chargers.hardware.subsystems.swervedrive.modulelowlevel.*
+import frc.chargers.hardware.subsystems.swervedrive.modulelowlevel.ModuleIO
+import frc.chargers.hardware.subsystems.swervedrive.modulelowlevel.ModuleIOReal
+import frc.chargers.hardware.subsystems.swervedrive.modulelowlevel.ModuleIOSim
 import frc.chargers.pathplannerextensions.asPathPlannerConstants
 import frc.chargers.utils.a
 import frc.chargers.utils.math.inputModulus
@@ -41,11 +45,11 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.asAngle
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
 import frc.chargers.wpilibextensions.kinematics.*
 import frc.external.frc6328.SwerveSetpointGenerator
-import org.littletonrobotics.junction.Logger.*
-import java.util.Optional
+import org.littletonrobotics.junction.Logger.recordOutput
+import java.util.*
 import kotlin.jvm.optionals.getOrNull
-import kotlin.math.pow
 import kotlin.math.abs
+import kotlin.math.pow
 
 
 /**
@@ -260,10 +264,14 @@ public class EncoderHolonomicDrivetrain(
             { currentSpeeds },
             { speeds ->
                 // have to invert rotation for some reason...idk
-                velocityDrive(
-                    ChassisSpeeds(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond, -speeds.omegaRadiansPerSecond),
-                    fieldRelative = false
-                )
+                if (RobotBase.isReal()){
+                    velocityDrive(
+                        ChassisSpeeds(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond, -speeds.omegaRadiansPerSecond),
+                        fieldRelative = false
+                    )
+                }else{
+                    velocityDrive(speeds, fieldRelative = false)
+                }
                 recordOutput("$logName/pathplanningChassisSpeeds", speeds)
             },
             HolonomicPathFollowerConfig(

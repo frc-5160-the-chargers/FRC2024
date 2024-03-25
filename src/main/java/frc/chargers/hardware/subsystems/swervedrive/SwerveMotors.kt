@@ -5,7 +5,10 @@ import com.revrobotics.CANSparkLowLevel
 import frc.chargers.hardware.motorcontrol.EncoderMotorController
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFXConfiguration
-import frc.chargers.hardware.motorcontrol.rev.*
+import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
+import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlexConfiguration
+import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
+import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMaxConfiguration
 import frc.chargers.hardware.sensors.encoders.Encoder
 
 /**

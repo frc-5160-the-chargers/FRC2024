@@ -1,7 +1,7 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.hardware.sensors
 
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Angle
 import frc.chargers.utils.BasicMeasurement
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 

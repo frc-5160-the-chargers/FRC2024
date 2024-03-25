@@ -3,16 +3,17 @@ package frc.chargers.wpilibextensions.geometry
 
 
 import com.batterystaple.kmeasure.dimensions.DistanceDimension
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Distance
+import com.batterystaple.kmeasure.quantities.ofUnit
 import edu.wpi.first.math.geometry.*
 import frc.chargers.utils.math.units.KmeasureUnit
-import frc.chargers.wpilibextensions.geometry.twodimensional.asAngle
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTranslation3d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitTransform2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitTranslation2d
+import frc.chargers.wpilibextensions.geometry.twodimensional.asAngle
 
 /**
  * Adaptor functions that convert some of WPILib's geometry-related classes to the Chargerlib Wrappers.

@@ -10,8 +10,8 @@ import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
-import edu.wpi.first.wpilibj2.command.ScheduleCommand
 import edu.wpi.first.wpilibj2.command.InstantCommand
+import edu.wpi.first.wpilibj2.command.ScheduleCommand
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import org.littletonrobotics.junction.Logger

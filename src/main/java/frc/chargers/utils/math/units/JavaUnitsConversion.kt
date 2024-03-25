@@ -4,12 +4,12 @@ package frc.chargers.utils.math.units
 import com.batterystaple.kmeasure.quantities.*
 import edu.wpi.first.units.Measure
 import edu.wpi.first.units.Units
-import edu.wpi.first.units.Voltage as WPIVoltageUnit
-import edu.wpi.first.units.Time as WPITimeUnit
 import edu.wpi.first.units.Angle as WPIAngleUnit
-import edu.wpi.first.units.Distance as WPIDistanceUnit
 import edu.wpi.first.units.Current as WPICurrentUnit
+import edu.wpi.first.units.Distance as WPIDistanceUnit
+import edu.wpi.first.units.Time as WPITimeUnit
 import edu.wpi.first.units.Velocity as WPIRate
+import edu.wpi.first.units.Voltage as WPIVoltageUnit
 
 /*
 Extension functions that convert WPILib Measures to kmeasure Quantities and vise versa.

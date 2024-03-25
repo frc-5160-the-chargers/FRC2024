@@ -4,7 +4,8 @@ package frc.chargers.controls.motionprofiling.trapezoidal
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.trajectory.TrapezoidProfile
-import frc.chargers.controls.motionprofiling.*
+import frc.chargers.controls.motionprofiling.LinearMotionProfile
+import frc.chargers.controls.motionprofiling.LinearMotionProfileState
 
 class LinearTrapezoidProfile(
     val maxVelocity: Velocity,

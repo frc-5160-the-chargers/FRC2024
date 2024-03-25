@@ -10,7 +10,6 @@ import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.utils.Precision
 import frc.robot.hardware.subsystems.climber.lowlevel.ClimberIO
-import org.littletonrobotics.junction.Logger
 
 
 // change this to voltage requests / positions requests

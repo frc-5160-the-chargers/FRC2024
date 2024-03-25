@@ -7,9 +7,9 @@ import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.hal.SimDevice
 import edu.wpi.first.wpilibj.CounterBase.EncodingType
 import edu.wpi.first.wpilibj.DigitalSource
-import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
+import frc.chargers.hardware.sensors.encoders.Encoder
 import edu.wpi.first.wpilibj.Encoder as WPILibQuadratureEncoder
 
 /**

@@ -4,8 +4,8 @@ package frc.chargers.wpilibextensions.geometry.twodimensional
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.quantities.ofUnit
-import com.batterystaple.kmeasure.units.radians as kmeasureRadians
 import edu.wpi.first.math.geometry.Rotation2d
+import com.batterystaple.kmeasure.units.radians as kmeasureRadians
 
 /**
  * Instead of using a UnitRotation2d, Chargerlib uses Kmeasure's Angle class instead.

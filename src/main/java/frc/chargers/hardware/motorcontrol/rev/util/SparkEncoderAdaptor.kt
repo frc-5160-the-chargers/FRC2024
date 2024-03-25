@@ -5,7 +5,9 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.minutes
 import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.seconds
-import com.revrobotics.*
+import com.revrobotics.AbsoluteEncoder
+import com.revrobotics.MotorFeedbackSensor
+import com.revrobotics.RelativeEncoder
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
 import frc.chargers.utils.revertIfInvalid
 

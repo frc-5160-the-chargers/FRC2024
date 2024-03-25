@@ -1,7 +1,10 @@
 package frc.robot.hardware.subsystems.climber.lowlevel
 
-import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.*
+import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.quantities.ofUnit
+import com.batterystaple.kmeasure.quantities.times
+import com.batterystaple.kmeasure.units.rotations
+import com.batterystaple.kmeasure.units.volts
 import com.revrobotics.CANSparkMax
 
 /**
@@ -30,14 +33,6 @@ class ClimberIOReal(
 
     override val rightVoltage: Voltage by ClimberLog.quantity{
         rightMotor.get() * 12.volts
-    }
-
-    override val leftSpeed: AngularVelocity by ClimberLog.quantity{
-        leftEncoder.velocity.ofUnit(rotations / minutes)
-    }
-
-    override val rightSpeed: AngularVelocity by ClimberLog.quantity{
-        rightEncoder.velocity.ofUnit(rotations / minutes)
     }
 
     override val leftPosition by ClimberLog.quantity{

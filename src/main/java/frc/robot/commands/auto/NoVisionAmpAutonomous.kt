@@ -11,8 +11,8 @@ import frc.robot.commands.auto.components.AmpAutoComponent
 import frc.robot.commands.auto.components.AmpAutoTaxiMode
 import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.commands.followPathOptimal
-import frc.robot.commands.runGroundIntake
 import frc.robot.commands.passSerializedNote
+import frc.robot.commands.runGroundIntake
 import frc.robot.commands.shootInAmp
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
@@ -48,7 +48,9 @@ fun noVisionAmpAutonomous(
 
     for (autoComponent in additionalComponents){
         // starts ground intake a little before path
-        +runGroundIntake(groundIntake, shooter, timeout = 0.5.seconds)
+        if (autoComponent.groundIntakePreSpinupTime != null){
+            +runGroundIntake(groundIntake, shooter, timeout = autoComponent.groundIntakePreSpinupTime)
+        }
 
         runParallelUntilFirstCommandFinishes{
             // parallel #1
@@ -67,7 +69,7 @@ fun noVisionAmpAutonomous(
 
         when (autoComponent.type){
             AmpAutoComponent.Type.SCORE_NOTE -> {
-                runParallelUntilFirstCommandFinishes{
+                runParallelUntilAllFinish{
                     +followPathOptimal(drivetrain, autoComponent.scorePath)
 
                     runSequentially{

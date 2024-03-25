@@ -1,7 +1,7 @@
 package frc.robot.hardware.subsystems.groundintake.lowlevel
 
-import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds

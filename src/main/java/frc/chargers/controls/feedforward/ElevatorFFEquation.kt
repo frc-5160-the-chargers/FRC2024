@@ -1,7 +1,10 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate", "CanBeParameter")
 package frc.chargers.controls.feedforward
 
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Acceleration
+import com.batterystaple.kmeasure.quantities.Velocity
+import com.batterystaple.kmeasure.quantities.Voltage
+import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.controller.ElevatorFeedforward
 import edu.wpi.first.math.controller.SimpleMotorFeedforward
