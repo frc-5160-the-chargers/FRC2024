@@ -15,12 +15,14 @@ import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
 import org.littletonrobotics.junction.Logger.recordOutput
 
 private const val WRONG_USAGE_OF_OUTTAKE_WARNING_MSG = "Applied voltage must be > 0.volts. To intake, call intake(voltage) or intake(speed) instead."
+private val CLOSED_LOOP_SPEAKER_SHOOT_SPEED = AngularVelocity(0.0) // tbd; should change soon depending on feedforward numbers
 
 // standard: + = outtake, - = intake; regardless of voltage set
 class Shooter(
     private val io: ShooterIO,
     private val shootingFFEquation: AngularMotorFFEquation,
-    private val shootingPID: PIDConstants
+    private val shootingPID: PIDConstants,
+    private val closedLoopSpeakerShooting: Boolean = true,
 ): SubsystemBase() {
     private var wasShootingInSpeaker = false
 
@@ -38,12 +40,16 @@ class Shooter(
     }
 
     fun outtakeAtSpeakerSpeed() {
-        val targetVelocity = AngularVelocity(0.0) // tbd; should change soon depending on feedforward numbers
-        io.setVelocity(
-            targetVelocity,
-            shootingPID,
-            shootingFFEquation(targetVelocity)
-        )
+        if (closedLoopSpeakerShooting){
+            val targetVelocity = AngularVelocity(0.0)
+            io.setIntakeVelocity(
+                targetVelocity,
+                shootingPID,
+                shootingFFEquation(targetVelocity)
+            )
+        }else{
+            io.setIntakeVoltage(12.volts)
+        }
         recordOutput("Shooter/isOuttaking", true)
         recordOutput("Shooter/isIntaking", false)
         if (!wasShootingInSpeaker && RobotBase.isSimulation()){

@@ -68,7 +68,7 @@ class ShooterIOSim(
         }
     }
 
-    override fun setVelocity(velocity: AngularVelocity, pidConstants: PIDConstants, feedforwardVoltage: Voltage) {
+    override fun setIntakeVelocity(velocity: AngularVelocity, pidConstants: PIDConstants, feedforwardVoltage: Voltage) {
         println("Set velocity called")
     }
 }

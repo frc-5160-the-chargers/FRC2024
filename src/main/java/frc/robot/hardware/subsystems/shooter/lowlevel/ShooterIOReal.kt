@@ -55,7 +55,7 @@ class ShooterIOReal(
         bottomMotor?.setVoltage(-voltage.inUnit(volts))
     }
 
-    override fun setVelocity(velocity: AngularVelocity, pidConstants: PIDConstants, feedforwardVoltage: Voltage) {
+    override fun setIntakeVelocity(velocity: AngularVelocity, pidConstants: PIDConstants, feedforwardVoltage: Voltage) {
         topMotor.setAngularVelocity(velocity * gearRatio, pidConstants, feedforwardVoltage)
         bottomMotor?.setAngularVelocity(velocity * gearRatio, pidConstants, feedforwardVoltage)
     }

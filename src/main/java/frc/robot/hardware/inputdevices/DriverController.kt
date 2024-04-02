@@ -45,7 +45,6 @@ object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
             .withDeadband(DEFAULT_DEADBAND)
             .invertWhen(RobotBase::isReal)
             .invertWhen(shouldInvertForward::get)
-            .withMultiplier(0.7)
             .log("DriverController/xPower")
 
     private val strafeAxis =
@@ -64,7 +63,7 @@ object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
 
     private val precisionAxis =
         InputAxis{ if (DRIVER.rightHanded) r2Axis else l2Axis }
-            .mapToRange(1.0..5.0)
+            .mapToRange(1.0..7.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
             .withModifier{ 1.0 / it }
             .log("DriverController/precisionPower")

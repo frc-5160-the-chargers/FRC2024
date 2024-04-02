@@ -17,7 +17,7 @@ interface ShooterIO: GenericIntakeIO {
     val hasNote: Boolean
     val hasNoteDetector: Boolean
 
-    fun setVelocity(
+    fun setIntakeVelocity(
         velocity: AngularVelocity,
         pidConstants: PIDConstants,
         feedforwardVoltage: Voltage

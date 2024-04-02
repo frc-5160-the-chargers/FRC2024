@@ -32,6 +32,7 @@ import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
+import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.MotorData
@@ -96,7 +97,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val shooter = Shooter(
         if (isReal()){
             ShooterIOReal(
-                beamBreakSensor = DigitalInput(BEAM_BREAK_SENSOR_ID),
+                beamBreakSensor = DigitalInput(SHOOTER_SENSOR_ID),
                 topMotor = ChargerSparkFlex(SHOOTER_MOTOR_ID){
                     ///// FOR NAYAN: Shooter configuration
                     inverted = true
@@ -110,7 +111,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
         },
         shootingFFEquation = AngularMotorFFEquation(0.0, 0.0),
-        shootingPID = PIDConstants(0.2,0,0)
+        shootingPID = PIDConstants(0.2,0,0),
+        closedLoopSpeakerShooting = false // tbd for now
     )
 
 
@@ -145,13 +147,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val groundIntake = GroundIntakeSerializer(
         if (isReal()){
             GroundIntakeIOReal(
-                topMotor = ChargerSparkFlex(GROUND_INTAKE_ID),
+                topMotor = ChargerTalonFX(GROUND_INTAKE_ID),
                 conveyorMotor = ChargerSparkMax(CONVEYOR_ID){
                     ///// FOR NAYAN: Ground Intake configuration
                     inverted = true
                     smartCurrentLimit = SmartCurrentLimit(35.amps)
                 },
-                intakeGearRatio = groundIntakeRatio
+                intakeGearRatio = groundIntakeRatio,
+                beamBreakSensor = DigitalInput(GROUND_INTAKE_SENSOR_ID)
             )
         }else{
             GroundIntakeIOSim(
@@ -165,8 +168,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val drivetrain = EncoderHolonomicDrivetrain(
         turnMotors = sparkMaxSwerveMotors(
             ChargerSparkMax(DrivetrainID.TL_TURN),
-            ChargerSparkMax(DrivetrainID.TR_TURN),
-            ChargerSparkMax(DrivetrainID.BL_TURN){ inverted = true },
+            ChargerSparkMax(DrivetrainID.TR_TURN){ inverted = true },
+            ChargerSparkMax(DrivetrainID.BL_TURN),
             ChargerSparkMax(DrivetrainID.BR_TURN)
         ){
             periodicFrameConfig = PeriodicFrameConfig.Optimized()
@@ -182,16 +185,16 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             bottomRight = ChargerCANcoder(DrivetrainID.BR_ENCODER),
             useAbsoluteSensor = true
         ).withOffsets(
-            topLeftZero = 6.243.radians,
-            topRightZero = 4.971.radians,
-            bottomLeftZero = 1.37.radians,
-            bottomRightZero = 0.621.radians,
+            topLeftZero = 0.621.radians,
+            topRightZero = 1.37.radians,
+            bottomLeftZero = 4.971.radians,
+            bottomRightZero = 6.243.radians,
         ),
         driveMotors = sparkMaxSwerveMotors(
-            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE){ inverted = true },
-            topRight = ChargerSparkMax(DrivetrainID.TR_DRIVE),
-            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE){ inverted = true },
-            bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE)
+            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE),
+            topRight = ChargerSparkMax(DrivetrainID.TR_DRIVE){ inverted = true },
+            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE),
+            bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE){ inverted = true }
         ){
             periodicFrameConfig = PeriodicFrameConfig.Optimized()
             smartCurrentLimit = SmartCurrentLimit(45.amps)
@@ -217,7 +220,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         useOnboardPID = false,
         hardwareData = SwerveHardwareData.mk4iL2(
             turnMotorType = DCMotor.getNEO(1),
-            driveMotorType = DCMotor.getNEO(1),
+            driveMotorType = DCMotor.getKrakenX60(1),
             maxModuleSpeed = 4.5.meters / 1.seconds,
             trackWidth = 32.inches, wheelBase = 32.inches,
         ),
