@@ -18,6 +18,7 @@ import frc.robot.commands.shootInSpeaker
 import frc.robot.controls.rotationoverride.getNoteRotationOverride
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
+import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
 
 
@@ -35,12 +36,6 @@ fun speakerAutonomous(
     additionalComponents: List<SpeakerAutoComponent>
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, pivot, groundIntake)
-
-    val noteRotationOverride = if (noteDetector != null){
-        getNoteRotationOverride(noteDetector)
-    }else{
-        null
-    }
 
     runOnce{
         drivetrain.poseEstimator.resetPose(blueStartingPose.flipWhenNeeded())
@@ -64,42 +59,48 @@ fun speakerAutonomous(
                         setRotationOverride = false
                     ).withTimeout(2.0)
                 }
+
+                runOnce{
+                    drivetrain.removeRotationOverride()
+                }
             }
 
             // parallel #2
-            runSequentially{
-                if (noteRotationOverride != null){
+            if (noteDetector != null){
+                runSequentially{
                     // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
                     // along the path.
                     // robotPose getter is a UnitPose2d; a wrapper with support for kmeasure units
                     waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }
 
                     runOnce{
-                        drivetrain.setRotationOverride(noteRotationOverride)
+                        drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
                     }
-                }
-
-                loop{
-                    if (autoComponent.spinupShooterDuringGrabPath){
-                        shooter.outtakeAtSpeakerSpeed()
-                    }else{
-                        shooter.setIdle()
-                    }
-                    groundIntake.intake()
                 }
             }
-        }
 
-        runOnce{
-            drivetrain.removeRotationOverride()
+            // parallel #3
+            loop{
+                if (autoComponent.spinupShooterDuringGrabPath){
+                    shooter.outtakeAtSpeakerSpeed()
+                }else{
+                    shooter.setIdle()
+                }
+                groundIntake.intake()
+            }
+
+            // parallel #4
+            +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
         }
 
         if (autoComponent.scorePath != null){
             runParallelUntilFirstCommandFinishes{
                 +AutoBuilder.followPath(autoComponent.scorePath)
 
+                +pivot.setAngleCommand(PivotAngle.SPEAKER)
+
+                // just run shooting to bring the shooter up to speed
                 loop{
-                    // just run shooting to bring the shooter up to speed
                     shooter.outtakeAtSpeakerSpeed()
                 }
             }

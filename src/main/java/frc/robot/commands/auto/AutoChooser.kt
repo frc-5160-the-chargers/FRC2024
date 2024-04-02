@@ -39,14 +39,12 @@ class AutoChooser(
     private val ampScoreNote2Component = AmpAutoComponent.fromPathPlanner(
         grabPathName = "AmpGrabG1",
         scorePathName = "AmpScoreG1",
-        type = AmpAutoComponent.Type.SCORE_NOTE,
         groundIntakePreSpinupTime = 0.5.seconds
     )
 
     private val ampScoreNote3Component = AmpAutoComponent.fromPathPlanner(
         grabPathName = "AmpGrabG2",
-        scorePathName = "AmpScoreG2",
-        type = AmpAutoComponent.Type.SCORE_NOTE
+        scorePathName = "AmpScoreG2"
     )
 
     /*
@@ -81,7 +79,7 @@ class AutoChooser(
     }
 
     val ampAutoTest =
-        noVisionAmpAutonomous(
+        ampAutonomous(
             drivetrain, shooter, pivot,
             groundIntake,
             additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component)
@@ -91,27 +89,6 @@ class AutoChooser(
         sendableChooser.apply{
             addDefaultOption("Just Taxi", basicTaxi(drivetrain))
 
-            // known to work
-            addOption(
-                "2 Note Amp(NO VISION)",
-                noVisionAmpAutonomous(
-                    drivetrain, shooter, pivot,
-                    groundIntake,
-                    additionalComponents = listOf(ampScoreNote2Component)
-                )
-            )
-
-
-            addOption(
-                "2 Note Amp + Taxi(NO VISION)",
-                noVisionAmpAutonomous(
-                    drivetrain, shooter, pivot,
-                    groundIntake,
-                    additionalComponents = listOf(ampScoreNote2Component),
-                    taxiMode = AmpAutoTaxiMode.TAXI_LONG
-                )
-            )
-
             addOption("Do Nothing", InstantCommand())
 
             addOption("Trolling Speaker Side", followPathOptimal(drivetrain, PathPlannerPath.fromPathFile("Trolling")))
@@ -119,97 +96,82 @@ class AutoChooser(
             addOption("Trolling Source Side", followPathOptimal(drivetrain, PathPlannerPath.fromPathFile("Trolling2")))
 
             addOption(
-                "1 Note Amp(NO VISION)",
-                noVisionAmpAutonomous(
-                    drivetrain, shooter, pivot,
-                    groundIntake
+                "1 Note Amp",
+                ampAutonomous(
+                    drivetrain, shooter, pivot, groundIntake
                 )
             )
 
             addOption(
-                "1 Note Amp + Short Taxi(NO VISION)",
-                noVisionAmpAutonomous(
-                    drivetrain, shooter, pivot,
-                    groundIntake,
+                "1 Note Amp + Short Taxi",
+                ampAutonomous(
+                    drivetrain, shooter, pivot, groundIntake,
                     taxiMode = AmpAutoTaxiMode.TAXI_SHORT
                 )
             )
 
             addOption(
                 "2.5-3 Note Amp(NO VISION)",
-                noVisionAmpAutonomous(
-                    drivetrain, shooter, pivot,
-                    groundIntake,
+                ampAutonomous(
+                    drivetrain, shooter, pivot, groundIntake,
                     additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component)
                 )
             )
 
-            if (aprilTagVision != null && noteDetector != null){
+            addOption(
+                "2 Note Amp + Long Taxi(NO VISION)",
+                ampAutonomous(
+                    drivetrain, shooter, pivot, groundIntake,
+                    additionalComponents = listOf(ampScoreNote2Component),
+                    taxiMode = AmpAutoTaxiMode.TAXI_LONG
+                )
+            )
+
+            if (noteDetector != null){
                 addOption(
                     "Taxi + Pursue note",
                     basicTaxi(drivetrain).andThen(pursueNote(drivetrain, noteDetector))
                 )
 
                 addOption(
-                    "1 Note Amp",
+                    "2.5-3 Note Amp",
                     ampAutonomous(
-                        aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake
-                    )
-                )
-
-                addOption(
-                    "2 Note Amp",
-                    ampAutonomous(
-                        aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake,
-                        additionalComponents = listOf(ampScoreNote2Component)
-                    )
-                )
-
-                addOption(
-                    "2 Note Amp + Taxi",
-                    ampAutonomous(
-                        aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake, taxiMode = AmpAutoTaxiMode.TAXI_LONG,
-                        additionalComponents = listOf(ampScoreNote2Component)
-                    )
-                )
-
-                /*
-                addOption(
-                    "2 Note Amp + 1-2 Note Ferry",
-                    ampAutonomous(
-                        aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake, taxiAtEnd = true,
-                        additionalComponents = listOf(ampScoreNote2Component) + ferryComponents
-                    )
-                )
-
-                 */
-
-                addOption(
-                    "3 Note Amp",
-                    ampAutonomous(
-                        aprilTagVision, noteDetector, drivetrain,
-                        shooter, pivot, groundIntake,
+                        drivetrain, shooter, pivot, groundIntake, noteDetector,
                         additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component)
                     )
                 )
 
-
+                addOption(
+                    "2 Note Amp + Long Taxi",
+                    ampAutonomous(
+                        drivetrain, shooter, pivot, groundIntake, noteDetector,
+                        additionalComponents = listOf(ampScoreNote2Component),
+                        taxiMode = AmpAutoTaxiMode.TAXI_LONG
+                    )
+                )
 
                 addOption(
-                    "4-5 Piece Speaker",
+                    "Untested - 4-5 Piece Speaker(Center Side)",
                     speakerAutonomous(
-                        noteDetector, drivetrain,
-                        shooter, pivot, groundIntake,
+                        noteDetector, drivetrain, shooter, pivot, groundIntake,
                         blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
                         additionalComponents = listOf(
                             SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
-                            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4",),
+                            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", spinupShooterDuringGrabPath = false),
                             SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
                             SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
+                        )
+                    )
+                )
+
+                addOption(
+                    "Untested - 3 Piece Speaker(Source Side)",
+                    speakerAutonomous(
+                        noteDetector, drivetrain, shooter, pivot, groundIntake,
+                        blueStartingPose = AutoStartingPose.SPEAKER_RIGHT_BLUE,
+                        additionalComponents = listOf(
+                            SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.1", scorePathName = "3pAutoRight.2", spinupShooterDuringGrabPath = false),
+                            SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.3", scorePathName = "3pAutoRight.4", spinupShooterDuringGrabPath = false)
                         )
                     )
                 )

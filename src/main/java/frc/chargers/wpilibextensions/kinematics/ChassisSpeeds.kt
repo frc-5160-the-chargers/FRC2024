@@ -17,11 +17,11 @@ import frc.chargers.framework.ChargerRobot
  *
  * with kmeasure units instead.
  */
-public fun ChassisSpeeds(xVelocity: Velocity, yVelocity: Velocity, rotationSpeed: AngularVelocity): ChassisSpeeds =
+public fun ChassisSpeeds(xVelocity: Velocity, yVelocity: Velocity, rotationalVelocity: AngularVelocity): ChassisSpeeds =
     ChassisSpeeds(
-        /* vxMetersPerSecond = */ xVelocity.inUnit(meters/seconds),
-        /* vyMetersPerSecond = */ yVelocity.inUnit(meters/seconds),
-        /* omegaRadiansPerSecond = */ rotationSpeed.inUnit(radians/seconds)
+        xVelocity.inUnit(meters/seconds),
+        yVelocity.inUnit(meters/seconds),
+        rotationalVelocity.inUnit(radians/seconds)
     )
 
 

@@ -14,11 +14,13 @@ import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.GenericHID
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -30,7 +32,6 @@ import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobotContainer
-import frc.chargers.hardware.inputdevices.onClickAndHold
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.MotorData
@@ -107,7 +108,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             ShooterIOSim(
                 DCMotorSim(DCMotor.getNeoVortex(1), shooterRatio, 0.004)
             )
-        }
+        },
+        shootingFFEquation = AngularMotorFFEquation(0.0, 0.0),
+        shootingPID = PIDConstants(0.2,0,0)
     )
 
 
@@ -200,15 +203,15 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             azimuthControl = SwerveAzimuthControl.PID(
                 PIDConstants(7.0,0,0.1),
             ),
-            openLoopDiscretizationRate = 1.0,
-            closedLoopDiscretizationRate = 0.0,
+            openLoopDiscretizationRate = 2.0,
+            closedLoopDiscretizationRate = 2.0,
             velocityPID = PIDConstants(0.2,0.0,0.0),
             velocityFF = if (isReal()){
                 AngularMotorFFEquation(0.16, 0.133)
             }else{
                 AngularMotorFFEquation(0.0, 0.13)
             },
-            robotRotationPID = PIDConstants(6.0, 0, 0.001),
+            robotRotationPID = PIDConstants(2.5, 0, 0.003),
             robotTranslationPID = PIDConstants(4.0,0,0.001)
         ),
         useOnboardPID = false,
@@ -376,6 +379,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                     gyroIO.zeroHeading(180.degrees)
                 }
             )
+
+            driveToNoteAssistTrigger.whileTrue(
+                pursueNoteElseTeleopDrive(drivetrain, vision.notePipeline)
+            )
         }
 
         // loopCommand and runOnceCommand are wrappers around RunCommand and InstantCommand
@@ -387,38 +394,37 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             passToShooterTrigger.whileTrue(passSerializedNote(groundIntake, shooter))
 
-            //spinUpShooterTrigger.whileTrue(loopCommand(shooter){ shooter.outtakeAtSpeakerSpeed() })
+            spinUpShooterTrigger.whileTrue(
+                loopCommand(shooter, pivot){
+                    shooter.outtakeAtSpeakerSpeed()
+                    pivot.setAngle(PivotAngle.SPEAKER)
+                }
+            )
 
             shootInSpeakerTrigger.whileTrue(
-                shootInSpeaker(shooter, groundIntake, pivot, shooterSpinUpTime = 2.seconds)
+                shootInSpeaker(shooter, groundIntake, pivot, shooterSpinUpTime = 0.3.seconds)
             )
 
             // when only held, the buttons will just cause the pivot to PID to the appropriate position
             // interrupt behavior set as to prevent command scheduling conflicts
-            ampScoreTrigger.whileTrue(
+            ampPositionTrigger.whileTrue(
                 pivot
                     .setAngleCommand(PivotAngle.AMP)
                     .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
             )
 
-            ampScoreTrigger.onClickAndHold(
-                followPathOptimal(drivetrain, PathPlannerPath.fromPathFile("AmpTeleopNew"))
-            )
-
-            sourceIntakeLeftTrigger.or(sourceIntakeRightTrigger).whileTrue(
+            sourcePositionTrigger.whileTrue(
                 pivot
                     .setAngleCommand(PivotAngle.SOURCE)
                     .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
             )
 
-
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
-
-            driveToNoteTrigger.whileTrue(
-                pursueNoteElseTeleopDrive(drivetrain, vision.notePipeline)
-                    .alongWith(runGroundIntake(groundIntake, shooter))
-            )
         }
+
+        Trigger{ groundIntake.hasNote && groundIntake.hasNoteDetector }
+            .onTrue(runOnceCommand{ DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 1.0) })
+            .onFalse(runOnceCommand{ DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 0.0) })
     }
 
 

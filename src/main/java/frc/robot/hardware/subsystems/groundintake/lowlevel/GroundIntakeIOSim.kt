@@ -65,6 +65,10 @@ class GroundIntakeIOSim(
         _conveyorVoltage
     }
 
+    override val hasNote by GroundIntakeLog.boolean { false }
+
+    override val hasNoteDetector by GroundIntakeLog.boolean { false }
+
     override fun setIntakeVoltage(voltage: Voltage) {
         _intakeVoltages[0] = voltage
         topMotorSim.setInputVoltage(voltage.inUnit(volts))

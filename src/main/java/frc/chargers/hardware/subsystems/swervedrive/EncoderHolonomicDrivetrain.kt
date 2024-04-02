@@ -208,7 +208,7 @@ public class EncoderHolonomicDrivetrain(
         }else{
             val speed = optimizedState.speedMetersPerSecond.ofUnit(meters / seconds) / wheelRadius
             moduleIO.setSpeedSetpoint(
-                speed, // converts to an AngularVelocity
+                speed,
                 controlData.velocityPID,
                 controlData.velocityFF(speed) // returns a feedforward voltage
             )
@@ -263,15 +263,7 @@ public class EncoderHolonomicDrivetrain(
             { poseEstimator.resetPose(it.ofUnit(meters)) },
             { currentSpeeds },
             { speeds ->
-                // have to invert rotation for some reason...idk
-                if (RobotBase.isReal()){
-                    velocityDrive(
-                        ChassisSpeeds(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond, -speeds.omegaRadiansPerSecond),
-                        fieldRelative = false
-                    )
-                }else{
-                    velocityDrive(speeds, fieldRelative = false)
-                }
+                velocityDrive(speeds, fieldRelative = false)
                 recordOutput("$logName/pathplanningChassisSpeeds", speeds)
             },
             HolonomicPathFollowerConfig(

@@ -14,37 +14,29 @@ import com.pathplanner.lib.path.PathPlannerPath
 data class AmpAutoComponent(
     val grabPath: PathPlannerPath,
     val scorePath: PathPlannerPath,
-    val type: Type = Type.SCORE_NOTE,
     val groundIntakePreSpinupTime: Time? = null,
 ){
-    enum class Type{
-        SCORE_NOTE, FERRY_NOTE
-    }
 
     companion object{
         fun fromChoreo(
             grabPathName: String,
             scorePathName: String,
-            type: Type = Type.SCORE_NOTE,
             groundIntakePreSpinupTime: Time? = null,
         ): AmpAutoComponent =
             AmpAutoComponent(
                 PathPlannerPath.fromChoreoTrajectory(grabPathName),
                 PathPlannerPath.fromChoreoTrajectory(scorePathName),
-                type,
                 groundIntakePreSpinupTime
             )
 
         fun fromPathPlanner(
             grabPathName: String,
             scorePathName: String,
-            type: Type = Type.SCORE_NOTE,
             groundIntakePreSpinupTime: Time? = null,
         ): AmpAutoComponent =
             AmpAutoComponent(
                 PathPlannerPath.fromPathFile(grabPathName),
                 PathPlannerPath.fromPathFile(scorePathName),
-                type,
                 groundIntakePreSpinupTime
             )
     }

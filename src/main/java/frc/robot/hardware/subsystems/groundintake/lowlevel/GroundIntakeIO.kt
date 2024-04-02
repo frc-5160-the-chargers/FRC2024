@@ -14,5 +14,8 @@ interface GroundIntakeIO: GenericIntakeIO {
     val conveyorCurrent: Current
     val conveyorSpeed: AngularVelocity
 
+    val hasNote: Boolean
+    val hasNoteDetector: Boolean
+
     fun setConveyorVoltage(voltage: Voltage)
 }

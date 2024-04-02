@@ -36,17 +36,15 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
 
     val stowPivotTrigger: Trigger = b()
 
-    val ampScoreTrigger: Trigger = a()
-    val sourceIntakeLeftTrigger: Trigger = x()
-    val sourceIntakeRightTrigger: Trigger = Trigger{ false }
-    val driveToNoteTrigger: Trigger = y()
+    val ampPositionTrigger: Trigger = a()
+    val sourcePositionTrigger: Trigger = x()
 
     val groundIntakeTrigger: Trigger = rightTrigger()
     val groundOuttakeTrigger: Trigger = leftTrigger()
 
-    val passToShooterTrigger: Trigger = rightBumper()
-    //val spinUpShooterTrigger: Trigger = leftBumper().and(rightBumper().negate())
-    val shootInSpeakerTrigger: Trigger = leftBumper()
+    val passToShooterTrigger: Trigger = rightBumper().and(leftBumper().negate())
+    val spinUpShooterTrigger: Trigger = leftBumper().and(rightBumper().negate())
+    val shootInSpeakerTrigger: Trigger = leftBumper().and(rightBumper())
 
     val resetPivotAngleTrigger: Trigger = start().or(back()).withDoubleClick()
 }

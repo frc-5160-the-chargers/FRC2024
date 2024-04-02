@@ -113,7 +113,7 @@ class ModuleIOReal(
     override fun setSpeedSetpoint(velocity: AngularVelocity, pidConstants: PIDConstants, feedforward: Voltage) {
         if (useOnboardPID && driveMotor is SmartEncoderMotorController){
             driveMotor.setAngularVelocity(
-                velocity,
+                velocity * driveGearRatio,
                 pidConstants,
                 feedforward
             )

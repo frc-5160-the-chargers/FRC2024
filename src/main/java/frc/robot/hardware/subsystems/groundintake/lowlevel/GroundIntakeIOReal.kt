@@ -1,11 +1,13 @@
 package frc.robot.hardware.subsystems.groundintake.lowlevel
 
+import com.batterystaple.kmeasure.interop.average
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
+import edu.wpi.first.wpilibj.DigitalInput
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 
 @Suppress("unused")
@@ -13,6 +15,7 @@ class GroundIntakeIOReal(
     private val topMotor: SmartEncoderMotorController,
     private val bottomMotor: SmartEncoderMotorController? = null,
     private val conveyorMotor: SmartEncoderMotorController? = null,
+    private val beamBreakSensor: DigitalInput? = null,
 
     private val intakeGearRatio: Double = 1.0,
     private val conveyorGearRatio: Double = 1.0,
@@ -53,6 +56,18 @@ class GroundIntakeIOReal(
         }else{
             0.radians / 0.seconds
         }
+    }
+
+    override val hasNote by GroundIntakeLog.boolean {
+        if (beamBreakSensor == null){
+            intakeCurrents.average() > 35.amps
+        }else{
+            !beamBreakSensor.get()
+        }
+    }
+
+    override val hasNoteDetector by GroundIntakeLog.boolean {
+        beamBreakSensor != null
     }
 
     override fun setIntakeVoltage(voltage: Voltage) {

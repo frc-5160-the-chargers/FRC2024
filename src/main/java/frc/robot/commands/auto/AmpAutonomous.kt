@@ -4,17 +4,13 @@ import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
-import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
-import frc.robot.commands.aiming.AprilTagLocation
-import frc.robot.commands.aiming.alignToAprilTag
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.AmpAutoComponent
 import frc.robot.commands.auto.components.AmpAutoTaxiMode
@@ -27,19 +23,16 @@ import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
 import frc.robot.hardware.subsystems.shooter.Shooter
-import kotlin.jvm.optionals.getOrNull
-
 
 /**
- * A modular amp autonomous command, used for all of our amp autos.
+ * An Amp autonomous command without vision cameras.
  */
 fun ampAutonomous(
-    apriltagVision: AprilTagVisionPipeline,
-    noteDetector: ObjectVisionPipeline,
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
     pivot: Pivot,
     groundIntake: GroundIntakeSerializer,
+    noteDetector: ObjectVisionPipeline? = null,
 
     additionalComponents: List<AmpAutoComponent> = listOf(), // used to control further notes pursued.
     taxiMode: AmpAutoTaxiMode = AmpAutoTaxiMode.NO_TAXI
@@ -47,104 +40,75 @@ fun ampAutonomous(
     addRequirements(drivetrain, shooter, pivot, groundIntake)
 
     runOnce{
-        drivetrain.poseEstimator.resetPose(AutoStartingPose.AMP_BLUE.flipWhenNeeded())
+        drivetrain.poseEstimator.resetPose(
+            // flipWhenNeeded is an extension function of a UnitPose2d
+            AutoStartingPose.AMP_BLUE.flipWhenNeeded()
+        )
     }
 
-    loopFor(0.2.seconds){
-        if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
-            drivetrain.swerveDrive(0.13, 0.13, 0.0, fieldRelative = false)
-        }else{
-            drivetrain.swerveDrive(0.13, -0.13, 0.0, fieldRelative = false)
-        }
-    }
-
-    +alignToAprilTag(
-        drivetrain,
-        apriltagVision,
-        pivot,
-        AprilTagLocation.AMP
+    +AutoBuilder.followPath(
+        PathPlannerPath.fromPathFile("DriveToAmp")
     )
 
     +shootInAmp(shooter, pivot)
 
-    for (autoComponent in additionalComponents){
-        val grabPathStartPose = autoComponent.grabPath.pathPoses.last().ofUnit(meters).flipWhenNeeded()
+    for (autoComponent in additionalComponents) {
+        // starts ground intake a little before path
+        if (autoComponent.groundIntakePreSpinupTime != null) {
+            +runGroundIntake(groundIntake, shooter, timeout = autoComponent.groundIntakePreSpinupTime)
+        }
 
-        runParallelUntilFirstCommandFinishes{
+        runParallelUntilFirstCommandFinishes {
             // parallel #1
-            runSequentially{
+            runSequentially {
                 +AutoBuilder.followPath(autoComponent.grabPath)
 
-                // drives out further in case the path missed the note
-                +pursueNote(
-                    drivetrain, noteDetector,
-                    endCondition = { groundIntake.hasNote },
-                    setRotationOverride = false
-                ).withTimeout(2.0)
+                if (noteDetector != null){
+                    +pursueNote(drivetrain, noteDetector)
+                }
+
+                waitFor(0.5.seconds)
             }
 
             // parallel #2
-            runSequentially{
+            +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+
+            // parallel #3
+            +runGroundIntake(groundIntake, shooter)
+
+            // parallel #4
+            if (noteDetector != null){
                 // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
                 // along the path.
-                runUntil(
-                    { drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE },
-                    pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
-                )
+                runSequentially{
+                    val grabPathStartPose = autoComponent.grabPath.pathPoses.last().ofUnit(meters).flipWhenNeeded()
 
-                runOnce{
-                    drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
-                }
+                    waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }
 
-                +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
-
-                +runGroundIntake(groundIntake, shooter)
-            }
-        }
-
-        runOnce{
-            drivetrain.removeRotationOverride()
-        }
-
-        when (autoComponent.type){
-            AmpAutoComponent.Type.FERRY_NOTE -> {
-                runParallelUntilAllFinish{
-                    +AutoBuilder.followPath(autoComponent.grabPath)
-
-                    runSequentially{
-                        +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
-
-                        +passSerializedNote(groundIntake, shooter)
+                    runOnce{
+                        drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
                     }
                 }
-
-                +shootInAmp(shooter, pivot)
-            }
-
-            AmpAutoComponent.Type.SCORE_NOTE -> {
-                +alignToAprilTag(
-                    drivetrain, apriltagVision, pivot,
-                    AprilTagLocation.AMP,
-                    followPathCommand = -runParallelUntilAllFinish{
-                        +AutoBuilder.followPath(autoComponent.scorePath)
-
-                        runSequentially{
-                            +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
-
-                            +passSerializedNote(groundIntake, shooter)
-                        }
-                    } // negative sign removes the block from the command builder, as the parallel command is added to the builder by default
-                )
-
-                loopFor(0.3.seconds){
-                    shooter.outtake(0.5)
-                }
-
-                runOnce{
-                    shooter.setIdle()
-                }
             }
         }
+
+        if (noteDetector != null){
+            runOnce{
+                drivetrain.removeRotationOverride()
+            }
+        }
+
+        runParallelUntilAllFinish {
+            +AutoBuilder.followPath(autoComponent.scorePath)
+
+            runSequentially {
+                +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+
+                +passSerializedNote(groundIntake, shooter)
+            }
+        }
+
+        +shootInAmp(shooter, pivot)
     }
 
     +pivot.setAngleCommand(PivotAngle.STOWED)

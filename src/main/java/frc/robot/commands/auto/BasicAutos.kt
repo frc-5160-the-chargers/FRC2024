@@ -5,6 +5,7 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.commands.runGroundIntake
 import frc.robot.commands.shootInSpeaker
@@ -28,10 +29,11 @@ fun onePieceSpeakerAndTaxi(
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
     groundIntake: GroundIntakeSerializer,
-    pivot: Pivot
+    pivot: Pivot,
+    blueStartingPose: UnitPose2d = AutoStartingPose.SPEAKER_CENTER_BLUE,
 ): Command = buildCommand {
     runOnce{
-        drivetrain.poseEstimator.resetPose(AutoStartingPose.SPEAKER_CENTER_BLUE.flipWhenNeeded())
+        drivetrain.poseEstimator.resetPose(blueStartingPose.flipWhenNeeded())
     }
 
     +shootInSpeaker(shooter, groundIntake, pivot)

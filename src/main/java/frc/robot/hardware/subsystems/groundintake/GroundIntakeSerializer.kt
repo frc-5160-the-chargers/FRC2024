@@ -5,6 +5,7 @@ import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIO
 
 
@@ -13,22 +14,19 @@ import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIO
  */
 // standard: + = outtake, - = intake for both conveyor and ground intake components
 class GroundIntakeSerializer(io: GroundIntakeIO): SubsystemBase(), GroundIntakeIO by io{ // implements GroundIntakeIO to inherit necessary functions from io layer
-
-    val hasNote: Boolean get() = intakeCurrents.average() > 35.amps
-
     fun setIdle(){
         setIntakeVoltage(0.volts)
         setConveyorVoltage(0.volts)
     }
 
     fun intake(){
-        setIntakeVoltage(-9.volts)
-        setConveyorVoltage(-10.5.volts)
+        setIntakeVoltage(-11.volts)
+        setConveyorVoltage(-12.volts)
     }
 
     fun outtake(){
-        setIntakeVoltage(8.volts)
-        setConveyorVoltage(8.volts)
+        setIntakeVoltage(9.volts)
+        setConveyorVoltage(11.volts)
     }
 
     fun passToShooterSlow(){
@@ -44,6 +42,10 @@ class GroundIntakeSerializer(io: GroundIntakeIO): SubsystemBase(), GroundIntakeI
     override fun periodic(){
         if (DriverStation.isDisabled()){
             setIdle()
+        }
+
+        if (hasNote && hasNoteDetector){
+            DriverController
         }
     }
 }

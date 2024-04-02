@@ -27,35 +27,9 @@ object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
     val pointEastTrigger: Trigger = if (DRIVER.rightHanded) povRight() else circle()
     val pointWestTrigger: Trigger = if (DRIVER.rightHanded) povLeft() else square()
 
+    val driveToNoteAssistTrigger: Trigger = if (DRIVER.rightHanded) L2() else R2()
+
     val aimToSpeakerTrigger: Trigger = Trigger{ false }
-
-
-    /*
-    val leftHookUpTrigger: Trigger = leftBumper().and(
-        if (DRIVER.rightHanded){
-            y()
-        }else{
-            povUp()
-        }
-    )
-
-    val leftHookDownTrigger: Trigger = leftBumper().and(
-        if (DRIVER.rightHanded){
-            a()
-        }else{
-            povDown()
-        }
-    )
-
-    val rightHookUpTrigger: Trigger = rightBumper().and(
-        if (DRIVER.rightHanded) y() else povUp()
-    )
-
-    val rightHookDownTrigger: Trigger = rightBumper().and(
-        if (DRIVER.rightHanded) a() else povDown()
-    )
-
-     */
 
     val climbersUpTrigger: Trigger = povUp()
     val climbersDownTrigger: Trigger = povDown()
@@ -70,7 +44,7 @@ object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
         InputAxis{ if (DRIVER.rightHanded) rightY else leftY }
             .withDeadband(DEFAULT_DEADBAND)
             .invertWhen(RobotBase::isReal)
-            //.invertWhen{ shouldInvertForward.get() }
+            .invertWhen(shouldInvertForward::get)
             .withMultiplier(0.7)
             .log("DriverController/xPower")
 
@@ -78,37 +52,26 @@ object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
         InputAxis{ if (DRIVER.rightHanded) rightX else leftX }
             .withDeadband(DEFAULT_DEADBAND)
             .invertWhen(RobotBase::isReal)
-            //.invertWhen{ shouldInvertStrafe.get() }
-            .withMultiplier(0.7)
+            .invertWhen(shouldInvertStrafe::get)
             .log("DriverController/yPower")
 
     private val rotationAxis =
         InputAxis{ if (DRIVER.rightHanded) leftX else rightX }
             .withDeadband(DEFAULT_DEADBAND)
             .square()
-            .withEquation(Polynomial(0.2,0.0,0.4,0.0))
+            .withEquation(Polynomial(0.2,0.0,0.5,0.0))
             .log("DriverController/rotationPower")
 
-
-    private val turboAxis =
-        InputAxis{ r2Axis }
-            .mapToRange(1.0..2.0)
-            .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
-            .log("DriverController/turboPower")
-
     private val precisionAxis =
-        InputAxis{ l2Axis }
+        InputAxis{ if (DRIVER.rightHanded) r2Axis else l2Axis }
             .mapToRange(1.0..5.0)
             .withModifier{ if (it < 1.0 || it.isInfinite() || it.isNaN()) 1.0 else it }
             .withModifier{ 1.0 / it }
             .log("DriverController/precisionPower")
 
 
-
-
-
     val swerveOutput: ChassisPowers get(){
-        val scalar = turboAxis() * precisionAxis()
+        val scalar = precisionAxis()
 
         return ChassisPowers(
             xPower = forwardAxis() * scalar,

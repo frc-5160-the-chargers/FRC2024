@@ -27,12 +27,36 @@ public fun <D: Dimension<*,*,*,*>> recordOutput(key: String, value: Quantity<D>)
  * Records the output of a generic [AdvantageKitLoggable].
  */
 public fun <T: AdvantageKitLoggable<T>> recordOutput(key: String, value: T){
-    if (hasReplaySource()){
-        ChargerRobot.AK_LOGGABLE_REPLAY_TABLE?.let { value.pushToLog(it, key) } ?: println(warningMsg)
+    val logTable = if (hasReplaySource()) ChargerRobot.AK_LOGGABLE_REPLAY_TABLE else ChargerRobot.AK_LOGGABLE_REAL_TABLE
+    if (logTable != null){
+        value.pushToLog(logTable, key)
     }else{
-        ChargerRobot.AK_LOGGABLE_REAL_TABLE?.let { value.pushToLog(it, key) } ?: println(warningMsg)
+        println(warningMsg)
     }
 }
+
+/**
+ * Records the output of multiple [AdvantageKitLoggable]s.
+ */
+public fun <T: AdvantageKitLoggable<T>> recordOutput(key: String, values: Collection<T>){
+    val logTable = if (hasReplaySource()) ChargerRobot.AK_LOGGABLE_REPLAY_TABLE else ChargerRobot.AK_LOGGABLE_REAL_TABLE
+    val allItems = values.toList()
+    if (logTable != null){
+        for (i in allItems.indices){
+            allItems[i].pushToLog(logTable, "$key/$i")
+        }
+    }else{
+        println(warningMsg)
+    }
+}
+
+/**
+ * Records the output of multiple [AdvantageKitLoggable]s.
+ */
+public fun <T: AdvantageKitLoggable<T>> recordOutput(key: String, vararg values: T) =
+    recordOutput(key, values.toList())
+
+
 
 /**
  * Runs a code block while logging & returning its latency.

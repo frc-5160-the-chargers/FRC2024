@@ -10,6 +10,5 @@ object AutoStartingPose {
 
     val SPEAKER_CENTER_BLUE = UnitPose2d(1.415.meters, 5.573.meters, 0.degrees)
 
-    @Suppress("unused")
     val SPEAKER_RIGHT_BLUE = UnitPose2d(1.29.meters, 4.66.meters, -0.785.radians)
 }

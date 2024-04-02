@@ -1,22 +1,28 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate")
 package frc.robot.hardware.subsystems.shooter
 
-import com.batterystaple.kmeasure.dimensions.DistanceDimension
-import com.batterystaple.kmeasure.dimensions.VoltageDimension
+import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.abs
 import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import frc.chargers.wpilibextensions.interpolation.InterpolatingQuantityTreeMap
+import frc.chargers.controls.feedforward.AngularMotorFFEquation
+import frc.chargers.controls.pid.PIDConstants
 import frc.robot.hardware.subsystems.shooter.lowlevel.ShooterIO
 import org.littletonrobotics.junction.Logger.recordOutput
 
-// standard: + = outtake, - = intake; regardless of voltage set
-class Shooter(private val io: ShooterIO): SubsystemBase() {
+private const val WRONG_USAGE_OF_OUTTAKE_WARNING_MSG = "Applied voltage must be > 0.volts. To intake, call intake(voltage) or intake(speed) instead."
 
-    private val shooterVoltageTreeMap = InterpolatingQuantityTreeMap<DistanceDimension, VoltageDimension>()
+// standard: + = outtake, - = intake; regardless of voltage set
+class Shooter(
+    private val io: ShooterIO,
+    private val shootingFFEquation: AngularMotorFFEquation,
+    private val shootingPID: PIDConstants
+): SubsystemBase() {
+    private var wasShootingInSpeaker = false
 
     val hasNoteDetector: Boolean get() = io.hasNoteDetector
 
@@ -24,6 +30,7 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
 
     fun setIdle(){
         io.setIntakeVoltage(0.volts)
+        wasShootingInSpeaker = false
     }
 
     fun outtakeAtAmpSpeed(){
@@ -31,7 +38,18 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
     }
 
     fun outtakeAtSpeakerSpeed() {
-        outtake(12.volts)
+        val targetVelocity = AngularVelocity(0.0) // tbd; should change soon depending on feedforward numbers
+        io.setVelocity(
+            targetVelocity,
+            shootingPID,
+            shootingFFEquation(targetVelocity)
+        )
+        recordOutput("Shooter/isOuttaking", true)
+        recordOutput("Shooter/isIntaking", false)
+        if (!wasShootingInSpeaker && RobotBase.isSimulation()){
+            wasShootingInSpeaker = true
+            NoteVisualizer.shootInSpeakerCommand().schedule()
+        }
     }
 
     fun receiveFromSource(){
@@ -57,19 +75,26 @@ class Shooter(private val io: ShooterIO): SubsystemBase() {
         }
         recordOutput("Shooter/isOuttaking", false)
         recordOutput("Shooter/isIntaking", true)
+        wasShootingInSpeaker = false
     }
 
     fun outtake(percentOut: Double){
         outtake(percentOut * 12.volts)
-        NoteVisualizer.setHasNote(false)
     }
 
     fun outtake(voltage: Voltage){
-        require(voltage >= 0.volts){ "Applied voltage must be > 0.volts. To intake, call intake(voltage) or intake(speed) instead." }
-        NoteVisualizer.setHasNote(false)
         io.setIntakeVoltage(voltage)
+        if (voltage >= 0.volts){
+            if (RobotBase.isSimulation()){
+                error(WRONG_USAGE_OF_OUTTAKE_WARNING_MSG)
+            }else{
+                println(WRONG_USAGE_OF_OUTTAKE_WARNING_MSG)
+            }
+        }
+        NoteVisualizer.setHasNote(false)
         recordOutput("Shooter/isOuttaking", true)
         recordOutput("Shooter/isIntaking", false)
+        wasShootingInSpeaker = false
     }
 
     override fun periodic(){
