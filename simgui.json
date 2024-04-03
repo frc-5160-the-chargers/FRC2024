@@ -114,9 +114,6 @@
             "open": true
           }
         },
-        "Climber": {
-          "open": true
-        },
         "Drivetrain(Swerve)": {
           "BottomLeftModule": {
             "open": true
@@ -194,10 +191,15 @@
               "open": true
             }
           },
+          "Hello": {
+            "open": true
+          },
           "Pathplanner": {
             "deviationFromTargetPose": {
               "open": true
-            },
+            }
+          },
+          "Test": {
             "open": true
           },
           "open": true

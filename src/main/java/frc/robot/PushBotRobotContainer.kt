@@ -3,7 +3,6 @@ package frc.robot
 
 import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.volts
-import edu.wpi.first.math.MathUtil
 import edu.wpi.first.wpilibj.DigitalOutput
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
@@ -14,6 +13,7 @@ import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.subsystems.differentialdrive.sparkMaxDrivetrain
+import frc.robot.hardware.subsystems.led.LEDController
 
 class PushBotRobotContainer: ChargerRobotContainer() {
     private val drivetrain = sparkMaxDrivetrain(
@@ -30,7 +30,11 @@ class PushBotRobotContainer: ChargerRobotContainer() {
     
     private val xboxController = CommandXboxController(0)
 
-    private val digitalOutputTest = DigitalOutput(5)
+    private val ledController = LEDController(
+        DigitalOutput(5),
+        DigitalOutput(4),
+        DigitalOutput(3)
+    )
 
     init{
         drivetrain.setDefaultRunCommand {
@@ -48,8 +52,8 @@ class PushBotRobotContainer: ChargerRobotContainer() {
         }
 
         xboxController.a()
-            .whileTrue(loopCommand{ digitalOutputTest.set(true) })
-            .onFalse(loopCommand{ digitalOutputTest.set(false) })
+            .whileTrue(loopCommand{ ledController.displayNoteInShooter() })
+            .onFalse(loopCommand{ ledController.displayDefault() })
     }
 
 

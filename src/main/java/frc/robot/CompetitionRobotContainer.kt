@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.button.Trigger
+import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -46,6 +47,7 @@ import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
 import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
+import frc.chargers.utils.registerSingletonsForAutoLogOutput
 import frc.robot.commands.*
 import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
 import frc.robot.commands.auto.AutoChooser
@@ -284,6 +286,8 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
          */
 
+        registerSingletonsForAutoLogOutput(DriverController, OperatorInterface)
+
         DriverStation.silenceJoystickConnectionWarning(true)
         DashboardTuner.tuningMode = false
         LiveWindow.disableAllTelemetry()
@@ -377,15 +381,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
             pointWestTrigger.onTrue(targetAngle(-270.degrees)).onFalse(resetAimToAngle())
 
-            zeroHeadingTrigger.onTrue(
-                runOnceCommand{
-                    gyroIO.zeroHeading(180.degrees)
-                }
-            )
+            zeroHeadingTrigger.onTrue(runOnceCommand{ gyroIO.zeroHeading(180.degrees) })
 
-            driveToNoteAssistTrigger.whileTrue(
-                pursueNoteElseTeleopDrive(drivetrain, vision.notePipeline)
-            )
+            driveToNoteAssistTrigger.whileTrue(pursueNoteElseTeleopDrive(drivetrain, vision.notePipeline))
         }
 
         // loopCommand and runOnceCommand are wrappers around RunCommand and InstantCommand
@@ -426,7 +424,21 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         Trigger{ groundIntake.hasNote && groundIntake.hasNoteDetector }
-            .onTrue(runOnceCommand{ DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 1.0) })
+            .whileTrue(
+                buildCommand{
+                    runOnce{
+                        DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 1.0)
+                    }
+
+                    waitFor(0.2.seconds)
+
+                    runOnce{
+                        DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 0.0)
+                    }
+
+                    waitFor(0.2.seconds)
+                }.repeatedly()
+            )
             .onFalse(runOnceCommand{ DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 0.0) })
     }
 
