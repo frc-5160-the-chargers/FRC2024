@@ -16,11 +16,7 @@ class ShooterIOReal(
     private val bottomMotor: SmartEncoderMotorController? = null,
     private val gearRatio: Double = 1.0,
 ): ShooterIO {
-    private val allMotors = mutableListOf(topMotor).apply{
-        if (bottomMotor != null){
-            add(bottomMotor)
-        }
-    }
+    private val allMotors = listOfNotNull(topMotor, bottomMotor)
 
     override val hasNote by ShooterLog.boolean{
         if (beamBreakSensor == null){

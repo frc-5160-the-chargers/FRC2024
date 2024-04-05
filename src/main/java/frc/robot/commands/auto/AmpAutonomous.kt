@@ -4,13 +4,16 @@ import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
+import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
+import frc.robot.NOTE_DETECTOR_PID
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.AmpAutoComponent
 import frc.robot.commands.auto.components.AmpAutoTaxiMode
@@ -18,7 +21,6 @@ import frc.robot.commands.auto.components.AutoStartingPose
 import frc.robot.commands.passSerializedNote
 import frc.robot.commands.runGroundIntake
 import frc.robot.commands.shootInAmp
-import frc.robot.controls.rotationoverride.getNoteRotationOverride
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
@@ -39,16 +41,22 @@ fun ampAutonomous(
 ): Command = buildCommand {
     addRequirements(drivetrain, shooter, pivot, groundIntake)
 
-    runOnce{
-        drivetrain.poseEstimator.resetPose(
-            // flipWhenNeeded is an extension function of a UnitPose2d
-            AutoStartingPose.AMP_BLUE.flipWhenNeeded()
-        )
-    }
+    runParallelUntilAllFinish{
+        runSequentially{
+            runOnce{
+                drivetrain.poseEstimator.resetPose(
+                    // flipWhenNeeded is an extension function of a UnitPose2d
+                    AutoStartingPose.AMP_BLUE.flipWhenNeeded()
+                )
+            }
 
-    +AutoBuilder.followPath(
-        PathPlannerPath.fromPathFile("DriveToAmp")
-    )
+            waitFor(0.4.seconds)
+
+            +AutoBuilder.followPath(PathPlannerPath.fromPathFile("DriveToAmp"))
+        }
+
+        +pivot.setAngleCommand(PivotAngle.AMP)
+    }
 
     +shootInAmp(shooter, pivot)
 
@@ -64,7 +72,10 @@ fun ampAutonomous(
                 +AutoBuilder.followPath(autoComponent.grabPath)
 
                 if (noteDetector != null){
-                    +pursueNote(drivetrain, noteDetector)
+                    +pursueNote(
+                        drivetrain, noteDetector,
+                        endCondition = { if (RobotBase.isSimulation()) noteDetector.bestTarget != null else groundIntake.hasNote }
+                    )
                 }
 
                 waitFor(0.5.seconds)
@@ -86,7 +97,9 @@ fun ampAutonomous(
                     waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }
 
                     runOnce{
-                        drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
+                        drivetrain.setRotationOverride(
+                            AimToObjectRotationOverride(noteDetector, NOTE_DETECTOR_PID)
+                        )
                     }
                 }
             }
@@ -108,7 +121,7 @@ fun ampAutonomous(
             }
         }
 
-        +shootInAmp(shooter, pivot)
+        if (autoComponent.shouldScore) +shootInAmp(shooter, pivot)
     }
 
     +pivot.setAngleCommand(PivotAngle.STOWED)

@@ -4,9 +4,10 @@ import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
+import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
-import frc.robot.controls.rotationoverride.getNoteRotationOverride
+import frc.robot.NOTE_DETECTOR_PID
 import kotlin.math.abs
 
 
@@ -31,7 +32,12 @@ inline fun pursueNote(
 ): Command = buildCommand(name = "Pursue Note Command") {
     if (setRotationOverride){
         runOnce{
-            drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
+            drivetrain.setRotationOverride(
+                AimToObjectRotationOverride(
+                    noteDetector,
+                    NOTE_DETECTOR_PID
+                )
+            )
         }
     }
 

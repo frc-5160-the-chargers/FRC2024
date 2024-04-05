@@ -1,5 +1,6 @@
 package frc.robot.hardware.subsystems.odometry.lowlevel
 
+/*
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
@@ -9,12 +10,14 @@ import edu.wpi.first.wpilibj.Timer
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.constants.SwerveHardwareData
 import frc.chargers.framework.ChargerRobot
+import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.robot.ODOMETRY_UPDATE_FREQUENCY_HZ
 import frc.robot.hardware.subsystems.odometry.OdometryThread
 import org.littletonrobotics.junction.Logger
 import kotlin.math.roundToInt
+
 
 /**
  * Handles multi-threaded odometry for a single swerve module.
@@ -24,12 +27,18 @@ class ModuleOdometryIO(
     // all wrappers inherit their base class(CANSparkMax)
     private val hardwareData: SwerveHardwareData,
     private val turnMotor: ChargerSparkMax,
-    private val driveMotor: ChargerSparkMax,
+    private val driveMotor: ChargerTalonFX,
     absoluteEncoder: PositionEncoder,
 ) {
     private val wheelRadius = hardwareData.wheelDiameter / 2.0
-    private val driveMotorEncoder = driveMotor.getEncoder()
-    private val turnMotorEncoder = turnMotor.getEncoder()
+
+    private val wheelDirectionSupplier = turnMotor.getEncoder()::getPosition
+    private val wheelPositionSignal = driveMotor.position.apply{
+        setUpdateFrequency(ODOMETRY_UPDATE_FREQUENCY_HZ)
+    }
+
+
+
 
     // handles logging and replay for wheel odometry of each module
     private val logInputs = LoggableInputsProvider(
@@ -42,7 +51,7 @@ class ModuleOdometryIO(
     private val wheelDirectionsQueue = OdometryThread.getInstance().registerSignal(turnMotorEncoder::getPosition)
 
     private val wheelPositionOffset =
-        (driveMotorEncoder.position.ofUnit(rotations)
+        (driveMotor.position.value.ofUnit(rotations)
                 / hardwareData.driveGearRatio
                 * wheelRadius // wheel radius; multiplying will get distance
         ).also{ println("Spark max drive offset: $it") }
@@ -58,7 +67,6 @@ class ModuleOdometryIO(
 
     fun burnMotorFlashes(){
         turnMotor.burnFlash()
-        driveMotor.burnFlash()
     }
 
     init{
@@ -162,5 +170,6 @@ class ModuleOdometryIO(
             }
         }
     }
-
 }
+
+ */

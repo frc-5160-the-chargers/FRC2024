@@ -10,6 +10,13 @@ class LEDController(
     private val digitalOutput2: DigitalOutput,
     private val digitalOutput3: DigitalOutput
 ): SubsystemBase() {
+
+    init{
+        listOf(digitalOutput1, digitalOutput2, digitalOutput3).forEach{
+            //it.enablePWM(0.5)
+        }
+    }
+
     fun displayDefault(){
         digitalOutput1.set(false)
         digitalOutput2.set(false)
@@ -50,5 +57,11 @@ class LEDController(
         digitalOutput2.set(false)
         digitalOutput2.set(true)
         Logger.recordOutput("LEDController/broadcast", "ShooterReady")
+    }
+
+    override fun periodic(){
+        Logger.recordOutput("LEDController/digitalOutput1", digitalOutput1.get())
+        Logger.recordOutput("LEDController/digitalOutput2", digitalOutput2.get())
+        Logger.recordOutput("LEDController/digitalOutput3", digitalOutput3.get())
     }
 }

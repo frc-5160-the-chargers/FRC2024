@@ -9,15 +9,15 @@
 #endif
 
 #define SNAKE_LENGTH 10
-#define PIN_NEO_PIXEL  4   // Arduino pin that connects to NeoPixel
-#define NUM_PIXELS     26  // The number of LEDs (pixels) on NeoPixel
-#define DELAY_MS      30
+#define PIN_NEO_PIXEL 4   // Arduino pin that connects to NeoPixel
+#define NUM_PIXELS 26  // The number of LEDs (pixels) on NeoPixel
+#define DELAY_MS 30
 
 #define PRINT_RIO_OUTPUT false
 // tbd
-#define PORT_A_PIN 6
-#define PORT_B_PIN 8
-#define PORT_C_PIN 10
+#define RIO_DATA_PIN_A 6
+#define RIO_DATA_PIN_B 8
+#define RIO_DATA_PIN_C 10
 
 Adafruit_NeoPixel NeoPixel(NUM_PIXELS, PIN_NEO_PIXEL, NEO_GRB + NEO_KHZ800);
 
@@ -70,9 +70,9 @@ bool portCSignal = false;
 * Updates all signals.
 */
 void updateSignals(){
-  portARaw = analogRead(PORT_A_PIN);
-  portBRaw = analogRead(PORT_B_PIN);
-  portCRaw = analogRead(PORT_C_PIN);
+  portARaw = analogRead(RIO_DATA_PIN_A);
+  portBRaw = analogRead(RIO_DATA_PIN_B);
+  portCRaw = analogRead(RIO_DATA_PIN_C);
 
   if (PRINT_RIO_OUTPUT){
     Serial.print("Port A Raw Signal: ");

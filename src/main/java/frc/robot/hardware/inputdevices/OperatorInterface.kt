@@ -13,6 +13,9 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     private const val SHOULD_INVERT_SHOOTER_SPEED = true
     private const val SHOULD_INVERT_PIVOT_SPEED = true
 
+    init{
+    }
+
     private val keyboardNTInterface = NetworkTableInstance.getDefault().getTable("DriverStationKeyPress")
 
     /* Public API */
@@ -38,6 +41,7 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
 
     val ampPositionTrigger: Trigger = a()
     val sourcePositionTrigger: Trigger = x()
+    val quickScoreAmpTrigger: Trigger = y()
 
     val groundIntakeTrigger: Trigger = rightTrigger()
     val groundOuttakeTrigger: Trigger = leftTrigger()

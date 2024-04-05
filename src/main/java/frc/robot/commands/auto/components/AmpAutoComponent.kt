@@ -15,29 +15,33 @@ data class AmpAutoComponent(
     val grabPath: PathPlannerPath,
     val scorePath: PathPlannerPath,
     val groundIntakePreSpinupTime: Time? = null,
+    val shouldScore: Boolean = true
 ){
-
     companion object{
         fun fromChoreo(
             grabPathName: String,
             scorePathName: String,
             groundIntakePreSpinupTime: Time? = null,
+            shouldScore: Boolean = true
         ): AmpAutoComponent =
             AmpAutoComponent(
                 PathPlannerPath.fromChoreoTrajectory(grabPathName),
                 PathPlannerPath.fromChoreoTrajectory(scorePathName),
-                groundIntakePreSpinupTime
+                groundIntakePreSpinupTime,
+                shouldScore
             )
 
         fun fromPathPlanner(
             grabPathName: String,
             scorePathName: String,
             groundIntakePreSpinupTime: Time? = null,
+            shouldScore: Boolean = true
         ): AmpAutoComponent =
             AmpAutoComponent(
                 PathPlannerPath.fromPathFile(grabPathName),
                 PathPlannerPath.fromPathFile(scorePathName),
-                groundIntakePreSpinupTime
+                groundIntakePreSpinupTime,
+                shouldScore
             )
     }
 }

@@ -62,4 +62,9 @@ class Climber(
             io.setRightVoltage(speed * climbMaxVoltage)
         }
     }
+
+    fun setIdle(){
+        moveLeftHook(0.0)
+        moveRightHook(0.0)
+    }
 }

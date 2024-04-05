@@ -36,24 +36,3 @@ const val SHOOTER_SENSOR_ID = 9
 const val GROUND_INTAKE_SENSOR_ID = 1
 const val PIVOT_ENCODER_ID = 0
 
-/*
-Old drivetrain IDs that were rigatoni plate side front
-
-object DrivetrainID {
-    const val TL_DRIVE = 30
-    const val TR_DRIVE = 16
-    const val BL_DRIVE = 3
-    const val BR_DRIVE = 10
-
-    const val TL_TURN = 22
-    const val TR_TURN = 31
-    const val BL_TURN = 4
-    const val BR_TURN = 12
-
-    const val TL_ENCODER = 43
-    const val TR_ENCODER = 42
-    const val BL_ENCODER = 45
-    const val BR_ENCODER = 44
-}
- */
-

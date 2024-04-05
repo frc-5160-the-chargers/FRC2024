@@ -3,6 +3,7 @@ package frc.robot
 
 import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.volts
+import edu.wpi.first.math.MathUtil
 import edu.wpi.first.wpilibj.DigitalOutput
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
@@ -13,9 +14,12 @@ import frc.chargers.framework.ChargerRobotContainer
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.subsystems.differentialdrive.sparkMaxDrivetrain
+import frc.chargers.utils.math.mapBetweenRanges
+import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.robot.hardware.subsystems.led.LEDController
 
 class PushBotRobotContainer: ChargerRobotContainer() {
+
     private val drivetrain = sparkMaxDrivetrain(
         topLeft = ChargerSparkMax(15){ inverted = true },
         topRight = ChargerSparkMax(7),
@@ -28,17 +32,17 @@ class PushBotRobotContainer: ChargerRobotContainer() {
         closedLoopRampRate = 48.0
     }
     
-    private val xboxController = CommandXboxController(0)
+    private val xboxController = CommandXboxController(1)
 
     private val ledController = LEDController(
-        DigitalOutput(5),
         DigitalOutput(4),
-        DigitalOutput(3)
+        DigitalOutput(5),
+        DigitalOutput(6)
     )
 
     init{
+
         drivetrain.setDefaultRunCommand {
-            /*
             val precisionModePower = xboxController.leftTriggerAxis.mapBetweenRanges(0.0..1.0, 1.0..6.0)
             drivetrain.curvatureDrive(
                 ChassisPowers(
@@ -47,8 +51,11 @@ class PushBotRobotContainer: ChargerRobotContainer() {
                     -MathUtil.applyDeadband(xboxController.rightX, .2) * precisionModePower
                 )
             )
-             */
-            drivetrain.stop()
+        }
+
+
+        ledController.setDefaultRunCommand{
+            ledController.displayDefault()
         }
 
         xboxController.a()

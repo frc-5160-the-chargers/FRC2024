@@ -1,6 +1,7 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate")
 package frc.robot.hardware.subsystems.shooter
 
+import com.batterystaple.kmeasure.interop.average
 import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.abs
@@ -29,6 +30,8 @@ class Shooter(
     val hasNoteDetector: Boolean get() = io.hasNoteDetector
 
     val hasNote: Boolean get() = io.hasNote
+
+    val angularVelocity: AngularVelocity get() = io.intakeSpeeds.average()
 
     fun setIdle(){
         io.setIntakeVoltage(0.volts)
@@ -90,7 +93,7 @@ class Shooter(
 
     fun outtake(voltage: Voltage){
         io.setIntakeVoltage(voltage)
-        if (voltage >= 0.volts){
+        if (voltage < 0.volts){
             if (RobotBase.isSimulation()){
                 error(WRONG_USAGE_OF_OUTTAKE_WARNING_MSG)
             }else{

@@ -11,7 +11,6 @@ import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.Pigeon2Configuration
 import com.ctre.phoenix6.hardware.Pigeon2
 import edu.wpi.first.wpilibj.RobotBase.isReal
-import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
@@ -48,19 +47,6 @@ public class ChargerPigeon2(
 ): Pigeon2(canId, canBus), ZeroableHeadingProvider, HardwareConfigurable<ChargerPigeon2Configuration> {
     private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
     private var configAppliedProperly = true
-
-    private fun StatusCode.updateConfigStatus(): StatusCode {
-        if (this != StatusCode.OK){
-            if (isSimulation()){
-                println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
-            }else{
-                delay(200.milli.seconds)
-                allConfigErrors.add(this)
-                configAppliedProperly = false
-            }
-        }
-        return this
-    }
 
     init{
         ChargerRobot.runPeriodically (addToFront = true) {
@@ -217,11 +203,15 @@ public class ChargerPigeon2(
         ) {
             allConfigErrors.clear()
             applyChanges(basePigeon2Configuration, configuration)
-            configurator.apply(basePigeon2Configuration).updateConfigStatus()
-            return@safeConfigure configAppliedProperly
+            val configurationStatus = configurator.apply(basePigeon2Configuration)
+            if (configurationStatus != StatusCode.OK && isReal()){
+                delay(200.milli.seconds)
+                return@safeConfigure false
+            }else{
+                return@safeConfigure true
+            }
         }
     }
-
 }
 
 /**

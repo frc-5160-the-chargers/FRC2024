@@ -47,7 +47,7 @@ public class ChargerCANcoder(
 
     private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
     private var configAppliedProperly = true
-    private fun StatusCode.updateConfigStatus(): StatusCode {
+    private fun StatusCode.updateErrorStatus(): StatusCode {
         if (this != StatusCode.OK){
             if (RobotBase.isSimulation()){
                 println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
@@ -134,17 +134,17 @@ public class ChargerCANcoder(
         ) {
             allConfigErrors.clear()
             applyChanges(baseCANcoderConfiguration,configuration)
-            configurator.apply(baseCANcoderConfiguration,0.02).updateConfigStatus()
+            configurator.apply(baseCANcoderConfiguration,0.02).updateErrorStatus()
 
 
             configuration.positionUpdateFrequency?.let{
-                position.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
-                absolutePosition.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
+                position.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
+                absolutePosition.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
             }
 
             configuration.velocityUpdateFrequency?.let{
-                velocity.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
-                unfilteredVelocity.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
+                velocity.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
+                unfilteredVelocity.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
             }
 
             configuration.filterVelocity?.let{ filterVelocity = it }

@@ -42,7 +42,7 @@ fun shootInSpeaker(
         loopUntil({shooter.hasNote}){ runShooting() }
         loopUntil({!shooter.hasNote}){ runShooting() }
         // then, runs the shooter for a short period of time
-        loopFor(1.seconds){ runShooting() }
+        loopFor(0.8.seconds){ runShooting() }
     }else{
         loopFor(1.5.seconds){ runShooting() }
     }

@@ -7,15 +7,16 @@ import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
+import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
+import frc.robot.NOTE_DETECTOR_PID
 import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.SpeakerAutoComponent
 import frc.robot.commands.shootInSpeaker
-import frc.robot.controls.rotationoverride.getNoteRotationOverride
 import frc.robot.hardware.subsystems.groundintake.GroundIntakeSerializer
 import frc.robot.hardware.subsystems.pivot.Pivot
 import frc.robot.hardware.subsystems.pivot.PivotAngle
@@ -26,11 +27,11 @@ import frc.robot.hardware.subsystems.shooter.Shooter
  * A modular autonomous command for speaker-scoring autos with advanced path planning.
  */
 fun speakerAutonomous(
-    noteDetector: ObjectVisionPipeline? = null,
     drivetrain: EncoderHolonomicDrivetrain,
     shooter: Shooter,
     pivot: Pivot,
     groundIntake: GroundIntakeSerializer,
+    noteDetector: ObjectVisionPipeline? = null,
 
     blueStartingPose: UnitPose2d,
     additionalComponents: List<SpeakerAutoComponent>
@@ -41,7 +42,7 @@ fun speakerAutonomous(
         drivetrain.poseEstimator.resetPose(blueStartingPose.flipWhenNeeded())
     }
 
-    +shootInSpeaker(shooter, groundIntake, pivot)
+    +shootInSpeaker(shooter, groundIntake, pivot, shooterSpinUpTime = 1.5.seconds)
 
     for (autoComponent in additionalComponents){
         val grabPathStartPose: UnitPose2d = autoComponent.grabPath.pathPoses.last().ofUnit(meters)
@@ -74,7 +75,12 @@ fun speakerAutonomous(
                     waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE }
 
                     runOnce{
-                        drivetrain.setRotationOverride(getNoteRotationOverride(noteDetector))
+                        drivetrain.setRotationOverride(
+                            AimToObjectRotationOverride(
+                                noteDetector,
+                                NOTE_DETECTOR_PID
+                            )
+                        )
                     }
                 }
             }

@@ -42,13 +42,14 @@ val PATHFIND_CONSTRAINTS = PathConstraints(
 )
 
 val ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE = 1.5.meters
-val ACCEPTABLE_DISTANCE_BEFORE_NOTE_SPINUP = 1.5.meters
 
 // alerts
 val NO_TARGET_FOUND_ALERT = Alert.warning(text = "A command is attempting to aim to a target using vision, but none can be found.")
 
 // pid constants used in multiple places
-val ANGLE_TO_ROTATIONAL_VELOCITY_PID = PIDConstants(3.8,0,0)
+val ANGLE_TO_ROTATIONAL_VELOCITY_PID = PIDConstants(1.7,0,0.001)
+
+val NOTE_DETECTOR_PID = PIDConstants(0.05,0,0.001)
 
 
 

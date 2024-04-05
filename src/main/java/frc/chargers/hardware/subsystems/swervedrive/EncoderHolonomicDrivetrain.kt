@@ -34,6 +34,7 @@ import frc.chargers.hardware.subsystems.swervedrive.modulelowlevel.ModuleIOReal
 import frc.chargers.hardware.subsystems.swervedrive.modulelowlevel.ModuleIOSim
 import frc.chargers.pathplannerextensions.asPathPlannerConstants
 import frc.chargers.utils.a
+import frc.chargers.utils.math.equations.epsilonEquals
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.utils.math.units.VoltageRate
 import frc.chargers.utils.math.units.toKmeasure
@@ -160,12 +161,13 @@ public class EncoderHolonomicDrivetrain(
                 // refreshes the data storage for setpoints
                 allModuleSetpoints[moduleIO] = setpointState
 
-                // uses pid control to move to the calculated setpoint, to acheive the target goal.
+                // uses pid control to move to the calculated setpoint, to achieve the target goal.
                 moduleIO.setDirectionSetpoint(
-                    allModuleSetpoints[moduleIO]!!.position,
+                    setpointState.position,
                     controlData.azimuthControl.pidConstants,
+                    // uses plant inversion to calculate velocity setpoints
                     controlData.azimuthControl.ffEquation.calculatePlantInversion(
-                        allModuleSetpoints[moduleIO]!!.velocity,
+                        setpointState.velocity,
                         futureSetpoint.velocity
                     )
                 )
@@ -264,7 +266,7 @@ public class EncoderHolonomicDrivetrain(
             { currentSpeeds },
             { speeds ->
                 velocityDrive(speeds, fieldRelative = false)
-                recordOutput("$logName/pathplanningChassisSpeeds", speeds)
+                recordOutput("PathPlanner/ChassisSpeeds", ChassisSpeeds.struct, speeds)
             },
             HolonomicPathFollowerConfig(
                 controlData.robotTranslationPID.asPathPlannerConstants(),
@@ -511,7 +513,7 @@ public class EncoderHolonomicDrivetrain(
             powers.yPower * maxLinearVelocity.siValue,
             powers.rotationPower * maxRotationalVelocity.siValue
         )
-        recordOutput("$logName/GoalWithoutModifiers", ChassisSpeeds.struct, goal)
+        recordOutput("$logName/ChassisSpeeds/GoalWithoutModifiers", ChassisSpeeds.struct, goal)
         if (fieldRelative){
             goal = ChassisSpeeds.fromFieldRelativeSpeeds(goal, (heading + allianceFieldRelativeOffset).asRotation2d())
         }
@@ -546,6 +548,9 @@ public class EncoderHolonomicDrivetrain(
         speeds: ChassisSpeeds,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
+        if (speeds.vxMetersPerSecond epsilonEquals 0.0 && speeds.vyMetersPerSecond epsilonEquals 0.0 && speeds.omegaRadiansPerSecond epsilonEquals 0.0){
+            stop()
+        }
         currentControlMode = ControlMode.CLOSED_LOOP
         goal = if (fieldRelative){
             ChassisSpeeds.fromFieldRelativeSpeeds(speeds, (heading + allianceFieldRelativeOffset).asRotation2d())
@@ -603,6 +608,11 @@ public class EncoderHolonomicDrivetrain(
     public fun stop(){
         // prevents driving anywhere else
         currentControlMode = ControlMode.NONE
+        goal = ChassisSpeeds()
+        setpoint = SwerveSetpointGenerator.Setpoint(
+            ChassisSpeeds(),
+            setpoint.moduleStates
+        )
         moduleIOArray.forEach{
             it.setDriveVoltage(0.volts)
             it.setTurnVoltage(0.volts)
@@ -615,6 +625,11 @@ public class EncoderHolonomicDrivetrain(
     public fun stopInX(){
         // prevents driving anywhere else
         currentControlMode = ControlMode.NONE
+        goal = ChassisSpeeds()
+        setpoint = SwerveSetpointGenerator.Setpoint(
+            ChassisSpeeds(),
+            setpoint.moduleStates
+        )
         setTurnDirections(
             listOf(45.degrees, (-45).degrees, (-45).degrees, 45.degrees)
         )
@@ -650,9 +665,12 @@ public class EncoderHolonomicDrivetrain(
         recordOutput("$logName/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
         recordOutput("$logName/OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
         recordOutput("$logName/DesiredModuleStates", *setpoint.moduleStates)
-        recordOutput("$logName/ChassisSpeeds(Setpoint)", ChassisSpeeds.struct, setpoint.chassisSpeeds)
-        recordOutput("$logName/ChassisSpeeds(Goal)", ChassisSpeeds.struct, goal)
         recordOutput("$logName/HasRotationOverride", rotationOverride != null)
+        recordOutput("$logName/RequestedControlMode", currentControlMode)
+
+        recordOutput("$logName/ChassisSpeeds/Setpoint", ChassisSpeeds.struct, setpoint.chassisSpeeds)
+        recordOutput("$logName/ChassisSpeeds/Goal", ChassisSpeeds.struct, goal)
+        recordOutput("$logName/ChassisSpeeds/Measured", ChassisSpeeds.struct, currentSpeeds)
 
         if (DriverStation.isDisabled()) {
             stop()
@@ -687,7 +705,6 @@ public class EncoderHolonomicDrivetrain(
             goal,
             ChargerRobot.LOOP_PERIOD.inUnit(seconds)
         )
-
 
         moduleIOArray.forEachIndexed { index, moduleIO ->
             setDesiredState(

@@ -91,7 +91,7 @@ public class ChargerTalonFX(
 
     private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
     private var configAppliedProperly = true
-    private fun StatusCode.updateConfigStatus(): StatusCode {
+    private fun StatusCode.updateErrorStatus(): StatusCode {
         if (this != StatusCode.OK){
             if (RobotBase.isSimulation()){
                 println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
@@ -316,26 +316,26 @@ public class ChargerTalonFX(
         ){
             allConfigErrors.clear()
             applyChanges(baseTalonFXConfiguration, configuration)
-            configurator.apply(baseTalonFXConfiguration,0.02).updateConfigStatus()
+            configurator.apply(baseTalonFXConfiguration,0.02).updateErrorStatus()
 
             configuration.apply{
                 positionUpdateFrequency?.let{
-                    position.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
+                    position.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
                 }
 
                 velocityUpdateFrequency?.let{
-                    velocity.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
+                    velocity.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
                 }
 
                 motorOutputUpdateFrequency?.let{
-                    supplyVoltage.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
-                    dutyCycle.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
+                    supplyVoltage.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
+                    dutyCycle.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
                 }
 
                 currentUpdateFrequency?.let{
-                    torqueCurrent.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
-                    supplyCurrent.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
-                    statorCurrent.setUpdateFrequency(it.inUnit(hertz)).updateConfigStatus()
+                    torqueCurrent.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
+                    supplyCurrent.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
+                    statorCurrent.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
                 }
             }
             return@safeConfigure configAppliedProperly

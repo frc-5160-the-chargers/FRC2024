@@ -4,24 +4,19 @@
 @file:Suppress("unused")
 package frc.robot
 
-import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.AngularAcceleration
-import com.batterystaple.kmeasure.quantities.AngularVelocity
-import com.batterystaple.kmeasure.quantities.div
+import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
-import com.pathplanner.lib.path.PathPlannerPath
+import com.ctre.phoenix6.signals.NeutralModeValue
 import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.GenericHID
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.button.Trigger
-import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.setDefaultRunCommand
@@ -43,11 +38,9 @@ import frc.chargers.hardware.sensors.encoders.absolute.ChargerCANcoder
 import frc.chargers.hardware.sensors.encoders.absolute.ChargerDutyCycleEncoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
-import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
-import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.hardware.subsystems.swervedrive.sparkMaxSwerveMotors
-import frc.chargers.hardware.subsystems.swervedrive.swerveCANcoders
+import frc.chargers.hardware.subsystems.swervedrive.*
 import frc.chargers.utils.registerSingletonsForAutoLogOutput
+import frc.external.frc6328.MechanicalAdvantageFFCharacterization
 import frc.robot.commands.*
 import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
 import frc.robot.commands.auto.AutoChooser
@@ -153,7 +146,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 conveyorMotor = ChargerSparkMax(CONVEYOR_ID){
                     ///// FOR NAYAN: Ground Intake configuration
                     inverted = true
-                    smartCurrentLimit = SmartCurrentLimit(35.amps)
+                    smartCurrentLimit = SmartCurrentLimit(45.amps)
                 },
                 intakeGearRatio = groundIntakeRatio,
                 beamBreakSensor = DigitalInput(GROUND_INTAKE_SENSOR_ID)
@@ -192,31 +185,31 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             bottomLeftZero = 4.971.radians,
             bottomRightZero = 6.243.radians,
         ),
-        driveMotors = sparkMaxSwerveMotors(
-            topLeft = ChargerSparkMax(DrivetrainID.TL_DRIVE),
-            topRight = ChargerSparkMax(DrivetrainID.TR_DRIVE){ inverted = true },
-            bottomLeft = ChargerSparkMax(DrivetrainID.BL_DRIVE),
-            bottomRight = ChargerSparkMax(DrivetrainID.BR_DRIVE){ inverted = true }
+        driveMotors = talonFXSwerveMotors(
+            ChargerTalonFX(DrivetrainID.TL_DRIVE),
+            ChargerTalonFX(DrivetrainID.TR_DRIVE){ inverted = true },
+            ChargerTalonFX(DrivetrainID.BL_DRIVE),
+            ChargerTalonFX(DrivetrainID.BR_DRIVE){ inverted = true },
         ){
-            periodicFrameConfig = PeriodicFrameConfig.Optimized()
-            smartCurrentLimit = SmartCurrentLimit(45.amps)
-            voltageCompensationNominalVoltage = 12.volts
-            openLoopRampRate = 48.0
-            closedLoopRampRate = 48.0
+            statorCurrentLimitEnable = true
+            statorCurrentLimit = 120.amps
+            supplyCurrentLimitEnable = true
+            supplyCurrentLimit = 80.amps
+            neutralMode = NeutralModeValue.Brake
         },
         controlData = SwerveControlData(
             azimuthControl = SwerveAzimuthControl.PID(
                 PIDConstants(7.0,0,0.1),
             ),
             openLoopDiscretizationRate = 2.0,
-            closedLoopDiscretizationRate = 2.0,
-            velocityPID = PIDConstants(0.2,0.0,0.0),
+            closedLoopDiscretizationRate = 0.0,
+            velocityPID = PIDConstants(0.11,0.0,0.001),
             velocityFF = if (isReal()){
-                AngularMotorFFEquation(0.16, 0.133)
+                AngularMotorFFEquation(0.16, 0.128)
             }else{
-                AngularMotorFFEquation(0.0, 0.13)
+                AngularMotorFFEquation(0.0, 0.128)
             },
-            robotRotationPID = PIDConstants(2.5, 0, 0.003),
+            robotRotationPID = PIDConstants(2.0, 0, 0.001),
             robotTranslationPID = PIDConstants(4.0,0,0.001)
         ),
         useOnboardPID = false,
@@ -258,17 +251,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
     private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
 
-
-
-    private val autoChooser = AutoChooser(
-        aprilTagVision = vision.tagPipeline,
-        noteDetector = vision.notePipeline,
-        drivetrain, shooter, pivot, groundIntake
-    )
-
-    override fun teleopInit(){
-        vision.enableVisionPoseEstimation()
-    }
+    private val autoChooser = AutoChooser(noteDetector = null, drivetrain, shooter, pivot, groundIntake)
 
 
     init{
@@ -310,8 +293,11 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureDefaultCommands(){
+        // setDefaultRunCommand gives context blocks which allow for an implicit "this" for the subsystem being called
+        // for instance, you can do drive.setDefaultRunCommand{ drive() }
+        // instead of drive.setDefaultRunCommand{ drivetrain.drive() }
         drivetrain.setDefaultRunCommand{
-            drivetrain.swerveDrive(
+            swerveDrive(
                 DriverController.swerveOutput,
                 fieldRelative = !DriverController.shouldDisableFieldRelative
             )
@@ -320,14 +306,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         shooter.setDefaultRunCommand{
             val speed = OperatorInterface.shooterSpeedAxis()
             if (speed > 0.0){
-                shooter.outtake(speed)
+                outtake(speed)
             }else{
-                shooter.intake(speed)
+                intake(speed)
             }
         }
 
         pivot.setDefaultRunCommand(endBehavior = pivot::setIdle){
-            pivot.setSpeed(OperatorInterface.pivotSpeedAxis())
+            setSpeed(OperatorInterface.pivotSpeedAxis())
         }
 
         climber.setDefaultRunCommand{
@@ -338,13 +324,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 moveLeftHook(-1.0)
                 moveRightHook(-1.0)
             }else{
-                moveLeftHook(0.0)
-                moveRightHook(0.0)
+                setIdle()
             }
         }
 
         groundIntake.setDefaultRunCommand{
-            groundIntake.setIdle()
+            setIdle()
         }
     }
 
@@ -424,35 +409,15 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         Trigger{ groundIntake.hasNote && groundIntake.hasNoteDetector }
-            .whileTrue(
-                buildCommand{
-                    runOnce{
-                        DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 1.0)
-                    }
-
-                    waitFor(0.2.seconds)
-
-                    runOnce{
-                        DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 0.0)
-                    }
-
-                    waitFor(0.2.seconds)
-                }.repeatedly()
-            )
-            .onFalse(runOnceCommand{ DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 0.0) })
+            .whileTrue(alternatingRumble())
     }
 
 
 
 
-    override val testCommand: Command get() = resetPoseThenFollowPath(
-        drivetrain,
-        PathPlannerPath.fromPathFile("RotationTest")
-    )
-
-        /*
+    override val testCommand: Command =
         MechanicalAdvantageFFCharacterization(
-            drivetrain, false,
+            drivetrain, true,
             MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("DrivetrainDataLeft"),
             MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("DrivetrainDataRight"),
             { leftV, rightV ->
@@ -480,7 +445,15 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 (allVelocities[1].siValue + allVelocities[3].siValue) / 2.0
             }
         )
+        /*
+        MechanicalAdvantageFFCharacterization(
+            shooter, false,
+            MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("ShooterData"),
+            { voltage -> shooter.outtake(voltage) },
+            { shooter.angularVelocity.siValue },
+        )
          */
+
 
     override val autonomousCommand: Command
         get() = if (isSimulation()) autoChooser.ampAutoTest else autoChooser.selected

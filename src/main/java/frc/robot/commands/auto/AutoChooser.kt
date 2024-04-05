@@ -5,10 +5,8 @@ import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.InstantCommand
 import edu.wpi.first.wpilibj2.command.PrintCommand
-import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.commands.aiming.pursueNote
 import frc.robot.commands.auto.components.AmpAutoComponent
 import frc.robot.commands.auto.components.AmpAutoTaxiMode
 import frc.robot.commands.auto.components.AutoStartingPose
@@ -20,7 +18,6 @@ import frc.robot.hardware.subsystems.shooter.Shooter
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 
 class AutoChooser(
-    aprilTagVision: AprilTagVisionPipeline? = null,
     noteDetector: ObjectVisionPipeline? = null,
 
     drivetrain: EncoderHolonomicDrivetrain,
@@ -62,31 +59,27 @@ class AutoChooser(
     )
      */
 
-    val speakerAutoTest = if (aprilTagVision != null && noteDetector != null){
-        speakerAutonomous(
-            noteDetector, drivetrain,
-            shooter, pivot, groundIntake,
-            blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
-            additionalComponents = listOf(
-                SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
-                SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", spinupShooterDuringGrabPath = false), // path is longer
-                SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
-                SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
-            )
+    val speakerAutoTest = speakerAutonomous(
+        drivetrain, shooter, pivot, groundIntake, noteDetector,
+        blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
+        additionalComponents = listOf(
+            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
+            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", spinupShooterDuringGrabPath = false), // path is longer
+            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
+            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
         )
-    }else{
-        InstantCommand()
-    }
+    )
 
     val ampAutoTest =
         ampAutonomous(
-            drivetrain, shooter, pivot,
-            groundIntake,
+            drivetrain, shooter, pivot, groundIntake, noteDetector,
             additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component)
         )
 
     init{
         sendableChooser.apply{
+            // noteDetector is nullable
+            // if null, it will not be used
             addDefaultOption("Just Taxi", basicTaxi(drivetrain))
 
             addOption("Do Nothing", InstantCommand())
@@ -97,86 +90,61 @@ class AutoChooser(
 
             addOption(
                 "1 Note Amp",
-                ampAutonomous(
-                    drivetrain, shooter, pivot, groundIntake
-                )
+                ampAutonomous(drivetrain, shooter, pivot, groundIntake, noteDetector)
             )
 
             addOption(
                 "1 Note Amp + Short Taxi",
                 ampAutonomous(
-                    drivetrain, shooter, pivot, groundIntake,
+                    drivetrain, shooter, pivot, groundIntake, noteDetector,
                     taxiMode = AmpAutoTaxiMode.TAXI_SHORT
                 )
             )
 
             addOption(
-                "2.5-3 Note Amp(NO VISION)",
+                "2.5-3 Note Amp",
                 ampAutonomous(
-                    drivetrain, shooter, pivot, groundIntake,
-                    additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component)
+                    drivetrain, shooter, pivot, groundIntake, noteDetector,
+                    additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component),
+                    taxiMode = AmpAutoTaxiMode.NO_TAXI
                 )
             )
 
             addOption(
-                "2 Note Amp + Long Taxi(NO VISION)",
-                ampAutonomous(
-                    drivetrain, shooter, pivot, groundIntake,
-                    additionalComponents = listOf(ampScoreNote2Component),
-                    taxiMode = AmpAutoTaxiMode.TAXI_LONG
+                "Untested - One Note Speaker + Taxi(Source Side; No Pathplanner)",
+                onePieceSpeakerAndTaxi(drivetrain, shooter, groundIntake, pivot, AutoStartingPose.SPEAKER_RIGHT_BLUE)
+            )
+
+            addOption(
+                "Untested - Two Piece Speaker(Center; No Pathplanner)",
+                twoPieceSpeakerAndTaxi(drivetrain, shooter, groundIntake, pivot)
+            )
+
+            addOption(
+                "Untested - 4-5 Piece Speaker(Center Side)",
+                speakerAutonomous(
+                    drivetrain, shooter, pivot, groundIntake, noteDetector,
+                    blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
+                    additionalComponents = listOf(
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", spinupShooterDuringGrabPath = false),
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
+                    )
                 )
             )
 
-            if (noteDetector != null){
-                addOption(
-                    "Taxi + Pursue note",
-                    basicTaxi(drivetrain).andThen(pursueNote(drivetrain, noteDetector))
-                )
-
-                addOption(
-                    "2.5-3 Note Amp",
-                    ampAutonomous(
-                        drivetrain, shooter, pivot, groundIntake, noteDetector,
-                        additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component)
+            addOption(
+                "Untested - 3 Piece Speaker(Source Side)",
+                speakerAutonomous(
+                    drivetrain, shooter, pivot, groundIntake, noteDetector,
+                    blueStartingPose = AutoStartingPose.SPEAKER_RIGHT_BLUE,
+                    additionalComponents = listOf(
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.1", scorePathName = "3pAutoRight.2", spinupShooterDuringGrabPath = false),
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.3", scorePathName = "3pAutoRight.4", spinupShooterDuringGrabPath = false)
                     )
                 )
-
-                addOption(
-                    "2 Note Amp + Long Taxi",
-                    ampAutonomous(
-                        drivetrain, shooter, pivot, groundIntake, noteDetector,
-                        additionalComponents = listOf(ampScoreNote2Component),
-                        taxiMode = AmpAutoTaxiMode.TAXI_LONG
-                    )
-                )
-
-                addOption(
-                    "Untested - 4-5 Piece Speaker(Center Side)",
-                    speakerAutonomous(
-                        noteDetector, drivetrain, shooter, pivot, groundIntake,
-                        blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
-                        additionalComponents = listOf(
-                            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
-                            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", spinupShooterDuringGrabPath = false),
-                            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
-                            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
-                        )
-                    )
-                )
-
-                addOption(
-                    "Untested - 3 Piece Speaker(Source Side)",
-                    speakerAutonomous(
-                        noteDetector, drivetrain, shooter, pivot, groundIntake,
-                        blueStartingPose = AutoStartingPose.SPEAKER_RIGHT_BLUE,
-                        additionalComponents = listOf(
-                            SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.1", scorePathName = "3pAutoRight.2", spinupShooterDuringGrabPath = false),
-                            SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.3", scorePathName = "3pAutoRight.4", spinupShooterDuringGrabPath = false)
-                        )
-                    )
-                )
-
-            }
+            )
         }
     }
 }

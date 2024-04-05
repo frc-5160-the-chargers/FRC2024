@@ -21,6 +21,7 @@ object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
     private val shouldInvertStrafe = LoggedDashboardBoolean("ShouldInvertStrafe", false)
 
 
+
     /* Public API */
     val pointNorthTrigger: Trigger = if (DRIVER.rightHanded) povUp() else triangle()
     val pointSouthTrigger: Trigger = if (DRIVER.rightHanded) povDown() else cross()
@@ -58,7 +59,7 @@ object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
         InputAxis{ if (DRIVER.rightHanded) leftX else rightX }
             .withDeadband(DEFAULT_DEADBAND)
             .square()
-            .withEquation(Polynomial(0.2,0.0,0.5,0.0))
+            .withEquation(Polynomial(-0.2,0.0,-0.5,0.0))
             .log("DriverController/rotationPower")
 
     private val precisionAxis =
