@@ -15,6 +15,7 @@ fun shootInSpeaker(
     groundIntake: GroundIntakeSerializer,
     pivot: Pivot,
     shooterSpinUpTime: Time = 1.seconds,
+    movePivot: Boolean = true
 ): Command = buildCommand("Shoot In Speaker"){
     fun runShooting(){
         shooter.outtakeAtSpeakerSpeed()
@@ -25,11 +26,13 @@ fun shootInSpeaker(
 
     val spinupStartTime by getOnceDuringRun{ fpgaTimestamp() }
 
-    runParallelUntilFirstCommandFinishes{
-        +pivot.setAngleCommand(PivotAngle.SPEAKER)
+    if (movePivot){
+        runParallelUntilFirstCommandFinishes{
+            +pivot.setAngleCommand(PivotAngle.SPEAKER)
 
-        loop{
-            shooter.outtakeAtSpeakerSpeed()
+            loop{
+                shooter.outtakeAtSpeakerSpeed()
+            }
         }
     }
 

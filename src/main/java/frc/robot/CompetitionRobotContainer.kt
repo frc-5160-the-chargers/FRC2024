@@ -408,6 +408,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             )
 
             stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
+
+            y().whileTrue(
+                loopCommand(shooter){
+                    shooter.outtakeAtSpeakerSpeed()
+                }
+            )
         }
 
         Trigger{ groundIntake.hasNote && groundIntake.hasNoteDetector }
