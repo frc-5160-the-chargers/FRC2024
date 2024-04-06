@@ -45,11 +45,6 @@ fun speakerAutonomous(
 
     for (autoComponent in additionalComponents){
         val grabPathStartPose: UnitPose2d = autoComponent.grabPath.pathPoses.last().ofUnit(meters)
-        var hasReceivedNote = false
-
-        runOnce{
-            hasReceivedNote = false
-        }
 
         runParallelUntilFirstCommandFinishes{
             // parallel #1
@@ -58,15 +53,14 @@ fun speakerAutonomous(
 
                 // drives out further in case the path missed the note
                 if (noteDetector != null){
-                    +pursueNote(
-                        drivetrain, noteDetector,
-                        endCondition = { hasReceivedNote }
-                    ).withTimeout(2.0)
+                    +pursueNote(drivetrain, noteDetector).withTimeout(1.5)
                 }
 
                 runOnce{
                     drivetrain.removeRotationOverride()
                 }
+
+                waitFor(0.2.seconds)
             }
 
             // parallel #2
@@ -76,18 +70,7 @@ fun speakerAutonomous(
                 }else{
                     shooter.setIdle()
                 }
-
                 groundIntake.intake()
-
-                if (groundIntake.hasNoteDetector){
-                    if (groundIntake.hasNote){
-                        hasReceivedNote = true
-                    }
-                }else{
-                    if (noteDetector != null && noteDetector.bestTarget == null){
-                        hasReceivedNote = true
-                    }
-                }
             }
 
             // parallel #3
@@ -118,11 +101,7 @@ fun speakerAutonomous(
                 // just run shooting to bring the shooter up to speed
                 loop{
                     shooter.outtakeAtSpeakerSpeed()
-                    if (groundIntake.hasNoteDetector && groundIntake.hasNote){
-                        groundIntake.intake()
-                    }else{
-                        groundIntake.setIdle()
-                    }
+                    groundIntake.setIdle()
                 }
             }
 

@@ -7,6 +7,7 @@ import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.utils.math.equations.epsilonEquals
 import frc.robot.ODOMETRY_UPDATE_FREQUENCY_HZ
 import frc.robot.hardware.subsystems.odometry.OdometryThread
+import java.util.*
 
 /**
  * Handles gyro readings for multi-threaded odometry.
@@ -26,7 +27,7 @@ class GyroOdometryIO(navX: ChargerNavX) {
     )
 
     // degrees
-    private val gyroReadingsQueue = OdometryThread.getInstance().registerSignal(navX.ahrs::getAngle)
+    private val gyroReadingsQueue = OdometryThread.getInstance().registerSignal{ OptionalDouble.of(navX.ahrs.angle) }
 
     val gyroReadings by logInputs.quantityList{
         gyroReadingsQueue

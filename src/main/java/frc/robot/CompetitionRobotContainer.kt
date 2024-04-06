@@ -373,7 +373,12 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         OperatorInterface.apply{
             groundIntakeTrigger.whileTrue(runGroundIntake(groundIntake, shooter))
 
-            groundOuttakeTrigger.whileTrue(loopCommand(groundIntake){ groundIntake.outtake() })
+            groundOuttakeTrigger.whileTrue(
+                loopCommand(groundIntake, shooter){
+                    groundIntake.outtake()
+                    shooter.outtake(-6.volts)
+                }
+            )
 
             passToShooterTrigger.whileTrue(passSerializedNote(groundIntake, shooter))
 
