@@ -1,12 +1,10 @@
 package frc.robot.commands.aiming
 
-import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.robot.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
 import frc.robot.NOTE_DETECTOR_PID
 import kotlin.math.abs
 
@@ -27,29 +25,19 @@ inline fun pursueNote(
         }
     },
     crossinline endCondition: () -> Boolean = { noteDetector.bestTarget == null },
-    forwards: Boolean = true,
-    setRotationOverride: Boolean = true
+    forwards: Boolean = true
 ): Command = buildCommand(name = "Pursue Note Command") {
-    if (setRotationOverride){
-        runOnce{
-            drivetrain.setRotationOverride(
-                AimToObjectRotationOverride(
-                    noteDetector,
-                    NOTE_DETECTOR_PID
-                )
-            )
-        }
-    }
-
-
     val multiplier = if (forwards) 1.0 else -1.0
 
-    loopUntil({
-        val targetDistance = noteDetector.robotToTargetDistance(targetHeight = 0.meters)
-        endCondition() || (targetDistance != null && targetDistance > ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE)
-    }){
+    runOnce{
+        drivetrain.setRotationOverride(
+            AimToObjectRotationOverride(noteDetector, NOTE_DETECTOR_PID)
+        )
+    }
+
+    loopUntil({ endCondition() }){
         // no rotation needed because rotation override set
-        drivetrain.swerveDrive(multiplier * abs(getNotePursuitSpeed()),0.0,0.0, fieldRelative = false)
+        drivetrain.swerveDrive(multiplier * abs(getNotePursuitSpeed()), 0.0, 0.0, fieldRelative = false)
     }
 
     onEnd{

@@ -12,17 +12,16 @@ package frc.robot.hardware.subsystems.odometry;
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.Notifier;
 import frc.robot.GlobalConstantsKt;
 import org.littletonrobotics.junction.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalDouble;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
 /**
@@ -30,7 +29,7 @@ import java.util.function.Supplier;
  * <p>
  * Note: This was originally Mechanical Advantage's SparkMaxOdometryThread;
  * however, we renamed it because this is the only thread we can use, as measurements must be synchronous,
- * and we aren't using falcons for swerve.
+ * and the PhoenixOdometryThread
  */
 @SuppressWarnings("ALL")
 public class OdometryThread {
@@ -39,13 +38,9 @@ public class OdometryThread {
      */
     public static final ReentrantLock ODOMETRY_LOCK = new ReentrantLock();
 
-    private List<DoubleSupplier> signals = new ArrayList<>();
-    private List<Supplier<Pose2d>> poseSignals = new ArrayList<>();
-
-
+    private List<Supplier<OptionalDouble>> signals = new ArrayList<>();
     private List<Queue<Double>> queues = new ArrayList<>();
     private List<Queue<Double>> timestampQueues = new ArrayList<>();
-
 
     private final Notifier notifier;
     private static OdometryThread instance = null;
@@ -59,7 +54,7 @@ public class OdometryThread {
 
     private OdometryThread() {
         notifier = new Notifier(this::periodic);
-        notifier.setName("OdometryThread");
+        notifier.setName("SparkMaxOdometryThread");
     }
 
     public void start() {
@@ -68,7 +63,7 @@ public class OdometryThread {
         }
     }
 
-    public Queue<Double> registerSignal(DoubleSupplier signal) {
+    public Queue<Double> registerSignal(Supplier<OptionalDouble> signal) {
         Queue<Double> queue = new ArrayBlockingQueue<>(20);
         ODOMETRY_LOCK.lock();
         try {
@@ -95,11 +90,24 @@ public class OdometryThread {
         ODOMETRY_LOCK.lock();
         double timestamp = Logger.getRealTimestamp() / 1e6;
         try {
+            double[] values = new double[signals.size()];
+            boolean isValid = true;
             for (int i = 0; i < signals.size(); i++) {
-                queues.get(i).offer(signals.get(i).getAsDouble());
+                OptionalDouble value = signals.get(i).get();
+                if (value.isPresent()) {
+                    values[i] = value.getAsDouble();
+                } else {
+                    isValid = false;
+                    break;
+                }
             }
-            for (int i = 0; i < timestampQueues.size(); i++) {
-                timestampQueues.get(i).offer(timestamp);
+            if (isValid) {
+                for (int i = 0; i < queues.size(); i++) {
+                    queues.get(i).offer(values[i]);
+                }
+                for (int i = 0; i < timestampQueues.size(); i++) {
+                    timestampQueues.get(i).offer(timestamp);
+                }
             }
         } finally {
             ODOMETRY_LOCK.unlock();

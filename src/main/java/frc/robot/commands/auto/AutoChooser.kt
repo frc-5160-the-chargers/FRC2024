@@ -64,7 +64,6 @@ class AutoChooser(
         blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
         additionalComponents = listOf(
             SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
-            SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", spinupShooterDuringGrabPath = false), // path is longer
             SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
             SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
         )
@@ -79,7 +78,7 @@ class AutoChooser(
     init{
         sendableChooser.apply{
             // noteDetector is nullable
-            // if null, it will not be used
+            // if null, it will not be used in the following commands(as they accept a nullable ObjectVisionPipeline)
             addDefaultOption("Just Taxi", basicTaxi(drivetrain))
 
             addOption("Do Nothing", InstantCommand())
@@ -128,6 +127,19 @@ class AutoChooser(
                     additionalComponents = listOf(
                         SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
                         SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.3", scorePathName = "5pAutoCenter.4", spinupShooterDuringGrabPath = false),
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
+                    )
+                )
+            )
+
+            addOption(
+                "Untested - 4 Piece Speaker(Center Side)",
+                speakerAutonomous(
+                    drivetrain, shooter, pivot, groundIntake, noteDetector,
+                    blueStartingPose = AutoStartingPose.SPEAKER_CENTER_BLUE,
+                    additionalComponents = listOf(
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.1", scorePathName = "5pAutoCenter.2",),
                         SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.5", scorePathName = "5pAutoCenter.6",),
                         SpeakerAutoComponent.fromChoreo(grabPathName = "5pAutoCenter.7", scorePathName = "5pAutoCenter.8",)
                     )

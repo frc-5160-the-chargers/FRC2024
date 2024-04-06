@@ -1,5 +1,5 @@
 package frc.robot.hardware.subsystems.odometry
-/*
+
 import com.batterystaple.kmeasure.quantities.abs
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.degrees
@@ -12,6 +12,7 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.constants.SwerveHardwareData
+import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
@@ -40,7 +41,7 @@ class ThreadedPoseMonitor(
     private val hardwareData: SwerveHardwareData,
     private val navX: ChargerNavX,
     turnMotors: SwerveMotors<ChargerSparkMax>,
-    driveMotors: SwerveMotors<ChargerSparkMax>,
+    driveMotors: SwerveMotors<ChargerTalonFX>,
     absoluteEncoders: SwerveEncoders<PositionEncoder>,
     private val visionPoseSuppliers: MutableList<VisionPoseSupplier> = mutableListOf()
 ): SubsystemBase(), RobotPoseMonitor {
@@ -82,7 +83,7 @@ class ThreadedPoseMonitor(
     private val timestampsSource = OdometryTimestampsIO()
 
 
-    init{
+    init {
         OdometryThread.getInstance().start()
         // waits, then burns flashes for motors
         delay(0.02.seconds)
@@ -93,18 +94,17 @@ class ThreadedPoseMonitor(
     }
 
 
-
     private val poseEstimator = SwerveDrivePoseEstimator(
         kinematics,
         Rotation2d(0.0),
-        Array(4){SwerveModulePosition()},
+        Array(4) { SwerveModulePosition() },
         startingPose.siValue
     )
 
-    private var currentModulePositions = Array(4){SwerveModulePosition()}
+    private var currentModulePositions = Array(4) { SwerveModulePosition() }
 
-    private val indexOutOfBoundsAlert = Alert.warning(text = "It looks like the amount of timestamps recorded is greater than the amount of readings.")
-
+    private val indexOutOfBoundsAlert =
+        Alert.warning(text = "It looks like the amount of timestamps recorded is greater than the amount of readings.")
 
 
     override val robotPose: UnitPose2d
@@ -120,23 +120,20 @@ class ThreadedPoseMonitor(
         navX.zeroHeading(pose.rotation)
     }
 
-    override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier){
+    override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier) {
         visionPoseSuppliers.addAll(visionSystems)
     }
 
 
-
-
-
-    override fun periodic(){
+    override fun periodic() {
         val timestamps = timestampsSource.timestamps
 
-        require (timestamps.isNotEmpty()){
+        require(timestamps.isNotEmpty()) {
             "There are no timestamps being recorded."
         }
 
         repeat(timestamps.size) { i ->
-            try{
+            try {
                 currentModulePositions = a[
                     SwerveModulePosition(
                         topLeftOdoSource.wheelPositions[i].inUnit(meters),
@@ -156,11 +153,13 @@ class ThreadedPoseMonitor(
                     )
                 ]
 
-                if (hardwareData.couplingRatio != null){
-                    currentModulePositions.forEach{
+                if (hardwareData.couplingRatio != null) {
+                    currentModulePositions.forEach {
                         // applies coupling ratio offsets; not tested atm
                         // rotations is actually Rotation2d.getRotations() and not the kmeasure extension property
-                        it.distanceMeters -= (it.angle.rotations * hardwareData.couplingRatio) * PI * hardwareData.wheelDiameter.inUnit(meters) // * 2 * PI converts to radians, then * wheelDiameter / 2.0 multiplies by wheelRadius for proper pose estimation
+                        it.distanceMeters -= (it.angle.rotations * hardwareData.couplingRatio) * PI * hardwareData.wheelDiameter.inUnit(
+                            meters
+                        ) // * 2 * PI converts to radians, then * wheelDiameter / 2.0 multiplies by wheelRadius for proper pose estimation
                     }
                 }
 
@@ -169,7 +168,7 @@ class ThreadedPoseMonitor(
                     gyroOdoSource.gyroReadings[i].asRotation2d(),
                     currentModulePositions
                 )
-            }catch(_: IndexOutOfBoundsException){
+            } catch (_: IndexOutOfBoundsException) {
                 indexOutOfBoundsAlert.active = true
             }
         }
@@ -180,10 +179,10 @@ class ThreadedPoseMonitor(
 
         This is currently not updated at a high frequency; this might change soon.
          */
-        for (visionPoseSupplier in visionPoseSuppliers){
-            for (poseEstimate in visionPoseSupplier.robotPoseEstimates){
+        for (visionPoseSupplier in visionPoseSuppliers) {
+            for (poseEstimate in visionPoseSupplier.robotPoseEstimates) {
                 // if vision measurement is more than 20 deg off, reject it
-                if (abs(poseEstimate.value.rotation - gyroOdoSource.gyroReadings.last()) > 20.degrees){
+                if (abs(poseEstimate.value.rotation - gyroOdoSource.gyroReadings.last()) > 20.degrees) {
                     continue
                 }
 
@@ -204,5 +203,3 @@ class ThreadedPoseMonitor(
         Logger.recordOutput("ThreadedPoseEstimator/pose", Pose2d.struct, robotPose.siValue)
     }
 }
-
- */

@@ -1,7 +1,9 @@
 @file:Suppress("unused")
 package frc.robot.hardware.inputdevices
 
+import edu.wpi.first.wpilibj.PS4Controller
 import edu.wpi.first.wpilibj.RobotBase
+import edu.wpi.first.wpilibj.XboxController
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.hardware.inputdevices.InputAxis
@@ -20,6 +22,8 @@ object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
     private val shouldInvertForward = LoggedDashboardBoolean("ShouldInvertForward", false)
     private val shouldInvertStrafe = LoggedDashboardBoolean("ShouldInvertStrafe", false)
 
+    val rumbleProcessor = XboxController(DRIVER_CONTROLLER_PORT)
+    val rumbleProcessor2 = PS4Controller(DRIVER_CONTROLLER_PORT)
 
 
     /* Public API */

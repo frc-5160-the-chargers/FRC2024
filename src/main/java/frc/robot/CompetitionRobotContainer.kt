@@ -11,11 +11,13 @@ import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.GenericHID
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj.livewindow.LiveWindow
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.WaitCommand
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
@@ -40,7 +42,6 @@ import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.subsystems.swervedrive.*
 import frc.chargers.utils.registerSingletonsForAutoLogOutput
-import frc.external.frc6328.MechanicalAdvantageFFCharacterization
 import frc.robot.commands.*
 import frc.robot.commands.aiming.pursueNoteElseTeleopDrive
 import frc.robot.commands.auto.AutoChooser
@@ -96,7 +97,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
                 topMotor = ChargerSparkFlex(SHOOTER_MOTOR_ID){
                     ///// FOR NAYAN: Shooter configuration
                     inverted = true
-                    smartCurrentLimit = SmartCurrentLimit(50.amps)
+                    smartCurrentLimit = SmartCurrentLimit(60.amps)
                 },
                 gearRatio = shooterRatio
             )
@@ -194,7 +195,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             statorCurrentLimitEnable = true
             statorCurrentLimit = 120.amps
             supplyCurrentLimitEnable = true
-            supplyCurrentLimit = 80.amps
+            supplyCurrentLimit = 60.amps
             neutralMode = NeutralModeValue.Brake
         },
         controlData = SwerveControlData(
@@ -203,14 +204,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             ),
             openLoopDiscretizationRate = 2.0,
             closedLoopDiscretizationRate = 0.0,
-            velocityPID = PIDConstants(0.11,0.0,0.001),
+            velocityPID = PIDConstants(0.02,0.0,0.0),
             velocityFF = if (isReal()){
-                AngularMotorFFEquation(0.16, 0.128)
+                AngularMotorFFEquation(0.11, 0.17)
             }else{
                 AngularMotorFFEquation(0.0, 0.128)
             },
-            robotRotationPID = PIDConstants(2.0, 0, 0.001),
-            robotTranslationPID = PIDConstants(4.0,0,0.001)
+            robotRotationPID = PIDConstants(4.5, 0, 0.001),
+            robotTranslationPID = PIDConstants(13.0,0,0.001)
         ),
         useOnboardPID = false,
         hardwareData = SwerveHardwareData.mk4iL2(
@@ -250,9 +251,6 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     )
 
     private val vision = VisionManager(drivetrain.poseEstimator, tunableCamerasInSim = false)
-
-    private val autoChooser = AutoChooser(noteDetector = null, drivetrain, shooter, pivot, groundIntake)
-
 
     init{
         // disabled due to potential memory issues
@@ -334,14 +332,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     }
 
     private fun configureBindings(){
-        // used to make pivot side the front instead of the ground intake side
-        val targetAngleOffset = 180.degrees
-
         fun resetAimToAngle() = runOnceCommand{
             drivetrain.removeRotationOverride()
         }
 
         fun targetAngle(heading: Angle) = runOnceCommand{
+            // used to make pivot side the front instead of the ground intake side
+            val targetAngleOffset = 180.degrees
+
             val allianceAngleCompensation = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
                 180.degrees
             } else {
@@ -351,8 +349,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             drivetrain.setRotationOverride(
                 AimToAngleRotationOverride(
                     heading + allianceAngleCompensation + targetAngleOffset,
-                    ANGLE_TO_ROTATIONAL_VELOCITY_PID,
-                    invert = isReal()
+                    ANGLE_TO_ROTATIONAL_VELOCITY_PID
                 )
             )
         }
@@ -409,52 +406,20 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         }
 
         Trigger{ groundIntake.hasNote && groundIntake.hasNoteDetector }
-            .whileTrue(alternatingRumble())
+            .onTrue(runOnceCommand{ DriverController.rumbleProcessor.setRumble(GenericHID.RumbleType.kBothRumble, 1.0); println("Rumble called!") })
+            .onFalse(WaitCommand(0.1).andThen(runOnceCommand{ DriverController.hid.setRumble(GenericHID.RumbleType.kBothRumble, 0.0) }))
     }
 
 
 
 
-    override val testCommand: Command =
-        MechanicalAdvantageFFCharacterization(
-            drivetrain, true,
-            MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("DrivetrainDataLeft"),
-            MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("DrivetrainDataRight"),
-            { leftV, rightV ->
-                drivetrain.setDriveVoltages(
-                    listOf(
-                        leftV.ofUnit(volts),
-                        rightV.ofUnit(volts),
-                        leftV.ofUnit(volts),
-                        rightV.ofUnit(volts),
-                    )
-                )
+    private val autoChooser = AutoChooser(vision.notePipeline, drivetrain, shooter, pivot, groundIntake)
 
-                drivetrain.setTurnDirections(
-                    listOf(
-                        0.degrees, 0.degrees, 0.degrees, 0.degrees
-                    )
-                )
-            },
-            {
-                val allVelocities = drivetrain.moduleAngularVelocities
-                (allVelocities[0].siValue + allVelocities[2].siValue) / 2.0
-            },
-            {
-                val allVelocities = drivetrain.moduleAngularVelocities
-                (allVelocities[1].siValue + allVelocities[3].siValue) / 2.0
-            }
-        )
-        /*
-        MechanicalAdvantageFFCharacterization(
-            shooter, false,
-            MechanicalAdvantageFFCharacterization.FeedForwardCharacterizationData("ShooterData"),
-            { voltage -> shooter.outtake(voltage) },
-            { shooter.angularVelocity.siValue },
-        )
-         */
+    private val testCommandChooser = TestCommandChooser(drivetrain, shooter, vision)
 
+    override val testCommand: Command
+        get() = testCommandChooser.selected
 
     override val autonomousCommand: Command
-        get() = if (isSimulation()) autoChooser.ampAutoTest else autoChooser.selected
+        get() = if (isSimulation()) autoChooser.speakerAutoTest else autoChooser.selected
 }

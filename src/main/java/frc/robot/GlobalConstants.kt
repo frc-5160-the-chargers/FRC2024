@@ -41,7 +41,7 @@ val PATHFIND_CONSTRAINTS = PathConstraints(
     650.degrees / 1.seconds / 1.seconds
 )
 
-val ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE = 1.5.meters
+val ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE = 0.7.meters
 
 // alerts
 val NO_TARGET_FOUND_ALERT = Alert.warning(text = "A command is attempting to aim to a target using vision, but none can be found.")
