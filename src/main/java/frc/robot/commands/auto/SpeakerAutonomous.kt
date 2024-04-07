@@ -74,9 +74,6 @@ fun speakerAutonomous(
             }
 
             // parallel #3
-            +pivot.setAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
-
-            // parallel #4
             if (noteDetector != null){
                 runSequentially{
                     // rotation override set is delayed as to prevent the drivetrain from aiming to a random note along the path.
@@ -96,12 +93,11 @@ fun speakerAutonomous(
             runParallelUntilFirstCommandFinishes{
                 +AutoBuilder.followPath(autoComponent.scorePath)
 
-                +pivot.setAngleCommand(PivotAngle.SPEAKER)
-
                 // just run shooting to bring the shooter up to speed
                 loop{
                     shooter.outtakeAtSpeakerSpeed()
                     groundIntake.setIdle()
+                    pivot.setAngle(PivotAngle.SPEAKER)
                 }
             }
 
@@ -110,5 +106,12 @@ fun speakerAutonomous(
                 shooterSpinUpTime = 0.seconds
             )
         }
+    }
+
+    onEnd {
+        shooter.setIdle()
+        pivot.setIdle()
+        groundIntake.setIdle()
+        drivetrain.stop()
     }
 }

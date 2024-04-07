@@ -110,6 +110,15 @@ class AutoChooser(
             )
 
             addOption(
+                "2.5-3 Note Amp(NO VISION; WORKING)",
+                ampAutonomous(
+                    drivetrain, shooter, pivot, groundIntake, null,
+                    additionalComponents = listOf(ampScoreNote2Component, ampScoreNote3Component),
+                    taxiMode = AmpAutoTaxiMode.NO_TAXI
+                )
+            )
+
+            addOption(
                 "Untested - One Note Speaker + Taxi(Source Side; No Pathplanner)",
                 onePieceSpeakerAndTaxi(drivetrain, shooter, groundIntake, pivot, AutoStartingPose.SPEAKER_RIGHT_BLUE)
             )
@@ -147,13 +156,26 @@ class AutoChooser(
             )
 
             addOption(
-                "Untested - 3 Piece Speaker(Source Side)",
+                "Untested - 3 Piece Speaker(Source Side; 1 center note)",
                 speakerAutonomous(
                     drivetrain, shooter, pivot, groundIntake, noteDetector,
                     blueStartingPose = AutoStartingPose.SPEAKER_RIGHT_BLUE,
                     additionalComponents = listOf(
-                        SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.1", scorePathName = "3pAutoRight.2", spinupShooterDuringGrabPath = false),
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.1", scorePathName = "3pAutoRight.2"),
                         SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.3", scorePathName = "3pAutoRight.4", spinupShooterDuringGrabPath = false)
+                    )
+                )
+            )
+
+
+            addOption(
+                "Untested - 2.5 Piece Speaker(Source Side; 2 center notes)",
+                speakerAutonomous(
+                    drivetrain, shooter, pivot, groundIntake, noteDetector,
+                    blueStartingPose = AutoStartingPose.SPEAKER_RIGHT_BLUE,
+                    additionalComponents = listOf(
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.3", scorePathName = "3pAutoRight.4"),
+                        SpeakerAutoComponent.fromChoreo(grabPathName = "3pAutoRight.3", scorePathName = null)
                     )
                 )
             )

@@ -13,23 +13,20 @@ object OperatorInterface: CommandXboxController(OPERATOR_CONTROLLER_PORT) {
     private const val SHOULD_INVERT_SHOOTER_SPEED = true
     private const val SHOULD_INVERT_PIVOT_SPEED = true
 
-    init{
-    }
-
     private val keyboardNTInterface = NetworkTableInstance.getDefault().getTable("DriverStationKeyPress")
 
     /* Public API */
     val shooterSpeedAxis =
         InputAxis{ leftY }
-            .invertWhen{ SHOULD_INVERT_SHOOTER_SPEED }
             .withDeadband(0.15)
+            .invertWhen{ SHOULD_INVERT_SHOOTER_SPEED }
             .withMultiplier(0.8)
             .log("Shooter/outtakingSpeed")
 
     val pivotSpeedAxis =
         InputAxis{ rightY }
-            .invertWhen { SHOULD_INVERT_PIVOT_SPEED }
             .withDeadband(0.33)
+            .invertWhen { SHOULD_INVERT_PIVOT_SPEED }
             .withMultiplier(0.33)
             .square()
             .log("Shooter/pivotSpeed")

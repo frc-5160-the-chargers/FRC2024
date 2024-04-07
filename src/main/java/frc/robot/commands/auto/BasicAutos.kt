@@ -36,7 +36,7 @@ fun onePieceSpeakerAndTaxi(
         drivetrain.poseEstimator.resetPose(blueStartingPose.flipWhenNeeded())
     }
 
-    +shootInSpeaker(shooter, groundIntake, pivot, shooterSpinUpTime = 2.seconds)
+    +shootInSpeaker(shooter, groundIntake, pivot, shooterSpinUpTime = 1.5.seconds)
 
     +basicTaxi(drivetrain)
 }
