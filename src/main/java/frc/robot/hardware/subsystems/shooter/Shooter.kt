@@ -39,7 +39,7 @@ class Shooter(
     }
 
     fun outtakeAtAmpSpeed(){
-        outtake(7.volts)
+        outtake(9.5.volts)
     }
 
     fun outtakeAtSpeakerSpeed() {
