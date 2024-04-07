@@ -13,7 +13,7 @@ import kotlin.math.roundToInt
  * Represents data that can flow into a spark device.
  */
 public enum class MotorData{
-    POSITION, VELOCITY, VOLTAGE, TEMPERATURE
+    POSITION, VELOCITY, VOLTAGE, TEMPERATURE, CURRENT
 }
 
 /**
@@ -36,7 +36,7 @@ public sealed class PeriodicFrameConfig{
          * if you are manually using getEncoder(), getAbsoluteEncoder(), etc.
          */
         val optimizeEncoderFrames: Boolean = true,
-        val utilizedData: List<MotorData> = listOf(MotorData.POSITION, MotorData.VELOCITY, MotorData.VOLTAGE, MotorData.TEMPERATURE)
+        val utilizedData: List<MotorData> = listOf(MotorData.POSITION, MotorData.VELOCITY, MotorData.VOLTAGE, MotorData.TEMPERATURE, MotorData.CURRENT)
     ): PeriodicFrameConfig()
 
     /**

@@ -95,7 +95,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             ShooterIOReal(
                 beamBreakSensor = DigitalInput(SHOOTER_SENSOR_ID),
                 topMotor = ChargerSparkFlex(SHOOTER_MOTOR_ID){
-                    ///// FOR NAYAN: Shooter configuration
+                    periodicFrameConfig = PeriodicFrameConfig.Optimized(
+                        utilizedData = listOf(MotorData.VELOCITY, MotorData.VOLTAGE, MotorData.TEMPERATURE)
+                    )
                     inverted = true
                     smartCurrentLimit = SmartCurrentLimit(60.amps)
                 },
@@ -116,8 +118,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         if (isReal()){
             PivotIOReal(
                 ChargerSparkMax(PIVOT_MOTOR_ID){
-                    periodicFrameConfig = PeriodicFrameConfig.Optimized()
-                    ///// FOR NAYAN: Change Current Limit for Pivot
+                    periodicFrameConfig = PeriodicFrameConfig.Optimized(
+                        utilizedData = listOf(MotorData.POSITION)
+                    )
                     smartCurrentLimit = SmartCurrentLimit(35.amps)
                 },
                 useOnboardPID = false,
@@ -145,12 +148,14 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             GroundIntakeIOReal(
                 topMotor = ChargerTalonFX(GROUND_INTAKE_ID),
                 conveyorMotor = ChargerSparkMax(CONVEYOR_ID){
-                    ///// FOR NAYAN: Ground Intake configuration
+                    periodicFrameConfig = PeriodicFrameConfig.Optimized(
+                        utilizedData = listOf(MotorData.VELOCITY, MotorData.VOLTAGE, MotorData.TEMPERATURE)
+                    )
                     inverted = true
                     smartCurrentLimit = SmartCurrentLimit(45.amps)
                 },
                 intakeGearRatio = groundIntakeRatio,
-                beamBreakSensor = DigitalInput(GROUND_INTAKE_SENSOR_ID)
+                //beamBreakSensor = DigitalInput(GROUND_INTAKE_SENSOR_ID)
             )
         }else{
             GroundIntakeIOSim(
@@ -168,7 +173,9 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             ChargerSparkMax(DrivetrainID.BL_TURN),
             ChargerSparkMax(DrivetrainID.BR_TURN)
         ){
-            periodicFrameConfig = PeriodicFrameConfig.Optimized()
+            periodicFrameConfig = PeriodicFrameConfig.Optimized(
+                utilizedData = listOf(MotorData.VOLTAGE, MotorData.TEMPERATURE)
+            )
             smartCurrentLimit = SmartCurrentLimit(30.amps)
             voltageCompensationNominalVoltage = 12.volts
             openLoopRampRate = 48.0
@@ -432,5 +439,5 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
         get() = testCommandChooser.selected
 
     override val autonomousCommand: Command
-        get() = if (isSimulation()) autoChooser.speakerAutoTest else autoChooser.selected
+        get() = if (isSimulation()) autoChooser.ampAutoTest else autoChooser.selected
 }

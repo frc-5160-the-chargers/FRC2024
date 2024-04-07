@@ -12,7 +12,6 @@ import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.safeConfigure
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
-import frc.chargers.hardware.motorcontrol.rev.SparkFlexEncoderType.*
 import frc.chargers.hardware.motorcontrol.rev.util.*
 import frc.chargers.utils.revertIfInvalid
 import frc.chargers.wpilibextensions.delay
@@ -102,9 +101,6 @@ public inline fun ChargerSparkFlex(
     ChargerSparkFlexConfiguration().apply(configure)
 )
 
-
-
-
 /**
  * A wrapper around REV's [CANSparkFlex], with support for Kmeasure units
  * and integration with the rest of the library.
@@ -122,6 +118,8 @@ public class ChargerSparkFlex(
 ) : CANSparkFlex(deviceId, MotorType.kBrushless), SmartEncoderMotorController, HardwareConfigurable<ChargerSparkFlexConfiguration> {
     private val nonRevFollowers: MutableSet<SmartEncoderMotorController> = mutableSetOf()
 
+    private var encoderType: SparkFlexEncoderType = SparkFlexEncoderType.Regular()
+
     init{
         if (factoryDefault) {
             restoreFactoryDefaults()
@@ -132,8 +130,6 @@ public class ChargerSparkFlex(
             configure(configuration)
         }
     }
-
-    private var encoderType: SparkFlexEncoderType = SparkFlexEncoderType.Regular()
 
     /**
      * The encoder of the spark flex.
@@ -339,7 +335,8 @@ public class ChargerSparkFlex(
 
                     if (MotorData.TEMPERATURE in frameConfig.utilizedData ||
                         MotorData.VELOCITY in frameConfig.utilizedData ||
-                        MotorData.VOLTAGE in frameConfig.utilizedData
+                        MotorData.VOLTAGE in frameConfig.utilizedData ||
+                        MotorData.CURRENT in frameConfig.utilizedData
                     ) {
                         status1 = FAST_PERIODIC_FRAME_STRATEGY
                     }
@@ -349,6 +346,7 @@ public class ChargerSparkFlex(
                     }
 
                     if (frameConfig.optimizeEncoderFrames){
+                        println(this.encoderType)
                         when (this.encoderType){
                             is SparkFlexEncoderType.Absolute -> {
                                 status4 = FAST_PERIODIC_FRAME_STRATEGY

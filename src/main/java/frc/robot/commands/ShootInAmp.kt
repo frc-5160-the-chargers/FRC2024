@@ -20,16 +20,19 @@ fun shootInAmp(
 ): Command = buildCommand("Shoot In Amp"){
     val outtakeCommand = buildCommand {
         if (shooter.hasNoteDetector){
-            loopUntil({shooter.hasNote}, shooter){
-                shooter.outtakeAtAmpSpeed()
-            }
+            // outtake should not take more than 2 seconds
+            runSequentiallyFor(2.seconds){
+                loopUntil({shooter.hasNote}, shooter){
+                    shooter.outtakeAtAmpSpeed()
+                }
 
-            loopWhile({shooter.hasNote}, shooter){
-                shooter.outtakeAtAmpSpeed()
-            }
+                loopWhile({shooter.hasNote}, shooter){
+                    shooter.outtakeAtAmpSpeed()
+                }
 
-            loopFor(0.4.seconds, shooter){
-                shooter.outtakeAtAmpSpeed()
+                loopFor(0.4.seconds, shooter){
+                    shooter.outtakeAtAmpSpeed()
+                }
             }
         }else{
             loopFor(0.7.seconds, shooter){

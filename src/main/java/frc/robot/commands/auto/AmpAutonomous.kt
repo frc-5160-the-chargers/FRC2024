@@ -4,7 +4,6 @@ import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
@@ -72,10 +71,7 @@ fun ampAutonomous(
                 +AutoBuilder.followPath(autoComponent.grabPath)
 
                 if (noteDetector != null){
-                    +pursueNote(
-                        drivetrain, noteDetector,
-                        endCondition = { if (RobotBase.isSimulation()) noteDetector.bestTarget != null else groundIntake.hasNote }
-                    )
+                    +pursueNote(drivetrain, noteDetector)
                 }
 
                 waitFor(0.5.seconds)

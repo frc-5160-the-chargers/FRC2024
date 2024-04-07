@@ -13,7 +13,6 @@ import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.safeConfigure
 import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
-import frc.chargers.hardware.motorcontrol.rev.SparkMaxEncoderType.*
 import frc.chargers.hardware.motorcontrol.rev.util.*
 import frc.chargers.utils.revertIfInvalid
 import frc.chargers.wpilibextensions.delay
@@ -335,7 +334,8 @@ public class ChargerSparkMax(
 
                     if (MotorData.TEMPERATURE in frameConfig.utilizedData ||
                         MotorData.VELOCITY in frameConfig.utilizedData ||
-                        MotorData.VOLTAGE in frameConfig.utilizedData
+                        MotorData.VOLTAGE in frameConfig.utilizedData ||
+                        MotorData.CURRENT in frameConfig.utilizedData
                     ) {
                         status1 = FAST_PERIODIC_FRAME_STRATEGY
                     }

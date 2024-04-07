@@ -22,6 +22,7 @@
       "/SmartDashboard/Autonomous": "String Chooser",
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/PivotingShooter": "Mechanism2d",
+      "/SmartDashboard/TestCommandOptions(Not Auto!!!!)": "String Chooser",
       "/SmartDashboard/VisionSystemSim-AprilTags/Sim Field": "Field2d",
       "/SmartDashboard/VisionSystemSim-ML Vision System/Sim Field": "Field2d"
     },
