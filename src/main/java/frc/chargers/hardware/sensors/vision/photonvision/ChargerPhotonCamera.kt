@@ -62,7 +62,7 @@ public class ChargerPhotonCamera(
          * @see LoggableInputsProvider
          */
         logInputs: LoggableInputsProvider,
-        usePoseEstimation: Boolean,
+        disablePoseEstimation: Boolean,
         poseEstimationStrategy: PhotonPoseEstimator.PoseStrategy = PhotonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR
     ): PhotonCameraPipeline<VisionTarget.AprilTag>(index), VisionPoseSupplier {
         override val visionTargets: List<VisionTarget.AprilTag>
@@ -94,7 +94,7 @@ public class ChargerPhotonCamera(
 
         override val robotPoseEstimates: List<Measurement<UnitPose2d>>
             by logInputs.valueList(default = Measurement(UnitPose2d(), Time(0.0))){
-                if (isSimulation() || pipelineIndex != index || !usePoseEstimation) {
+                if (isSimulation() || pipelineIndex != index || disablePoseEstimation) {
                     listOf()
                 }else{
                     when(val signal = poseEstimator.update()){

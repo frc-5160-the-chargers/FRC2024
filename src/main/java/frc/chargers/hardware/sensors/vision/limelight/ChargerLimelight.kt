@@ -1,19 +1,17 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.hardware.sensors.vision.limelight
 
-import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.Time
-import com.batterystaple.kmeasure.quantities.ofUnit
+import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.milli
 import com.batterystaple.kmeasure.units.seconds
-import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.VisionPoseSupplier
+import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
 import frc.chargers.hardware.sensors.vision.VisionCameraConstants
 import frc.chargers.hardware.sensors.vision.VisionPipeline
 import frc.chargers.hardware.sensors.vision.VisionTarget
@@ -119,14 +117,21 @@ public class ChargerLimelight(
      */
     public inner class AprilTagPipeline(
         index: Int,
+        disablePoseEstimation: Boolean,
+        /**
+         * The heading provider which is used within megatag2.
+         * If this is set to null, megatag1 will be used instead.
+         */
+        megaTag2HeadingSource: HeadingProvider? = null,
         /**
          * The namespace of which the Limelight Pipeline logs to:
          * Ensure that this namespace is the same across real and sim equivalents.
          * @see LoggableInputsProvider
          */
-        logInputs: LoggableInputsProvider,
-        usePoseEstimation: Boolean
+        logInputs: LoggableInputsProvider
     ): LimelightPipeline<VisionTarget.AprilTag>(index), VisionPoseSupplier {
+
+        private var previousHeading = Angle(0.0)
 
         override val visionTargets: List<VisionTarget.AprilTag>
             by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
@@ -171,43 +176,55 @@ public class ChargerLimelight(
 
         override val robotPoseEstimates: List<Measurement<UnitPose2d>>
             by logInputs.valueList(default = Measurement(UnitPose2d(), Time(0.0))){
-                if (!usePoseEstimation || isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != index) {
+                if (disablePoseEstimation || isSimulation() || !hasTargets() || getCurrentPipelineIndex(name).toInt() != index) {
                     return@valueList listOf()
                 }
 
-                val allianceColor: DriverStation.Alliance =
-                    DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
+                if (megaTag2HeadingSource != null){
+                    val currentHeading = megaTag2HeadingSource.heading
+                    setRobotOrientation(name, currentHeading.inUnit(degrees), 0.0, 0.0, 0.0, 0.0, 0.0)
 
-                val poseArray: DoubleArray
-
-                when(allianceColor) {
-                    DriverStation.Alliance.Blue -> {
-                        poseArray = if (useJsonDump){
-                            jsonResults.botpose_wpiblue
-                        }else{
-                            getBotPose_wpiBlue(name)
-                        }
-                    }
-
-                    DriverStation.Alliance.Red -> {
-                        poseArray = if (useJsonDump){
-                            jsonResults.botpose_wpired
-                        }else{
-                            getBotPose_wpiRed(name)
-                        }
+                    if (abs(currentHeading - previousHeading) / ChargerRobot.LOOP_PERIOD > 720.degrees / 1.seconds){
+                        println("Innacurate heading reading for MegaTag2!")
+                        return@valueList listOf()
                     }
                 }
 
-                return@valueList listOf(
-                    Measurement(
-                        value = UnitPose2d(
-                            poseArray[0].ofUnit(meters),
-                            poseArray[1].ofUnit(meters),
-                            poseArray[5].ofUnit(degrees)
-                        ),
-                        timestamp = fpgaTimestamp() - (poseArray[6].ofUnit(milli.seconds))
+                if (useJsonDump){
+                    val poseArray = if (megaTag2HeadingSource != null){
+                        jsonResults.botpose_wpiblue_megatag2
+                    }else{
+                        jsonResults.botpose_wpiblue
+                    }
+
+                    return@valueList listOf(
+                        Measurement(
+                            value = UnitPose2d(
+                                poseArray[0].ofUnit(meters),
+                                poseArray[1].ofUnit(meters),
+                                poseArray[5].ofUnit(degrees)
+                            ),
+                            timestamp = fpgaTimestamp() - (poseArray[6].ofUnit(milli.seconds))
+                        )
                     )
-                )
+                }else{
+                    val poseEstimateHolder = if (megaTag2HeadingSource != null){
+                        getBotPoseEstimate_wpiBlue_MegaTag2(name)
+                    }else{
+                        getBotPoseEstimate_wpiBlue(name)
+                    }
+
+                    return@valueList if (poseEstimateHolder.tagCount == 0){
+                        listOf()
+                    }else{
+                        listOf(
+                            Measurement(
+                                poseEstimateHolder.pose.ofUnit(meters),
+                                poseEstimateHolder.timestampSeconds.ofUnit(seconds)
+                            )
+                        )
+                    }
+                }
             }
     }
 
