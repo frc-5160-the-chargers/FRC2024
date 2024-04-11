@@ -11,7 +11,6 @@ import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import frc.chargers.advantagekitextensions.LoggableInputsProvider
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.VisionPoseSupplier
-import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
 import frc.chargers.hardware.sensors.vision.VisionCameraConstants
 import frc.chargers.hardware.sensors.vision.VisionPipeline
 import frc.chargers.hardware.sensors.vision.VisionTarget
@@ -34,9 +33,6 @@ public class ChargerLimelight(
     useJsonDump: Boolean = false,
     public val robotToCamera: UnitTransform3d
 ){
-    // used to manage requirements for the limelight.
-    private var required: Boolean = false
-
     // Limelight Helpers results
     private var jsonResults: Results = Results().apply{ valid = false }
 
@@ -88,6 +84,35 @@ public class ChargerLimelight(
         private val limelights: MutableList<ChargerLimelight> = mutableListOf()
 
         /**
+         * Returns a list of all registered limelights.
+         */
+        public fun allLimelightNames(): List<String> = limelights.map{ it.name }
+
+
+        /**
+         * Broadcasts robot orientation for MegaTag2.
+         *
+         * Usually called from various gyro classes; such as the ChargerNavX or the ChargerPigeon2.
+         */
+        public fun broadcastRobotOrientation(
+            yaw: Angle,
+            yawRate: AngularVelocity,
+            pitch: Angle = Angle(0.0),
+            pitchRate: AngularVelocity = AngularVelocity(0.0),
+            roll: Angle = Angle(0.0),
+            rollRate: AngularVelocity = AngularVelocity(0.0)
+        ){
+            for (llName in allLimelightNames()){
+                setRobotOrientation(
+                    llName,
+                    yaw.inUnit(degrees), yawRate.inUnit(degrees / seconds),
+                    pitch.inUnit(degrees), pitchRate.inUnit(degrees / seconds),
+                    roll.inUnit(degrees), rollRate.inUnit(degrees / seconds)
+                )
+            }
+        }
+
+        /**
          * Enables JSON dump for all limelights.
          *
          * @see ChargerLimelight.useJsonDump
@@ -118,11 +143,7 @@ public class ChargerLimelight(
     public inner class AprilTagPipeline(
         index: Int,
         disablePoseEstimation: Boolean,
-        /**
-         * The heading provider which is used within megatag2.
-         * If this is set to null, megatag1 will be used instead.
-         */
-        megaTag2HeadingSource: HeadingProvider? = null,
+        useMegaTag2: Boolean = true,
         /**
          * The namespace of which the Limelight Pipeline logs to:
          * Ensure that this namespace is the same across real and sim equivalents.
@@ -130,8 +151,6 @@ public class ChargerLimelight(
          */
         logInputs: LoggableInputsProvider
     ): LimelightPipeline<VisionTarget.AprilTag>(index), VisionPoseSupplier {
-
-        private var previousHeading = Angle(0.0)
 
         override val visionTargets: List<VisionTarget.AprilTag>
             by logInputs.valueList(default = VisionTarget.AprilTag.Dummy){
@@ -171,6 +190,8 @@ public class ChargerLimelight(
             }
 
 
+        private var previousHeading = Angle(0.0)
+
         override val cameraYaw: Angle
             get() = Angle(robotToCamera.rotation.z)
 
@@ -180,18 +201,9 @@ public class ChargerLimelight(
                     return@valueList listOf()
                 }
 
-                if (megaTag2HeadingSource != null){
-                    val currentHeading = megaTag2HeadingSource.heading
-                    setRobotOrientation(name, currentHeading.inUnit(degrees), 0.0, 0.0, 0.0, 0.0, 0.0)
-
-                    if (abs(currentHeading - previousHeading) / ChargerRobot.LOOP_PERIOD > 720.degrees / 1.seconds){
-                        println("Innacurate heading reading for MegaTag2!")
-                        return@valueList listOf()
-                    }
-                }
-
+                // setRobotOrientation is called in gyro classes periodically instead.
                 if (useJsonDump){
-                    val poseArray = if (megaTag2HeadingSource != null){
+                    val poseArray = if (useMegaTag2){
                         jsonResults.botpose_wpiblue_megatag2
                     }else{
                         jsonResults.botpose_wpiblue
@@ -208,7 +220,7 @@ public class ChargerLimelight(
                         )
                     )
                 }else{
-                    val poseEstimateHolder = if (megaTag2HeadingSource != null){
+                    val poseEstimateHolder = if (useMegaTag2){
                         getBotPoseEstimate_wpiBlue_MegaTag2(name)
                     }else{
                         getBotPoseEstimate_wpiBlue(name)

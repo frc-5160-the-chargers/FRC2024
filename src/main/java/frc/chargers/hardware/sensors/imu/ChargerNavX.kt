@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.imu.gyroscopes.ThreeAxisGyroscope
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
+import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.kinematics.xVelocity
 import frc.chargers.wpilibextensions.kinematics.yVelocity
@@ -20,9 +21,7 @@ public class ChargerNavX(
     private val useFusedHeading: Boolean = false,
     public val ahrs: AHRS = AHRS(),
 ): ZeroableHeadingProvider {
-
     private var headingOffset = 0.degrees
-
 
     /**
      * ImuLog, GyroscopeLog, AccelerometerLog, and SpeedometerLog are LoggableInputsProviders,
@@ -36,10 +35,6 @@ public class ChargerNavX(
      * Does not zero the yaw; call navX.gyroscope.zeroYaw() if this is desired instead.
      */
     override fun zeroHeading(angle: Angle){
-        repeat(5){
-            println("HELLO!!!!")
-        }
-
         if (isReal()){
             while (ahrs.isCalibrating){
                 println("Waiting for AHRS to calibrate...")
@@ -70,8 +65,6 @@ public class ChargerNavX(
      * Returns if the NavX is connected or not. Automatically false during simulation.
      */
     public val isConnected: Boolean by ImuLog.boolean{ ahrs.isConnected && isReal() }
-
-    // initial value: a degrees
 
     /**
      * The heading of the NavX. Reports a value in between 0-360 degrees.
@@ -112,7 +105,18 @@ public class ChargerNavX(
     public val speedometer: Speedometer = Speedometer()
 
 
-
+    init{
+        if (isReal()){
+            ChargerRobot.runPeriodically(addToFront = true){
+                ChargerLimelight.broadcastRobotOrientation(
+                    yaw = gyroscope.heading,
+                    yawRate = gyroscope.yawRate,
+                    pitch = gyroscope.pitch,
+                    roll = gyroscope.roll
+                )
+            }
+        }
+    }
 
 
     public inner class Gyroscope internal constructor(): ThreeAxisGyroscope {
@@ -130,6 +134,10 @@ public class ChargerNavX(
 
         override val roll: Angle by GyroLog.quantity{
             if (isReal()) ahrs.roll.toDouble().ofUnit(degrees) else Angle(0.0)
+        }
+
+        val yawRate: AngularVelocity by GyroLog.quantity {
+            if (isReal()) ahrs.rate.ofUnit(degrees/seconds) else AngularVelocity(0.0)
         }
 
         public fun zeroYaw(){

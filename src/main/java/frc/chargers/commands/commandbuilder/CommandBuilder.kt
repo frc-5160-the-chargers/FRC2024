@@ -7,135 +7,15 @@ import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.wpilibj2.command.*
 import frc.chargers.commands.loopCommand
 import frc.chargers.commands.runOnceCommand
-import frc.chargers.commands.then
-import frc.chargers.commands.withExtraRequirements
-import org.littletonrobotics.junction.Logger
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
-
-
-/**
- * The entry point for the CommandBuilder DSL (Domain Specific Language).
- *
- * See [here](https://kotlinlang.org/docs/type-safe-builders.html#how-it-works)
- * for an explanation of DSLs and how they are built.
- *
- * Example usage:
- * ```
- * val armCommand: Command = buildCommand{
- *      // equivalent to an InstantCommand within a SequentialCommandGroup
- *      runOnce{
- *          armSubsystem.resetEncoders()
- *      }
- *
- *      // variable initialization is allowed, since the block is essentially a lambda function
- *      val pidController = UnitSuperPIDController(...)
- *      // getOnceDuringRun acts as a value that is refreshed once every time the command is scheduled;
- *      // order is synchronous
- *      val armCurrentPosition by getOnceDuringRun{arm.distalAngle}
- *
- *      // loops through the block below until the condition is met
- *      loopUntil(condition = { abs(pidController.target - arm.distalAngle) < 0.1 }){
- *          armSubsystem.setDistalVoltage(pidController.calculateOutput())
- *      }
- *
- * }
- * ```
- * @param name The name of the buildCommand(defaults to "Generic BuildCommand").
- * @param logIndividualCommands If true, will log the individual commands that are part of the DSL. Defaults to false.
- * @param block The entry point to the DSL. Has the context of [CommandBuilder].
- */
-public inline fun buildCommand(
-    name: String = "Generic BuildCommand",
-    logIndividualCommands: Boolean = false,
-    block: BuildCommandScope.() -> Unit
-): Command {
-    val builder = BuildCommandScope().apply(block)
-
-    val commandArray: Array<Command> = builder.commands.toTypedArray()
-
-    var command: Command = if(logIndividualCommands){
-        loggedSequentialCommandGroup(name, *commandArray)
-    }else{
-        SequentialCommandGroup(*commandArray).withName(name)
-    }.finallyDo(builder.endBehavior)
-
-    if (builder.requirements.size > 0){
-        command = command.withExtraRequirements(*builder.requirements.toTypedArray())
-    }
-
-    builder.addingCommandsLocked = true
-    builder.addingRequirementsLocked = true
-
-    return command
-}
-
-
-/**
- * This "marker" serves to restrict the scope of the buildCommand DSL.
- *
- * See [here](https://kotlinlang.org/docs/type-safe-builders.html#scope-control-dslmarker)
- * for the purpose of this annotation class.
- */
-@DslMarker
-public annotation class CommandBuilderMarker
-
-/**
- * A scope exclusive to [buildCommand]; this contains things like end behavior and command requirements
- * which aren't used in other places where a [CommandBuilder] scope is asked for
- * (like runSequentially, runParallelUntilAllFinish, etc.)
- */
-@CommandBuilderMarker
-public class BuildCommandScope: CommandBuilder(){
-    public val requirements: LinkedHashSet<Subsystem> = linkedSetOf()
-
-    public var addingRequirementsLocked: Boolean = false
-
-    public var endBehavior: (Boolean) -> Unit = {}
-
-    /**
-     * Adds subsystems that are required across the entire [buildCommand].
-     */
-    public fun addRequirements(vararg requirements: Subsystem){
-        if (addingRequirementsLocked){
-            error("""
-                It looks like you are attempting to add requirements to the command while it is running.
-                This is not allowed; you must call addRequirements() within the block of the buildCommand, and not in a CodeBlockContext.
-                
-                For instance:
-                buildCommand{
-                    // correct way to do it; outside of any block
-                    addRequirements(...)
-                    
-                    runOnce{
-                        // does not compile
-                        addRequirements(...)
-                        // compiles, but will NOT WORK!
-                        this@buildCommand.addRequirements(...)
-                    }
-                }
-            """.trimIndent())
-        }else{
-            this.requirements.addAll(requirements)
-        }
-    }
-
-    /**
-     * Runs the function block when the [buildCommand] is finished.
-     */
-    public inline fun onEnd(crossinline run: CodeBlockContext.(Boolean) -> Unit){
-        endBehavior = { CodeBlockContext.run(it) }
-    }
-}
-
-
 
 /**
  * The scope class responsible for governing the BuildCommand DSL.
  */
 @CommandBuilderMarker
-public open class CommandBuilder{
+public open class CommandBuilder {
     public var commands: LinkedHashSet<Command> = linkedSetOf() // LinkedHashSet keeps commands in order, but also ensures they're not added multiple times
 
     public var addingCommandsLocked: Boolean = false
@@ -605,50 +485,3 @@ public open class CommandBuilder{
         }
 }
 
-
-
-
-/**
- * Utility functions used for logging commands within the buildCommand DSL.
- */
-
-@PublishedApi
-internal fun loggedSequentialCommandGroup(name: String, vararg commands: Command): SequentialCommandGroup{
-    val loggedCommands: Array<Command> = commands.map{it.withLogInCommandGroup(name)}.toTypedArray()
-    return SequentialCommandGroup(
-        *loggedCommands
-    ).also{
-        it.name = name
-    }
-}
-
-internal fun Command.withLogInCommandGroup(commandGroupName: String): Command{
-    fun logCommand(active: Boolean) = runOnceCommand{
-        Logger.recordOutput(
-            "/ActiveCommands/Subcommands Of: $commandGroupName/$name",active
-        )
-    }
-
-    // uses custom infix "then" operator(more concise way to do andThen)
-    return logCommand(true) then this then logCommand(false)
-}
-
-/**
- * This object serves to restrict the scope of runOnce, loopForever, etc. blocks within the buildCommand.
- *
- * This discourages scenarios like this:
- * ```
- * buildCommand{
- *      loopForever{
- *          // will not compile due to the marker prohibiting implicit "this"
- *          // when not called directly within buildCommand.
- *          loopForever{
- *              println("hi")
- *          }
- *      }
- * }
- * ```
- * Which would factually do nothing due to the command already being created when buildCommand is initialized.
- */
-@CommandBuilderMarker
-public object CodeBlockContext

@@ -1,9 +1,7 @@
 package frc.chargers.hardware.subsystems.robotposition
 
-import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.Distance
-import com.batterystaple.kmeasure.quantities.inUnit
-import com.batterystaple.kmeasure.quantities.ofUnit
+import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
@@ -20,6 +18,7 @@ import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
+import frc.external.frc6995.NomadAprilTagUtil
 import org.littletonrobotics.junction.Logger.recordOutput
 
 
@@ -104,11 +103,14 @@ class SwervePoseMonitor(
 
 
     override fun periodic(){
+        var gyroRotatingTooFast = false
+        recordOutput(drivetrain.logName + "/realGyroUsedInPoseEstimation", drivetrain.gyro != null)
+
         if (drivetrain.gyro != null){
-            recordOutput(drivetrain.logName + "/realGyroUsedInPoseEstimation", true)
-            gyroHeading = drivetrain.gyro.heading
+            val newHeading = drivetrain.gyro.heading
+            gyroRotatingTooFast = abs(newHeading - gyroHeading) / ChargerRobot.LOOP_PERIOD > 720.degrees / 1.seconds
+            gyroHeading = newHeading
         }else{
-            recordOutput(drivetrain.logName + "/realGyroUsedInPoseEstimation", false)
             // wheelDeltas represent the difference in position moved during the loop,
             // as well as the current angle(not the change in angle).
             val wheelDeltas = drivetrain.modulePositions.mapIndexed{ i, originalPosition ->
@@ -124,17 +126,30 @@ class SwervePoseMonitor(
                 .ofUnit(radians)
         }
 
-        poseEstimator.update(
+        val basePose = poseEstimator.update(
             gyroHeading.asRotation2d(),
             drivetrain.modulePositions.toTypedArray()
         )
 
-        for (visionEstimator in visionEstimators){
-            for (visionEstimate in visionEstimator.robotPoseEstimates){
-                poseEstimator.addVisionMeasurement(
-                    visionEstimate.value.inUnit(meters),
-                    visionEstimate.timestamp.inUnit(seconds)
-                )
+        if (gyroRotatingTooFast){
+            println("Vision pose readings ignored; gyro is rotating too fast.")
+        }else{
+            for (visionEstimator in visionEstimators){
+                for (poseEstimate in visionEstimator.robotPoseEstimates){
+                    if (poseEstimate.value.distanceTo(basePose.ofUnit(meters)) < 0.8.meters){
+                        val visionStandardDeviationVector = NomadAprilTagUtil.calculateVisionUncertainty(
+                            poseEstimate.value.x.inUnit(meters),
+                            gyroHeading.asRotation2d(),
+                            visionEstimator.cameraYaw.asRotation2d()
+                        )
+
+                        poseEstimator.addVisionMeasurement(
+                            poseEstimate.value.inUnit(meters),
+                            poseEstimate.timestamp.inUnit(seconds),
+                            visionStandardDeviationVector
+                        )
+                    }
+                }
             }
         }
 

@@ -66,7 +66,7 @@ public sealed interface VisionTarget{
         override val areaPercent: Double,
         public val fiducialId: Int,
         public val targetTransformFromCam: UnitTransform3d
-    ): VisionTarget, AdvantageKitLoggable<AprilTag>{
+    ): VisionTarget, AdvantageKitLoggable<AprilTag> {
 
         /**
          * Represents dummy vision data for a [VisionTarget.AprilTag]

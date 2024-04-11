@@ -1,6 +1,8 @@
 package frc.robot.hardware.subsystems.odometry
 
+import com.batterystaple.kmeasure.interop.average
 import com.batterystaple.kmeasure.quantities.abs
+import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
@@ -12,6 +14,7 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.constants.SwerveHardwareData
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.sensors.VisionPoseSupplier
@@ -78,9 +81,11 @@ class ThreadedPoseMonitor(
         absoluteEncoders.bottomRight
     )
 
-    private val gyroOdoSource = GyroOdometryIO(navX)
+    private val gyroHeadingSource = GyroOdometryIO(navX)
 
     private val timestampsSource = OdometryTimestampsIO()
+
+    private var previousHeading = 0.degrees
 
 
     init {
@@ -157,15 +162,14 @@ class ThreadedPoseMonitor(
                     currentModulePositions.forEach {
                         // applies coupling ratio offsets; not tested atm
                         // rotations is actually Rotation2d.getRotations() and not the kmeasure extension property
-                        it.distanceMeters -= (it.angle.rotations * hardwareData.couplingRatio) * PI * hardwareData.wheelDiameter.inUnit(
-                            meters
-                        ) // * 2 * PI converts to radians, then * wheelDiameter / 2.0 multiplies by wheelRadius for proper pose estimation
+                        it.distanceMeters -=
+                            (it.angle.rotations * hardwareData.couplingRatio) * PI * hardwareData.wheelDiameter.inUnit(meters)
                     }
                 }
 
                 poseEstimator.updateWithTime(
                     timestamps[i].inUnit(seconds),
-                    gyroOdoSource.gyroReadings[i].asRotation2d(),
+                    gyroHeadingSource.gyroReadings[i].asRotation2d(),
                     currentModulePositions
                 )
             } catch (_: IndexOutOfBoundsException) {
@@ -173,6 +177,15 @@ class ThreadedPoseMonitor(
             }
         }
 
+        // if gyro is rotating too fast, do not add vision measurements
+        if (gyroHeadingSource.gyroReadings.isNotEmpty()){
+            val averageHeading = gyroHeadingSource.gyroReadings.average()
+            val rotationRate = abs(averageHeading - previousHeading) / ChargerRobot.LOOP_PERIOD
+            previousHeading = averageHeading
+            if (rotationRate > 720.degrees / 1.seconds){
+                return
+            }
+        }
 
         /*
         Sends all pose data to the pose estimator.
@@ -181,25 +194,22 @@ class ThreadedPoseMonitor(
          */
         for (visionPoseSupplier in visionPoseSuppliers) {
             for (poseEstimate in visionPoseSupplier.robotPoseEstimates) {
-                // if vision measurement is more than 20 deg off, reject it
-                if (abs(poseEstimate.value.rotation - gyroOdoSource.gyroReadings.last()) > 20.degrees) {
-                    continue
+                if (poseEstimate.value.distanceTo(robotPose) < 0.8.meters){
+                    val stdDevVector = NomadAprilTagUtil.calculateVisionUncertainty(
+                        poseEstimate.value.x.siValue,
+                        navX.heading.asRotation2d(),
+                        visionPoseSupplier.cameraYaw.asRotation2d(), // each pose supplier stores the camera yaw for std dev purposes
+                    )
+
+                    poseEstimator.addVisionMeasurement(
+                        poseEstimate.value.inUnit(meters),
+                        poseEstimate.timestamp.inUnit(seconds),
+                        stdDevVector
+                    )
                 }
-
-                val stdDevVector = NomadAprilTagUtil.calculateVisionUncertainty(
-                    poseEstimate.value.x.siValue,
-                    navX.heading.asRotation2d(),
-                    visionPoseSupplier.cameraYaw.asRotation2d(), // each pose supplier stores the camera yaw for std dev purposes
-                )
-
-                poseEstimator.addVisionMeasurement(
-                    poseEstimate.value.inUnit(meters),
-                    poseEstimate.timestamp.inUnit(seconds),
-                    stdDevVector
-                )
             }
         }
 
-        Logger.recordOutput("ThreadedPoseEstimator/pose", Pose2d.struct, robotPose.siValue)
+        Logger.recordOutput("ThreadedPoseEstimator/Pose2d", Pose2d.struct, robotPose.siValue)
     }
 }

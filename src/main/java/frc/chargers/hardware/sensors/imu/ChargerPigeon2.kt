@@ -17,6 +17,7 @@ import frc.chargers.hardware.configuration.HardwareConfiguration
 import frc.chargers.hardware.configuration.safeConfigure
 import frc.chargers.hardware.sensors.imu.gyroscopes.ThreeAxisGyroscope
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
+import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.wpilibextensions.delay
 
 /**
@@ -105,6 +106,22 @@ public class ChargerPigeon2(
         setValue = { value -> _isConnected = value }
     )
 
+
+
+    init{
+        if (isReal()){
+            ChargerRobot.runPeriodically(addToFront = true){
+                ChargerLimelight.broadcastRobotOrientation(
+                    gyroscope.heading,
+                    gyroscope.yawRate,
+                    gyroscope.pitch,
+                    gyroscope.pitchRate,
+                    gyroscope.roll,
+                    gyroscope.rollRate
+                )
+            }
+        }
+    }
 
     /*
     Internal constructor makes it so that the inner class can be accepted as a type argument,

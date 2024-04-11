@@ -71,7 +71,7 @@ class VisionManager(private val poseEstimator: RobotPoseMonitor, tunableCamerasI
             val photonArducam = ChargerPhotonCamera(name = "AprilTag Arducam", robotToCamera = robotToArducam)
             val photonWebcam = ChargerPhotonCamera(name = "ML Webcam", robotToCamera = robotToMLWebcam)
 
-            aprilTagPipeline = photonArducam.AprilTagPipeline(index = 1, aprilTagCamLog, usePoseEstimation = true)
+            aprilTagPipeline = photonArducam.AprilTagPipeline(index = 1, aprilTagCamLog, disablePoseEstimation = false)
                 .also{ poseSources.add(it) }
 
             notePipeline = photonWebcam.ObjectPipeline(index = 0, noteDetectorLog)

@@ -1,11 +1,8 @@
 package frc.robot.hardware.subsystems.groundintake
 
-import com.batterystaple.kmeasure.interop.average
-import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import frc.robot.hardware.inputdevices.DriverController
 import frc.robot.hardware.subsystems.groundintake.lowlevel.GroundIntakeIO
 
 
@@ -42,10 +39,6 @@ class GroundIntakeSerializer(io: GroundIntakeIO): SubsystemBase(), GroundIntakeI
     override fun periodic(){
         if (DriverStation.isDisabled()){
             setIdle()
-        }
-
-        if (hasNote && hasNoteDetector){
-            DriverController
         }
     }
 }

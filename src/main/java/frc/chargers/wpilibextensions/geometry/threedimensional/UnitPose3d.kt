@@ -6,17 +6,38 @@ import com.batterystaple.kmeasure.quantities.Distance
 import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.geometry.Rotation3d
+import edu.wpi.first.util.struct.Struct
 import frc.chargers.advantagekitextensions.AdvantageKitLoggable
 import frc.chargers.utils.math.units.KmeasureUnit
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import org.littletonrobotics.junction.LogTable
-
+import java.nio.ByteBuffer
 
 
 public data class UnitPose3d(
     val siValue: Pose3d = Pose3d()
 ): AdvantageKitLoggable<UnitPose3d> {
+
+    companion object{
+        val struct = object: Struct<UnitPose3d> {
+            override fun getTypeClass(): Class<UnitPose3d> = UnitPose3d::class.java
+
+            override fun getTypeString(): String = Pose3d.struct.typeString
+
+            override fun getSize(): Int = Pose3d.struct.size
+
+            override fun getSchema(): String = Pose3d.struct.schema
+
+            override fun unpack(p0: ByteBuffer): UnitPose3d = Pose3d.struct.unpack(p0).ofUnit(meters)
+
+            override fun pack(p0: ByteBuffer, p1: UnitPose3d) {
+                Pose3d.struct.pack(p0, p1.inUnit(meters))
+            }
+        }
+    }
+
+
     public constructor(x: Distance, y: Distance, z: Distance, rotation: Rotation3d): this(
         Pose3d(x.siValue,y.siValue,z.siValue, rotation)
     )
