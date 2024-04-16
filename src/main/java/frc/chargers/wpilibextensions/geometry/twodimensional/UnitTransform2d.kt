@@ -6,16 +6,26 @@ import com.batterystaple.kmeasure.quantities.Distance
 import com.batterystaple.kmeasure.quantities.hypot
 import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.geometry.Transform2d
-import frc.chargers.advantagekitextensions.AdvantageKitLoggable
+import edu.wpi.first.util.struct.Struct
+import edu.wpi.first.util.struct.StructSerializable
+import frc.chargers.utils.createCopy
 import frc.chargers.wpilibextensions.geometry.ofUnit
-import org.littletonrobotics.junction.LogTable
 
 /**
  * A wrapper for WPILib's [Transform2d], adding in Unit support.
  */
 public data class UnitTransform2d(
     public val siValue: Transform2d = Transform2d()
-): AdvantageKitLoggable<UnitTransform2d>{
+): StructSerializable {
+
+    companion object{
+        @JvmStatic
+        val struct: Struct<UnitTransform2d> = createCopy(
+            Transform2d.struct,
+            convertor = { it.ofUnit(meters) },
+            inverseConvertor = { it.inUnit(meters) }
+        )
+    }
 
 
     public constructor(translation: UnitTranslation2d, rotation: Angle = Angle(0.0)): this(
@@ -75,15 +85,5 @@ public data class UnitTransform2d(
     public operator fun div(scalar: Double): UnitTransform2d = UnitTransform2d(siValue / scalar)
     public operator fun times(scalar: Double): UnitTransform2d = UnitTransform2d(siValue * scalar)
     public operator fun plus(other: UnitTransform2d): UnitTransform2d = UnitTransform2d(siValue + other.siValue)
-
-
     public operator fun unaryMinus(): UnitTransform2d = UnitTransform2d(siValue.inverse())
-    override fun pushToLog(table: LogTable, category: String) {
-        table.put(category, Transform2d.struct, siValue)
-    }
-
-    override fun getFromLog(table: LogTable, category: String): UnitTransform2d =
-        UnitTransform2d(table.get(category, Transform2d.struct, Transform2d()))
-
-
 }

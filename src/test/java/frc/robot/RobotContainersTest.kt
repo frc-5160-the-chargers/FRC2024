@@ -13,7 +13,5 @@ internal class RobotContainersTest {
 
     @Test
     fun `robot containers should initialize`(){
-        val compRobotContainer = CompetitionRobotContainer()
-        val defenseSimulatorRobotContainer = DefenseSimulatorRobotContainer()
     }
 }

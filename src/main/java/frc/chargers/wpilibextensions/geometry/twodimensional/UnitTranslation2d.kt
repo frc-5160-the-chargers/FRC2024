@@ -7,9 +7,10 @@ import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.interpolation.Interpolatable
-import frc.chargers.advantagekitextensions.AdvantageKitLoggable
+import edu.wpi.first.util.struct.Struct
+import edu.wpi.first.util.struct.StructSerializable
+import frc.chargers.utils.createCopy
 import frc.chargers.wpilibextensions.geometry.ofUnit
-import org.littletonrobotics.junction.LogTable
 
 // A function must be used here, as a second constructor would cause a platform declaration crash.
 public fun UnitTranslation2d(norm: Distance, angle: Angle): UnitTranslation2d =
@@ -22,7 +23,16 @@ public fun UnitTranslation2d(norm: Distance, angle: Angle): UnitTranslation2d =
  */
 public data class UnitTranslation2d(
     public val siValue: Translation2d = Translation2d()
-): Interpolatable<UnitTranslation2d>, AdvantageKitLoggable<UnitTranslation2d> {
+): Interpolatable<UnitTranslation2d>, StructSerializable{
+
+    companion object{
+        @JvmStatic
+        val struct: Struct<UnitTranslation2d> = createCopy(
+            Translation2d.struct,
+            convertor = { it.ofUnit(meters) },
+            inverseConvertor = { it.inUnit(meters) }
+        )
+    }
 
     public constructor(x: Distance, y: Distance): this(Translation2d(x.siValue,y.siValue))
 
@@ -60,11 +70,5 @@ public data class UnitTranslation2d(
     public fun getDistance(other: UnitTranslation2d): Distance = siValue.getDistance(other.inUnit(meters)).meters
     override fun interpolate(other: UnitTranslation2d, t: Double): UnitTranslation2d = siValue.interpolate(other.inUnit(meters),t).ofUnit(meters)
     public fun rotateBy(other: Angle): UnitTranslation2d = siValue.rotateBy(other.asRotation2d()).ofUnit(meters)
-    override fun pushToLog(table: LogTable, category: String) {
-        table.put(category, Translation2d.struct, siValue)
-    }
-    override fun getFromLog(table: LogTable, category: String): UnitTranslation2d =
-        UnitTranslation2d(table.get(category, Translation2d.struct, Translation2d()))
-
 }
 

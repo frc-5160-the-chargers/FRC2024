@@ -4,8 +4,9 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.wpilibextensions.kinematics
 
-import frc.chargers.advantagekitextensions.AdvantageKitLoggable
-import org.littletonrobotics.junction.LogTable
+import edu.wpi.first.util.struct.Struct
+import edu.wpi.first.util.struct.StructSerializable
+import java.nio.ByteBuffer
 import kotlin.math.abs
 
 /**
@@ -15,7 +16,31 @@ public data class ChassisPowers(
     var xPower: Double = 0.0,
     var yPower: Double = 0.0,
     var rotationPower: Double = 0.0
-): AdvantageKitLoggable<ChassisPowers> {
+): StructSerializable {
+    companion object{
+        @JvmStatic
+        val struct = object: Struct<ChassisPowers> {
+            override fun getTypeClass(): Class<ChassisPowers> = ChassisPowers::class.java
+            override fun getTypeString(): String = "struct:ChassisPowers"
+
+            override fun getSize(): Int = Struct.kSizeDouble * 3
+
+            override fun getSchema(): String = "double xPower;double yPower;double rotationPower;"
+
+            override fun unpack(bb: ByteBuffer): ChassisPowers =
+                ChassisPowers(
+                    bb.getDouble(),
+                    bb.getDouble(),
+                    bb.getDouble()
+                )
+
+            override fun pack(bb: ByteBuffer, value: ChassisPowers) {
+                bb.putDouble(value.xPower)
+                bb.putDouble(value.yPower)
+                bb.putDouble(value.rotationPower)
+            }
+        }
+    }
     /**
      * Measures whether 2 [ChassisPowers] are roughly equal.
      */
@@ -23,19 +48,6 @@ public data class ChassisPowers(
         abs(xPower - other.xPower) <= 0.01
             && abs(yPower - other.yPower) <= 0.01
             && abs(rotationPower - other.rotationPower) <= 0.01
-
-    override fun pushToLog(table: LogTable, category: String) {
-        table.put("$category/xPower", xPower)
-        table.put("$category/yPower", yPower)
-        table.put("$category/rotationPower", rotationPower)
-    }
-
-    override fun getFromLog(table: LogTable, category: String): ChassisPowers =
-        ChassisPowers(
-            table.get("$category/xPower", 0.0),
-            table.get("$category/yPower", 0.0),
-            table.get("$category/rotationPower", 0.0)
-        )
 }
 
 

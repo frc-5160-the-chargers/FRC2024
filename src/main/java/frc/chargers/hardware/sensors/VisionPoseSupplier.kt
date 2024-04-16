@@ -2,7 +2,7 @@
 package frc.chargers.hardware.sensors
 
 import com.batterystaple.kmeasure.quantities.Angle
-import frc.chargers.utils.BasicMeasurement
+import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 
 /**
@@ -14,7 +14,7 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
  * [frc.chargers.utils.Measurement] class instead, which allows for the data to be logged to an AdvantageKit field.
  */
 public interface VisionPoseSupplier{
-    public val robotPoseEstimates: List<BasicMeasurement<UnitPose2d>>
+    public val robotPoseEstimates: List<Measurement<UnitPose2d>>
 
     public val cameraYaw: Angle
 }

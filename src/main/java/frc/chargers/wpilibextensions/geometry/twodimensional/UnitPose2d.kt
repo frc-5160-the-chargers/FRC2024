@@ -5,20 +5,32 @@ import com.batterystaple.kmeasure.dimensions.DistanceDimension
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Distance
 import com.batterystaple.kmeasure.quantities.abs
+import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.interpolation.Interpolatable
-import frc.chargers.advantagekitextensions.AdvantageKitLoggable
+import edu.wpi.first.util.struct.Struct
+import edu.wpi.first.util.struct.StructSerializable
+import frc.chargers.utils.createCopy
 import frc.chargers.utils.math.units.KmeasureUnit
+import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitPose3d
-import org.littletonrobotics.junction.LogTable
 
 /**
  * A wrapper around WPILib's [UnitPose2d] class, adding in units support.
  */
 public data class UnitPose2d(
     val siValue: Pose2d = Pose2d()
-): AdvantageKitLoggable<UnitPose2d>, Interpolatable<UnitPose2d> {
+): Interpolatable<UnitPose2d>, StructSerializable {
+    companion object{
+        @JvmStatic
+        val struct: Struct<UnitPose3d> = createCopy(
+            Pose3d.struct,
+            convertor = { it.ofUnit(meters) },
+            inverseConvertor = { it.inUnit(meters) }
+        )
+    }
+
     public constructor(translation: UnitTranslation2d, rotation: Angle = Angle(0.0)): this(
         Pose2d(translation.siValue, rotation.asRotation2d())
     )
@@ -77,12 +89,6 @@ public data class UnitPose2d(
     public operator fun minus(other: UnitPose2d): UnitTransform2d = UnitTransform2d(siValue - other.siValue)
     public operator fun times(scalar: Double): UnitPose2d = UnitPose2d(siValue * scalar)
     public operator fun div(scalar: Double): UnitPose2d = UnitPose2d(siValue / scalar)
-    override fun pushToLog(table: LogTable, category: String) {
-        table.put(category, Pose2d.struct, siValue)
-    }
-
-    override fun getFromLog(table: LogTable, category: String): UnitPose2d =
-        UnitPose2d(table.get(category, Pose2d.struct, Pose2d()))
 
     override fun interpolate(endValue: UnitPose2d, t: Double): UnitPose2d =
         UnitPose2d(siValue.interpolate(endValue.siValue, t))

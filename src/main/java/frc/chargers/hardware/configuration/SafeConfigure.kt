@@ -19,7 +19,7 @@ public inline fun safeConfigure(
     getErrorInfo: () -> String = {"[Nothing]"},
     configure: () -> Boolean
 ){
-    repeat(ChargerRobot.hardwareConfigRetryLimit){ index: Int ->
+    repeat(3){ index: Int ->
         val iteration = index + 1
         if (configure()){
             println("$deviceName has been successfully configured on attempt #$iteration.")
@@ -30,7 +30,7 @@ public inline fun safeConfigure(
     }
     val errorInfo = getErrorInfo()
     error("CONFIGURATION ERROR: $deviceName failed to configure! " +
-            "Configuration was attempted" + ChargerRobot.hardwareConfigRetryLimit + " times. \n" +
+            "Configuration was attempted" + 3 + " times. \n" +
             "Additional Info: $errorInfo"
     )
 }

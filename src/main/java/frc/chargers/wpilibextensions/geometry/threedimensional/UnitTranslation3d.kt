@@ -3,16 +3,29 @@ package frc.chargers.wpilibextensions.geometry.threedimensional
 
 import com.batterystaple.kmeasure.quantities.Distance
 import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.geometry.Rotation3d
+import edu.wpi.first.math.geometry.Transform3d
 import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.math.interpolation.Interpolatable
-import frc.chargers.advantagekitextensions.AdvantageKitLoggable
-import org.littletonrobotics.junction.LogTable
+import edu.wpi.first.util.struct.Struct
+import edu.wpi.first.util.struct.StructSerializable
+import frc.chargers.utils.createCopy
+import frc.chargers.wpilibextensions.geometry.ofUnit
 
 
 public data class UnitTranslation3d(
     public val siValue: Translation3d = Translation3d()
-): Interpolatable<UnitTranslation3d>, AdvantageKitLoggable<UnitTranslation3d> {
+): Interpolatable<UnitTranslation3d>, StructSerializable {
+
+    companion object{
+        @JvmStatic
+        val struct: Struct<UnitTransform3d> = createCopy(
+            Transform3d.struct,
+            convertor = { it.ofUnit(meters) },
+            inverseConvertor = { it.inUnit(meters) }
+        )
+    }
 
     public constructor(x: Distance, y: Distance, z: Distance): this(
         siValue = Translation3d(x.siValue,y.siValue,z.siValue)
@@ -45,13 +58,6 @@ public data class UnitTranslation3d(
     public operator fun unaryMinus(): UnitTranslation3d = UnitTranslation3d(-siValue)
     override fun interpolate(endValue: UnitTranslation3d, t: Double): UnitTranslation3d =
         UnitTranslation3d(siValue.interpolate(endValue.siValue,t))
-
-    override fun pushToLog(table: LogTable, category: String) {
-        table.put(category, Translation3d.struct, siValue)
-    }
-
-    override fun getFromLog(table: LogTable, category: String): UnitTranslation3d =
-        UnitTranslation3d(table.get(category, Translation3d.struct, Translation3d()))
 
 }
 

@@ -7,34 +7,24 @@ import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.geometry.Rotation3d
 import edu.wpi.first.util.struct.Struct
-import frc.chargers.advantagekitextensions.AdvantageKitLoggable
+import edu.wpi.first.util.struct.StructSerializable
+import frc.chargers.utils.createCopy
 import frc.chargers.utils.math.units.KmeasureUnit
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
-import org.littletonrobotics.junction.LogTable
-import java.nio.ByteBuffer
 
 
 public data class UnitPose3d(
     val siValue: Pose3d = Pose3d()
-): AdvantageKitLoggable<UnitPose3d> {
+): StructSerializable {
 
     companion object{
-        val struct = object: Struct<UnitPose3d> {
-            override fun getTypeClass(): Class<UnitPose3d> = UnitPose3d::class.java
-
-            override fun getTypeString(): String = Pose3d.struct.typeString
-
-            override fun getSize(): Int = Pose3d.struct.size
-
-            override fun getSchema(): String = Pose3d.struct.schema
-
-            override fun unpack(p0: ByteBuffer): UnitPose3d = Pose3d.struct.unpack(p0).ofUnit(meters)
-
-            override fun pack(p0: ByteBuffer, p1: UnitPose3d) {
-                Pose3d.struct.pack(p0, p1.inUnit(meters))
-            }
-        }
+        @JvmStatic
+        val struct: Struct<UnitPose3d> = createCopy(
+            Pose3d.struct,
+            convertor = { it.ofUnit(meters) },
+            inverseConvertor = { it.inUnit(meters) }
+        )
     }
 
 
@@ -73,13 +63,5 @@ public data class UnitPose3d(
     public operator fun minus(other: UnitPose3d): UnitTransform3d = UnitTransform3d(siValue.minus(other.siValue))
     public operator fun times(scalar: Double): UnitPose3d = UnitPose3d(siValue * scalar)
     public operator fun div(scalar: Double): UnitPose3d = UnitPose3d(siValue / scalar)
-    override fun pushToLog(table: LogTable, category: String) {
-        table.put(category,Pose3d.struct, siValue)
-    }
-
-    override fun getFromLog(table: LogTable, category: String): UnitPose3d =
-        UnitPose3d(
-            table.get(category, Pose3d.struct, Pose3d())
-        )
 
 }
