@@ -3,6 +3,7 @@ package frc.robot.commands
 import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.volts
+import com.ctre.phoenix6.Orchestra
 import edu.wpi.first.wpilibj.GenericHID
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
@@ -18,7 +19,8 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 class TestCommandChooser(
     private val drivetrain: EncoderHolonomicDrivetrain,
     private val shooter: Shooter,
-    private val visionManager: VisionManager? = null
+    private val visionManager: VisionManager? = null,
+    private val rickRoller: Orchestra? = null
 ) {
     private val sendableChooser = LoggedDashboardChooser<Command>("TestCommandOptions(Not Auto!!!!)")
 
@@ -27,6 +29,16 @@ class TestCommandChooser(
     init{
         sendableChooser.apply{
             addDefaultOption("Do Nothing", Commands.none())
+
+            if (rickRoller != null){
+                addOption(
+                    "Rick Roll Everyone",
+                    runOnceCommand{
+                        rickRoller.loadMusic("NeverGonnaGiveYouUp.chrp")
+                        rickRoller.play()
+                    }
+                )
+            }
 
             if (visionManager != null){
                 addOption(

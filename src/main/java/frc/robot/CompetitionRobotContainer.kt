@@ -6,6 +6,7 @@ package frc.robot
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
+import com.ctre.phoenix6.Orchestra
 import com.ctre.phoenix6.signals.NeutralModeValue
 import com.revrobotics.CANSparkBase
 import edu.wpi.first.math.system.plant.DCMotor
@@ -79,9 +80,10 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val groundIntakeRatio = 15.0 / 12.0
     private val conveyorRatio = 7.5 / 1.0
 
-    // note of reference: an IO class is a low-level component of the robot
-    // that integrates advantagekit logging.
+    private val rickRoller = Orchestra()
 
+    // note of reference: an IO class is a low-level component of the robot
+    // that integrates advantagekit logging.'
     private val gyroIO = ChargerNavX(useFusedHeading = false).apply{
         if (DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Red){
             zeroHeading(180.degrees)
@@ -146,7 +148,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
     private val groundIntake = GroundIntakeSerializer(
         if (isReal()){
             GroundIntakeIOReal(
-                topMotor = ChargerTalonFX(GROUND_INTAKE_ID),
+                topMotor = ChargerTalonFX(GROUND_INTAKE_ID).also{ rickRoller.addInstrument(it) },
                 conveyorMotor = ChargerSparkMax(CONVEYOR_ID){
                     periodicFrameConfig = PeriodicFrameConfig.Optimized(
                         utilizedData = listOf(MotorData.VELOCITY, MotorData.VOLTAGE, MotorData.TEMPERATURE)
@@ -204,7 +206,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
             supplyCurrentLimitEnable = true
             supplyCurrentLimit = 60.amps
             neutralMode = NeutralModeValue.Brake
-        },
+        }.also{ it.forEach{ motor -> rickRoller.addInstrument(motor) } },
         controlData = SwerveControlData(
             azimuthControl = SwerveAzimuthControl.PID(
                 PIDConstants(7.0,0,0.1),
