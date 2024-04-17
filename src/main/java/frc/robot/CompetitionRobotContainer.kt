@@ -435,7 +435,7 @@ class CompetitionRobotContainer: ChargerRobotContainer() {
 
     private val autoChooser = AutoChooser(vision.notePipeline, drivetrain, shooter, pivot, groundIntake)
 
-    private val testCommandChooser = TestCommandChooser(drivetrain, shooter, vision)
+    private val testCommandChooser = TestCommandChooser(drivetrain, shooter, vision, rickRoller)
 
     override val testCommand: Command
         get() = testCommandChooser.selected
