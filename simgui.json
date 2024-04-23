@@ -210,6 +210,18 @@
         },
         "open": true
       },
+      "LiveWindow": {
+        "open": true
+      },
+      "Logs": {
+        "Drivetrain(Swerve)": {
+          "BottomLeftModule": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true
+      },
       "PathPlanner": {
         "double[]##v_/PathPlanner/currentPose": {
           "open": true
@@ -222,8 +234,20 @@
         },
         "open": true
       },
+      "Shuffleboard": {
+        ".metadata": {
+          "open": true
+        },
+        "open": true
+      },
       "SmartDashboard": {
+        "Alerts": {
+          "open": true
+        },
         "AutoOptions": {
+          "open": true
+        },
+        "Field": {
           "open": true
         },
         "NoteVisualizer": {
@@ -246,6 +270,18 @@
   },
   "NetworkTables Info": {
     "Clients": {
+      "open": true
+    },
+    "Connections": {
+      "open": true
+    },
+    "Server": {
+      "Publishers": {
+        "open": true
+      },
+      "Subscribers": {
+        "open": true
+      },
       "open": true
     },
     "visible": true

@@ -12,13 +12,14 @@ import com.ctre.phoenix6.configs.Pigeon2Configuration
 import com.ctre.phoenix6.hardware.Pigeon2
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.framework.ChargerRobot
+import frc.chargers.framework.Loggable
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
 import frc.chargers.hardware.configuration.safeConfigure
 import frc.chargers.hardware.sensors.imu.gyroscopes.ThreeAxisGyroscope
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
-import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.wpilibextensions.delay
+import frc.external.limelight.LimelightHelpers
 
 /**
  * Creates a [ChargerPigeon2] with inline configuration.
@@ -45,17 +46,21 @@ public class ChargerPigeon2(
     canBus: String = "rio",
     factoryDefault: Boolean = true,
     configuration: ChargerPigeon2Configuration? = null
-): Pigeon2(canId, canBus), ZeroableHeadingProvider, HardwareConfigurable<ChargerPigeon2Configuration> {
+): Pigeon2(canId, canBus), ZeroableHeadingProvider, HardwareConfigurable<ChargerPigeon2Configuration>, Loggable {
+    override val namespace = "Pigeon2"
+
     private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
     private var configAppliedProperly = true
 
     init{
-        ChargerRobot.runPeriodically (addToFront = true) {
-            val currentStatus = BaseStatusSignal.refreshAll(
-                *gyroscope.getSignals(),
-                *accelerometer.getSignals()
-            )
-            isConnected = currentStatus == StatusCode.OK
+        if (isReal()){
+            ChargerRobot.runPeriodically (addToFront = true) {
+                val currentStatus = BaseStatusSignal.refreshAll(
+                    *gyroscope.getSignals(),
+                    *accelerometer.getSignals()
+                )
+                isConnected = currentStatus == StatusCode.OK
+            }
         }
 
         val baseConfig = Pigeon2Configuration()
@@ -89,47 +94,48 @@ public class ChargerPigeon2(
     /**
      * The heading of the Pigeon; equivalent to yaw.
      */
-    override val heading: Angle by ImuLog.quantity{ gyroscope.yaw }
+    override val heading: Angle by logged{ gyroscope.yaw }
+
 
     /**
      * Zeroes the heading of the Pigeon.
      */
     override fun zeroHeading(angle: Angle) { setYaw(angle.inUnit(degrees)) }
 
-    private var _isConnected = true
-
     /**
-     * Determines if the gyro is connected or not.
+     * Broadcasts robot orientation for the MegaTag2 system.
+     * Should be run periodically; either in a periodic() method or using [ChargerRobot.runPeriodically].
      */
-    public var isConnected: Boolean by ImuLog.boolean(
-        getValue = { isReal() &&  _isConnected  },
-        setValue = { value -> _isConnected = value }
-    )
-
-
-
-    init{
+    fun broadcastOrientationForMegaTag2(
+        vararg limelightNames: String
+    ){
         if (isReal()){
-            ChargerRobot.runPeriodically(addToFront = true){
-                ChargerLimelight.broadcastRobotOrientation(
-                    gyroscope.heading,
-                    gyroscope.yawRate,
-                    gyroscope.pitch,
-                    gyroscope.pitchRate,
-                    gyroscope.roll,
-                    gyroscope.rollRate
+            for (llName in limelightNames){
+                LimelightHelpers.setRobotOrientation(
+                    llName,
+                    heading.inUnit(degrees),
+                    gyroscope.yawRate.inUnit(degrees/seconds),
+                    gyroscope.pitch.inUnit(degrees),
+                    gyroscope.pitchRate.inUnit(degrees/seconds),
+                    gyroscope.roll.inUnit(degrees),
+                    gyroscope.rollRate.inUnit(degrees/seconds),
                 )
             }
         }
     }
 
+    /**
+     * Determines if the gyro is connected or not.
+     */
+    public var isConnected: Boolean by logged(false)
+
+
     /*
     Internal constructor makes it so that the inner class can be accepted as a type argument,
     but can't be instantiated.
      */
-
-
-    public inner class Gyroscope internal constructor(): ThreeAxisGyroscope {
+    public inner class Gyroscope internal constructor(): ThreeAxisGyroscope, Loggable {
+        override val namespace = "Pigeon2/Gyroscope"
         private var simPreviousYaw = Angle(0.0)
 
         private val yawSignal = getYaw()
@@ -145,21 +151,21 @@ public class ChargerPigeon2(
 
 
 
-        override val yaw: Angle by GyroLog.quantity{
+        override val yaw: Angle by logged{
             if (isReal()) yawSignal.value.ofUnit(degrees) else IMUSimulation.getHeading()
         }
 
-        override val pitch: Angle by GyroLog.quantity{
+        override val pitch: Angle by logged{
             if (isReal()) pitchSignal.value.ofUnit(degrees) else Angle(0.0)
         }
 
-        override val roll: Angle by GyroLog.quantity{
+        override val roll: Angle by logged{
             if (isReal()) rollSignal.value.ofUnit(degrees) else Angle(0.0)
         }
 
 
 
-        public val yawRate: AngularVelocity by GyroLog.quantity{
+        public val yawRate: AngularVelocity by logged{
             if (isReal()){
                 yawRateSignal.value.ofUnit(degrees/seconds)
             }else{
@@ -170,18 +176,19 @@ public class ChargerPigeon2(
             }
         }
 
-        public val pitchRate: AngularVelocity by GyroLog.quantity{
+        public val pitchRate: AngularVelocity by logged{
             if (isReal()) pitchRateSignal.value.ofUnit(degrees/seconds) else AngularVelocity(0.0)
         }
 
-        public val rollRate: AngularVelocity by GyroLog.quantity{
+        public val rollRate: AngularVelocity by logged{
             if (isReal()) rollRateSignal.value.ofUnit(degrees/seconds) else AngularVelocity(0.0)
         }
     }
 
 
 
-    public inner class Accelerometer internal constructor(): ThreeAxisAccelerometer {
+    public inner class Accelerometer internal constructor(): ThreeAxisAccelerometer, Loggable {
+        override val namespace = "Pigeon2/Accelerometer"
         private val xAccelSignal = accelerationX
         private val yAccelSignal = accelerationY
         private val zAccelSignal = accelerationZ
@@ -191,15 +198,15 @@ public class ChargerPigeon2(
 
 
 
-        override val xAcceleration: Acceleration by AccelerometerLog.quantity{
+        override val xAcceleration: Acceleration by logged{
             if (isReal()) xAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)
         }
 
-        override val yAcceleration: Acceleration by AccelerometerLog.quantity{
+        override val yAcceleration: Acceleration by logged{
             if (isReal()) yAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)
         }
 
-        override val zAcceleration: Acceleration by AccelerometerLog.quantity{
+        override val zAcceleration: Acceleration by logged{
             if (isReal()) zAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)
         }
     }

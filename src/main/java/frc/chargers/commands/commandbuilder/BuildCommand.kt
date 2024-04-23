@@ -6,7 +6,7 @@ import edu.wpi.first.wpilibj2.command.Subsystem
 import frc.chargers.commands.runOnceCommand
 import frc.chargers.commands.then
 import frc.chargers.commands.withExtraRequirements
-import org.littletonrobotics.junction.Logger
+import frc.chargers.framework.ChargerRobot
 import kotlin.internal.LowPriorityInOverloadResolution
 
 /**
@@ -131,7 +131,7 @@ class BuildCommandScope: CommandBuilder(){
 @PublishedApi
 internal fun Command.withLogInCommandGroup(commandGroupName: String): Command{
     fun logCommand(active: Boolean) = runOnceCommand{
-        Logger.recordOutput("/ActiveCommands/Subcommands Of: $commandGroupName/$name", active)
+        ChargerRobot.log("/ActiveCommands/Subcommands Of: $commandGroupName/$name", active)
     }
 
     // uses custom infix "then" operator(more concise way to do andThen)

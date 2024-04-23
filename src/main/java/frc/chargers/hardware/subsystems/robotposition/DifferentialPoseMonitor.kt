@@ -4,14 +4,17 @@ package frc.chargers.hardware.subsystems.robotposition
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
+import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.estimator.DifferentialDrivePoseEstimator
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.numbers.N1
+import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.hardware.sensors.VisionPoseSupplier
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.differentialdrive.EncoderDifferentialDrivetrain
+import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
@@ -25,7 +28,6 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
  */
 class DifferentialPoseMonitor(
     private val drivetrain: EncoderDifferentialDrivetrain,
-    visionEstimators: List<VisionPoseSupplier>,
     startingPose: UnitPose2d
 ): SubsystemBase(), RobotPoseMonitor {
     private val poseEstimator = DifferentialDrivePoseEstimator(
@@ -35,11 +37,8 @@ class DifferentialPoseMonitor(
         Pose2d()
     )
 
-    private val visionEstimators: MutableList<VisionPoseSupplier> = mutableListOf()
-
 
     init{
-        addPoseSuppliers(*visionEstimators.toTypedArray())
         resetPose(startingPose)
     }
 
@@ -54,32 +53,34 @@ class DifferentialPoseMonitor(
 
         poseEstimator.resetPosition(
             (drivetrain.gyro?.heading ?: pose.rotation).asRotation2d(),
-            drivetrain.leftWheelTravel.siValue * drivetrain.wheelTravelPerMotorRadian.siValue,
-            drivetrain.rightWheelTravel.siValue * drivetrain.wheelTravelPerMotorRadian.siValue,
+            drivetrain.leftWheelTravel.siValue,
+            drivetrain.rightWheelTravel.siValue,
             pose.inUnit(meters)
         )
     }
 
-    override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier) {
-        visionEstimators.addAll(visionSystems)
+    override fun addVisionMeasurement(measurement: Measurement<UnitPose2d>, stdDevs: Matrix<N3, N1>?) {
+        if (stdDevs != null){
+            poseEstimator.addVisionMeasurement(
+                measurement.value.inUnit(meters),
+                measurement.timestamp.inUnit(seconds),
+                stdDevs
+            )
+        }else{
+            poseEstimator.addVisionMeasurement(
+                measurement.value.inUnit(meters),
+                measurement.timestamp.inUnit(seconds)
+            )
+        }
     }
 
 
     override fun periodic(){
         poseEstimator.update(
             (drivetrain.gyro?.heading ?: drivetrain.heading).asRotation2d(),
-            drivetrain.leftWheelTravel.siValue * drivetrain.wheelTravelPerMotorRadian.siValue,
-            drivetrain.rightWheelTravel.siValue * drivetrain.wheelTravelPerMotorRadian.siValue,
+            drivetrain.leftWheelTravel.siValue,
+            drivetrain.rightWheelTravel.siValue,
         )
-
-        for (visionEstimator in visionEstimators){
-            for (visionEstimate in visionEstimator.robotPoseEstimates){
-                poseEstimator.addVisionMeasurement(
-                    visionEstimate.value.inUnit(meters),
-                    visionEstimate.timestamp.inUnit(seconds)
-                )
-            }
-        }
 
         ChargerRobot.FIELD.robotPose = poseEstimator.estimatedPosition
     }

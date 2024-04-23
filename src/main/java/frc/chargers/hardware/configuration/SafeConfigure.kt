@@ -1,8 +1,6 @@
 @file:Suppress("RedundantVisibilityModifier", "unused")
 package frc.chargers.hardware.configuration
 
-import frc.chargers.framework.ChargerRobot
-
 /**
  * A utility function to retry configuration application
  * for a set number of times,

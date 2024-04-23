@@ -9,7 +9,6 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.volts
 import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.utils.math.inputModulus
 
@@ -39,8 +38,7 @@ internal class SparkPIDHandler(
     fun setAngularVelocity(
         target: AngularVelocity,
         pidConstants: PIDConstants,
-        feedforward: Voltage,
-        vararg followers: SmartEncoderMotorController
+        feedforward: Voltage
     ) {
         updateControllerConstants(pidConstants)
         innerController.setReference(
@@ -49,17 +47,13 @@ internal class SparkPIDHandler(
             0,
             feedforward.inUnit(volts)
         )
-        followers.forEach{
-            it.setAngularVelocity(target, pidConstants, feedforward)
-        }
     }
 
     fun setAngularPosition(
         target: Angle,
         pidConstants: PIDConstants,
         continuousWrap: Boolean,
-        extraVoltage: Voltage,
-        vararg followers: SmartEncoderMotorController
+        extraVoltage: Voltage
     ) {
         if (continuousWrap != isCurrentlyWrapping){
             if (continuousWrap){
@@ -83,14 +77,6 @@ internal class SparkPIDHandler(
             0,
             extraVoltage.siValue
         )
-
-        followers.forEach{
-            it.setAngularPosition(
-                target, pidConstants, continuousWrap, extraVoltage, encoderAdaptor
-            )
-        }
-
-
     }
 
 }

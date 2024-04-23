@@ -4,24 +4,28 @@ package frc.chargers.framework
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
+import com.pathplanner.lib.pathfinding.LocalADStar
+import com.pathplanner.lib.pathfinding.Pathfinding
 import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.apriltag.AprilTagFieldLayout
 import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.DataLogManager
+import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.CommandScheduler
-import frc.chargers.constants.DashboardTuner
 
-
-abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(loopPeriod.inUnit(seconds)), Loggable {
-
-    override val logGroup = "RobotGeneral"
+/**
+ * A base class for
+ */
+abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Loggable {
+    override val namespace = "RobotGeneral"
 
     public companion object: Loggable {
-        override val logGroup = "RobotGeneral"
+        override val namespace = "RobotGeneral"
         /**
          * Adds a specific function to the robot's periodic loop.
          *
@@ -79,31 +83,31 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(loopPer
     }
 
 
-    open var tuningMode: Boolean = false
-        set(value){
-            log("tuningMode", value)
-            field = value
-            DashboardTuner.tuningMode = value
-        }
+    open val tuningMode: Boolean = false
 
-    open val logFileFolder: String? = null
+    open val logFileFolder: String get() = if (isReal()) "/U/logs" else "logs"
     open val logFileName: String? = null
 
     open val logToFileOnly: Boolean = false
 
 
     init{
-        DataLogManager.logNetworkTables(!logToFileOnly)
-        if (logFileFolder != null){
-            if (logFileName != null){
-                DataLogManager.start(logFileFolder)
-            }else{
-                DataLogManager.start(logFileFolder, logFileName)
-            }
+        val fileName = logFileName
+        if (fileName == null){
+            DataLogManager.start(logFileFolder)
+        }else if (".wpilog" in fileName){
+            DataLogManager.start(logFileFolder, fileName)
+        }else{
+            DataLogManager.start(logFileFolder, "$fileName.wpilog")
         }
+
+        if (RobotBase.isReal()){
+            DriverStation.startDataLog(DataLogManager.getLog())
+        }
+
         log("loopPeriodSeconds", loopPeriod.inUnit(seconds))
-
-
+        Tunable.tuningMode = tuningMode
+        Loggable.fileOnly = logToFileOnly
 
         CommandScheduler.getInstance().apply{
             onCommandInitialize{
@@ -119,34 +123,20 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(loopPer
             }
         }
 
+        Pathfinding.setPathfinder(LocalADStar())
+
         var currPose = Pose2d()
 
-        log(Pose2d.struct, "Pathplanner/currentPose", Pose2d())
-        log(Pose2d.struct, "Pathplanner/targetPose", Pose2d())
         log("Pathplanner/deviationFromTargetPose/xMeters", 0.0)
         log("Pathplanner/deviationFromTargetPose/yMeters", 0.0)
         log("Pathplanner/deviationFromTargetPose/rotationRad", 0.0)
 
-        PathPlannerLogging.setLogCurrentPoseCallback {
-            currPose = it
-            log(Pose2d.struct, "Pathplanner/currentPose", it)
-        }
+        PathPlannerLogging.setLogCurrentPoseCallback { currPose = it }
 
-        // Logging callback for target robot pose
         PathPlannerLogging.setLogTargetPoseCallback {
-            log(Pose2d.struct, "Pathplanner/targetPose", it)
-            log(
-                "Pathplanner/deviationFromTargetPose/xMeters",
-                it.x - currPose.x
-            )
-            log(
-                "Pathplanner/deviationFromTargetPose/yMeters",
-                it.y - currPose.y
-            )
-            log(
-                "Pathplanner/deviationFromTargetPose/rotationRad",
-                (it.rotation - currPose.rotation).radians
-            )
+            log("Pathplanner/deviationFromTargetPose/xMeters", it.x - currPose.x)
+            log("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
+            log("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
         }
     }
 

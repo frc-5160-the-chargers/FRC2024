@@ -24,8 +24,10 @@ public fun Rotation3d(roll: Angle, pitch: Angle, yaw: Angle): Rotation3d = Rotat
 
 public val Rotation3d.xAngle: Angle
     get() = x.ofUnit(radians)
+
 public val Rotation3d.yAngle: Angle
     get() = y.ofUnit(radians)
+
 public val Rotation3d.zAngle: Angle
     get() = z.ofUnit(radians)
 

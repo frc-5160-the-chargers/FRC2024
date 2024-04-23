@@ -7,7 +7,9 @@ import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs
 import com.ctre.phoenix6.configs.Slot0Configs
 import com.ctre.phoenix6.configs.TalonFXConfiguration
-import com.ctre.phoenix6.controls.*
+import com.ctre.phoenix6.controls.Follower
+import com.ctre.phoenix6.controls.PositionVoltage
+import com.ctre.phoenix6.controls.VelocityVoltage
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
 import edu.wpi.first.wpilibj.RobotBase
@@ -15,7 +17,7 @@ import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
 import frc.chargers.hardware.configuration.safeConfigure
-import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
+import frc.chargers.hardware.motorcontrol.MotorizedComponent
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
 import frc.chargers.utils.math.inputModulus
 
@@ -83,14 +85,19 @@ public class ChargerTalonFX(
     canBus: String = "rio",
     factoryDefault: Boolean = true,
     configuration: ChargerTalonFXConfiguration? = null
-): TalonFX(deviceId, canBus), SmartEncoderMotorController, HardwareConfigurable<ChargerTalonFXConfiguration> {
+): TalonFX(deviceId, canBus), MotorizedComponent, HardwareConfigurable<ChargerTalonFXConfiguration> {
 
-    private val forwardTalonFXFollowers: MutableSet<TalonFX> = mutableSetOf()
-    private val invertedTalonFXFollowers: MutableSet<TalonFX> = mutableSetOf()
-    private val otherFollowers: MutableSet<SmartEncoderMotorController> = mutableSetOf()
+    private val talonFXFollowers: MutableSet<TalonFX> = mutableSetOf()
+    private val otherFollowers: MutableSet<MotorizedComponent> = mutableSetOf()
 
     private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
     private var configAppliedProperly = true
+
+    private val voltageSignal = supplyVoltage
+    private val currentSignal = getStatorCurrent()
+    private val tempSignal = deviceTemp
+    private val followRequest = Follower(deviceID, false)
+
     private fun StatusCode.updateErrorStatus(): StatusCode {
         if (this != StatusCode.OK){
             if (RobotBase.isSimulation()){
@@ -127,103 +134,41 @@ public class ChargerTalonFX(
     override val encoder: TalonFXEncoderAdapter =
         TalonFXEncoderAdapter(this)
 
+    override var hasInvert: Boolean
+        get() = getInverted()
+        set(value) = setInverted(value)
 
-    private val voltageSignal = supplyVoltage
-    private val currentSignal = statorCurrent
-    private val tempSignal = deviceTemp
-
-    override val appliedVoltage: Voltage
+    override var appliedVoltage: Voltage
         get() = voltageSignal.refresh(true).value.ofUnit(volts) * get()
+        set(value){ setVoltage(value.siValue) }
 
-    override val appliedCurrent: Current
+    override val statorCurrent: Current
         get() = currentSignal.refresh(true).value.ofUnit(amps)
 
-    override val tempCelsius: Double
-        get() = tempSignal.refresh(true).value
-
-
-    private val defaultFollowRequest = Follower(deviceID, false)
-    private val invertFollowRequest = Follower(deviceID, true)
 
     /**
      * Adds follower motors to this TalonFX that mirror this motor's direction,
      * regardless of invert.
      *
-     * See [withInvertedFollowers] if having followers
-     * which run in the opposite direction of the master is desired.
-     *
      * Do not try and access the individual motors passed into this function,
      * as this can lead to unexpected results. To configure followers,
      * it is recommended to use an [apply] or [also] block, or use ChargerLib's inline configuration to do so.
      */
-    public fun withFollowers(vararg followers: SmartEncoderMotorController){
-        val thisInverted = this.inverted
-        followers.forEach{
-            if (it is TalonFX){
-                forwardTalonFXFollowers.add(it)
+    override fun withFollowers(vararg followers: MotorizedComponent): MotorizedComponent {
+        val nonTalonFXFollowers = mutableListOf<MotorizedComponent>()
+        for (follower in followers){
+            if (follower is TalonFX){
+                talonFXFollowers.add(follower)
             }else{
-                it.inverted = thisInverted
-                otherFollowers.add(it)
+                nonTalonFXFollowers.add(follower)
             }
         }
+        return super.withFollowers(*nonTalonFXFollowers.toTypedArray())
     }
-
-
-    /**
-     * Adds follower motors to this TalonFX that run in the opposite direction of this motor,
-     * regardless of invert.
-     *
-     * See [withFollowers] if inverting direction is not desired.
-     *
-     * Do not try and access the individual motors passed into this function,
-     * as this can lead to unexpected results. To configure followers,
-     * it is recommended to use an [apply] or [also] block, or use ChargerLib's inline configuration to do so.
-     */
-    public fun withInvertedFollowers(vararg followers: SmartEncoderMotorController){
-        val thisInverted = this.inverted
-        followers.forEach{
-            if (it is TalonFX){
-                invertedTalonFXFollowers.add(it)
-            }else{
-                it.inverted = !thisInverted
-                otherFollowers.add(it)
-            }
-        }
-    }
-
 
     private fun runFollowing(){
-        forwardTalonFXFollowers.forEach{ it.setControl(defaultFollowRequest) }
-        invertedTalonFXFollowers.forEach{ it.setControl(invertFollowRequest) }
+        talonFXFollowers.forEach{ it.setControl(followRequest) }
     }
-
-    override fun setControl(request: VoltageOut): StatusCode {
-        runFollowing()
-        otherFollowers.forEach{
-            it.setVoltage(request.Output)
-        }
-        return super.setControl(request)
-    }
-
-    override fun setControl(request: DutyCycleOut): StatusCode {
-        runFollowing()
-        otherFollowers.forEach{
-            it.set(request.Output)
-        }
-        return super.setControl(request) // returns a status code
-    }
-
-    override fun setControl(request: NeutralOut): StatusCode {
-        runFollowing()
-        otherFollowers.forEach {
-            it.stopMotor()
-        }
-        return super.setControl(request) // returns a status code
-    }
-
-
-
-
 
     private val currentSlotConfigs = Slot0Configs()
     private val velocityRequest = VelocityVoltage(0.0).also{ it.Slot = 0 }
@@ -238,8 +183,8 @@ public class ChargerTalonFX(
         currentSlotConfigs.kD = newConstants.kD
     }
 
-    override fun setAngularVelocity(
-        target: AngularVelocity,
+    override fun setVelocitySetpoint(
+        rawVelocity: AngularVelocity,
         pidConstants: PIDConstants,
         feedforward: Voltage
     ) {
@@ -248,48 +193,47 @@ public class ChargerTalonFX(
             configurator.apply(currentSlotConfigs)
             println("PID status has been updated.")
         }
-        velocityRequest.Velocity = target.inUnit(rotations/seconds)
+        velocityRequest.Velocity = rawVelocity.inUnit(rotations/seconds)
         velocityRequest.FeedForward = feedforward.inUnit(volts)
         setControl(velocityRequest)
         runFollowing()
         otherFollowers.forEach{
-            it.setAngularVelocity(target, pidConstants, feedforward)
+            it.setVelocitySetpoint(rawVelocity, pidConstants, feedforward)
         }
     }
 
-    override fun setAngularPosition(
-        target: Angle,
+    override fun setPositionSetpoint(
+        rawPosition: Angle,
         pidConstants: PIDConstants,
-        continuousWrap: Boolean,
-        extraVoltage: Voltage
+        continuousInput: Boolean,
+        feedforward: Voltage
     ) {
-
         if (currentPIDConstants() != pidConstants){
             setPIDConstants(pidConstants)
             configurator.apply(currentSlotConfigs)
             println("PID status for Talon FX has been updated.")
         }
 
-        if (isWrapping != continuousWrap){
+        if (isWrapping != continuousInput){
             configurator.apply(
-                ClosedLoopGeneralConfigs().apply{ContinuousWrap = continuousWrap}
+                ClosedLoopGeneralConfigs().apply{ContinuousWrap = continuousInput}
             )
-            isWrapping = continuousWrap
+            isWrapping = continuousInput
             println("Closed Loop status for TalonFX has been updated.")
         }
 
         if (isWrapping){
-            positionRequest.Position = target
+            positionRequest.Position = rawPosition
                 .inputModulus((-0.5).rotations..0.5.rotations)
                 .inUnit(rotations)
         }else{
-            positionRequest.Position = target.inUnit(rotations)
+            positionRequest.Position = rawPosition.inUnit(rotations)
         }
-        positionRequest.FeedForward = extraVoltage.inUnit(volts)
+        positionRequest.FeedForward = feedforward.inUnit(volts)
         setControl(positionRequest)
         runFollowing()
         otherFollowers.forEach{
-            it.setAngularPosition(target, pidConstants, continuousWrap, extraVoltage, this.encoder)
+            it.setPositionSetpoint(rawPosition, pidConstants, continuousInput, feedforward)
         }
     }
 
@@ -328,14 +272,11 @@ public class ChargerTalonFX(
                 }
 
                 motorOutputUpdateFrequency?.let{
-                    supplyVoltage.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-                    dutyCycle.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
+                    voltageSignal.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
                 }
 
                 currentUpdateFrequency?.let{
-                    torqueCurrent.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-                    supplyCurrent.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-                    statorCurrent.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
+                    currentSignal.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
                 }
             }
             return@safeConfigure configAppliedProperly

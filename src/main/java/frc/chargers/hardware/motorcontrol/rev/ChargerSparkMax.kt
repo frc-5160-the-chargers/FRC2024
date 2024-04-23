@@ -6,76 +6,26 @@ import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.milli
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
-import com.revrobotics.*
+import com.revrobotics.CANSparkBase
 import com.revrobotics.CANSparkLowLevel.MotorType
+import com.revrobotics.CANSparkMax
+import com.revrobotics.REVLibError
 import edu.wpi.first.wpilibj.RobotBase
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.safeConfigure
-import frc.chargers.hardware.motorcontrol.SmartEncoderMotorController
-import frc.chargers.hardware.motorcontrol.rev.util.*
-import frc.chargers.utils.revertIfInvalid
+import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.rev.util.ChargerSparkConfiguration
+import frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderAdaptor
+import frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderType
+import frc.chargers.hardware.motorcontrol.rev.util.SparkPIDHandler
+import frc.chargers.utils.filterInvalid
+import frc.chargers.utils.withSetter
 import frc.chargers.wpilibextensions.delay
 
 /**
- * Represents a type of spark max encoder.
- *
- * Options include [Regular], [Alternate] or [Absolute].
- */
-public sealed class SparkMaxEncoderType{
-
-    public data class Regular(
-        val averageDepth: Int? = null,
-        val inverted: Boolean? = null
-    ): SparkMaxEncoderType()
-
-    public data class Alternate(
-        val category: SparkMaxAlternateEncoder.Type = SparkMaxAlternateEncoder.Type.kQuadrature,
-        val countsPerRev: Int,
-        val encoderMeasurementPeriod: Time? = null,
-        val averageDepth: Int? = null,
-        val inverted: Boolean? = null
-    ): SparkMaxEncoderType()
-
-    public data class Absolute(
-        val category: SparkAbsoluteEncoder.Type = SparkAbsoluteEncoder.Type.kDutyCycle,
-        val averageDepth: Int? = null,
-        val inverted: Boolean? = null
-    ): SparkMaxEncoderType()
-}
-
-
-
-
-/**
- * A class that represents possible configurations for a spark max motor controller.
- *
- * @see ChargerSparkMax
- */
-public class ChargerSparkMaxConfiguration(
-    public var encoderType: SparkMaxEncoderType? = null,
-    idleMode: CANSparkBase.IdleMode? = null,
-    inverted: Boolean? = null,
-    voltageCompensationNominalVoltage: Voltage? = null,
-    canTimeout: Time? = null,
-    closedLoopRampRate: Double? = null,
-    openLoopRampRate: Double? = null,
-    controlFramePeriod: Time? = null,
-    periodicFrameConfig: PeriodicFrameConfig? = null,
-    smartCurrentLimit: SmartCurrentLimit? = null,
-    secondaryCurrentLimit: SecondaryCurrentLimit? = null,
-    softLimits: MutableMap<CANSparkBase.SoftLimitDirection, Angle> = mutableMapOf(),
-): SparkConfigurationBase(
-    idleMode, inverted, voltageCompensationNominalVoltage, canTimeout, closedLoopRampRate, openLoopRampRate,
-    controlFramePeriod, periodicFrameConfig, smartCurrentLimit, secondaryCurrentLimit, softLimits
-)
-
-
-
-
-/**
  * A convenience function to create a [ChargerSparkMax],
- * which uses a function with the context of a [ChargerSparkMaxConfiguration]
+ * which uses a function with the context of a [ChargerSparkConfiguration]
  * to configure the motor.
  *
  * Like the constructor, this function factory defaults the motor by default;
@@ -89,9 +39,9 @@ public inline fun ChargerSparkMax(
     deviceId: Int,
     type: MotorType = MotorType.kBrushless,
     factoryDefault: Boolean = true,
-    configure: ChargerSparkMaxConfiguration.() -> Unit
+    configure: ChargerSparkConfiguration.() -> Unit
 ): ChargerSparkMax = ChargerSparkMax(
-    deviceId, type, factoryDefault, ChargerSparkMaxConfiguration().apply(configure)
+    deviceId, type, factoryDefault, ChargerSparkConfiguration().apply(configure)
 )
 
 
@@ -107,17 +57,15 @@ public inline fun ChargerSparkMax(
  * set factoryDefault = false to turn this off.
  *
  * @see com.revrobotics.CANSparkMax
- * @see ChargerSparkMaxConfiguration
+ * @see ChargerSparkConfiguration
  */
 public class ChargerSparkMax(
     deviceId: Int,
     type: MotorType = MotorType.kBrushless,
     factoryDefault: Boolean = true,
-    configuration: ChargerSparkMaxConfiguration? = null
-) : CANSparkMax(deviceId, type), SmartEncoderMotorController, HardwareConfigurable<ChargerSparkMaxConfiguration>{
-    private val nonRevFollowers: MutableSet<SmartEncoderMotorController> = mutableSetOf()
-
-    private var encoderType: SparkMaxEncoderType = SparkMaxEncoderType.Regular()
+    configuration: ChargerSparkConfiguration? = null
+) : CANSparkMax(deviceId, type), MotorizedComponent, HardwareConfigurable<ChargerSparkConfiguration>{
+    private var encoderType: SparkEncoderType = SparkEncoderType.Regular()
 
     init{
         if (factoryDefault) {
@@ -135,140 +83,38 @@ public class ChargerSparkMax(
     /**
      * The encoder of the spark max.
      */
-    override var encoder: SparkEncoderAdaptor = getEncoder(encoderType)
-        private set
-
-    /**
-     * @see frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderAdaptor
-     */
-    private fun getEncoder(encoderType: SparkMaxEncoderType): SparkEncoderAdaptor{
-        this.encoderType = encoderType
-
-        return when (encoderType){
-            is SparkMaxEncoderType.Regular -> SparkEncoderAdaptor(
-                super.getEncoder().apply{
-                    pidController.setFeedbackDevice(this@apply)
-                    // property access syntax setters
-                    if (encoderType.averageDepth != null){
-                        averageDepth = encoderType.averageDepth
-                    }
-                    if (encoderType.inverted != null){
-                        inverted = encoderType.inverted
-                    }
-                }
-            )
-
-            is SparkMaxEncoderType.Alternate -> SparkEncoderAdaptor(
-                super.getAlternateEncoder(
-                    SparkMaxAlternateEncoder.Type.kQuadrature,
-                    encoderType.countsPerRev
-                ).apply{
-                    pidController.setFeedbackDevice(this@apply)
-                    // property access syntax setters
-                    if (encoderType.encoderMeasurementPeriod != null){
-                        measurementPeriod = encoderType.encoderMeasurementPeriod.inUnit(milli.seconds).toInt()
-                    }
-                    if (encoderType.averageDepth != null){
-                        averageDepth = encoderType.averageDepth
-                    }
-                    if (encoderType.inverted != null){
-                        inverted = encoderType.inverted
-                    }
-                }
-            )
-
-            is SparkMaxEncoderType.Absolute -> SparkEncoderAdaptor(
-                super.getAbsoluteEncoder(encoderType.category).apply{
-                    pidController.setFeedbackDevice(this@apply)
-                    // property access syntax setters
-                    if (encoderType.averageDepth != null){
-                        averageDepth = encoderType.averageDepth
-                    }
-                    if (encoderType.inverted != null){
-                        inverted = encoderType.inverted
-                    }
-                }
-            )
-        }
-    }
+    override var encoder: SparkEncoderAdaptor = SparkEncoderAdaptor(this, encoderType)
 
     /**
      * Adds a generic amount of followers to the Spark Max, where all followers
      * mirror this motor's direction, regardless of invert.
      *
-     * To make followers oppose the master's direction, see [withInvertedFollowers].
-     *
      * Do not try and access the individual motors passed into this function,
      * as this can lead to unexpected results. To configure followers,
      * it is recommended to use an [apply] or [also] block, or use ChargerLib's inline configuration to do so.
      */
-    public fun withFollowers(vararg followers: SmartEncoderMotorController): ChargerSparkMax {
-        /**
-         * @see frc.chargers.hardware.motorcontrol.rev.util.addFollowers
-         */
-        addFollowers(
-            this,
-            nonRevFollowerSetReference = nonRevFollowers,
-            invert = false,
-            *followers
-        )
-        return this
+    override fun withFollowers(vararg followers: MotorizedComponent): MotorizedComponent {
+        val nonRevFollowers = mutableListOf<MotorizedComponent>()
+        for (follower in followers){
+            if (follower is CANSparkBase){
+                follower.follow(this)
+            }else{
+                nonRevFollowers.add(follower)
+            }
+        }
+        return super.withFollowers(*nonRevFollowers.toTypedArray())
     }
 
+    override val statorCurrent: Current by filterInvalid{ outputCurrent.ofUnit(amps) }
 
-    /**
-     * Adds a generic amount of followers to the Spark Max, where all followers
-     * run in the opposite direction of this motor, regardless of invert.
-     *
-     * To make followers oppose the master's direction, see [withFollowers].
-     *
-     * Do not try and access the individual motors passed into this function,
-     * as this can lead to unexpected results. To configure followers,
-     * it is recommended to use an [apply] or [also] block, or use ChargerLib's inline configuration to do so.
-     */
-    public fun withInvertedFollowers(vararg followers: SmartEncoderMotorController): ChargerSparkMax {
-        /**
-         * @see frc.chargers.hardware.motorcontrol.rev.util.addFollowers
-         */
-        addFollowers(
-            this,
-            nonRevFollowerSetReference = nonRevFollowers,
-            invert = true,
-            *followers
-        )
-        return this
-    }
+    override var hasInvert: Boolean
+        get() = getInverted()
+        set(value) = setInverted(value)
 
-    override fun set(speed: Double){
-        super.set(speed.coerceIn(-1.0..1.0))
-        nonRevFollowers.forEach{ it.set(speed.coerceIn(-1.0..1.0)) }
-    }
+    override var appliedVoltage: Voltage
+        by filterInvalid{ appliedOutput * busVoltage.ofUnit(volts) }
+            .withSetter{ setVoltage(it.siValue) }
 
-
-    override fun disable(){
-        super.disable()
-        nonRevFollowers.forEach{ it.disable() }
-    }
-
-
-    private var previousCurrent = Current(0.0)
-    private var previousTemp = 0.0
-    private var previousVoltage = Voltage(0.0)
-
-    override val appliedCurrent: Current
-        get() = outputCurrent.ofUnit(amps)
-            .revertIfInvalid(previousCurrent)
-            .also{ previousCurrent = it }
-
-    override val tempCelsius: Double
-        get() = motorTemperature
-            .revertIfInvalid(previousTemp)
-            .also{ previousTemp = it }
-
-    override val appliedVoltage: Voltage
-        get() = (appliedOutput * busVoltage.ofUnit(volts))
-            .revertIfInvalid(previousVoltage)
-            .also{ previousVoltage = it }
 
 
 
@@ -277,28 +123,30 @@ public class ChargerSparkMax(
      */
     private val pidHandler = SparkPIDHandler(motor = this, encoderAdaptor = encoder)
 
-    override fun setAngularPosition(
-        target: Angle,
+    override fun setPositionSetpoint(
+        rawPosition: Angle,
         pidConstants: PIDConstants,
-        continuousWrap: Boolean,
-        extraVoltage: Voltage
-    ): Unit = pidHandler.setAngularPosition(target, pidConstants, continuousWrap, extraVoltage, *nonRevFollowers.toTypedArray())
+        continuousInput: Boolean,
+        feedforward: Voltage
+    ): Unit = pidHandler.setAngularPosition(rawPosition, pidConstants, continuousInput, feedforward)
 
-    override fun setAngularVelocity(
-        target: AngularVelocity,
+    override fun setVelocitySetpoint(
+        rawVelocity: AngularVelocity,
         pidConstants: PIDConstants,
         feedforward: Voltage
-    ): Unit = pidHandler.setAngularVelocity(target, pidConstants, feedforward)
+    ): Unit = pidHandler.setAngularVelocity(rawVelocity, pidConstants, feedforward)
 
 
 
 
     private var allConfigErrors: MutableList<REVLibError> = mutableListOf()
 
-    override fun configure(configuration: ChargerSparkMaxConfiguration) {
-        configuration.encoderType?.let{ encoderType ->
-            encoder = getEncoder(encoderType)
+    override fun configure(configuration: ChargerSparkConfiguration) {
+        configuration.encoderType?.let{ configEncoderType ->
+            encoderType = configEncoderType
+            encoder = SparkEncoderAdaptor(this, configEncoderType)
         }
+
         // chargerlib defined function used for safe configuration.
         safeConfigure(
             deviceName = "ChargerSparkMax(id = $deviceId)",
@@ -308,76 +156,11 @@ public class ChargerSparkMax(
              * Configures common configurations between motors that inherit [CANSparkBase].
              * Returns a List of [REVLibError]'s
              *
-             * @see frc.chargers.hardware.motorcontrol.rev.util.SparkConfigurationBase
+             * @see frc.chargers.hardware.motorcontrol.rev.util.ChargerSparkConfiguration
              */
             allConfigErrors = configuration.applyTo(this).toMutableList()
 
-            fun REVLibError.addError(){
-                allConfigErrors.add(this)
-            }
-
-            when (val frameConfig = configuration.periodicFrameConfig){
-                is PeriodicFrameConfig.Custom -> {
-                    frameConfig.frames.forEach{ (frame, period) ->
-                        setPeriodicFramePeriod(frame, period)
-                    }
-                }
-
-                is PeriodicFrameConfig.Optimized -> {
-                    // status 0 is ignored due to it only being applicable to follower motors
-                    var status1 = SLOW_PERIODIC_FRAME_STRATEGY
-                    var status2 = SLOW_PERIODIC_FRAME_STRATEGY
-                    // status 3 is skipped due to chargerlib not interfacing w/ analog encoders
-                    var status4 = DISABLED_PERIODIC_FRAME_STRATEGY
-                    var status5 = DISABLED_PERIODIC_FRAME_STRATEGY
-                    var status6 = DISABLED_PERIODIC_FRAME_STRATEGY
-
-                    if (MotorData.TEMPERATURE in frameConfig.utilizedData ||
-                        MotorData.VELOCITY in frameConfig.utilizedData ||
-                        MotorData.VOLTAGE in frameConfig.utilizedData ||
-                        MotorData.CURRENT in frameConfig.utilizedData
-                    ) {
-                        status1 = FAST_PERIODIC_FRAME_STRATEGY
-                    }
-
-                    if (MotorData.POSITION in frameConfig.utilizedData) {
-                        status2 = FAST_PERIODIC_FRAME_STRATEGY
-                    }
-
-                    if (frameConfig.optimizeEncoderFrames){
-                        when (this.encoderType){
-                            is SparkMaxEncoderType.Alternate -> {
-                                status4 = FAST_PERIODIC_FRAME_STRATEGY
-                            }
-
-                            is SparkMaxEncoderType.Absolute -> {
-                                if (MotorData.POSITION in frameConfig.utilizedData){
-                                    status5 = FAST_PERIODIC_FRAME_STRATEGY
-                                }
-                                if (MotorData.VELOCITY in frameConfig.utilizedData){
-                                    status6 = FAST_PERIODIC_FRAME_STRATEGY
-                                }
-                            }
-
-                            is SparkMaxEncoderType.Regular -> {}
-                        }
-                        setPeriodicFramePeriod(PeriodicFrame.kStatus1, status1).addError()
-                        setPeriodicFramePeriod(PeriodicFrame.kStatus2, status2).addError()
-                        setPeriodicFramePeriod(PeriodicFrame.kStatus4, status4).addError()
-                        setPeriodicFramePeriod(PeriodicFrame.kStatus5, status5).addError()
-                        setPeriodicFramePeriod(PeriodicFrame.kStatus6, status6).addError()
-                    }
-                }
-
-                null -> {}
-            }
-
-            for (configError in allConfigErrors){
-                if (configError != REVLibError.kOk){
-                    return@safeConfigure false
-                }
-            }
-            return@safeConfigure true
+            return@safeConfigure allConfigErrors.any{ it != REVLibError.kOk }
         }
 
         if (RobotBase.isReal()) {

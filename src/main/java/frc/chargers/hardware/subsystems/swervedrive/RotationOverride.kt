@@ -2,22 +2,16 @@
 package frc.chargers.hardware.subsystems.swervedrive
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.dimensions.ScalarDimension
-import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.meters
-import com.batterystaple.kmeasure.units.radians
+import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.AngularVelocity
+import com.batterystaple.kmeasure.quantities.Time
 import edu.wpi.first.math.controller.PIDController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.framework.ChargerRobot
-import frc.chargers.hardware.sensors.vision.AprilTagVisionPipeline
-import frc.chargers.hardware.sensors.vision.ObjectVisionPipeline
 import frc.chargers.utils.Precision
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.fpgaTimestamp
-import frc.chargers.wpilibextensions.geometry.ofUnit
-import org.littletonrobotics.junction.Logger.recordOutput
 import kotlin.math.PI
 
 /**
@@ -102,7 +96,7 @@ class AimToAngleRotationOverride(
 }
 
 
-
+/*
 class AimToObjectRotationOverride  (
     private val visionSystem: ObjectVisionPipeline,
     cameraYawToVelocityPID: PIDConstants,
@@ -227,6 +221,8 @@ class AimToAprilTagRotationOverride(
     }
 
 }
+
+ */
 
 
 

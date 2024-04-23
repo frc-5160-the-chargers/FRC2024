@@ -4,10 +4,10 @@ package frc.chargers.hardware.inputdevices
 import com.batterystaple.kmeasure.quantities.Frequency
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.math.filter.SlewRateLimiter
+import frc.chargers.framework.Loggable
 import frc.chargers.utils.math.equations.Polynomial
 import frc.chargers.utils.math.mapBetweenRanges
 import frc.chargers.utils.math.preserveSign
-import org.littletonrobotics.junction.Logger
 import kotlin.math.abs
 import kotlin.properties.ReadOnlyProperty
 
@@ -20,7 +20,9 @@ import kotlin.properties.ReadOnlyProperty
  */
 public class InputAxis(
     private val get: () -> TriggerValue
-): () -> TriggerValue, ReadOnlyProperty<Any?, Double> by ReadOnlyProperty({ _, _ -> get() }) {
+): () -> TriggerValue, ReadOnlyProperty<Any?, Double> by ReadOnlyProperty({ _, _ -> get() }), Loggable {
+
+    override val namespace = ""
 
     public fun getBaseValue(): TriggerValue = get()
 
@@ -84,7 +86,7 @@ public class InputAxis(
 
     public fun log(namespace: String): InputAxis =
         withModifier{
-            Logger.recordOutput(namespace, it)
+            log(namespace, it)
             it
         }
 }

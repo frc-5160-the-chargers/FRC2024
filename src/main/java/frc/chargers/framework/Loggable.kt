@@ -2,42 +2,17 @@ package frc.chargers.framework
 
 import com.batterystaple.kmeasure.dimensions.AnyDimension
 import com.batterystaple.kmeasure.quantities.Quantity
+import edu.wpi.first.networktables.*
 import edu.wpi.first.util.datalog.*
 import edu.wpi.first.util.struct.Struct
 import edu.wpi.first.wpilibj.DataLogManager
-import java.util.WeakHashMap
+import java.util.*
 import kotlin.experimental.ExperimentalTypeInference
 import kotlin.internal.LowPriorityInOverloadResolution
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
-
-
-private val allLogEntries: MutableMap<String, DataLogEntry> = WeakHashMap()
-private val previousLoggedValues: MutableMap<String, Any?> = WeakHashMap()
-
-private fun <E : DataLogEntry> getEntry(
-    identifier: String,
-    entryCreator: (DataLog, String) -> E
-): E? {
-    var entry = allLogEntries[identifier]
-    if (entry != null) {
-        // as? is a safe cast that returns null on failure
-        try{
-            @Suppress("UNCHECKED_CAST") // try and except will catch a casting fail
-            return entry as E?
-        }catch(e: ClassCastException){
-            println("It seems that you are logging 2 different types within the same field.")
-            return null
-        }
-    }
-
-    entry = entryCreator(DataLogManager.getLog(), identifier)
-    allLogEntries[identifier] = entry
-    return entry
-}
-
 
 /**
  * Represents a class that can be logged.
@@ -76,191 +51,333 @@ private fun <E : DataLogEntry> getEntry(
  *      val value5 by logged(UnitPose2d.struct){ drivetrain.pose }
  * }
  */
-@Suppress("unused")
+@Suppress("INAPPLICABLE_JVM_NAME", "unused", )
 @OptIn(ExperimentalTypeInference::class)
 interface Loggable {
     /**
      * The namespace in which to log to.
      */
-    val logGroup: String
+    val namespace: String
+
+    companion object{
+        var fileOnly: Boolean = false
+
+        // datalog-related storage
+        private val dataLogEntries: MutableMap<String, DataLogEntry> = WeakHashMap()
+
+        private fun <E : DataLogEntry> getEntry(
+            identifier: String,
+            entryCreator: (DataLog, String) -> E
+        ): E? {
+            var entry = dataLogEntries[identifier]
+            if (entry != null) {
+                // as? is a safe cast that returns null on failure
+                try{
+                    @Suppress("UNCHECKED_CAST") // try and except will catch a casting fail
+                    val newEntry = entry as E?
+                    newEntry.toString() // runs a random function to ensure that if casting fails, then an exception will be thrown
+                    return newEntry
+                }catch(e: ClassCastException){
+                    println("It seems that you are logging 2 different types within the same field.")
+                    return null
+                }
+            }
+
+            entry = entryCreator(DataLogManager.getLog(), identifier)
+            dataLogEntries[identifier] = entry
+            return entry
+        }
+
+        // networktables-related storage
+        private val ntInstance by lazy{ NetworkTableInstance.getDefault() }
+        private val ntPublishers: MutableMap<String, Publisher> = HashMap()
+    }
 
 
 
-
+    // The functions below log basic values manually.
+    // This includes: Int, Boolean, Double, Quantity<*>, and struct serializable types.
+    @JvmName("logInt")
     fun log(identifier: String, value: Int) {
-        if (previousLoggedValues[identifier] != value){
-            previousLoggedValues[identifier] = value
-            getEntry("$logGroup/$identifier", ::IntegerLogEntry)?.append(value.toLong())
+        getEntry("$namespace/$identifier", ::IntegerLogEntry)?.append(value.toLong())
+        if (!fileOnly){
+            (ntPublishers.computeIfAbsent("$namespace/$identifier") {
+                k: String -> ntInstance.getIntegerTopic(k).publish()
+            } as IntegerPublisher)
+                .set(value.toLong())
         }
     }
 
+    @JvmName("logDouble")
     fun log(identifier: String, value: Double) {
-        if (previousLoggedValues[identifier] != value) {
-            previousLoggedValues[identifier] = value
-            getEntry("$logGroup/$identifier", ::DoubleLogEntry)?.append(value)
+        getEntry("$namespace/$identifier", ::DoubleLogEntry)?.append(value)
+        if (!fileOnly){
+            (ntPublishers.computeIfAbsent("$namespace/$identifier") {
+                k: String -> ntInstance.getDoubleTopic(k).publish()
+            } as DoublePublisher)
+                .set(value)
         }
     }
 
+    @JvmName("logQuantity")
     fun log(identifier: String, value: Quantity<*>){
-        if (previousLoggedValues[identifier] != value) {
-            previousLoggedValues[identifier] = value
-            log("$logGroup/$identifier(SI Value)", value.siValue)
-        }
+        log("$identifier(SI Value)", value.siValue)
     }
 
+    @JvmName("logBool")
     fun log(identifier: String, value: Boolean) {
-        if (previousLoggedValues[identifier] != value){
-            previousLoggedValues[identifier] = value
-            getEntry("$logGroup/$identifier", ::BooleanLogEntry)?.append(value)
+        getEntry("$namespace/$identifier", ::BooleanLogEntry)?.append(value)
+        if (!fileOnly){
+            (ntPublishers.computeIfAbsent("$namespace/$identifier") {
+                k: String -> ntInstance.getBooleanTopic(k).publish()
+            } as BooleanPublisher)
+                .set(value)
         }
     }
 
+    @JvmName("logStr")
     fun log(identifier: String, value: String) {
-        if (previousLoggedValues[identifier] != value) {
-            previousLoggedValues[identifier] = value
-            getEntry("$logGroup/$identifier", ::StringLogEntry)?.append(value)
+        getEntry("$namespace/$identifier", ::StringLogEntry)?.append(value)
+        if (!fileOnly){
+            (ntPublishers.computeIfAbsent("$namespace/$identifier") {
+                k: String -> ntInstance.getStringTopic(k).publish()
+            } as StringPublisher)
+                .set(value)
         }
     }
 
+    @JvmName("logStructable")
     fun <T> log(struct: Struct<T>, identifier: String, value: T) {
         DataLogManager.getLog().addSchema(struct)
-        if (previousLoggedValues[identifier] != value) {
-            previousLoggedValues[identifier] = value
-            getEntry("$logGroup/$identifier") { log: DataLog?, k: String? ->
-                StructLogEntry.create(log, k, struct)
-            }?.append(value)
+        getEntry("$namespace/$identifier") { log: DataLog?, k: String ->
+            StructLogEntry.create(log, k, struct)
+        }?.append(value)
+        if (!fileOnly){
+            ntInstance.addSchema(struct)
+            (ntPublishers.computeIfAbsent("$namespace/$identifier") {
+                k: String -> ntInstance.getStructTopic(k, struct).publish()
+            } as StructPublisher<T>)
+                .set(value)
         }
     }
 
-
-
-
+    // The functions below log Collections of values individually.
+    // Collection types include Array<*>, List<*>, MutableList<*>, etc.
+    // This includes: Int, Boolean, Double, Quantity<*>, and struct serializable types.
+    @JvmName("logIntList")
     fun log(identifier: String, value: Collection<Int>) {
-        if (previousLoggedValues[identifier] != value) {
-            previousLoggedValues[identifier] = value
-            getEntry("$logGroup/$identifier", ::IntegerArrayLogEntry)?.append(value.map { it.toLong() }.toLongArray())
+        getEntry("$namespace/$identifier", ::IntegerArrayLogEntry)?.append(value.map { it.toLong() }.toLongArray())
+        if (!fileOnly){
+            // NT backend only supports int64[], so we have to manually widen to 64 bits before sending
+            val widened = value.map{ it.toLong() }.toLongArray()
+            (ntPublishers.computeIfAbsent("$namespace/$identifier") {
+                k: String -> ntInstance.getIntegerArrayTopic(k).publish()
+            } as IntegerArrayPublisher)
+                .set(widened)
         }
     }
 
+    @JvmName("logDoubleList")
     fun log(identifier: String, value: Collection<Double>) {
-        if (previousLoggedValues[identifier] != value) {
-            previousLoggedValues[identifier] = value
-            getEntry("$logGroup/$identifier", ::DoubleArrayLogEntry)?.append(value.toDoubleArray())
+        getEntry("$namespace/$identifier", ::DoubleArrayLogEntry)?.append(value.toDoubleArray())
+        if (!fileOnly){
+            (ntPublishers.computeIfAbsent("$namespace/$identifier") {
+                k: String -> ntInstance.getDoubleArrayTopic(k).publish()
+            } as DoubleArrayPublisher)
+                .set(value.toDoubleArray())
         }
     }
 
+    @JvmName("logBoolList")
     fun log(identifier: String, value: Collection<Boolean>){
-        if (previousLoggedValues[identifier] != value) {
-            previousLoggedValues[identifier] = value
-            getEntry("$logGroup/$identifier", ::BooleanArrayLogEntry)?.append(value.toBooleanArray())
+        getEntry("$namespace/$identifier", ::BooleanArrayLogEntry)?.append(value.toBooleanArray())
+        if (!fileOnly){
+            (ntPublishers.computeIfAbsent("$namespace/$identifier") {
+                k: String -> ntInstance.getBooleanArrayTopic(k).publish()
+            } as BooleanArrayPublisher)
+                .set(value.toBooleanArray())
         }
     }
 
+    @JvmName("logStringList")
     fun log(identifier: String, value: Collection<String>) {
-        if (previousLoggedValues[identifier] != value) {
-            previousLoggedValues[identifier] = value
-            getEntry("$logGroup/$identifier", ::StringArrayLogEntry)?.append(value.toTypedArray())
+        getEntry("$namespace/$identifier", ::StringArrayLogEntry)?.append(value.toTypedArray())
+        if (!fileOnly){
+            (ntPublishers.computeIfAbsent("$namespace/$identifier") {
+                k: String -> ntInstance.getStringArrayTopic(k).publish() } as StringArrayPublisher
+            )
+                .set(value.toTypedArray())
         }
     }
 
+    @JvmName("logQuantityList")
     fun log(identifier: String, value: Collection<Quantity<*>>) {
-        log("$logGroup/$identifier", value.map{ it.siValue })
+        log("$namespace/$identifier", value.map{ it.siValue })
     }
 
+    @JvmName("logStructableList")
     fun <T> log(struct: Struct<T>, identifier: String, value: Collection<T>) {
         DataLogManager.getLog().addSchema(struct)
-        if (previousLoggedValues[identifier] != value) {
-            previousLoggedValues[identifier] = value
-            getEntry("$logGroup/$identifier") { log: DataLog?, k: String? ->
-                StructArrayLogEntry.create(log, k, struct)
-            }?.append(value)
+        getEntry("$namespace/$identifier") { log: DataLog?, k: String ->
+            StructArrayLogEntry.create(log, k, struct)
+        }?.append(value)
+
+        if (!fileOnly){
+            val valueAsArray = Array<Any?>(value.size) {}
+            val valueAsList = value.toList()
+            for (i in value.indices){
+                valueAsArray[i] = valueAsList[i]
+            }
+            (ntPublishers.computeIfAbsent("$namespace/$identifier") {
+                k: String -> ntInstance.getStructArrayTopic(k, struct).publish()
+            } as StructArrayPublisher<T>)
+                .set(valueAsArray as Array<T>)
         }
     }
 
-
-
-
+    // The functions below log nullable values manually.
+    // This includes: Int, Double?, Quantity<*>?, and T?, where T has a corresponding struct.
     @LowPriorityInOverloadResolution
+    @JvmName("logNullableInt")
     fun log(identifier: String, value: Int?){
-        log("$logGroup/$identifier/value", value ?: 0)
-        log("$logGroup/$identifier/isValid", value != null)
+        log("$identifier/value", value ?: 0)
+        log("$identifier/isValid", value != null)
     }
 
     @LowPriorityInOverloadResolution
+    @JvmName("logNullableDouble")
     fun log(identifier: String, value: Double?){
-        log("$logGroup/$identifier/value", value ?: 0.0)
-        log("$logGroup/$identifier/isValid", value != null)
+        log("$identifier/value", value ?: 0.0)
+        log("$identifier/isValid", value != null)
     }
 
     @LowPriorityInOverloadResolution
+    @JvmName("logNullableQuantity")
     fun log(identifier: String, value: Quantity<*>?){
-        log("$logGroup/$identifier/value(SI value)", value?.siValue ?: 0.0)
-        log("$logGroup/$identifier/isValid", value != null)
+        log("$identifier/value(SI value)", value?.siValue ?: 0.0)
+        log("$identifier/isValid", value != null)
     }
 
     @LowPriorityInOverloadResolution
+    @JvmName("logNullableStructable")
     fun <T> log(struct: Struct<T>, identifier: String, value: T?) {
         if (value != null){
-            log(struct, "$logGroup/$identifier/value", value)
+            log(struct, "$identifier/value", value)
         }
-        log("$logGroup/$identifier/isValid", value != null)
+        log("$identifier/isValid", value != null)
     }
 
 
 
 
+    // The functions below provide property delegates that act as getters for nullable types,
+    // but automatically log their getter value every loop.
+    // Note: these functions have to come first before their non-nullable variants;
+    // otherwise, the compiler has trouble determining the correct types.
+    // The list of types matches the manually loggable nullable types.
+    @OverloadResolutionByLambdaReturnType
+    @JvmName("nullableIntLoggedDelegate")
+    fun logged(identifier: String? = null, supplier: () -> Int?) =
+        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Int?>> { _, property ->
+            ChargerRobot.runPeriodically {
+                log(identifier ?: property.name, supplier())
+            }
+            return@PropertyDelegateProvider ReadOnlyProperty<Any?, Int?>{ _, _ -> supplier() }
+        }
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("nullableDoubleLoggedDelegate")
+    fun logged(identifier: String? = null, supplier: () -> Double?) =
+        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Double?>> { _, property ->
+            ChargerRobot.runPeriodically {
+                log(identifier ?: property.name, supplier())
+            }
+            return@PropertyDelegateProvider ReadOnlyProperty<Any?, Double?>{ _, _ -> supplier() }
+        }
+
+    @OverloadResolutionByLambdaReturnType
+    @JvmName("nullableQuantityLoggedDelegate")
+    fun <D: AnyDimension> logged(identifier: String? = null, supplier: () -> Quantity<D>?) =
+        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Quantity<D>?>> { _, property ->
+            ChargerRobot.runPeriodically {
+                log(identifier ?: property.name, supplier())
+            }
+            return@PropertyDelegateProvider ReadOnlyProperty<Any?, Quantity<D>?>{ _, _ -> supplier() }
+        }
+
+    @OverloadResolutionByLambdaReturnType
+    @JvmName("nullableStructableLoggedDelegate")
+    fun <T> logged(struct: Struct<T>, identifier: String? = null, supplier: () -> T?) =
+        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T?>> { _, property ->
+            ChargerRobot.runPeriodically {
+                log(struct, identifier ?: property.name, supplier())
+            }
+            return@PropertyDelegateProvider ReadOnlyProperty<Any?, T?>{ _, _ -> supplier() }
+        }
+
+
+
+
+    // The functions below provide property delegates that act as getters for basic types,
+    // but automatically log their getter value every loop.
+    // The list of types matches the manually-loggable types.
+    @OverloadResolutionByLambdaReturnType
+    @JvmName("intLoggedDelegate")
     fun logged(identifier: String? = null, supplier: () -> Int) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Int>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
+                log(identifier ?: property.name, supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Int>{ _, _ -> supplier() }
         }
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("doubleLoggedDelegate")
     fun logged(identifier: String? = null, supplier: () -> Double) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Double>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
+                log(identifier ?: property.name, supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Double>{ _, _ -> supplier() }
         }
 
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("boolLoggedDelegate")
     fun logged(identifier: String? = null, supplier: () -> Boolean) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Boolean>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
+                log(identifier ?: property.name, supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Boolean>{ _, _ -> supplier() }
         }
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("stringLoggedDelegate")
     fun logged(identifier: String? = null, supplier: () -> String) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, String>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
+                log(identifier ?: property.name, supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, String>{ _, _ -> supplier() }
         }
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("quantityLoggedDelegate")
     fun <D: AnyDimension> logged(identifier: String? = null, supplier: () -> Quantity<D>) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Quantity<D>>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
+                log(identifier ?: property.name, supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Quantity<D>>{ _, _ -> supplier() }
         }
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("structableLoggedDelegate")
     fun <T> logged(struct: Struct<T>, identifier: String? = null, supplier: () -> T) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(struct, logGroup + "/" + (identifier ?: property.name), supplier())
+                log(struct, identifier ?: property.name, supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, T>{ _, _ -> supplier() }
         }
@@ -268,110 +385,71 @@ interface Loggable {
 
 
 
+    // The functions below provide property delegates that act as getters for Collection types,
+    // but automatically log their getter value every loop.
+    // Collection types include Array<*>, List<*>, MutableList<*>, etc.
+    // The list of types matches the manually-loggable types.
     @OverloadResolutionByLambdaReturnType
+    @JvmName("intListLoggedDelegate")
     fun <C: Collection<Int>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
             ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
+                log(identifier ?: property.name, supplier())
             }
-
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
         }
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("doubleListLoggedDelegate")
     fun <C: Collection<Double>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
             ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
+                log(identifier ?: property.name, supplier())
             }
-
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
         }
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("boolListLoggedDelegate")
     fun <C: Collection<Boolean>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
             ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
+                log(identifier ?: property.name, supplier())
             }
-
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
         }
 
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("stringListLoggedDelegate")
     fun <C: Collection<String>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
             ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
+                log(identifier ?: property.name, supplier())
             }
-
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
         }
 
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("quantityListLoggedDelegate")
     fun <D: AnyDimension, C: Collection<Quantity<D>>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
             ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
+                log(identifier ?: property.name, supplier())
             }
-
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
         }
 
     @OverloadResolutionByLambdaReturnType
+    @JvmName("structableListLoggedDelegate")
     fun <T, C: Collection<T>> logged(struct: Struct<T>, identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(struct, logGroup + "/" + (identifier ?: property.name), supplier())
+                log(struct, identifier ?: property.name, supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, C>{ _, _ -> supplier() }
         }
-
-
-
-
-    @OverloadResolutionByLambdaReturnType
-    @LowPriorityInOverloadResolution
-    fun logged(identifier: String? = null, supplier: () -> Int?) =
-        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Int?>> { _, property ->
-            ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
-            }
-            return@PropertyDelegateProvider ReadOnlyProperty<Any?, Int?>{ _, _ -> supplier() }
-        }
-
-    @OverloadResolutionByLambdaReturnType
-    @LowPriorityInOverloadResolution
-    fun logged(identifier: String? = null, supplier: () -> Double?) =
-        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Double?>> { _, property ->
-            ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
-            }
-            return@PropertyDelegateProvider ReadOnlyProperty<Any?, Double?>{ _, _ -> supplier() }
-        }
-
-    @OverloadResolutionByLambdaReturnType
-    @LowPriorityInOverloadResolution
-    fun <D: AnyDimension> logged(identifier: String? = null, supplier: () -> Quantity<D>?) =
-        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Quantity<D>?>> { _, property ->
-            ChargerRobot.runPeriodically {
-                log(logGroup + "/" + (identifier ?: property.name), supplier())
-            }
-            return@PropertyDelegateProvider ReadOnlyProperty<Any?, Quantity<D>?>{ _, _ -> supplier() }
-        }
-
-    @OverloadResolutionByLambdaReturnType
-    @LowPriorityInOverloadResolution
-    fun <T> logged(struct: Struct<T>, identifier: String? = null, supplier: () -> T?) =
-        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T?>> { _, property ->
-            ChargerRobot.runPeriodically {
-                log(struct, logGroup + "/" + (identifier ?: property.name), supplier())
-            }
-            return@PropertyDelegateProvider ReadOnlyProperty<Any?, T?>{ _, _ -> supplier() }
-        }
-
 
 
 
@@ -395,6 +473,8 @@ interface Loggable {
             }
     }
 
+    // The functions below provide property delegates that act as regular, mutable variables for basic types,
+    // but automatically log their value every time they are set(and once on initialization).
     fun logged(value: Int, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Int>> =
         LoggedMutableProperty(identifier, value, ::log)
 
@@ -410,43 +490,57 @@ interface Loggable {
     fun <D: AnyDimension> logged(value: Quantity<D>, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Quantity<D>>> =
         LoggedMutableProperty(identifier, value, ::log)
 
+    @JvmName("loggedStructableDelegate")
     fun <T> logged(value: T, struct: Struct<T>, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>> =
         LoggedMutableProperty(identifier, value){ namespace, logValue -> log(struct, namespace, logValue) }
 
 
 
 
+    // The functions below provide property delegates that act as regular, mutable variables for Collection types,
+    // but automatically log their value every time they are set(and once on initialization).
+    @JvmName("loggedIntListDelegate")
     fun <C: Collection<Int>> logged(value: C, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, C>> =
         LoggedMutableProperty(identifier, value, ::log)
 
+    @JvmName("loggedDoubleListDelegate")
     fun <C: Collection<Double>> logged(value: C, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, C>> =
         LoggedMutableProperty(identifier, value, ::log)
 
+    @JvmName("loggedBoolListDelegate")
     fun <C: Collection<Boolean>> logged(value: C, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, C>> =
         LoggedMutableProperty(identifier, value, ::log)
 
+    @JvmName("loggedQuantityListDelegate")
     fun <D: AnyDimension, C: Collection<Quantity<D>>> logged(value: C, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, C>> =
         LoggedMutableProperty(identifier, value, ::log)
 
+    @JvmName("loggedStructableListDelegate")
     fun <T, C: Collection<T>> logged(value: C, struct: Struct<T>, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, C>> =
         LoggedMutableProperty(identifier, value){ namespace, logValue -> log(struct, namespace, logValue) }
 
 
 
 
+    // The functions below provide property delegates that act as regular, mutable variables for nullable types,
+    // but automatically log their value every time they are set(and once on initialization).
     @LowPriorityInOverloadResolution
+    @JvmName("loggedNullableIntDelegate")
     fun logged(value: Int?, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Int?>> =
         LoggedMutableProperty(identifier, value, ::log)
 
     @LowPriorityInOverloadResolution
+    @JvmName("loggedNullableDoubleDelegate")
     fun logged(value: Double?, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Double?>> =
         LoggedMutableProperty(identifier, value, ::log)
 
     @LowPriorityInOverloadResolution
+    @JvmName("loggedNullableQuantityDelegate")
     fun <D: AnyDimension> logged(value: Quantity<D>?, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Quantity<D>?>> =
         LoggedMutableProperty(identifier, value, ::log)
 
     @LowPriorityInOverloadResolution
+    @JvmName("loggedNullableStructDelegate")
     fun <T> logged(value: T?, struct: Struct<T>, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T?>> =
         LoggedMutableProperty(identifier, value){ namespace, logValue -> log(struct, namespace, logValue) }
 }

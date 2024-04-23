@@ -5,21 +5,22 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
+import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry
 import edu.wpi.first.math.kinematics.SwerveModulePosition
-import edu.wpi.first.wpilibj2.command.SubsystemBase
+import edu.wpi.first.math.numbers.N1
+import edu.wpi.first.math.numbers.N3
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.hardware.sensors.VisionPoseSupplier
+import frc.chargers.framework.SuperSubsystem
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
+import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
-import frc.external.frc6995.NomadAprilTagUtil
-import org.littletonrobotics.junction.Logger.recordOutput
 
 
 /**
@@ -31,18 +32,17 @@ import org.littletonrobotics.junction.Logger.recordOutput
  */
 class SwervePoseMonitor(
     private val drivetrain: EncoderHolonomicDrivetrain,
-    visionEstimators: List<VisionPoseSupplier>,
     startingPose: UnitPose2d
-): SubsystemBase(), RobotPoseMonitor {
+): SuperSubsystem(drivetrain.namespace), RobotPoseMonitor {
     companion object{
-        private var logVisionlessPose: Boolean = true
+        private var logVisionlessPose: Boolean = false
 
         /**
          * Disables logging of the calculated pose without vision.
          */
         @Suppress("unused")
-        fun disableVisionlessPoseLogging(){
-            logVisionlessPose = false
+        fun enableVisionlessPoseLogging(){
+            logVisionlessPose = true
         }
     }
 
@@ -64,16 +64,15 @@ class SwervePoseMonitor(
 
     private var gyroHeading = Angle(0.0)
 
-    private val visionEstimators: MutableList<VisionPoseSupplier> = mutableListOf()
+    private var gyroRotatingTooFast = false
 
-    private val robotObject = ChargerRobot.FIELD.getObject(drivetrain.logName)
+    private val robotObject = ChargerRobot.FIELD.getObject(drivetrain.namespace)
 
     private var previousWheelTravelDistances: MutableList<Distance> =
         drivetrain.modulePositions.map{ it.distanceMeters.ofUnit(meters) }.toMutableList()
 
 
     init{
-        addPoseSuppliers(*visionEstimators.toTypedArray())
         resetPose(startingPose)
     }
 
@@ -97,14 +96,27 @@ class SwervePoseMonitor(
         )
     }
 
-    override fun addPoseSuppliers(vararg visionSystems: VisionPoseSupplier) {
-        visionEstimators.addAll(visionSystems)
+    override fun addVisionMeasurement(measurement: Measurement<UnitPose2d>, stdDevs: Matrix<N3, N1>?) {
+        if (gyroRotatingTooFast){
+            println("Vision pose readings ignored; gyro is rotating too fast.")
+        }else{
+            if (stdDevs != null){
+                poseEstimator.addVisionMeasurement(
+                    measurement.value.inUnit(meters),
+                    measurement.timestamp.inUnit(seconds),
+                    stdDevs
+                )
+            }else{
+                poseEstimator.addVisionMeasurement(
+                    measurement.value.inUnit(meters),
+                    measurement.timestamp.inUnit(seconds)
+                )
+            }
+        }
     }
 
-
     override fun periodic(){
-        var gyroRotatingTooFast = false
-        recordOutput(drivetrain.logName + "/realGyroUsedInPoseEstimation", drivetrain.gyro != null)
+        log("RealGyroUsedInPoseEstimation", drivetrain.gyro != null)
 
         if (drivetrain.gyro != null){
             val newHeading = drivetrain.gyro.heading
@@ -126,40 +138,18 @@ class SwervePoseMonitor(
                 .ofUnit(radians)
         }
 
-        val basePose = poseEstimator.update(
+        poseEstimator.update(
             gyroHeading.asRotation2d(),
             drivetrain.modulePositions.toTypedArray()
         )
 
-        if (gyroRotatingTooFast){
-            println("Vision pose readings ignored; gyro is rotating too fast.")
-        }else{
-            for (visionEstimator in visionEstimators){
-                for (poseEstimate in visionEstimator.robotPoseEstimates){
-                    if (poseEstimate.value.distanceTo(basePose.ofUnit(meters)) < 0.8.meters){
-                        val visionStandardDeviationVector = NomadAprilTagUtil.calculateVisionUncertainty(
-                            poseEstimate.value.x.inUnit(meters),
-                            gyroHeading.asRotation2d(),
-                            visionEstimator.cameraYaw.asRotation2d()
-                        )
-
-                        poseEstimator.addVisionMeasurement(
-                            poseEstimate.value.inUnit(meters),
-                            poseEstimate.timestamp.inUnit(seconds),
-                            visionStandardDeviationVector
-                        )
-                    }
-                }
-            }
-        }
-
-        recordOutput(drivetrain.logName + "/Pose2d", Pose2d.struct, poseEstimator.estimatedPosition)
+        log(Pose2d.struct, "Pose2d", poseEstimator.estimatedPosition)
         robotObject.pose = poseEstimator.estimatedPosition
 
-        if (logVisionlessPose && visionEstimators.size > 0){
-            recordOutput(
-                drivetrain.logName + "/Pose2dWithoutVisionEstimation",
+        if (logVisionlessPose){
+            log(
                 Pose2d.struct,
+                "Pose2dWithoutVisionEstimation",
                 noVisionPoseEstimator.update(
                     gyroHeading.asRotation2d(),
                     drivetrain.modulePositions.toTypedArray()

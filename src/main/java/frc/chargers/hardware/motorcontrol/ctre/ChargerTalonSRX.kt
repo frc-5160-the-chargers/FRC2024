@@ -2,56 +2,20 @@
 package frc.chargers.hardware.motorcontrol.ctre
 
 import com.batterystaple.kmeasure.quantities.*
-import com.batterystaple.kmeasure.units.milli
-import com.batterystaple.kmeasure.units.rotations
-import com.batterystaple.kmeasure.units.seconds
-import com.batterystaple.kmeasure.units.volts
+import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix.ErrorCode
 import com.ctre.phoenix.motorcontrol.*
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX
+import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
-import frc.chargers.hardware.motorcontrol.EncoderMotorController
+import frc.chargers.hardware.motorcontrol.MotorizedComponent
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
 import kotlin.math.roundToInt
 
 private const val TALON_SRX_ENCODER_UNITS_PER_ROTATION = 2048 // From https://docs.ctre-phoenix.com/en/latest/ch14_MCSensor.html#sensor-resolution
 private const val TIMEOUT_MILLIS = 1000
-
-public typealias PIDIndex = Int
-public typealias SlotIndex = Int
-public typealias CustomParameterIndex = Int
-public typealias CustomParameterValue = Int
-
-
-/**
- * Represents a TalonSRX powering a redline/ CIM motor.
- *
- * This function supports inline configuration using the "[configure]" lambda function,
- * which has the context of a [ChargerTalonSRXConfiguration].
- *
- * You do not need to manually factory default this motor, as it is factory defaulted on startup,
- * before configuration. This setting can be changed by setting factoryDefault = false.
- *
- * ```
- * // example
- * val motor = redlineSRX(canId = 6){ inverted = false }
- */
-public inline fun redlineSRX(
-    deviceNumber: Int,
-    encoderTicksPerRotation: Int = 1024,
-    factoryDefault: Boolean = true,
-    configure: ChargerTalonSRXConfiguration.() -> Unit = {}
-): ChargerTalonSRX =
-    ChargerTalonSRX(deviceNumber,encoderTicksPerRotation).apply{
-        if (factoryDefault) {
-            configFactoryDefault()
-            println("TalonSRX has been factory defaulted.")
-        }
-        val config = ChargerTalonSRXConfiguration().apply(configure)
-        configure(config)
-    }
 
 public class TalonSRXEncoderAdapter(
     private val ctreMotorController: IMotorController,
@@ -125,12 +89,12 @@ public inline fun ChargerTalonSRX(
  */
 public class ChargerTalonSRX(
     deviceNumber: Int,
-    private val encoderTicksPerRotation: Int,
+    encoderTicksPerRotation: Int,
     factoryDefault: Boolean = true,
     configuration: ChargerTalonSRXConfiguration? = null
-) : WPI_TalonSRX(deviceNumber), EncoderMotorController, HardwareConfigurable<ChargerTalonSRXConfiguration>{
+) : WPI_TalonSRX(deviceNumber), MotorizedComponent, HardwareConfigurable<ChargerTalonSRXConfiguration>{
 
-    private val nonSRXFollowers: MutableSet<EncoderMotorController> = mutableSetOf()
+    private val nonSRXFollowers: MutableSet<MotorizedComponent> = mutableSetOf()
 
     init{
         if (factoryDefault){
@@ -143,12 +107,38 @@ public class ChargerTalonSRX(
     }
 
 
-    override val encoder: Encoder
-        get() = TalonSRXEncoderAdapter(
+    override val encoder: Encoder =
+        TalonSRXEncoderAdapter(
             ctreMotorController = this,
             pidIndex = 0,
             pulsesPerRotation = encoderTicksPerRotation
         )
+
+    override var hasInvert: Boolean
+        get() = getInverted()
+        set(value) = setInverted(value)
+
+    override var appliedVoltage: Voltage
+        get() = (this.busVoltage * this.get()).ofUnit(volts)
+        set(value) {
+            setVoltage(value.inUnit(volts))
+        }
+
+    override val statorCurrent: Current
+        get() = this.getStatorCurrent().ofUnit(amps)
+
+    override fun setPositionSetpoint(
+        rawPosition: Angle,
+        pidConstants: PIDConstants,
+        continuousInput: Boolean,
+        feedforward: Voltage
+    ) {
+        println("Onboard Position Control on TalonSRXs is not currently supported by ChargerLib.")
+    }
+
+    override fun setVelocitySetpoint(rawVelocity: AngularVelocity, pidConstants: PIDConstants, feedforward: Voltage) {
+        println("Onboard Velocity Control on TalonSRXs is not currently supported by ChargerLib.")
+    }
 
 
     override fun configure(configuration: ChargerTalonSRXConfiguration) {
@@ -172,12 +162,6 @@ public class ChargerTalonSRX(
             configVoltageMeasurementFilter(it, TIMEOUT_MILLIS)
         }
         configuration.voltageCompensationEnabled?.let(::enableVoltageCompensation)
-        configuration.selectedFeedbackSensors.forEach { (pidIndex, feedbackDevice) ->
-            configSelectedFeedbackSensor(feedbackDevice, pidIndex, TIMEOUT_MILLIS)
-        }
-        configuration.selectedFeedbackCoefficients.forEach { (pidIndex, coefficient) ->
-            configSelectedFeedbackCoefficient(coefficient, pidIndex, TIMEOUT_MILLIS)
-        }
         configuration.sensorTermFeedbackDevices.forEach { (sensorTerm, feedbackDevice) ->
             configSensorTerm(sensorTerm, feedbackDevice, TIMEOUT_MILLIS)
         }
@@ -202,11 +186,6 @@ public class ChargerTalonSRX(
         ) }
         configuration.forwardSoftLimitEnable?.let { configForwardSoftLimitEnable(it, TIMEOUT_MILLIS) }
         configuration.reverseSoftLimitEnable?.let { configReverseSoftLimitEnable(it, TIMEOUT_MILLIS) }
-
-
-        configuration.customParameters.forEach { (i, customParameter) ->
-            configSetCustomParam(customParameter, i, TIMEOUT_MILLIS)
-        }
 
         println("ChargerTalonSRX(id = $deviceID) has been configured.")
     }
@@ -233,8 +212,6 @@ public data class ChargerTalonSRXConfiguration(
     var voltageCompensationSaturationVoltage: Voltage? = null,
     var voltageMeasurementFilterSamples: Int? = null,
     var voltageCompensationEnabled: Boolean? = null,
-    val selectedFeedbackSensors: MutableMap<PIDIndex, FeedbackDevice> = mutableMapOf(),
-    val selectedFeedbackCoefficients: MutableMap<PIDIndex, Double> = mutableMapOf(),
     val sensorTermFeedbackDevices: MutableMap<SensorTerm, FeedbackDevice> = mutableMapOf(),
     val controlFramePeriods: MutableMap<ControlFrame, Time> = mutableMapOf(),
     val statusFramePeriods: MutableMap<StatusFrame, Time> = mutableMapOf(),
@@ -245,8 +222,6 @@ public data class ChargerTalonSRXConfiguration(
     public var reverseSoftLimitThreshold: Angle? = null,
     public var forwardSoftLimitEnable: Boolean? = null,
     public var reverseSoftLimitEnable: Boolean? = null,
-
-    val customParameters: MutableMap<CustomParameterIndex, CustomParameterValue> = mutableMapOf()
 ): HardwareConfiguration
 
 

@@ -8,7 +8,7 @@ import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.util.struct.Struct
 import edu.wpi.first.util.struct.StructSerializable
-import frc.chargers.utils.createCopy
+import frc.chargers.utils.encoding.createCopy
 import frc.chargers.wpilibextensions.geometry.ofUnit
 
 /**

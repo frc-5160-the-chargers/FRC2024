@@ -3,13 +3,9 @@ package frc.chargers.wpilibextensions
 
 import edu.wpi.first.util.sendable.Sendable
 import edu.wpi.first.util.sendable.SendableBuilder
-import edu.wpi.first.util.struct.Struct
-import edu.wpi.first.util.struct.StructSerializable
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
-import monologue.Logged
-import java.nio.ByteBuffer
 
 
 /**

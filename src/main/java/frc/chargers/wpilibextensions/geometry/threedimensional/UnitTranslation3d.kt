@@ -10,7 +10,7 @@ import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.math.interpolation.Interpolatable
 import edu.wpi.first.util.struct.Struct
 import edu.wpi.first.util.struct.StructSerializable
-import frc.chargers.utils.createCopy
+import frc.chargers.utils.encoding.createCopy
 import frc.chargers.wpilibextensions.geometry.ofUnit
 
 

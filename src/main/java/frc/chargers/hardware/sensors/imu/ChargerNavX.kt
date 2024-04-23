@@ -9,25 +9,21 @@ import com.batterystaple.kmeasure.units.standardGravities
 import com.kauailabs.navx.frc.AHRS
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.framework.ChargerRobot
+import frc.chargers.framework.Loggable
 import frc.chargers.hardware.sensors.imu.gyroscopes.ThreeAxisGyroscope
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
-import frc.chargers.hardware.sensors.vision.limelight.ChargerLimelight
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.kinematics.xVelocity
 import frc.chargers.wpilibextensions.kinematics.yVelocity
+import frc.external.limelight.LimelightHelpers
 
 
 public class ChargerNavX(
     private val useFusedHeading: Boolean = false,
     public val ahrs: AHRS = AHRS(),
-): ZeroableHeadingProvider {
-    private var headingOffset = 0.degrees
-
-    /**
-     * ImuLog, GyroscopeLog, AccelerometerLog, and SpeedometerLog are LoggableInputsProviders,
-     * which automatically handle AdvantageKit logging and replay support(and work essentially as getters variables).
-     * @see [frc.chargers.advantagekitextensions.LoggableInputsProvider]
-     */
+): ZeroableHeadingProvider, Loggable {
+    override val namespace = "NavX"
+    private var headingOffset by logged(0.degrees)
 
     /**
      * Zeroes the heading of the NavX.
@@ -54,22 +50,39 @@ public class ChargerNavX(
     }
 
     /**
-     * The NavX's current heading offset.
+     * Broadcasts robot orientation for the MegaTag2 system.
+     * Should be run periodically; either in a periodic() method or using [ChargerRobot.runPeriodically].
      */
-    fun getHeadingOffset(): Angle = headingOffset
+    fun broadcastOrientationForMegaTag2(
+        vararg limelightNames: String
+    ){
+        if (isReal()){
+            for (llName in limelightNames){
+                LimelightHelpers.setRobotOrientation(
+                    llName,
+                    heading.inUnit(degrees),
+                    gyroscope.yawRate.inUnit(degrees/seconds),
+                    gyroscope.pitch.inUnit(degrees),
+                    0.0,
+                    gyroscope.roll.inUnit(degrees),
+                    0.0
+                )
+            }
+        }
+    }
 
 
-    public val firmwareVersion: String by ImuLog.string{ ahrs.firmwareVersion }
+    public val firmwareVersion: String by logged{ ahrs.firmwareVersion }
 
     /**
      * Returns if the NavX is connected or not. Automatically false during simulation.
      */
-    public val isConnected: Boolean by ImuLog.boolean{ ahrs.isConnected && isReal() }
+    public val isConnected: Boolean by logged{ ahrs.isConnected && isReal() }
 
     /**
      * The heading of the NavX. Reports a value in between 0-360 degrees.
      */
-    override val heading: Angle by ImuLog.quantity{
+    override val heading: Angle by logged{
         (if (isReal()) {
             // Negative sign because the navX reports clockwise as positive, whereas we want counterclockwise to be positive
             if (useFusedHeading && ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance){
@@ -85,7 +98,7 @@ public class ChargerNavX(
     /**
      * The altitude from the NavX. A null value represents an invalid altitude.
      */
-    public val altitude: Distance? by ImuLog.nullableQuantity{
+    public val altitude: Distance? by logged{
         if (ahrs.isAltitudeValid && isReal()) ahrs.altitude.toDouble().ofUnit(meters) else null
     }
 
@@ -105,22 +118,10 @@ public class ChargerNavX(
     public val speedometer: Speedometer = Speedometer()
 
 
-    init{
-        if (isReal()){
-            ChargerRobot.runPeriodically(addToFront = true){
-                ChargerLimelight.broadcastRobotOrientation(
-                    yaw = gyroscope.heading,
-                    yawRate = gyroscope.yawRate,
-                    pitch = gyroscope.pitch,
-                    roll = gyroscope.roll
-                )
-            }
-        }
-    }
+    public inner class Gyroscope internal constructor(): ThreeAxisGyroscope, Loggable {
+        override val namespace = "NavX/Gyroscope"
 
-
-    public inner class Gyroscope internal constructor(): ThreeAxisGyroscope {
-        override val yaw: Angle by GyroLog.quantity{
+        override val yaw: Angle by logged{
             if (isReal()) {
                 ahrs.yaw.toDouble().ofUnit(degrees)
             } else {
@@ -128,15 +129,15 @@ public class ChargerNavX(
             }
         }
 
-        override val pitch: Angle by GyroLog.quantity{
+        override val pitch: Angle by logged{
             if (isReal()) ahrs.pitch.toDouble().ofUnit(degrees) else Angle(0.0)
         }
 
-        override val roll: Angle by GyroLog.quantity{
+        override val roll: Angle by logged{
             if (isReal()) ahrs.roll.toDouble().ofUnit(degrees) else Angle(0.0)
         }
 
-        val yawRate: AngularVelocity by GyroLog.quantity {
+        val yawRate: AngularVelocity by logged {
             if (isReal()) ahrs.rate.ofUnit(degrees/seconds) else AngularVelocity(0.0)
         }
 
@@ -148,52 +149,54 @@ public class ChargerNavX(
     }
 
 
-    public inner class Accelerometer internal constructor(): ThreeAxisAccelerometer {
+    public inner class Accelerometer internal constructor(): ThreeAxisAccelerometer, Loggable {
+        override val namespace = "NavX/Accelerometer"
         private var previousXVelSim = Velocity(0.0)
         private var previousYVelSim = Velocity(0.0)
 
 
-
-        override val xAcceleration: Acceleration by AccelerometerLog.quantity{
+        override val xAcceleration: Acceleration by logged{
             if (isReal()){
-                return@quantity ahrs.worldLinearAccelX.toDouble().ofUnit(standardGravities)
+                ahrs.worldLinearAccelX.toDouble().ofUnit(standardGravities)
             }else{
                 val currXVelSim = IMUSimulation.getChassisSpeeds().xVelocity
-                return@quantity ((currXVelSim - previousXVelSim) / ChargerRobot.LOOP_PERIOD).also{
+                ((currXVelSim - previousXVelSim) / ChargerRobot.LOOP_PERIOD).also{
                     previousXVelSim = currXVelSim
                 }
             }
         }
 
-        override val yAcceleration: Acceleration by AccelerometerLog.quantity{
+        override val yAcceleration: Acceleration by logged{
             if (isReal()){
-                return@quantity ahrs.worldLinearAccelY.toDouble().ofUnit(standardGravities)
+                ahrs.worldLinearAccelY.toDouble().ofUnit(standardGravities)
             }else{
                 val currYVelSim = IMUSimulation.getChassisSpeeds().yVelocity
-                return@quantity ((currYVelSim - previousYVelSim) / ChargerRobot.LOOP_PERIOD).also{
+                ((currYVelSim - previousYVelSim) / ChargerRobot.LOOP_PERIOD).also{
                     previousYVelSim = currYVelSim
                 }
             }
         }
 
-        override val zAcceleration: Acceleration by AccelerometerLog.quantity{
+        override val zAcceleration: Acceleration by logged{
             if (isReal()) ahrs.worldLinearAccelZ.toDouble().ofUnit(standardGravities) else Acceleration(0.0)
         }
     }
 
 
-    public inner class Speedometer internal constructor(): ThreeAxisSpeedometer {
+    public inner class Speedometer internal constructor(): ThreeAxisSpeedometer, Loggable {
+        override val namespace = "NavX/Speedometer"
+
         // uses custom getters(ChassisSpeeds.xVelocity, ChassisSpeeds.yVelocity)
         // which return kmeasure units for sim
-        override val xVelocity: Velocity by SpeedometerLog.quantity{
+        override val xVelocity: Velocity by logged{
             if (isReal()) ahrs.velocityX.toDouble().ofUnit(meters / seconds) else IMUSimulation.getChassisSpeeds().xVelocity
         }
 
-        override val yVelocity: Velocity by SpeedometerLog.quantity{
+        override val yVelocity: Velocity by logged{
             if (isReal()) ahrs.velocityY.toDouble().ofUnit(meters / seconds) else IMUSimulation.getChassisSpeeds().yVelocity
         }
 
-        override val zVelocity: Velocity by SpeedometerLog.quantity{
+        override val zVelocity: Velocity by logged{
             if (isReal()) ahrs.velocityZ.toDouble().ofUnit(meters / seconds) else Velocity(0.0)
         }
     }
