@@ -24,8 +24,8 @@ private const val DEFAULT_GEAR_RATIO: Double = 1.0
 data class SwerveChassisConstants(
     val trackWidth: Length,
     val wheelBase: Length,
-    val robotRotationPID: PIDConstants = PIDConstants(0.3,0,0),
-    val robotTranslationPID: PIDConstants = PIDConstants(0.3,0,0),
+    val robotRotationPID: PIDConstants = PIDConstants(2.5,0,0),
+    val robotTranslationPID: PIDConstants = PIDConstants(4.0,0,0),
     val pathReplanningConfig: ReplanningConfig = ReplanningConfig(),
     val openLoopDiscretizationRate: Double = 2.0,
     val closedLoopDiscretizationRate: Double = 1.0

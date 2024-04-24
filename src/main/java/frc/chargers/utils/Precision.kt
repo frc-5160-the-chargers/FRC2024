@@ -3,6 +3,7 @@ package frc.chargers.utils
 
 import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.quantities.Quantity
+import com.batterystaple.kmeasure.quantities.div
 
 /**
  * A sealed class enum that holds data about the Precision of a certain mechanism or class.
@@ -31,6 +32,9 @@ public sealed class Precision<out D : Dimension<*,*,*,*>> {
      */
     public class Within<D : Dimension<*,*,*,*>>(public val allowableError: ClosedRange<Quantity<D>>) : Precision<D>() {
         public constructor(margin: Quantity<D>) : this(-margin..margin)
+
+        public val errorMargin: Quantity<D>
+            get() = (allowableError.endInclusive - allowableError.start) / 2.0
     }
 }
 

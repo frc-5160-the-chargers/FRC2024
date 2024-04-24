@@ -234,6 +234,11 @@
         },
         "open": true
       },
+      "RobotGeneral": {
+        "ActiveCommands": {
+          "open": true
+        }
+      },
       "Shuffleboard": {
         ".metadata": {
           "open": true

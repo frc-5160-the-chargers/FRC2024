@@ -3,11 +3,12 @@ package frc.chargers.hardware.subsystems.swervedrive
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
 
-
 /**
  * Creates a [SwerveData] instance, where all members can be configured.
+ * For this function to work, the [SwerveData] instance must hold values
+ * that implement [HardwareConfigurable], with the appropriate [HardwareConfiguration].
  */
-inline fun <reified C: HardwareConfiguration, T: HardwareConfigurable<C>> SwerveData(
+inline fun <reified C: HardwareConfiguration, T: HardwareConfigurable<C>> SwerveData( // reified T allows the ::class call to work, while the inline modifier allows the configure function to be inlined(improving performance).
     topLeft: T,
     topRight: T,
     bottomLeft: T,
@@ -28,7 +29,6 @@ inline fun <reified C: HardwareConfiguration, T: HardwareConfigurable<C>> Swerve
     }
 }
 
-
 /**
  * Represents generic data useful to an [EncoderHolonomicDrivetrain];
  * with values corresponding to the top left, top right, bottom left and bottom right modules of the drivetrain.
@@ -44,10 +44,20 @@ data class SwerveData<out T>(
     val topRight: T,
     val bottomLeft: T,
     val bottomRight: T
-): List<T> by listOf(topLeft, topRight, bottomLeft, bottomRight) { // The by operator allows us to automatically implement List<T>'s required functions through an instance of List<T>(which here, is created through listOf(topLeft, ...)
-    inline fun <reified C> contains(): Boolean =
-        topLeft is C && topRight is C && bottomLeft is C && bottomRight is C
+): List<T> by listOf(topLeft, topRight, bottomLeft, bottomRight) { // The by operator allows us to automatically implement List<T>'s required methods through an instance of List<T>(which here, is created through listOf(topLeft, ...)
 
+    companion object{
+        /**
+         * Creates a [SwerveData] instance where the topLeft, topRight, bottomLeft and bottomRight values
+         * are generated through a function([creator]).
+         */
+        inline fun <T> create(creator: (Int) -> T): SwerveData<T> =
+            SwerveData(creator(0), creator(1), creator(2), creator(3))
+    }
+
+    /**
+     * Maps each value within the [SwerveData] instance to another value.
+     */
     inline fun <C> map(mapper: (T) -> C): SwerveData<C> =
         SwerveData(
             mapper(topLeft),
@@ -67,9 +77,4 @@ data class SwerveData<out T>(
             Pair(this.bottomLeft, otherData.bottomLeft),
             Pair(this.bottomRight, otherData.bottomRight)
         )
-
-    companion object{
-        inline fun <T> generate(creator: (Int) -> T): SwerveData<T> =
-            SwerveData(creator(0), creator(1), creator(2), creator(3))
-    }
 }

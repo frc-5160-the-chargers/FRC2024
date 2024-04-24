@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 
-internal class RobotContainersTest {
+internal class CompetitionRobotContainersTest {
     @BeforeEach
     fun setup(){
         assert(HAL.initialize(500,0))

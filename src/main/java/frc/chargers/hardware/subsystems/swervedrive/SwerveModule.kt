@@ -41,6 +41,7 @@ class SwerveModule(
     private val startingDriveEncoderPosition: Angle = driveMotor.encoder.angularPosition
     private val startingTurnRelativeEncoderPosition: Angle = turnMotor.encoder.angularPosition
     private val startingTurnAbsoluteEncoderPosition: Angle = turnEncoderReading().inputModulus(0.degrees..360.degrees)
+
     private val wheelRadius = moduleConstants.wheelDiameter / 2.0
     private val batteryVoltageIssueAlert = Alert.warning(
         text = "It seems that the battery voltage from the Robot controller is being reported as extremely low(possibly 0)."
@@ -53,7 +54,6 @@ class SwerveModule(
         continuousInputRange = 0.degrees..360.degrees,
         outputRange = getVoltageRange()
     )
-
     private val rioVelocityController = SuperPIDController(
         moduleConstants.velocityPID,
         getInput = { driveAngularVelocity },
@@ -126,10 +126,12 @@ class SwerveModule(
 
     fun setDriveVoltage(voltage: Voltage){
         driveMotor.appliedVoltage = voltage
+        log("DriveVoltage", voltage)
     }
 
     fun setTurnVoltage(voltage: Voltage){
         turnMotor.appliedVoltage = voltage
+        log("TurnVoltage", voltage)
     }
 
     fun setDirection(direction: Angle){
@@ -185,7 +187,7 @@ class SwerveModule(
                 )
             }else{
                 rioAzimuthController.target = pidTarget
-                turnMotor.appliedVoltage = rioAzimuthController.calculateOutput() + feedforwardV
+                setTurnVoltage(rioAzimuthController.calculateOutput() + feedforwardV)
             }
         }
     }
@@ -199,36 +201,30 @@ class SwerveModule(
         )
 
         setDirection(optimizedState.angle.asAngle())
-        driveMotor.appliedVoltage =
+        setDriveVoltage(
             (optimizedState.speedMetersPerSecond /
                     moduleConstants.driveMotorMaxSpeed.inUnit(meters / seconds) *
                     12.volts).coerceIn(getVoltageRange())
+        )
     }
 
     fun setDesiredStateClosedLoop(state: SwerveModuleState){
         val directionAsRotation2d = direction.asRotation2d()
         val optimizedState = SwerveModuleState.optimize(state, directionAsRotation2d)
 
-        optimizedState.speedMetersPerSecond *= abs(
-            (optimizedState.angle - directionAsRotation2d).cos
-        )
-
         setDirection(optimizedState.angle.asAngle())
 
-        val velocitySetpoint =
-            optimizedState.speedMetersPerSecond.ofUnit(meters / seconds) /
-                moduleConstants.wheelDiameter *
-                    moduleConstants.driveGearRatio
+        val velocitySetpoint = optimizedState.speedMetersPerSecond.ofUnit(meters / seconds) / wheelRadius
 
         if (moduleConstants.useOnboardPID){
             driveMotor.setVelocitySetpoint(
-                rawVelocity = velocitySetpoint,
+                rawVelocity = velocitySetpoint * moduleConstants.driveGearRatio,
                 pidConstants = moduleConstants.velocityPID,
                 feedforward = moduleConstants.velocityFF(velocitySetpoint)
             )
         }else{
             rioVelocityController.target = velocitySetpoint
-            driveMotor.appliedVoltage = rioVelocityController.calculateOutput() + moduleConstants.velocityFF(velocitySetpoint)
+            setDriveVoltage(rioVelocityController.calculateOutput() + moduleConstants.velocityFF(velocitySetpoint))
         }
     }
 

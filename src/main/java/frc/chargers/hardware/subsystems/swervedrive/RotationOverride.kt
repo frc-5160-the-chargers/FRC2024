@@ -2,9 +2,8 @@
 package frc.chargers.hardware.subsystems.swervedrive
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.AngularVelocity
-import com.batterystaple.kmeasure.quantities.Time
+import com.batterystaple.kmeasure.dimensions.ScalarDimension
+import com.batterystaple.kmeasure.quantities.*
 import edu.wpi.first.math.controller.PIDController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
@@ -12,6 +11,9 @@ import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.utils.Precision
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.fpgaTimestamp
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.external.limelight.LimelightHelpers
+import org.photonvision.PhotonCamera
 import kotlin.math.PI
 
 /**
@@ -32,8 +34,8 @@ data class RotationOverrideResult(
 
 
 
-class AimToAngleRotationOverride(
-    private val targetAngle: Angle,
+open class AimToAngleRotationOverride(
+    private val getTarget: (EncoderHolonomicDrivetrain) -> Angle,
     angleToVelocityPID: PIDConstants,
     private val motionProfile: AngularMotionProfile? = null,
     private val aimPrecision: Precision<AngleDimension> = Precision.AllowOvershoot,
@@ -60,6 +62,7 @@ class AimToAngleRotationOverride(
     }
 
     override fun invoke(drivetrain: EncoderHolonomicDrivetrain): RotationOverrideResult {
+        val targetAngle = getTarget(drivetrain)
         var output: Double
 
         if (motionProfile != null){
@@ -96,13 +99,44 @@ class AimToAngleRotationOverride(
 }
 
 
-/*
+
 class AimToObjectRotationOverride  (
-    private val visionSystem: ObjectVisionPipeline,
+    private val getCrosshairOffset: () -> Double?,
     cameraYawToVelocityPID: PIDConstants,
     private val aimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
     private val invert: Boolean = false
 ): RotationOverride { // implements function type in order to be passed into rotation override acceptor
+
+    companion object{
+        fun fromLimelight(
+            llName: String = "",
+            cameraYawToVelocityPID: PIDConstants,
+            aimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
+            invert: Boolean = false
+        ): AimToObjectRotationOverride =
+            AimToObjectRotationOverride(
+                {
+                    if (LimelightHelpers.getTV(llName)) {
+                        LimelightHelpers.getTX(llName)
+                    }else{
+                        null
+                    }
+                },
+                cameraYawToVelocityPID, aimPrecision, invert
+            )
+
+        fun fromPhotonCamera(
+            photonCamera: PhotonCamera,
+            cameraYawToVelocityPID: PIDConstants,
+            aimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
+            invert: Boolean = false
+        ): AimToObjectRotationOverride =
+            AimToObjectRotationOverride(
+                { photonCamera.latestResult.bestTarget?.yaw },
+                cameraYawToVelocityPID, aimPrecision, invert
+            )
+    }
+
     private val pidController = PIDController(cameraYawToVelocityPID.kP, cameraYawToVelocityPID.kI, cameraYawToVelocityPID.kD).apply{
         if (aimPrecision is Precision.Within){
             this.setTolerance( (aimPrecision.allowableError.endInclusive - aimPrecision.allowableError.start).siValue )
@@ -115,8 +149,8 @@ class AimToObjectRotationOverride  (
 
     override fun invoke(drivetrain: EncoderHolonomicDrivetrain): RotationOverrideResult? {
         // if no targets are found, don't override rotation
-        val bestTarget = visionSystem.bestTarget ?: return null
-        val output = pidController.calculate(bestTarget.tx, 0.0) * if (invert) -1.0 else 1.0
+        val txValue = getCrosshairOffset() ?: return null
+        val output = pidController.calculate(txValue, 0.0) * if (invert) -1.0 else 1.0
         return RotationOverrideResult(
             output / drivetrain.maxRotationalVelocity.siValue,
             AngularVelocity(output)
@@ -125,104 +159,24 @@ class AimToObjectRotationOverride  (
 }
 
 
-class AimToAprilTagRotationOverride(
-    private val fiducialId: Int,
-    private val visionSystem: AprilTagVisionPipeline,
-    cameraYawToVelocityPID: PIDConstants,
-    visionAimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
-    private val invertVisionAim: Boolean = false,
-    /**
-     * Option to control whether the rotation override
-     * should aim to the AprilTag's pose instead of a detected target
-     * when no targets are found.
-     */
-    private val aimToTagPoseIfNotFound: Boolean = false,
-    angleToVelocityPID: PIDConstants = PIDConstants(cameraYawToVelocityPID.kP * 3.0, 0, cameraYawToVelocityPID.kD * 3.0),
-    poseAimPrecision: Precision<AngleDimension> = Precision.AllowOvershoot,
-    private val invertPoseAim: Boolean = false
-): RotationOverride {
-    private val visionAimController = PIDController(cameraYawToVelocityPID.kP, cameraYawToVelocityPID.kI, cameraYawToVelocityPID.kD).apply{
-        if (visionAimPrecision is Precision.Within){
-            this.setTolerance( (visionAimPrecision.allowableError.endInclusive - visionAimPrecision.allowableError.start).siValue )
-        }
-    }
-
-    private val visionSystemYaw = visionSystem.cameraConstants.robotToCameraTransform.rotation.z.ofUnit(radians)
-
-    private val poseAimController = PIDController(angleToVelocityPID.kP, angleToVelocityPID.kI, angleToVelocityPID.kD).apply{
-        if (poseAimPrecision is Precision.Within){
-            this.setTolerance( (poseAimPrecision.allowableError.endInclusive - poseAimPrecision.allowableError.start).siValue )
-        }
-        enableContinuousInput(0.0, 2 * PI)
-    }
-
-    val atSetpoint: Boolean get() = visionAimController.atSetpoint()
-
-
-    private val apriltagPose =
-        ChargerRobot.APRILTAG_LAYOUT
-            .getTagPose(fiducialId)
-            .orElseThrow()
-            .toPose2d()
-            .ofUnit(meters)
-
-
-    override fun invoke(drivetrain: EncoderHolonomicDrivetrain): RotationOverrideResult? {
-        // if no targets are found, don't override rotation
-        val allTargets = visionSystem.visionTargets
-
-        for (visionTarget in allTargets){
-            if (visionTarget.fiducialId != fiducialId){
-                continue
-            }
-
-            val output = -visionAimController.calculate(visionTarget.tx, 0.0) * if (invertVisionAim) -1.0 else 1.0
-
-
-            recordOutput("AimToAprilTag/cameraAim/controllerError", visionAimController.positionError)
-            recordOutput("AimToAprilTag/cameraAim/controllerOutput", output)
-
-
-            // refreshes the pose aim controller
-            poseAimController.calculate(0.0)
-
-            return RotationOverrideResult(
-                output / drivetrain.maxRotationalVelocity.siValue,
-                AngularVelocity(output)
-            )
-        }
-
-        visionAimController.calculate(0.0)
-
-        if (aimToTagPoseIfNotFound){
-            val drivetrainToTagTranslation = (apriltagPose.translation - drivetrain.poseEstimator.robotPose.translation)
-            // calculates the target heading needed to aim to the apriltag pose
-            val targetHeading = atan2(
-                drivetrainToTagTranslation.y.inUnit(meters),
-                drivetrainToTagTranslation.x.inUnit(meters)
-            ) + visionSystemYaw
-            // uses pid control to reach that pose
-            val output = poseAimController.calculate(
-                drivetrain.heading.siValue.inputModulus(0.0..2 * PI),
-                targetHeading.siValue.inputModulus(0.0..2 * PI)
-            ) * if (invertPoseAim) -1.0 else 1.0
-
-            recordOutput("AimToAprilTag/poseAim/controllerError", poseAimController.positionError)
-            recordOutput("AimToAprilTag/poseAim/controllerOutput", output)
-
-            return RotationOverrideResult(
-                output / drivetrain.maxRotationalVelocity.siValue,
-                AngularVelocity(output)
-            )
-        }else{
-            poseAimController.calculate(0.0)
-            return null
-        }
-    }
-
-}
-
- */
+class AimToPoseRotationOverride(
+    private val getTarget: () -> UnitPose2d,
+    private val angleOffset: Angle = Angle(0.0),
+    angleToVelocityPID: PIDConstants,
+    motionProfile: AngularMotionProfile? = null,
+    aimPrecision: Precision<AngleDimension> = Precision.AllowOvershoot,
+    invert: Boolean = false
+): AimToAngleRotationOverride(
+    { drivetrain ->
+        val drivetrainToTagTranslation = (getTarget().translation - drivetrain.poseEstimator.robotPose.translation)
+        // custom atan2 overload that takes 2 Distances and returns an Angle.
+        atan2(drivetrainToTagTranslation.y, drivetrainToTagTranslation.x) + angleOffset
+    },
+    angleToVelocityPID,
+    motionProfile,
+    aimPrecision,
+    invert
+)
 
 
 

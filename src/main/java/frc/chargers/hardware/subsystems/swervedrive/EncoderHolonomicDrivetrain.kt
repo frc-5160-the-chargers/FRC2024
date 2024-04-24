@@ -25,7 +25,6 @@ import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
 import frc.chargers.hardware.subsystems.robotposition.RobotPoseMonitor
 import frc.chargers.hardware.subsystems.robotposition.SwervePoseMonitor
 import frc.chargers.pathplannerextensions.asPathPlannerConstants
-import frc.chargers.utils.math.equations.epsilonEquals
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.utils.math.units.VoltageRate
 import frc.chargers.utils.math.units.toKmeasure
@@ -54,7 +53,7 @@ public class EncoderHolonomicDrivetrain(
     logName: String = "Drivetrain(Swerve)",
     turnMotors: SwerveData<MotorizedComponent>,
     // turn encoders are optional in sim
-    turnEncoders: SwerveData<PositionEncoder?> = SwerveData.generate{ null },
+    turnEncoders: SwerveData<PositionEncoder?> = SwerveData.create{ null },
     driveMotors: SwerveData<MotorizedComponent>,
     private val chassisConstants: SwerveChassisConstants,
     private val moduleConstants: SwerveModuleConstants,
@@ -62,10 +61,10 @@ public class EncoderHolonomicDrivetrain(
     startingPose: UnitPose2d = UnitPose2d(Distance(0.0), Distance(0.0), gyro?.heading ?: Angle(0.0)),
 ): SuperSubsystem(logName), HeadingProvider {
 
-    private val moduleNames = listOf("TopLeftModule", "TopRightModule", "BottomLeftModule", "BottomRightModule")
+    private val moduleNames = listOf("Modules/TopLeft", "Modules/TopRight", "Modules/BottomLeft", "Modules/BottomRight")
     /** A [SwerveData] instance that holds all the swerve modules of the drivetrain. */
     private val swerveModules: SwerveData<SwerveModule> =
-        SwerveData.generate{ index ->
+        SwerveData.create{ index ->
             SwerveModule(
                 namespace = logName + "/" + moduleNames[index],
                 turnMotors[index],
@@ -80,7 +79,7 @@ public class EncoderHolonomicDrivetrain(
         moduleConstants.driveMotorMaxAcceleration.siValue,
         moduleConstants.turnMotorMaxSpeed.siValue
     )
-    private val allianceFieldRelativeOffset
+    private val allianceFieldRelativeOffset: Angle
         get() = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
             180.degrees
         }else{
@@ -282,8 +281,8 @@ public class EncoderHolonomicDrivetrain(
         ) { log("DriveSysIDState", it.toString()) },
         SysIdRoutine.Mechanism(
             { voltage ->
-                setDriveVoltages(SwerveData.generate{ voltage.toKmeasure() })
-                setTurnDirections(SwerveData.generate{ Angle(0.0) })
+                setDriveVoltages(SwerveData.create{ voltage.toKmeasure() })
+                setTurnDirections(SwerveData.create{ Angle(0.0) })
             },
             null, // no need for log consumer since data is recorded by advantagekit
             this
@@ -303,8 +302,8 @@ public class EncoderHolonomicDrivetrain(
         ) { log("AzimuthSysIDState", it.toString()) },
         SysIdRoutine.Mechanism(
             { voltage ->
-                setDriveVoltages(SwerveData.generate{ Voltage(0.0) })
-                setTurnVoltages(SwerveData.generate{ voltage.toKmeasure() })
+                setDriveVoltages(SwerveData.create{ Voltage(0.0) })
+                setTurnVoltages(SwerveData.create{ voltage.toKmeasure() })
             },
             null, // no need for log consumer since data is recorded by advantagekit
             this
@@ -380,9 +379,6 @@ public class EncoderHolonomicDrivetrain(
         speeds: ChassisSpeeds,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
-        if (speeds.vxMetersPerSecond epsilonEquals 0.0 && speeds.vyMetersPerSecond epsilonEquals 0.0 && speeds.omegaRadiansPerSecond epsilonEquals 0.0){
-            stop()
-        }
         currentControlMode = ControlMode.CLOSED_LOOP
         goal = if (fieldRelative){
             ChassisSpeeds.fromFieldRelativeSpeeds(speeds, (heading + allianceFieldRelativeOffset).asRotation2d())

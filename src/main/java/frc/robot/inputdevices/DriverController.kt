@@ -8,9 +8,10 @@ import frc.chargers.hardware.inputdevices.InputAxis
 import frc.chargers.hardware.inputdevices.withDoubleClick
 import frc.chargers.utils.math.equations.Polynomial
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
+import frc.robot.DRIVER_CONTROLLER_PORT
 
 
-object DriverController: CommandPS5Controller(0){
+object DriverController: CommandPS5Controller(DRIVER_CONTROLLER_PORT){
     /* Top-Level constants */
     private const val DEFAULT_DEADBAND = 0.1
     private val DRIVER = Driver.NAYAN

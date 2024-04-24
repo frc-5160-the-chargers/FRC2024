@@ -40,14 +40,18 @@ inline fun <M, reified C : HardwareConfiguration> EncoderDifferentialDrivetrain(
     startingPose: UnitPose2d = UnitPose2d(),
     configure: C.() -> Unit
 ): EncoderDifferentialDrivetrain where M: MotorizedComponent, M: HardwareConfigurable<C> {
-    val configuration = C::class.constructors.first().call().apply{ configure() }
+    try{
+        val configuration = C::class.constructors.first().call().apply{ configure() }
 
-    topLeft.configure(configuration)
-    topRight.configure(configuration)
-    bottomLeft.configure(configuration)
-    bottomRight.configure(configuration)
+        topLeft.configure(configuration)
+        topRight.configure(configuration)
+        bottomLeft.configure(configuration)
+        bottomRight.configure(configuration)
 
-    return EncoderDifferentialDrivetrain(logName, topLeft, topRight, bottomLeft, bottomRight, constants, gyro, startingPose)
+        return EncoderDifferentialDrivetrain(logName, topLeft, topRight, bottomLeft, bottomRight, constants, gyro, startingPose)
+    }catch(e: Exception){
+        error("It looks like your configuration class does not have a no-args constructor. This is not allowed.")
+    }
 }
 
 
