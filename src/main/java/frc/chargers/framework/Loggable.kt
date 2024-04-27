@@ -91,6 +91,10 @@ interface Loggable {
         // networktables-related storage
         private val ntInstance by lazy{ NetworkTableInstance.getDefault() }
         private val ntPublishers: MutableMap<String, Publisher> = HashMap()
+
+        // capitalization
+        private fun capitalize(input: String): String =
+            input.replaceFirstChar{ if (it.isLowerCase()) it.uppercaseChar() else it }
     }
 
 
@@ -102,7 +106,7 @@ interface Loggable {
         getEntry("$namespace/$identifier", ::IntegerLogEntry)?.append(value.toLong())
         if (!fileOnly){
             (ntPublishers.computeIfAbsent("$namespace/$identifier") {
-                k: String -> ntInstance.getIntegerTopic(k).publish()
+                    k: String -> ntInstance.getIntegerTopic(k).publish()
             } as IntegerPublisher)
                 .set(value.toLong())
         }
@@ -113,7 +117,7 @@ interface Loggable {
         getEntry("$namespace/$identifier", ::DoubleLogEntry)?.append(value)
         if (!fileOnly){
             (ntPublishers.computeIfAbsent("$namespace/$identifier") {
-                k: String -> ntInstance.getDoubleTopic(k).publish()
+                    k: String -> ntInstance.getDoubleTopic(k).publish()
             } as DoublePublisher)
                 .set(value)
         }
@@ -129,21 +133,26 @@ interface Loggable {
         getEntry("$namespace/$identifier", ::BooleanLogEntry)?.append(value)
         if (!fileOnly){
             (ntPublishers.computeIfAbsent("$namespace/$identifier") {
-                k: String -> ntInstance.getBooleanTopic(k).publish()
+                    k: String -> ntInstance.getBooleanTopic(k).publish()
             } as BooleanPublisher)
                 .set(value)
         }
     }
 
-    @JvmName("logStr")
+    @JvmName("logString")
     fun log(identifier: String, value: String) {
         getEntry("$namespace/$identifier", ::StringLogEntry)?.append(value)
         if (!fileOnly){
             (ntPublishers.computeIfAbsent("$namespace/$identifier") {
-                k: String -> ntInstance.getStringTopic(k).publish()
+                    k: String -> ntInstance.getStringTopic(k).publish()
             } as StringPublisher)
                 .set(value)
         }
+    }
+
+    @JvmName("logEnum")
+    fun log(identifier: String, value: Enum<*>) {
+        log("$namespace/$identifier", value.name)
     }
 
     @JvmName("logStructable")
@@ -154,8 +163,9 @@ interface Loggable {
         }?.append(value)
         if (!fileOnly){
             ntInstance.addSchema(struct)
+            @Suppress("UNCHECKED_CAST")
             (ntPublishers.computeIfAbsent("$namespace/$identifier") {
-                k: String -> ntInstance.getStructTopic(k, struct).publish()
+                    k: String -> ntInstance.getStructTopic(k, struct).publish()
             } as StructPublisher<T>)
                 .set(value)
         }
@@ -171,7 +181,7 @@ interface Loggable {
             // NT backend only supports int64[], so we have to manually widen to 64 bits before sending
             val widened = value.map{ it.toLong() }.toLongArray()
             (ntPublishers.computeIfAbsent("$namespace/$identifier") {
-                k: String -> ntInstance.getIntegerArrayTopic(k).publish()
+                    k: String -> ntInstance.getIntegerArrayTopic(k).publish()
             } as IntegerArrayPublisher)
                 .set(widened)
         }
@@ -182,7 +192,7 @@ interface Loggable {
         getEntry("$namespace/$identifier", ::DoubleArrayLogEntry)?.append(value.toDoubleArray())
         if (!fileOnly){
             (ntPublishers.computeIfAbsent("$namespace/$identifier") {
-                k: String -> ntInstance.getDoubleArrayTopic(k).publish()
+                    k: String -> ntInstance.getDoubleArrayTopic(k).publish()
             } as DoubleArrayPublisher)
                 .set(value.toDoubleArray())
         }
@@ -193,7 +203,7 @@ interface Loggable {
         getEntry("$namespace/$identifier", ::BooleanArrayLogEntry)?.append(value.toBooleanArray())
         if (!fileOnly){
             (ntPublishers.computeIfAbsent("$namespace/$identifier") {
-                k: String -> ntInstance.getBooleanArrayTopic(k).publish()
+                    k: String -> ntInstance.getBooleanArrayTopic(k).publish()
             } as BooleanArrayPublisher)
                 .set(value.toBooleanArray())
         }
@@ -204,8 +214,8 @@ interface Loggable {
         getEntry("$namespace/$identifier", ::StringArrayLogEntry)?.append(value.toTypedArray())
         if (!fileOnly){
             (ntPublishers.computeIfAbsent("$namespace/$identifier") {
-                k: String -> ntInstance.getStringArrayTopic(k).publish() } as StringArrayPublisher
-            )
+                    k: String -> ntInstance.getStringArrayTopic(k).publish() } as StringArrayPublisher
+                    )
                 .set(value.toTypedArray())
         }
     }
@@ -228,8 +238,9 @@ interface Loggable {
             for (i in value.indices){
                 valueAsArray[i] = valueAsList[i]
             }
+            @Suppress("UNCHECKED_CAST")
             (ntPublishers.computeIfAbsent("$namespace/$identifier") {
-                k: String -> ntInstance.getStructArrayTopic(k, struct).publish()
+                    k: String -> ntInstance.getStructArrayTopic(k, struct).publish()
             } as StructArrayPublisher<T>)
                 .set(valueAsArray as Array<T>)
         }
@@ -280,7 +291,7 @@ interface Loggable {
     fun logged(identifier: String? = null, supplier: () -> Int?) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Int?>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Int?>{ _, _ -> supplier() }
         }
@@ -290,7 +301,7 @@ interface Loggable {
     fun logged(identifier: String? = null, supplier: () -> Double?) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Double?>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Double?>{ _, _ -> supplier() }
         }
@@ -300,7 +311,7 @@ interface Loggable {
     fun <D: AnyDimension> logged(identifier: String? = null, supplier: () -> Quantity<D>?) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Quantity<D>?>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Quantity<D>?>{ _, _ -> supplier() }
         }
@@ -310,7 +321,7 @@ interface Loggable {
     fun <T> logged(struct: Struct<T>, identifier: String? = null, supplier: () -> T?) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T?>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(struct, identifier ?: property.name, supplier())
+                log(struct, identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, T?>{ _, _ -> supplier() }
         }
@@ -326,7 +337,7 @@ interface Loggable {
     fun logged(identifier: String? = null, supplier: () -> Int) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Int>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Int>{ _, _ -> supplier() }
         }
@@ -336,7 +347,7 @@ interface Loggable {
     fun logged(identifier: String? = null, supplier: () -> Double) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Double>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Double>{ _, _ -> supplier() }
         }
@@ -347,7 +358,7 @@ interface Loggable {
     fun logged(identifier: String? = null, supplier: () -> Boolean) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Boolean>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Boolean>{ _, _ -> supplier() }
         }
@@ -357,9 +368,19 @@ interface Loggable {
     fun logged(identifier: String? = null, supplier: () -> String) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, String>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, String>{ _, _ -> supplier() }
+        }
+
+    @OverloadResolutionByLambdaReturnType
+    @JvmName("enumLoggedDelegate")
+    fun <E: Enum<E>> logged(identifier: String? = null, supplier: () -> E) =
+        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, E>> { _, property ->
+            ChargerRobot.runPeriodically {
+                log(identifier ?: capitalize(property.name), supplier())
+            }
+            return@PropertyDelegateProvider ReadOnlyProperty<Any?, E>{ _, _ -> supplier() }
         }
 
     @OverloadResolutionByLambdaReturnType
@@ -367,7 +388,7 @@ interface Loggable {
     fun <D: AnyDimension> logged(identifier: String? = null, supplier: () -> Quantity<D>) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Quantity<D>>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Quantity<D>>{ _, _ -> supplier() }
         }
@@ -377,7 +398,7 @@ interface Loggable {
     fun <T> logged(struct: Struct<T>, identifier: String? = null, supplier: () -> T) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(struct, identifier ?: property.name, supplier())
+                log(struct, identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, T>{ _, _ -> supplier() }
         }
@@ -394,7 +415,7 @@ interface Loggable {
     fun <C: Collection<Int>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
         }
@@ -404,7 +425,7 @@ interface Loggable {
     fun <C: Collection<Double>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
         }
@@ -414,7 +435,7 @@ interface Loggable {
     fun <C: Collection<Boolean>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
         }
@@ -425,7 +446,7 @@ interface Loggable {
     fun <C: Collection<String>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
         }
@@ -436,7 +457,7 @@ interface Loggable {
     fun <D: AnyDimension, C: Collection<Quantity<D>>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
             ChargerRobot.runPeriodically {
-                log(identifier ?: property.name, supplier())
+                log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
         }
@@ -446,7 +467,7 @@ interface Loggable {
     fun <T, C: Collection<T>> logged(struct: Struct<T>, identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>> { _, property ->
             ChargerRobot.runPeriodically {
-                log(struct, identifier ?: property.name, supplier())
+                log(struct, identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, C>{ _, _ -> supplier() }
         }
@@ -460,15 +481,17 @@ interface Loggable {
     ): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>> {
         override fun provideDelegate(thisRef: Any?, property: KProperty<*>) =
             object: ReadWriteProperty<Any?, T>{
+                private val propertyName = capitalize(property.name)
+
                 init{
-                    loggerFunction(identifier ?: property.name, value)
+                    loggerFunction(identifier ?: propertyName, value)
                 }
 
                 override fun getValue(thisRef: Any?, property: KProperty<*>): T = value
 
                 override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
                     this@LoggedMutableProperty.value = value
-                    loggerFunction(identifier ?: property.name, value)
+                    loggerFunction(identifier ?: propertyName, value)
                 }
             }
     }
@@ -487,10 +510,12 @@ interface Loggable {
     fun logged(value: String, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, String>> =
         LoggedMutableProperty(identifier, value, ::log)
 
+    fun <E: Enum<E>> logged(value: E, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, E>> =
+        LoggedMutableProperty(identifier, value, ::log)
+
     fun <D: AnyDimension> logged(value: Quantity<D>, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, Quantity<D>>> =
         LoggedMutableProperty(identifier, value, ::log)
 
-    @JvmName("loggedStructableDelegate")
     fun <T> logged(value: T, struct: Struct<T>, identifier: String? = null): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>> =
         LoggedMutableProperty(identifier, value){ namespace, logValue -> log(struct, namespace, logValue) }
 

@@ -3,6 +3,7 @@ package frc.robot
 import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.math.MathUtil
+import edu.wpi.first.wpilibj.DigitalOutput
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.chargers.commands.setDefaultRunCommand
 import frc.chargers.framework.ChargerRobot
@@ -13,7 +14,6 @@ import frc.chargers.hardware.subsystems.differentialdrive.EncoderDifferentialDri
 import frc.chargers.utils.math.mapBetweenRanges
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 
-@Suppress("unused")
 class PushBot: ChargerRobot() {
     private val drivetrain = EncoderDifferentialDrivetrain(
         topLeft = ChargerSparkMax(15),
@@ -30,6 +30,8 @@ class PushBot: ChargerRobot() {
 
     private val xboxController = CommandXboxController(1)
 
+    private val ledTest = DigitalOutput(4)
+
     init{
         drivetrain.setDefaultRunCommand {
             val precisionModePower = xboxController.leftTriggerAxis.mapBetweenRanges(0.0..1.0, 1.0..6.0)
@@ -41,5 +43,14 @@ class PushBot: ChargerRobot() {
                 )
             )
         }
+    }
+
+    override fun teleopPeriodic() {
+        super.teleopPeriodic()
+        ledTest.set(true)
+    }
+
+    override fun teleopExit(){
+        ledTest.set(false)
     }
 }

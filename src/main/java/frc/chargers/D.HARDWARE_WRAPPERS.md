@@ -2,9 +2,9 @@
 
 Chargerlib as a whole is a library that is built on the idea of abstraction between hardware layers.
 
-A variety of vendors already provide hardware-interface classes for specific pieces of hardware; like the ```CANSparkMax()```, ```CANcoder()``` and ```PhotonCamera()``` classes. 
+A variety of vendors already provide hardware-interface classes for specific pieces of hardware; like the ```CANSparkMax()```, ```CANcoder()``` and ```TalonFX()``` classes. 
 However, the methods used to retreive data and call actions on these pieces of hardware usually vary from vendor-to-vendor; this makes it hard to switch between components. 
-For instance, if you had an Arm Subsystem that started off with a CANSparkMax, it would be very hard to switch that motor to a TalonFX.
+For instance, if you had an Arm Subsystem that started off with a CANSparkMax, it would be very hard to switch that motor to a TalonFX or a simulated motor.
 
 In addition, most vendor classes don't support kmeasure units(due to it being a custom library),
 which means that without wrappers, we will often have to do manual units conversions as well.
@@ -14,10 +14,7 @@ and return Kmeasure Quantities instead of bare Doubles.
 
 If you just need a generic use-case motor without any vendor-specific features, you can now simply accept a generic ```EncoderMotorController``` instead.
 
-Most wrapper classes start with the term "Charger" as a prefix; for instance, ```ChargerCANcoder()```, ```ChargerSparkMax()```, and ```ChargerPhotonCam()```.
-
-Disclaimer: the subsystem implementations below are non-advantagekit. To see advantagekit implementations, check the AdvantageKit Wrapper section(tbd).
-
+Most wrapper classes start with the term "Charger" as a prefix; for instance, ```ChargerCANcoder()```, ```ChargerSparkMax()```, and ```ChargerTalonFX()```.
 
 
 # Encoders
@@ -43,30 +40,50 @@ Encoder implementing classes: ```ChargerCANcoder(id)``(provides timestamps)` and
 PositionEncoder implementing classes: ```ChargerPotentiometer(port)``` and ```ChargerDutyCycleEncoder(id)```
 
 
-# Motor Controllers
+# Motor Controlling
 
-WPILib already contains the ```MotorController``` interface, which abstracts away most motor controller functions, including setting power and voltage. However, this does not encompass the motor's built in encoder. Thus, ChargerLib has an ```EncoderMotorController``` interface, which adds a subclassed ```Encoder``` to the ```MotorController``` interface.
+We utilize the ```MotorizedComponent``` interface to represent 1 or more motors, along with a respective encoder, 
+that controls 1 component on the robot. This can include spinning a set of wheels on a flywheel, or spinning 1 side of an intake.
+
+In order to set the voltage of the motor and get the voltage of the motor, you would use the ```appliedVoltage``` getter-setter property.
+A more convenient way to do this is with the ```percentOut``` property, which allows you to set the motor's output
+as a percentage of 12 volts instead.
+
+Here are the ways to retreive motor data:
+    For encoder readings, call  ```MotorizedComponent.encoder```, which returns an ```Encoder```.
+    For stator current readings, call ```MotorizedComponent.statorCurrent```, which returns a ```Quantity<CurrentDimension>```.
+    For setting and fetching motor inversion, call the ```MotorizedComponent.hasInvert``` getter-setter property.
 
 ```kotlin
-   public class Elevator(val motor: EncoderMotorController, ....){
+   public class Elevator(val motor: MotorizedComponent, ....){
+   
+       init{
+            motor.hasInvert = true
+            val current: Quantity<CurrentDimension> = motor.statorCurrent
+            // Current is a typealias for Quantity<StatorCurrent>
+            val currentAlt: Current = motor.statorCurrent
+       }
+      
+       fun run(){
+            motor.appliedVoltage = 5.volts
+            //motor.percentOut = -0.3
+       }
+       
        public val position: Distance get() = motor.encoder.angularPosition * 5.meters // * 5 meters transforms the Angle into a Distance
        public val velocity: Velocity get() = motor.encoder.angularVelocity * 5.meters // * 5 meters transforms the AngularVelocity into a Velocity
    }
    
    // neoSparkMax implements Encoder
    val elevatorInstance = Elevator(ChargerSparkMax(6), ....)
+   
+   val simulatedElevatorInstance = Elevator(MotorSim(...)...)
 ```
 
-In addition, the 2024 version of ChargerLib includes the ```SmartEncoderMotorController``` interface,
-which allows you to fetch the temperature(```motor.tempCelsius```; a Double because Kmeasure does not support temperature units), 
-applied current(```motor.appliedCurrent```) and applied voltage(```motor.appliedVoltage```) of the motor,
-and provides support for closed loop control via ```setAngularPosition``` and ```setAngularVelocity```.
 
-Implementing classes of SmartEncoderMotorController:
-```ChargerSparkMax(id)```, ```ChargerSparkFlex(id)```, ```ChargerTalonFX(id)```
+Implementing classes of MotorizedComponent:
+```ChargerSparkMax(id)```, ```ChargerSparkFlex(id)```, ```ChargerTalonFX(id)```, ```ChargerTalonSRX(id)```
 
-Implementing classes of only EncoderMotorController:
-```ChargerTalonSRX(id)```
+```MotorSim(...)```, ```ArmMotorSim(...)```, ```ElevatorMotorSim(...)```
 
 
 

@@ -10,7 +10,6 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
-import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.differentialdrive.EncoderDifferentialDrivetrain
@@ -29,7 +28,7 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
 class DifferentialPoseMonitor(
     private val drivetrain: EncoderDifferentialDrivetrain,
     startingPose: UnitPose2d
-): SubsystemBase(), RobotPoseMonitor {
+): RobotPoseMonitor("Drivetrain(Differential)/PoseMonitor") {
     private val poseEstimator = DifferentialDrivePoseEstimator(
         drivetrain.kinematics,
         Rotation2d(0.0),

@@ -79,7 +79,6 @@ public class ChargerSparkMax(
         }
     }
 
-
     /**
      * The encoder of the spark max.
      */
@@ -115,8 +114,9 @@ public class ChargerSparkMax(
         by filterInvalid{ appliedOutput * busVoltage.ofUnit(volts) }
             .withSetter{ setVoltage(it.siValue) }
 
-
-
+    override fun setBrakeMode(shouldBrake: Boolean){
+        idleMode = if (shouldBrake) IdleMode.kBrake else IdleMode.kCoast
+    }
 
     /**
      * @see frc.chargers.hardware.motorcontrol.rev.util.SparkPIDHandler

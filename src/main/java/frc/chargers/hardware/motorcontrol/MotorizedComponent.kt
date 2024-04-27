@@ -16,11 +16,13 @@ import frc.chargers.hardware.sensors.encoders.Encoder
 interface MotorizedComponent {
     val encoder: Encoder
 
+    val statorCurrent: Current
+
     var appliedVoltage: Voltage
 
     var hasInvert: Boolean
 
-    val statorCurrent: Current
+    fun setBrakeMode(shouldBrake: Boolean)
 
     fun setPositionSetpoint(
         rawPosition: Angle,
@@ -48,40 +50,38 @@ interface MotorizedComponent {
         object: MotorizedComponent{
             override val encoder: Encoder = this@MotorizedComponent.encoder
 
+            // runs a function for all the included motors ; including followers.
+            inline fun runForAllMotors(function: (MotorizedComponent) -> Unit){
+                function(this@MotorizedComponent)
+                followers.forEach(function)
+            }
+
             override var appliedVoltage: Voltage
                 get() = this@MotorizedComponent.appliedVoltage
                 set(value) {
-                    this@MotorizedComponent.appliedVoltage = value
-                    followers.forEach{
-                        it.appliedVoltage = value
-                    }
+                    runForAllMotors{ it.appliedVoltage = value }
                 }
 
             override var hasInvert: Boolean = this@MotorizedComponent.hasInvert
                 set(value){
                     if (field != value){
-                        this@MotorizedComponent.hasInvert = !this@MotorizedComponent.hasInvert
-                        followers.forEach{
-                            it.hasInvert = !it.hasInvert
-                        }
                         field = value
+                        runForAllMotors{ it.hasInvert = !it.hasInvert }
                     }
                 }
 
             override val statorCurrent: Current get() = this@MotorizedComponent.statorCurrent
 
+            override fun setBrakeMode(shouldBrake: Boolean) {
+                runForAllMotors{ it.setBrakeMode(shouldBrake) }
+            }
+
             override fun setPositionSetpoint(rawPosition: Angle, pidConstants: PIDConstants, continuousInput: Boolean, feedforward: Voltage) {
-                this@MotorizedComponent.setPositionSetpoint(rawPosition, pidConstants, continuousInput, feedforward)
-                followers.forEach{
-                    it.setPositionSetpoint(rawPosition, pidConstants, continuousInput, feedforward)
-                }
+                runForAllMotors{ it.setPositionSetpoint(rawPosition, pidConstants, continuousInput, feedforward) }
             }
 
             override fun setVelocitySetpoint(rawVelocity: AngularVelocity, pidConstants: PIDConstants, feedforward: Voltage) {
-                this@MotorizedComponent.setVelocitySetpoint(rawVelocity, pidConstants, feedforward)
-                followers.forEach{
-                    it.setVelocitySetpoint(rawVelocity, pidConstants, feedforward)
-                }
+                runForAllMotors{ it.setVelocitySetpoint(rawVelocity, pidConstants, feedforward) }
             }
         }
 }

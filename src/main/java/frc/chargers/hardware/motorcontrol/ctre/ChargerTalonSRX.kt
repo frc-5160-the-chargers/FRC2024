@@ -93,7 +93,6 @@ public class ChargerTalonSRX(
     factoryDefault: Boolean = true,
     configuration: ChargerTalonSRXConfiguration? = null
 ) : WPI_TalonSRX(deviceNumber), MotorizedComponent, HardwareConfigurable<ChargerTalonSRXConfiguration>{
-
     private val nonSRXFollowers: MutableSet<MotorizedComponent> = mutableSetOf()
 
     init{
@@ -126,6 +125,10 @@ public class ChargerTalonSRX(
 
     override val statorCurrent: Current
         get() = this.getStatorCurrent().ofUnit(amps)
+
+    override fun setBrakeMode(shouldBrake: Boolean){
+        setNeutralMode(if (shouldBrake) NeutralMode.Brake else NeutralMode.Coast)
+    }
 
     override fun setPositionSetpoint(
         rawPosition: Angle,

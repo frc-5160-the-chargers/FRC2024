@@ -18,20 +18,25 @@ import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.rev.util.MotorData
 import frc.chargers.hardware.motorcontrol.rev.util.PeriodicFrameConfig
 import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
-import frc.chargers.hardware.motorcontrol.simulation.BasicMotorSim
+import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
+import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.sensors.withOffset
 import frc.chargers.hardware.subsystems.swervedrive.*
+import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import frc.robot.inputdevices.DriverController
+import org.photonvision.PhotonCamera
 
 
 class CompetitionRobot: ChargerRobot(){
     override val logToFileOnly = DriverStation.isFMSAttached()
 
+    val gyro = ChargerNavX()
+
     val drivetrain = EncoderHolonomicDrivetrain(
         turnMotors = if (isSimulation()){
             SwerveData.create{
-                BasicMotorSim(DCMotor.getNEO(1), moi = 0.0000087.ofUnit(kilo.grams * (meters * meters)))
+                MotorSim(DCMotor.getNEO(1), moi = 0.0000087.ofUnit(kilo.grams * (meters * meters)))
             }
         }else{
             SwerveData(
@@ -59,7 +64,7 @@ class CompetitionRobot: ChargerRobot(){
         },
         driveMotors = if (isSimulation()) {
             SwerveData.create{
-                BasicMotorSim(DCMotor.getKrakenX60Foc(1), moi = 0.000054.ofUnit(kilo.grams * (meters * meters)))
+                MotorSim(DCMotor.getKrakenX60(1), moi = 0.000054.ofUnit(kilo.grams * (meters * meters)))
             }
         }else{
             SwerveData(
@@ -84,7 +89,8 @@ class CompetitionRobot: ChargerRobot(){
             turnMotorControlScheme = SwerveAzimuthControl.PID( PIDConstants(7.0,0,0) ),
             velocityPID = PIDConstants(0.05,0,0),
             velocityFF = AngularMotorFFEquation(0.0,0.13)
-        )
+        ),
+        gyro = if (isSimulation()) null else gyro
     )
 
     override fun robotInit(){
@@ -101,5 +107,23 @@ class CompetitionRobot: ChargerRobot(){
         autonomous().whileTrue(
             AutoBuilder.followPath(PathPlannerPath.fromPathFile("RandomStuff"))
         )
+
+        if (!isSimulation()){
+            drivetrain.poseEstimator.registerPhotonCamera(
+                PhotonCamera("AprilTagArducam"),
+                robotToCamera = UnitTransform3d()
+            )
+
+            drivetrain.poseEstimator.registerLimelight(
+                camName = "Limelight2Main",
+                robotToCamera = UnitTransform3d(),
+                useMegaTag2 = true
+            )
+        }
+    }
+
+    override fun robotPeriodic() {
+        super.robotPeriodic()
+        gyro.broadcastOrientationForMegaTag2("Limelight2Main")
     }
 }

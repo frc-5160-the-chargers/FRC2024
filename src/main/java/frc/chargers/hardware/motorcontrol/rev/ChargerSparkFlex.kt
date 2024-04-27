@@ -97,6 +97,9 @@ public class ChargerSparkFlex(
         filterInvalid{ appliedOutput * busVoltage.ofUnit(volts) }
             .withSetter{ setVoltage(it.siValue) }
 
+    override fun setBrakeMode(shouldBrake: Boolean){
+        idleMode = if (shouldBrake) IdleMode.kBrake else IdleMode.kCoast
+    }
 
     /**
      * Adds a generic amount of followers to the Spark Max, where all followers

@@ -9,6 +9,8 @@ import com.pathplanner.lib.pathfinding.Pathfinding
 import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.apriltag.AprilTagFieldLayout
 import edu.wpi.first.apriltag.AprilTagFields
+import edu.wpi.first.hal.FRCNetComm
+import edu.wpi.first.hal.HAL
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.DataLogManager
 import edu.wpi.first.wpilibj.DriverStation
@@ -19,19 +21,21 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 
 /**
- * A base class for
+ * A base class for a generic Robot; extending [TimedRobot] and providing useful utilities.
+ *
+ * These include: global periodic function registration, automatic DataLogManager setup, and more.
  */
 abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Loggable {
     override val namespace = "RobotGeneral"
 
-    public companion object: Loggable {
+    companion object: Loggable {
         override val namespace = "RobotGeneral"
         /**
          * Adds a specific function to the robot's periodic loop.
          *
          * All functions added this way will run before the command scheduler runs.
          */
-        public fun runPeriodically(addToFront: Boolean = false, runnable: () -> Unit){
+        fun runPeriodically(addToFront: Boolean = false, runnable: () -> Unit){
             if (addToFront){
                 periodicRunnables.add(0,runnable)
             }else{
@@ -42,7 +46,7 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         /**
          * Adds a specific function to the robot's periodic loop, which runs after the robot's periodic loop ends.
          */
-        public fun runPeriodicallyWithLowPriority(addToFront: Boolean = false, runnable: () -> Unit){
+        fun runPeriodicallyWithLowPriority(addToFront: Boolean = false, runnable: () -> Unit){
             if (addToFront){
                 lowPriorityPeriodicRunnables.add(0,runnable)
             }else{
@@ -53,7 +57,7 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         /**
          * Removes a function from the periodic loop of the robot.
          */
-        public fun removeFromLoop(runnable: () -> Unit){
+        fun removeFromLoop(runnable: () -> Unit){
             periodicRunnables.remove(runnable)
             lowPriorityPeriodicRunnables.remove(runnable)
         }
@@ -61,20 +65,20 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         /**
          * The loop period of the current robot.
          */
-        public var LOOP_PERIOD: Time = 0.02.seconds
+        var LOOP_PERIOD: Time = 0.02.seconds
             private set
 
         /**
          * The [Field2d] that belongs to the robot.
          */
-        public val FIELD: Field2d = Field2d().also{
+        val FIELD: Field2d = Field2d().also{
             SmartDashboard.putData("Field", it)
         }
 
         /**
          * The current' year's apriltag field layout.
          */
-        public val APRILTAG_LAYOUT: AprilTagFieldLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField()
+        val APRILTAG_LAYOUT: AprilTagFieldLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField()
 
 
         // stores alerts and periodic runnables
@@ -138,6 +142,8 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
             log("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
             log("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
         }
+
+        HAL.report(FRCNetComm.tResourceType.kResourceType_Language, FRCNetComm.tInstances.kLanguage_Kotlin)
     }
 
 

@@ -14,7 +14,6 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.SuperSubsystem
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.Measurement
@@ -33,7 +32,7 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
 class SwervePoseMonitor(
     private val drivetrain: EncoderHolonomicDrivetrain,
     startingPose: UnitPose2d
-): SuperSubsystem(drivetrain.namespace), RobotPoseMonitor {
+): RobotPoseMonitor(drivetrain.namespace + "/PoseMonitor") {
     companion object{
         private var logVisionlessPose: Boolean = false
 

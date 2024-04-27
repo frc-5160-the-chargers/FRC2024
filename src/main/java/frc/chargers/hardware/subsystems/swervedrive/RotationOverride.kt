@@ -3,7 +3,10 @@ package frc.chargers.hardware.subsystems.swervedrive
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
 import com.batterystaple.kmeasure.dimensions.ScalarDimension
-import com.batterystaple.kmeasure.quantities.*
+import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.AngularVelocity
+import com.batterystaple.kmeasure.quantities.Time
+import com.batterystaple.kmeasure.quantities.atan2
 import edu.wpi.first.math.controller.PIDController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
@@ -32,6 +35,14 @@ data class RotationOverrideResult(
     val closedLoopRotation: AngularVelocity
 )
 
+/**
+ * Provides a backup for a rotation override in case it doesn't detect a target.
+ */
+fun RotationOverride.withBackup(backup: RotationOverride): RotationOverride = { drivetrain ->
+    val initialResult = this@withBackup.invoke(drivetrain)
+    val backupResult = backup.invoke(drivetrain)
+    initialResult ?: backupResult
+}
 
 
 open class AimToAngleRotationOverride(
@@ -100,7 +111,7 @@ open class AimToAngleRotationOverride(
 
 
 
-class AimToObjectRotationOverride  (
+class AimToObjectRotationOverride (
     private val getCrosshairOffset: () -> Double?,
     cameraYawToVelocityPID: PIDConstants,
     private val aimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
@@ -109,19 +120,13 @@ class AimToObjectRotationOverride  (
 
     companion object{
         fun fromLimelight(
-            llName: String = "",
+            camName: String,
             cameraYawToVelocityPID: PIDConstants,
             aimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
             invert: Boolean = false
         ): AimToObjectRotationOverride =
             AimToObjectRotationOverride(
-                {
-                    if (LimelightHelpers.getTV(llName)) {
-                        LimelightHelpers.getTX(llName)
-                    }else{
-                        null
-                    }
-                },
+                { if (LimelightHelpers.getTV(camName)) LimelightHelpers.getTX(camName) else null },
                 cameraYawToVelocityPID, aimPrecision, invert
             )
 

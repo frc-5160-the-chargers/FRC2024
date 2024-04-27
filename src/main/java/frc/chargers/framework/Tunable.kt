@@ -11,7 +11,9 @@ import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
-
+/**
+ * Represents a generic tunable class.
+ */
 interface Tunable {
     val namespace: String
 
@@ -40,6 +42,9 @@ interface Tunable {
         private val refreshableFields: MutableList<RefreshableField> = mutableListOf()
         private val hasChangedObservers: MutableList<HasChangedObserver> = mutableListOf()
 
+        var hasChanged: Boolean = false
+            private set
+
         fun add(refreshableField: RefreshableField){
             refreshableFields.add(refreshableField)
         }
@@ -50,9 +55,12 @@ interface Tunable {
 
         fun refreshWhenNecessary(){
             if (hasChangedObservers.any{ it.hasChanged() }){
+                hasChanged = true
                 for (field in refreshableFields){
                     field.refresh()
                 }
+            }else{
+                hasChanged = false
             }
         }
     }
@@ -89,6 +97,11 @@ interface Tunable {
             }
         }
     }
+
+    /**
+     * Reads whether tunable values have been changed or not.
+     */
+    fun valuesHaveChanged(): Boolean = tunableStorage[namespace]?.hasChanged ?: false
 
 
     /**

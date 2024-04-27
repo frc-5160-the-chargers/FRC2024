@@ -9,9 +9,10 @@ ChargerLib is 5160's custom kotlin-oriented library, intended for use in 2024 an
 - These units also take advantage of kotlin inline classes, which means that during runtime, they are mostly represented as double's: this reduces runtime overhead.
 - Units-based wrappers for most WPILib classes, including Pose2d, Pose3d, Trapezoid Profiling, and more.
 
-- Wrapping of components from different manufacturers to allow better subsystem compatibility and hardware abstraction (for example, switching a drivetrain from NEOs to Falcons becomes trivial)
+- Wrapping of components from different manufacturers to allow simulation support and better subsystem compatibility and hardware abstraction , (for example, switching a drivetrain motor from a neo to a falcon and/or a simulated motor becomes trivial.)
 - Idiomatic Kotlin Commands DSL for creating commands and autonomous routines
-- And a custom AdvantageKit wrapper that takes advantage of kotlin property delegates to create auto-logged inputs!
+- Custom logging framework that logs to datalog and networktables
+- Custom tuning framework that allows for easy and intuitive tuning of components.
 
 ## How does it work? Is it mandatory to use or not?
 

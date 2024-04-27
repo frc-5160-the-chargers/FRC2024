@@ -115,61 +115,12 @@ In addition, it supports fetching yaw rate, pitch rate and roll rate as well.
 
 ```ChargerNavX()```  has subclassed ThreeAxisGyroscope, ThreeAxisAccelerometer and ThreeAxisSpeedometer impls.
 
-
-# Vision
-Instead of providing abstractions per vision camera, ChargerLib provides the nessecary abstractions for every vision pipeline.
-
-Fetched data from a vision camera is represented as the ```VisionTarget``` class.
-At the moment, there are 2 different kinds of vision targets: 
-
-A. ```VisionTarget.Object(timestamp: Time, tx: Double, ty: Double, areaPercent: Double, classId: String?)```,
-which represents a generic object or gamepiece detected by a vision camera, regardless of implementation(color or ML pipelines).
-
-B. ```VisionTarget.AprilTag(timestamp: Time, tx: Double, ty: Double, areaPercent: Double, fiducialId: Int, targetTransformFromCam: UnitTransform3d)```, 
-which represents an AprilTag vision target. Note: UnitTransform3d is simply a Transform3d with units support.
-
-Nessecary implementing methods and properties include:
-
-A. ```val visionTargets: List<T: VisionTarget>```: represents the current vision results/targets obtained.
-
-B. ```val cameraConstants: VisionCameraConstants```: holds constants related to the vision camera.
-
-C. ```fun reset()```: resets the vision pipeline. 
-                    This usually involves resetting the pipeline index of the overarching vision camera, 
-                    but it can do other things. 
-                    Recommended to call at the initialize() block of commands and the init{} block of subsystems(the constructor).
-
-Implemented methods:
-
-A. ```val bestTarget: R?```: Simply fetches the best result from the visionData getter, returning null if no targets are present.
-
-A. ```fun distanceToTarget(target: VisionTarget)```: calculates the horizontal distance to target using the lens height and mount angle.
-
-B. ```fun diagonalDistanceToTarget(target: VisionTarget)```: calculates the diagonal distance to target using the lens height and mount angle.
-
-Example usage:
-
-```kotlin
-val ll = ChargerLimelight(LENS_HEIGHT, MOUNT_ANGLE)
-var apriltagPipeline: VisionPipeline<VisionResult.AprilTag> = ll.ApriltagPipeline(6, ....)
-
-apriltagPipeline.reset()
-
-println(apriltagPipeline.bestTarget?.tx)
-println(apriltagPipeline.visionTargets[1].targetTransformFromCam)
-
-var apriltagPipeline = ChargerPhotonCam("5160 photon cam", ....).ApriltagPipeline(5, ....)
-```
-
 # Pose Estimation
 
-Vision cameras that can provide pose are represented using the  ```VisionPoseSupplier``` interface.
-This interface has a singular property: ```robotPose```, which returns a ```UnitPose2d```(a pose with units).
-In addition, the interface must provide the camera yaw as well, 
-in order to calculate proper standard deviations.
 
-On the other hand, robot pose estimators are represented using the ```RobotPoseMonitor``` interface.
-This interface's ```robotPose``` property is not nullable. 
+Robot pose estimators are represented using the ```RobotPoseMonitor``` abstract class.
+
+There are a couple of o
 
 More information:
 

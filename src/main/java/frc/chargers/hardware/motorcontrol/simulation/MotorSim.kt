@@ -10,16 +10,14 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.MotorizedComponent
 import frc.chargers.hardware.sensors.encoders.Encoder
 
-class BasicMotorSim(
+class MotorSim(
     motorType: DCMotor,
-    moi: MomentOfInertia = 0.000015.ofUnit(kilo.grams * (meters * meters)),
+    moi: MomentOfInertia = 0.00001.ofUnit(kilo.grams * (meters * meters)),
     motorToEncoderRatio: Double = 1.0,
 ): MotorizedComponent {
-    private val gearRatioAffectTest = 1.0
-
-    private val sim = DCMotorSim(
+    private val wpilibSim = DCMotorSim(
         motorType,
-        motorToEncoderRatio * gearRatioAffectTest,
+        motorToEncoderRatio,
         moi.inUnit(kilo.grams * (meters * meters))
     )
 
@@ -47,7 +45,7 @@ class BasicMotorSim(
 
     init{
         ChargerRobot.runPeriodically {
-            sim.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
+            wpilibSim.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
             positionController.calculateOutput()
             continuousInputPositionController.calculateOutput()
             velocityController.calculateOutput()
@@ -56,10 +54,10 @@ class BasicMotorSim(
 
     override val encoder: Encoder = object: Encoder {
         override val angularPosition: Angle
-            get() = sim.angularPositionRad.ofUnit(radians) * gearRatioAffectTest
+            get() = wpilibSim.angularPositionRad.ofUnit(radians)
 
         override val angularVelocity: AngularVelocity
-            get() = sim.angularVelocityRadPerSec.ofUnit(radians / seconds) * gearRatioAffectTest
+            get() = wpilibSim.angularVelocityRadPerSec.ofUnit(radians / seconds)
     }
 
     override var hasInvert: Boolean = false
@@ -67,11 +65,15 @@ class BasicMotorSim(
     override var appliedVoltage: Voltage = 0.volts
         set(value) {
             field = value
-            sim.setInputVoltage(value.siValue * if (hasInvert) -1.0 else 1.0 )
+            wpilibSim.setInputVoltage(value.siValue * if (hasInvert) -1.0 else 1.0 )
         }
 
     override val statorCurrent: Current
-        get() = sim.currentDrawAmps.ofUnit(amps)
+        get() = wpilibSim.currentDrawAmps.ofUnit(amps)
+
+    override fun setBrakeMode(shouldBrake: Boolean){
+        println("Brake Mode set for motor sim.")
+    }
 
     override fun setPositionSetpoint(
         rawPosition: Angle,

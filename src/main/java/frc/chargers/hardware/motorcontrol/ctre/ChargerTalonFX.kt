@@ -86,7 +86,6 @@ public class ChargerTalonFX(
     factoryDefault: Boolean = true,
     configuration: ChargerTalonFXConfiguration? = null
 ): TalonFX(deviceId, canBus), MotorizedComponent, HardwareConfigurable<ChargerTalonFXConfiguration> {
-
     private val talonFXFollowers: MutableSet<TalonFX> = mutableSetOf()
     private val otherFollowers: MutableSet<MotorizedComponent> = mutableSetOf()
 
@@ -127,7 +126,6 @@ public class ChargerTalonFX(
         }
     }
 
-
     /**
      * The encoder of the TalonFX.
      */
@@ -144,7 +142,6 @@ public class ChargerTalonFX(
 
     override val statorCurrent: Current
         get() = currentSignal.refresh(true).value.ofUnit(amps)
-
 
     /**
      * Adds follower motors to this TalonFX that mirror this motor's direction,
@@ -181,6 +178,10 @@ public class ChargerTalonFX(
         currentSlotConfigs.kP = newConstants.kP
         currentSlotConfigs.kI = newConstants.kI
         currentSlotConfigs.kD = newConstants.kD
+    }
+
+    override fun setBrakeMode(shouldBrake: Boolean){
+        setNeutralMode(if (shouldBrake) NeutralModeValue.Brake else NeutralModeValue.Coast)
     }
 
     override fun setVelocitySetpoint(
@@ -282,7 +283,6 @@ public class ChargerTalonFX(
             return@safeConfigure configAppliedProperly
         }
     }
-
 }
 
 

@@ -18,7 +18,7 @@ class ElevatorMotorSim(
     minimumEncoderMeasurement: Angle = Angle(Double.NEGATIVE_INFINITY),
     maximumEncoderMeasurement: Angle = Angle(Double.POSITIVE_INFINITY)
 ): MotorizedComponent {
-    private val sim = ElevatorSim(
+    private val wpilibSim = ElevatorSim(
         motorType,
         motorToEncoderRatio,
         carriageMass.inUnit(kilo.grams),
@@ -45,7 +45,7 @@ class ElevatorMotorSim(
 
     init{
         ChargerRobot.runPeriodically {
-            sim.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
+            wpilibSim.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
             positionController.calculateOutput()
             velocityController.calculateOutput()
         }
@@ -54,10 +54,10 @@ class ElevatorMotorSim(
     override val encoder: Encoder = object: Encoder {
         // drum radius is specified to be 1 meters; thus, we divide by that to get angular position/velocity
         override val angularPosition: Angle
-            get() = sim.positionMeters.ofUnit(meters) / 1.meters
+            get() = wpilibSim.positionMeters.ofUnit(meters) / 1.meters
 
         override val angularVelocity: AngularVelocity
-            get() = sim.velocityMetersPerSecond.ofUnit(meters / seconds) / 1.meters
+            get() = wpilibSim.velocityMetersPerSecond.ofUnit(meters / seconds) / 1.meters
     }
 
     override var hasInvert: Boolean = false
@@ -65,11 +65,15 @@ class ElevatorMotorSim(
     override var appliedVoltage: Voltage = 0.volts
         set(value) {
             field = value
-            sim.setInputVoltage(value.siValue * if (hasInvert) -1.0 else 1.0 )
+            wpilibSim.setInputVoltage(value.siValue * if (hasInvert) -1.0 else 1.0 )
         }
 
     override val statorCurrent: Current
-        get() = sim.currentDrawAmps.ofUnit(amps)
+        get() = wpilibSim.currentDrawAmps.ofUnit(amps)
+
+    override fun setBrakeMode(shouldBrake: Boolean){
+        println("Brake Mode set for elevator motor sim.")
+    }
 
     override fun setPositionSetpoint(
         rawPosition: Angle,
