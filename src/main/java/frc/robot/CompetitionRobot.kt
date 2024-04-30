@@ -88,7 +88,7 @@ class CompetitionRobot: ChargerRobot(){
         ),
         moduleConstants = SwerveModuleConstants.mk4iL2(
             useOnboardPID = false,
-            turnMotorControlScheme = SwerveAzimuthControl.PID(PIDConstants(7.0,0,0), precision = Precision.Within(2.degrees)),
+            turnMotorControlScheme = SwerveAzimuthControl.PID(PIDConstants(7.0,0,0), Precision.Within(1.degrees)),
             velocityPID = PIDConstants(0.05,0,0),
             velocityFF = AngularMotorFFEquation(0.0,0.13),
         ),
@@ -97,10 +97,6 @@ class CompetitionRobot: ChargerRobot(){
 
     override fun robotInit(){
         DriverController
-
-        ChargerRobot.runPeriodic{
-            println("Hello, this works!")
-        }
 
         drivetrain.setDefaultRunCommand{
             drivetrain.swerveDrive(DriverController.swerveOutput)

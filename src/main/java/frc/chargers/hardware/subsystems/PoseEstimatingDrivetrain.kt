@@ -1,5 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused")
-package frc.chargers.hardware.subsystems.robotposition
+package frc.chargers.hardware.subsystems
 
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.inUnit
@@ -15,7 +14,6 @@ import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.SuperSubsystem
-import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
 import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
@@ -27,15 +25,10 @@ import org.photonvision.PhotonCamera
 import org.photonvision.PhotonPoseEstimator
 import org.photonvision.PhotonPoseEstimator.PoseStrategy
 
-
 /**
- * Represents a pose monitor which combines wheel odometry(and optionally vision data)
- * to produce a robot pose.
- *
- * This class should not be implemented by vision cameras or sensors, as their pose results
- * are not always accurate, and thus the nullable parameters are necessary.
+ * A base class for a drivetrain that can estimate its own pose.
  */
-abstract class RobotPoseMonitor(name: String): HeadingProvider, SuperSubsystem(name) {
+abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(namespace) {
     abstract val robotPose: UnitPose2d
 
     abstract fun resetPose(pose: UnitPose2d = UnitPose2d())
@@ -85,6 +78,13 @@ abstract class RobotPoseMonitor(name: String): HeadingProvider, SuperSubsystem(n
         }
     }
 
+    /**
+     * Precondition: If useMegaTag2 is enabled, you must call
+     *
+     * LimelightHelpers.setRobotOrientation periodically.
+     * This can be accomplished via gyro.broadcastOrientationForMegaTag2(),
+     * where the gyro can be a [frc.chargers.hardware.sensors.imu.ChargerNavX] or a [frc.chargers.hardware.sensors.imu.ChargerPigeon2].
+     */
     fun registerLimelight(
         camName: String,
         robotToCamera: UnitTransform3d,
@@ -121,6 +121,4 @@ abstract class RobotPoseMonitor(name: String): HeadingProvider, SuperSubsystem(n
             }
         }
     }
-
-    override val heading: Angle get() = robotPose.rotation
 }

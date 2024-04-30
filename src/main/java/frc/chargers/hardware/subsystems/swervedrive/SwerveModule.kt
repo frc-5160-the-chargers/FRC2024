@@ -108,7 +108,6 @@ class SwerveModule(
             if (!moduleConstants.useOnboardPID){
                 rioAzimuthController.calculateOutput()
                 rioVelocityController.calculateOutput()
-                println("All systems should be working...")
             }
         }
     }
@@ -125,23 +124,35 @@ class SwerveModule(
             direction.asRotation2d()
         )
 
-    fun setDriveVoltage(voltage: Voltage){
-        driveMotor.appliedVoltage = voltage
-        log("DriveVoltage", voltage)
+    fun setDriveVoltage(target: Voltage){
+        driveMotor.appliedVoltage = target
+        log("DriveVoltage", target)
     }
 
-    fun setTurnVoltage(voltage: Voltage){
-        turnMotor.appliedVoltage = voltage
-        log("TurnVoltage", voltage)
+    fun setTurnVoltage(target: Voltage){
+        val trueVoltage = if (abs(target) < 0.01.volts){
+            0.volts
+        }else{
+            target
+        }
+        turnMotor.appliedVoltage = trueVoltage
+        log("TurnVoltage", trueVoltage)
     }
 
-    fun setDirection(direction: Angle){
+    fun setDirection(target: Angle){
+        // utilizes custom absolute value overload for kmeasure quantities
+        if (abs(direction - target).within(moduleConstants.turnMotorControlScheme.precision)){
+            setTurnVoltage(0.volts)
+            azimuthProfileState = AngularMotionProfileState(direction)
+            return
+        }
+
         val pidTarget: Angle
         val feedforwardV: Voltage
 
         when (moduleConstants.turnMotorControlScheme){
             is SwerveAzimuthControl.ProfiledPID -> {
-                val goalState = AngularMotionProfileState(direction)
+                val goalState = AngularMotionProfileState(target)
 
                 fun calculateSetpoint(): AngularMotionProfileState =
                     moduleConstants.turnMotorControlScheme.motionProfile.calculate(
@@ -173,23 +184,21 @@ class SwerveModule(
             }
 
             is SwerveAzimuthControl.PID -> {
-                pidTarget = direction
+                pidTarget = target
                 feedforwardV = 0.volts
             }
         }
 
-        if (!direction.within(moduleConstants.turnMotorControlScheme.precision)){
-            // uses pid control to move to the calculated setpoint, to achieve the target goal.
-            if (moduleConstants.useOnboardPID){
-                turnMotor.setPositionSetpoint(
-                    rawPosition = startingTurnRelativeEncoderPosition + (pidTarget - startingTurnAbsoluteEncoderPosition) * moduleConstants.turnGearRatio,
-                    moduleConstants.turnMotorControlScheme.pidConstants,
-                    feedforward = feedforwardV
-                )
-            }else{
-                rioAzimuthController.target = pidTarget
-                setTurnVoltage(rioAzimuthController.calculateOutput() + feedforwardV)
-            }
+        // uses pid control to move to the calculated setpoint, to achieve the target goal.
+        if (moduleConstants.useOnboardPID){
+            turnMotor.setPositionSetpoint(
+                rawPosition = startingTurnRelativeEncoderPosition + (pidTarget - startingTurnAbsoluteEncoderPosition) * moduleConstants.turnGearRatio,
+                moduleConstants.turnMotorControlScheme.pidConstants,
+                feedforward = feedforwardV
+            )
+        }else{
+            rioAzimuthController.target = pidTarget
+            setTurnVoltage(rioAzimuthController.calculateOutput() + feedforwardV)
         }
     }
 

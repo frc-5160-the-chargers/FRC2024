@@ -114,7 +114,7 @@ class AutoCommandManager(
                 runSequentially{
                     val grabPathStartPose = path.pathPoses.last().ofUnit(meters).flipWhenNeeded()
 
-                    waitUntil{ drivetrain.poseEstimator.robotPose.distanceTo(grabPathStartPose) < 0.8.meters }
+                    waitUntil{ drivetrain.robotPose.distanceTo(grabPathStartPose) < 0.8.meters }
 
                     runOnce{ drivetrain.setRotationOverride(RotationOverrides.aimToNote(noteObserver)) }
                 }

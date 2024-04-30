@@ -24,12 +24,9 @@ fun followPathOptimal(
     val pathStartPose = path.previewStartingHolonomicPose.ofUnit(meters)
     val pathEndPose = path.pathPoses.last().ofUnit(meters)
 
-    val drivetrainPose by getOnceDuringRun {
-        drivetrain.poseEstimator.robotPose
-    }
-
     runIf(
         {
+            val drivetrainPose = drivetrain.robotPose
             drivetrainPose.distanceTo(pathStartPose.flipWhenNeeded()) > ACCEPTABLE_DISTANCE_BEFORE_PATHFIND &&
                     drivetrainPose.distanceTo(pathEndPose.flipWhenNeeded()) > drivetrainPose.distanceTo(pathStartPose.flipWhenNeeded())
         },

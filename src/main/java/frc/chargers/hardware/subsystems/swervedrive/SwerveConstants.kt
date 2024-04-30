@@ -11,6 +11,7 @@ import com.pathplanner.lib.util.ReplanningConfig
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.pid.PIDConstants
+import frc.chargers.framework.ChargerRobot
 import frc.chargers.utils.Precision
 
 
@@ -28,7 +29,8 @@ data class SwerveChassisConstants(
     val robotTranslationPID: PIDConstants = PIDConstants(4.0,0,0),
     val pathReplanningConfig: ReplanningConfig = ReplanningConfig(),
     val openLoopDiscretizationRate: Double = 2.0,
-    val closedLoopDiscretizationRate: Double = 1.0
+    val closedLoopDiscretizationRate: Double = 1.0,
+    val odometryUpdateRate: Time = ChargerRobot.LOOP_PERIOD
 )
 
 data class SwerveModuleConstants(

@@ -173,7 +173,7 @@ class AimToPoseRotationOverride(
     invert: Boolean = false
 ): AimToAngleRotationOverride(
     { drivetrain ->
-        val drivetrainToTagTranslation = (getTarget().translation - drivetrain.poseEstimator.robotPose.translation)
+        val drivetrainToTagTranslation = (getTarget().translation - drivetrain.robotPose.translation)
         // custom atan2 overload that takes 2 Distances and returns an Angle.
         atan2(drivetrainToTagTranslation.y, drivetrainToTagTranslation.x) + angleOffset
     },
