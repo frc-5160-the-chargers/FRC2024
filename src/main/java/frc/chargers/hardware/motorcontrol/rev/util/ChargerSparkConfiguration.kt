@@ -9,6 +9,13 @@ import com.revrobotics.REVLibError
 import frc.chargers.hardware.configuration.HardwareConfiguration
 import kotlin.math.roundToInt
 
+// units are milliseconds; kmeasure isn't used simply for convenience
+public const val SLOW_PERIODIC_FRAME_STRATEGY: Int = 500
+
+public const val DISABLED_PERIODIC_FRAME_STRATEGY: Int = 65535
+
+public const val FAST_PERIODIC_FRAME_STRATEGY: Int = 15
+
 /**
  * Represents data that can flow into a spark device.
  */
@@ -109,7 +116,6 @@ public class ChargerSparkConfiguration(
     public var secondaryCurrentLimit: SecondaryCurrentLimit? = null,
     public var softLimits: MutableMap<CANSparkBase.SoftLimitDirection, Angle> = mutableMapOf(),
 ): HardwareConfiguration {
-
     public fun setSoftLimit(direction: CANSparkBase.SoftLimitDirection, limit: Angle){
         softLimits[direction] = limit
     }

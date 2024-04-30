@@ -49,7 +49,10 @@
         "left": 150,
         "right": 2961,
         "top": 79,
-        "width": 16.541748046875
+        "width": 16.541748046875,
+        "window": {
+          "visible": true
+        }
       },
       "/SmartDashboard/VisionSystemSim-ML Vision System/Sim Field": {
         "bottom": 1476,
@@ -57,7 +60,10 @@
         "left": 150,
         "right": 2961,
         "top": 79,
-        "width": 16.541748046875
+        "width": 16.541748046875,
+        "window": {
+          "visible": true
+        }
       }
     }
   },
@@ -204,6 +210,15 @@
         },
         "open": true
       },
+      "Drivetrain(Swerve)": {
+        "Modules": {
+          "BottomLeft": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true
+      },
       "LiveWindow": {
         "open": true
       },
@@ -236,8 +251,7 @@
       "Shuffleboard": {
         ".metadata": {
           "open": true
-        },
-        "open": true
+        }
       },
       "SmartDashboard": {
         "Alerts": {

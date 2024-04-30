@@ -290,7 +290,7 @@ interface Loggable {
     @JvmName("nullableIntLoggedDelegate")
     fun logged(identifier: String? = null, supplier: () -> Int?) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Int?>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Int?>{ _, _ -> supplier() }
@@ -300,7 +300,7 @@ interface Loggable {
     @JvmName("nullableDoubleLoggedDelegate")
     fun logged(identifier: String? = null, supplier: () -> Double?) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Double?>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Double?>{ _, _ -> supplier() }
@@ -310,7 +310,7 @@ interface Loggable {
     @JvmName("nullableQuantityLoggedDelegate")
     fun <D: AnyDimension> logged(identifier: String? = null, supplier: () -> Quantity<D>?) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Quantity<D>?>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Quantity<D>?>{ _, _ -> supplier() }
@@ -320,7 +320,7 @@ interface Loggable {
     @JvmName("nullableStructableLoggedDelegate")
     fun <T> logged(struct: Struct<T>, identifier: String? = null, supplier: () -> T?) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T?>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(struct, identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, T?>{ _, _ -> supplier() }
@@ -336,7 +336,7 @@ interface Loggable {
     @JvmName("intLoggedDelegate")
     fun logged(identifier: String? = null, supplier: () -> Int) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Int>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Int>{ _, _ -> supplier() }
@@ -346,7 +346,7 @@ interface Loggable {
     @JvmName("doubleLoggedDelegate")
     fun logged(identifier: String? = null, supplier: () -> Double) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Double>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Double>{ _, _ -> supplier() }
@@ -357,7 +357,7 @@ interface Loggable {
     @JvmName("boolLoggedDelegate")
     fun logged(identifier: String? = null, supplier: () -> Boolean) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Boolean>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Boolean>{ _, _ -> supplier() }
@@ -367,7 +367,7 @@ interface Loggable {
     @JvmName("stringLoggedDelegate")
     fun logged(identifier: String? = null, supplier: () -> String) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, String>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, String>{ _, _ -> supplier() }
@@ -377,7 +377,7 @@ interface Loggable {
     @JvmName("enumLoggedDelegate")
     fun <E: Enum<E>> logged(identifier: String? = null, supplier: () -> E) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, E>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, E>{ _, _ -> supplier() }
@@ -387,7 +387,7 @@ interface Loggable {
     @JvmName("quantityLoggedDelegate")
     fun <D: AnyDimension> logged(identifier: String? = null, supplier: () -> Quantity<D>) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Quantity<D>>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, Quantity<D>>{ _, _ -> supplier() }
@@ -397,7 +397,7 @@ interface Loggable {
     @JvmName("structableLoggedDelegate")
     fun <T> logged(struct: Struct<T>, identifier: String? = null, supplier: () -> T) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, T>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(struct, identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, T>{ _, _ -> supplier() }
@@ -414,7 +414,7 @@ interface Loggable {
     @JvmName("intListLoggedDelegate")
     fun <C: Collection<Int>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
@@ -424,7 +424,7 @@ interface Loggable {
     @JvmName("doubleListLoggedDelegate")
     fun <C: Collection<Double>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
@@ -434,7 +434,7 @@ interface Loggable {
     @JvmName("boolListLoggedDelegate")
     fun <C: Collection<Boolean>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
@@ -445,7 +445,7 @@ interface Loggable {
     @JvmName("stringListLoggedDelegate")
     fun <C: Collection<String>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
@@ -456,7 +456,7 @@ interface Loggable {
     @JvmName("quantityListLoggedDelegate")
     fun <D: AnyDimension, C: Collection<Quantity<D>>> logged(identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>>{ _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty{ _, _ -> supplier() }
@@ -466,7 +466,7 @@ interface Loggable {
     @JvmName("structableListLoggedDelegate")
     fun <T, C: Collection<T>> logged(struct: Struct<T>, identifier: String? = null, supplier: () -> C) =
         PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, C>> { _, property ->
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 log(struct, identifier ?: capitalize(property.name), supplier())
             }
             return@PropertyDelegateProvider ReadOnlyProperty<Any?, C>{ _, _ -> supplier() }

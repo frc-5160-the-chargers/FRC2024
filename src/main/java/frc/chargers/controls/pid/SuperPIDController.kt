@@ -94,7 +94,7 @@ public open class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*
 
     init{
         if (selfSustain){
-            ChargerRobot.runPeriodically(runnable = ::calculateOutput)
+            ChargerRobot.runPeriodic(runnable = ::calculateOutput)
         }
 
         if (continuousInputRange != null){
@@ -165,11 +165,4 @@ public open class SuperPIDController<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*
                 pidController.setPID(value.kP, value.kI, value.kD)
             }
         }
-
-    /**
-     * Disables self sustain for controllers.
-     */
-    public fun disableSelfSustain(){
-        ChargerRobot.removeFromLoop(::calculateOutput)
-    }
 }

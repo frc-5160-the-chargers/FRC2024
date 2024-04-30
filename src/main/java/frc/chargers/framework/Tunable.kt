@@ -90,7 +90,7 @@ interface Tunable {
         }
 
         init{
-            ChargerRobot.runPeriodically {
+            ChargerRobot.runPeriodic {
                 for (tunableValuesStore in tunableStorage.values){
                     tunableValuesStore.refreshWhenNecessary()
                 }

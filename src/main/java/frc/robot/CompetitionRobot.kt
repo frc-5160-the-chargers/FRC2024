@@ -21,8 +21,10 @@ import frc.chargers.hardware.motorcontrol.rev.util.SmartCurrentLimit
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
 import frc.chargers.hardware.sensors.imu.ChargerNavX
+import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.sensors.withOffset
 import frc.chargers.hardware.subsystems.swervedrive.*
+import frc.chargers.utils.Precision
 import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import frc.robot.inputdevices.DriverController
 import org.photonvision.PhotonCamera
@@ -86,9 +88,9 @@ class CompetitionRobot: ChargerRobot(){
         ),
         moduleConstants = SwerveModuleConstants.mk4iL2(
             useOnboardPID = false,
-            turnMotorControlScheme = SwerveAzimuthControl.PID( PIDConstants(7.0,0,0) ),
+            turnMotorControlScheme = SwerveAzimuthControl.PID(PIDConstants(7.0,0,0), precision = Precision.Within(2.degrees)),
             velocityPID = PIDConstants(0.05,0,0),
-            velocityFF = AngularMotorFFEquation(0.0,0.13)
+            velocityFF = AngularMotorFFEquation(0.0,0.13),
         ),
         gyro = if (isSimulation()) null else gyro
     )
@@ -96,10 +98,12 @@ class CompetitionRobot: ChargerRobot(){
     override fun robotInit(){
         DriverController
 
+        ChargerRobot.runPeriodic{
+            println("Hello, this works!")
+        }
+
         drivetrain.setDefaultRunCommand{
-            drivetrain.swerveDrive(
-                DriverController.swerveOutput
-            )
+            drivetrain.swerveDrive(DriverController.swerveOutput)
         }
 
         DriverStation.silenceJoystickConnectionWarning(true)
@@ -108,18 +112,25 @@ class CompetitionRobot: ChargerRobot(){
             AutoBuilder.followPath(PathPlannerPath.fromPathFile("RandomStuff"))
         )
 
+        /*
         if (!isSimulation()){
-            drivetrain.poseEstimator.registerPhotonCamera(
+            drivetrain.registerPhotonCamera(
                 PhotonCamera("AprilTagArducam"),
                 robotToCamera = UnitTransform3d()
             )
 
-            drivetrain.poseEstimator.registerLimelight(
+            drivetrain.registerLimelight(
                 camName = "Limelight2Main",
                 robotToCamera = UnitTransform3d(),
                 useMegaTag2 = true
             )
         }
+         */
+
+        IMUSimulation.configure(
+            chassisSpeedsSupplier = { drivetrain.currentSpeeds },
+            headingSupplier = { drivetrain.heading }
+        )
     }
 
     override fun robotPeriodic() {

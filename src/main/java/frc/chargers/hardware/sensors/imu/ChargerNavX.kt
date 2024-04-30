@@ -51,7 +51,7 @@ public class ChargerNavX(
 
     /**
      * Broadcasts robot orientation for the MegaTag2 system.
-     * Should be run periodically; either in a periodic() method or using [ChargerRobot.runPeriodically].
+     * Should be run periodically; either in a periodic() method or using [ChargerRobot.runPeriodic].
      */
     fun broadcastOrientationForMegaTag2(
         vararg limelightNames: String

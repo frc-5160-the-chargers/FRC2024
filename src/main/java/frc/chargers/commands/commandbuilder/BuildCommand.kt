@@ -3,7 +3,7 @@ package frc.chargers.commands.commandbuilder
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup
 import edu.wpi.first.wpilibj2.command.Subsystem
-import frc.chargers.commands.runOnceCommand
+import frc.chargers.commands.InstantCommand
 import frc.chargers.commands.then
 import frc.chargers.commands.withExtraRequirements
 import frc.chargers.framework.ChargerRobot
@@ -130,7 +130,7 @@ class BuildCommandScope: CommandBuilder(){
 
 @PublishedApi
 internal fun Command.withLogInCommandGroup(commandGroupName: String): Command{
-    fun logCommand(active: Boolean) = runOnceCommand{
+    fun logCommand(active: Boolean) = InstantCommand{
         ChargerRobot.log("/ActiveCommands/Subcommands Of: $commandGroupName/$name", active)
     }
 

@@ -68,7 +68,7 @@ abstract class RobotPoseMonitor(name: String): HeadingProvider, SuperSubsystem(n
         )
         val camName = photonCam.name
 
-        ChargerRobot.runPeriodically {
+        ChargerRobot.runPeriodic {
             val poseEstimation = poseEstimator.update()
             if (poseEstimation.isPresent){
                 log(Pose3d.struct, "PhotonPoseEstimations/$camName", poseEstimation.get().estimatedPose)
@@ -100,7 +100,7 @@ abstract class RobotPoseMonitor(name: String): HeadingProvider, SuperSubsystem(n
             robotToCamera.rotation.z
         )
 
-        ChargerRobot.runPeriodically {
+        ChargerRobot.runPeriodic {
             val poseEstimation = if (useMegaTag2){
                 LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(camName)
             }else{

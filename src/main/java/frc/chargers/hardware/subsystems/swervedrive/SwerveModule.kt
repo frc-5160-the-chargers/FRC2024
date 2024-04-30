@@ -95,7 +95,7 @@ class SwerveModule(
 
         log("Data/UsingCouplingRatio", moduleConstants.couplingRatio != null)
 
-        ChargerRobot.runPeriodically {
+        ChargerRobot.runPeriodic {
             if (moduleConstants.couplingRatio != null){
                 couplingOffset -= moduleConstants.couplingRatio * direction.inputModulus(-180.degrees..180.degrees)
                 log("CouplingOffset", couplingOffset)
@@ -108,6 +108,7 @@ class SwerveModule(
             if (!moduleConstants.useOnboardPID){
                 rioAzimuthController.calculateOutput()
                 rioVelocityController.calculateOutput()
+                println("All systems should be working...")
             }
         }
     }

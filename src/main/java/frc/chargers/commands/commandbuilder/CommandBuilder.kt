@@ -5,8 +5,6 @@ import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.wpilibj2.command.*
-import frc.chargers.commands.loopCommand
-import frc.chargers.commands.runOnceCommand
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -125,7 +123,7 @@ public open class CommandBuilder {
      * @param execute the code to be run
      */
     public fun runOnce(vararg requirements: Subsystem, execute: CodeBlockContext.() -> Unit): InstantCommand =
-        runOnceCommand(*requirements) { CodeBlockContext.execute() }.also(::addCommand)
+        InstantCommand({ CodeBlockContext.execute() }, *requirements).also(::addCommand)
 
 
     /**
@@ -197,7 +195,7 @@ public open class CommandBuilder {
      * @param execute the code to be run until [condition] is met
      */
     public inline fun loopUntil(noinline condition: () -> Boolean, vararg requirements: Subsystem, crossinline execute: CodeBlockContext.() -> Unit): ParallelRaceGroup =
-        runUntil(condition, loopCommand(*requirements) { CodeBlockContext.execute() })
+        runUntil(condition, RunCommand({ CodeBlockContext.execute() }, *requirements) )
 
     /**
      * Adds a command that will run *while* [condition] is true.
@@ -207,7 +205,7 @@ public open class CommandBuilder {
      * @param execute the code to be run
      */
     public fun loopWhile(condition: () -> Boolean, vararg requirements: Subsystem, execute: CodeBlockContext.() -> Unit): ParallelRaceGroup =
-        runWhile(condition, loopCommand(*requirements) { CodeBlockContext.execute() })
+        runWhile(condition, RunCommand({ CodeBlockContext.execute() }, *requirements))
 
     /**
      * Adds several commands that will run at the same time, all stopping as soon as one finishes.
@@ -361,7 +359,7 @@ public open class CommandBuilder {
         vararg requirements: Subsystem,
         crossinline execute: CodeBlockContext.() -> Unit
     ): ParallelRaceGroup =
-        loopCommand(*requirements) { CodeBlockContext.execute() }.withTimeout(timeInterval.inUnit(seconds)).also(::addCommand)
+        RunCommand({ CodeBlockContext.execute() }, *requirements).withTimeout(timeInterval.inUnit(seconds)).also(::addCommand)
 
     /**
      * Adds a command to be run continuously.
@@ -373,7 +371,7 @@ public open class CommandBuilder {
         vararg requirements: Subsystem,
         crossinline execute: CodeBlockContext.() -> Unit
     ): RunCommand =
-        loopCommand(*requirements) { CodeBlockContext.execute() }.also(::addCommand)
+        RunCommand({ CodeBlockContext.execute() }, *requirements).also(::addCommand)
 
     /**
      * Adds a command that does nothing for a specified [timeInterval], then completes.
@@ -476,7 +474,7 @@ public open class CommandBuilder {
             init{
                 addCommand(
                     // adds a command that resets the value
-                    runOnceCommand{ value = getDefault() }
+                    InstantCommand({ value = getDefault() })
                 )
             }
 

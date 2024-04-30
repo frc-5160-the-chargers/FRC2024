@@ -13,11 +13,11 @@ import org.photonvision.PhotonCamera
 import org.photonvision.PhotonUtils
 
 class NoteObserver(
-    private val groundIntakeSensor: DigitalInput,
+    private val groundIntakeSensor: DigitalInput? = null,
     private val shooterSensor: DigitalInput,
-    private val noteDetectorCamera: PhotonCamera,
-    private val cameraHeight: Distance,
-    private val cameraPitch: Angle,
+    private val noteDetectorCamera: PhotonCamera? = null,
+    private val cameraHeight: Distance = Distance(0.0),
+    private val cameraPitch: Angle = Angle(0.0),
 ): SuperSubsystem("NoteObserver") {
     sealed class State{
         data object NoNote: State()
@@ -50,16 +50,29 @@ class NoteObserver(
         state == State.NoteInSerializer || state == State.NoteInShooter
     }
 
+    val hasGroundIntakeSensor: Boolean by logged{
+        groundIntakeSensor != null
+    }
+
+    val hasCamera: Boolean by logged{
+        noteDetectorCamera != null
+    }
+
     override fun periodic() {
         if (isSimulation()){
             return
         }
 
-        if (groundIntakeSensor.get() && !noteInRobot){
+        if (groundIntakeSensor != null && groundIntakeSensor.get() && !noteInRobot){
             state = State.NoteInSerializer
         }else if (shooterSensor.get() && state != State.NoteInShooter){
             state = State.NoteInShooter
         }else{
+            if (noteDetectorCamera == null){
+                state = State.NoNote
+                return
+            }
+
             val camResult = noteDetectorCamera.latestResult
 
             if (camResult.hasTargets() && !noteInRobot){

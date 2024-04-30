@@ -53,32 +53,18 @@ public class ChargerPigeon2(
     private var configAppliedProperly = true
 
     init{
-        if (isReal()){
-            ChargerRobot.runPeriodically (addToFront = true) {
-                val currentStatus = BaseStatusSignal.refreshAll(
-                    *gyroscope.getSignals(),
-                    *accelerometer.getSignals()
-                )
-                isConnected = currentStatus == StatusCode.OK
-            }
-        }
-
         val baseConfig = Pigeon2Configuration()
-
         if (!factoryDefault){
             configurator.refresh(baseConfig)
         }else{
             println("Pigeon2 will factory default.")
         }
-
         if (configuration != null){
             configure(configuration, baseConfig)
         }else{
             configure(ChargerPigeon2Configuration(), baseConfig)
         }
     }
-
-
 
     /**
      * The gyroscope of the Pigeon; contains yaw, pitch, and roll data
@@ -104,7 +90,7 @@ public class ChargerPigeon2(
 
     /**
      * Broadcasts robot orientation for the MegaTag2 system.
-     * Should be run periodically; either in a periodic() method or using [ChargerRobot.runPeriodically].
+     * Should be run periodically; either in a periodic() method or using [ChargerRobot.runPeriodic].
      */
     fun broadcastOrientationForMegaTag2(
         vararg limelightNames: String
@@ -124,11 +110,14 @@ public class ChargerPigeon2(
         }
     }
 
+    private val allSignals = gyroscope.getSignals() + accelerometer.getSignals()
+
     /**
      * Determines if the gyro is connected or not.
      */
-    public var isConnected: Boolean by logged(false)
-
+    public val isConnected: Boolean by logged{
+        allSignals.all{ it.status == StatusCode.OK }
+    }
 
     /*
     Internal constructor makes it so that the inner class can be accepted as a type argument,
@@ -152,22 +141,22 @@ public class ChargerPigeon2(
 
 
         override val yaw: Angle by logged{
-            if (isReal()) yawSignal.value.ofUnit(degrees) else IMUSimulation.getHeading()
+            if (isReal()) yawSignal.refresh().value.ofUnit(degrees) else IMUSimulation.getHeading()
         }
 
         override val pitch: Angle by logged{
-            if (isReal()) pitchSignal.value.ofUnit(degrees) else Angle(0.0)
+            if (isReal()) pitchSignal.refresh().value.ofUnit(degrees) else Angle(0.0)
         }
 
         override val roll: Angle by logged{
-            if (isReal()) rollSignal.value.ofUnit(degrees) else Angle(0.0)
+            if (isReal()) rollSignal.refresh().value.ofUnit(degrees) else Angle(0.0)
         }
 
 
 
         public val yawRate: AngularVelocity by logged{
             if (isReal()){
-                yawRateSignal.value.ofUnit(degrees/seconds)
+                yawRateSignal.refresh().value.ofUnit(degrees/seconds)
             }else{
                 val currH = IMUSimulation.getHeading()
                 ((currH - simPreviousYaw) / ChargerRobot.LOOP_PERIOD).also{
@@ -177,11 +166,11 @@ public class ChargerPigeon2(
         }
 
         public val pitchRate: AngularVelocity by logged{
-            if (isReal()) pitchRateSignal.value.ofUnit(degrees/seconds) else AngularVelocity(0.0)
+            if (isReal()) pitchRateSignal.refresh().value.ofUnit(degrees/seconds) else AngularVelocity(0.0)
         }
 
         public val rollRate: AngularVelocity by logged{
-            if (isReal()) rollRateSignal.value.ofUnit(degrees/seconds) else AngularVelocity(0.0)
+            if (isReal()) rollRateSignal.refresh().value.ofUnit(degrees/seconds) else AngularVelocity(0.0)
         }
     }
 
@@ -199,15 +188,15 @@ public class ChargerPigeon2(
 
 
         override val xAcceleration: Acceleration by logged{
-            if (isReal()) xAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)
+            if (isReal()) xAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
         }
 
         override val yAcceleration: Acceleration by logged{
-            if (isReal()) yAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)
+            if (isReal()) yAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
         }
 
         override val zAcceleration: Acceleration by logged{
-            if (isReal()) zAccelSignal.value.ofUnit(standardGravities) else Acceleration(0.0)
+            if (isReal()) zAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
         }
     }
 

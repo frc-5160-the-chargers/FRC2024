@@ -93,4 +93,10 @@ public data class UnitPose2d(
     override fun interpolate(endValue: UnitPose2d, t: Double): UnitPose2d =
         UnitPose2d(siValue.interpolate(endValue.siValue, t))
 
+
+    /**
+     * @see Pose2d.nearest
+     */
+    fun nearest(otherPoses: List<UnitPose2d>): UnitPose2d =
+        UnitPose2d(siValue.nearest(otherPoses.map{ it.siValue }))
 }

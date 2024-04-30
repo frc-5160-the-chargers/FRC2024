@@ -16,6 +16,7 @@ import edu.wpi.first.wpilibj.DataLogManager
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.TimedRobot
+import edu.wpi.first.wpilibj.event.EventLoop
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.CommandScheduler
@@ -30,36 +31,40 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
 
     companion object: Loggable {
         override val namespace = "RobotGeneral"
+
+        private class HighFrequencyPeriodicRunnable(
+            val period: Time,
+            val toRun: () -> Unit
+        )
+
+        private val periodicRunnables = mutableListOf<() -> Unit>()
+        private val highFrequencyPeriodicRunnables = mutableListOf<HighFrequencyPeriodicRunnable>()
+        private val lowPriorityPeriodicRunnables = mutableListOf<() -> Unit>()
+
+
         /**
          * Adds a specific function to the robot's periodic loop.
          *
          * All functions added this way will run before the command scheduler runs.
          */
-        fun runPeriodically(addToFront: Boolean = false, runnable: () -> Unit){
-            if (addToFront){
-                periodicRunnables.add(0,runnable)
-            }else{
-                periodicRunnables.add(runnable)
-            }
+        fun runPeriodic(runnable: () -> Unit){
+            periodicRunnables.add(runnable)
+        }
+
+        /**
+         * Adds a specific function to the robot's periodic loop, which runs at a higher frequency than normal.
+         */
+        fun runPeriodicHighFrequency(period: Time, runnable: () -> Unit){
+            highFrequencyPeriodicRunnables.add(
+                HighFrequencyPeriodicRunnable(period, runnable)
+            )
         }
 
         /**
          * Adds a specific function to the robot's periodic loop, which runs after the robot's periodic loop ends.
          */
-        fun runPeriodicallyWithLowPriority(addToFront: Boolean = false, runnable: () -> Unit){
-            if (addToFront){
-                lowPriorityPeriodicRunnables.add(0,runnable)
-            }else{
-                lowPriorityPeriodicRunnables.add(runnable)
-            }
-        }
-
-        /**
-         * Removes a function from the periodic loop of the robot.
-         */
-        fun removeFromLoop(runnable: () -> Unit){
-            periodicRunnables.remove(runnable)
-            lowPriorityPeriodicRunnables.remove(runnable)
+        fun runPeriodicLowPriority(runnable: () -> Unit){
+            lowPriorityPeriodicRunnables.add(runnable)
         }
 
         /**
@@ -79,11 +84,6 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
          * The current' year's apriltag field layout.
          */
         val APRILTAG_LAYOUT: AprilTagFieldLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField()
-
-
-        // stores alerts and periodic runnables
-        private val periodicRunnables: MutableList<() -> Unit> = mutableListOf()
-        private val lowPriorityPeriodicRunnables: MutableList<() -> Unit> = mutableListOf()
     }
 
 
@@ -144,11 +144,24 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         }
 
         HAL.report(FRCNetComm.tResourceType.kResourceType_Language, FRCNetComm.tInstances.kLanguage_Kotlin)
+        val eventLoop = EventLoop()
+        eventLoop.poll()
     }
 
 
     override fun robotPeriodic() {
-        periodicRunnables.forEach { it() }
+        if (highFrequencyPeriodicRunnables.size > 0){
+            for (runnable in highFrequencyPeriodicRunnables){
+                addPeriodic(
+                    runnable.toRun,
+                    runnable.period.inUnit(seconds),
+                    0.005
+                )
+            }
+            highFrequencyPeriodicRunnables.clear()
+        }
+
+        periodicRunnables.forEach{ it() }
         // Runs the Command Scheduler; polling buttons and scheduling commands.
         CommandScheduler.getInstance().run()
         lowPriorityPeriodicRunnables.forEach { it() }

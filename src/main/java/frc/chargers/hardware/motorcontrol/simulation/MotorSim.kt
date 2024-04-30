@@ -44,7 +44,7 @@ class MotorSim(
     )
 
     init{
-        ChargerRobot.runPeriodically {
+        ChargerRobot.runPeriodic {
             wpilibSim.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
             positionController.calculateOutput()
             continuousInputPositionController.calculateOutput()
@@ -72,7 +72,11 @@ class MotorSim(
         get() = wpilibSim.currentDrawAmps.ofUnit(amps)
 
     override fun setBrakeMode(shouldBrake: Boolean){
-        println("Brake Mode set for motor sim.")
+        if (shouldBrake){
+            println("Brake Mode set for motor sim.")
+        }else{
+            println("Coast mode set for sim.")
+        }
     }
 
     override fun setPositionSetpoint(
