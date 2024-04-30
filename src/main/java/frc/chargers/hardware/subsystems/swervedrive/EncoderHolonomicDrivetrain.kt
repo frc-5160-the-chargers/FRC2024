@@ -36,7 +36,6 @@ import frc.chargers.wpilibextensions.geometry.twodimensional.UnitTranslation2d
 import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
 import frc.chargers.wpilibextensions.kinematics.*
 import frc.external.frc6328.SwerveSetpointGenerator
-import java.util.*
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.pow
 
@@ -149,7 +148,10 @@ public class EncoderHolonomicDrivetrain(
     init{
         resetPose(startingPose)
         log("RealGyroUsedInPoseEstimation", gyro != null)
-        //ChargerRobot.runPeriodic(chassisConstants.odometryUpdateRate, ::updatePoseEstimation)
+        ChargerRobot.runPeriodicHighFrequency(
+            chassisConstants.odometryUpdateRate,
+            ::updatePoseEstimation
+        )
 
         AutoBuilder.configureHolonomic(
             { robotPose.inUnit(meters) },
@@ -188,7 +190,7 @@ public class EncoderHolonomicDrivetrain(
             // here, we do not take the gyro heading directly.
             // If we do, we will still be reading the old gyro heading value,
             // as the new(zeroed) value will not be updated until the next loop.
-            // In addition, the gyro will be zeroed to the pose's rotation next loop anyways
+            // In addition, the gyro will be zeroed to the pose's rotation next loop anyway
             poseEstimator.resetPosition(
                 pose.rotation.asRotation2d(),
                 modulePositions.toTypedArray(),
@@ -518,8 +520,6 @@ public class EncoderHolonomicDrivetrain(
         log(ChassisSpeeds.struct, "ChassisSpeeds/Measured", currentSpeeds)
         log(Pose2d.struct, "Pose2d", poseEstimator.estimatedPosition)
         robotWidget.pose = poseEstimator.estimatedPosition
-
-        updatePoseEstimation()
 
         if (DriverStation.isDisabled()) {
             stop()

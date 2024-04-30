@@ -36,6 +36,7 @@ import kotlin.jvm.optionals.getOrNull
  * allowing its motors to all be configured.
  *
  * Here, C represents the configuration of the motor, while M represents the motor controllers themselves.
+ * Configure is a function that has the context of the configuration specified.
  */
 inline fun <M, reified C : HardwareConfiguration> EncoderDifferentialDrivetrain(
     logName: String = "Drivetrain(Differential)",

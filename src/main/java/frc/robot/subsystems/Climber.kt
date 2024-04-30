@@ -58,8 +58,4 @@ class Climber(
         moveLeftHook(0.0)
         moveRightHook(0.0)
     }
-
-    override fun periodic(){
-
-    }
 }

@@ -3,18 +3,15 @@ package frc.robot.commands
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
-import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser
 import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.InstantCommand
 import frc.chargers.commands.commandbuilder.BuildCommandScope
 import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.utils.flipWhenNeeded
 import frc.chargers.wpilibextensions.geometry.ofUnit
+import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.RotationOverrides
 import frc.robot.subsystems.GroundIntakeSerializer
 import frc.robot.subsystems.NoteObserver
@@ -22,6 +19,7 @@ import frc.robot.subsystems.pivot.Pivot
 import frc.robot.subsystems.pivot.PivotAngle
 import frc.robot.subsystems.shooter.Shooter
 
+@Suppress("unused")
 class AutoCommandManager(
     private val drivetrain: EncoderHolonomicDrivetrain,
     private val shooter: Shooter,
@@ -31,12 +29,17 @@ class AutoCommandManager(
 ) {
     private val sendableChooser = SendableChooser<Command>().apply{
         setDefaultOption(
-            "BasicTaxi",
+            "Basic Taxi",
             buildCommand { 
                 addRequirements(drivetrain)
                 loopFor(5.seconds){ drivetrain.swerveDrive(-0.2, 0.0, 0.0) }
                 onEnd{ drivetrain.stop() }
             }
+        )
+
+        addOption(
+            "Do Nothing",
+            buildCommand{ }
         )
     }
 
@@ -57,10 +60,6 @@ class AutoCommandManager(
         return command
     }
 
-    /**
-     * The chosen auto from the auto chooser.
-     */
-    val selectedAuto: Command get() = sendableChooser.selected
 
 
 
@@ -139,24 +138,7 @@ class AutoCommandManager(
             }
         }
 
-        if (RobotBase.isReal()){
-            // outtake should not take more than 2 seconds
-            runSequentiallyFor(2.seconds){
-                loopUntil({noteObserver.state == NoteObserver.State.NoteInShooter}){
-                    shooter.outtakeAtAmpSpeed()
-                }
-                loopUntil({noteObserver.state == NoteObserver.State.NoNote}){
-                    shooter.outtakeAtAmpSpeed()
-                }
-                loopFor(0.3.seconds, shooter){
-                    shooter.outtakeAtAmpSpeed()
-                }
-            }
-        }else{
-            loopFor(0.7.seconds, shooter){
-                shooter.outtakeAtAmpSpeed()
-            }
-        }
+        +shootInAmp(noteObserver, shooter, pivot)
     }
 
     private fun driveAndScoreSpeaker(
@@ -180,24 +162,79 @@ class AutoCommandManager(
         )
     }
 
+    private fun ampAutoStartup(): Command = buildCommand{
+        runParallelUntilAllFinish{
+            runSequentially{
+                // flipWhenNeeded is an extension function of a UnitPose2d
+                // that performs alliance flip.
+                runOnce{
+                    drivetrain.resetPose(AutoStartingPose.AMP_BLUE.flipWhenNeeded())
+                }
+                waitFor(0.3.seconds)
+                +followPathOptimal(drivetrain, PathPlannerPath.fromPathFile("DriveToAmp"))
+            }
 
-    private val grabSecondAmpNote = driveAndIntake(
-        PathPlannerPath.fromPathFile("AmpGrabG1"),
-        groundIntakePreSpinupTime = 0.5.seconds,
-        groundIntakePostSpinupTime = 0.5.seconds
-    )
-    private val scoreSecondAmpNote = driveAndScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG1"))
+            +pivot.setAngleCommand(PivotAngle.AMP)
+        }
 
-    private val grabThirdAmpNote = driveAndIntake(
-        PathPlannerPath.fromPathFile("AmpGrabG2"),
-        groundIntakePostSpinupTime = 0.5.seconds
-    )
-    private val scoreThirdAmpNote = driveAndScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG2"))
+        +shootInAmp(noteObserver, shooter, pivot)
+    }
 
+    private fun speakerAutoStartup(blueStartingPose: UnitPose2d): Command = buildCommand{
+        runOnce{
+            drivetrain.resetPose(blueStartingPose.flipWhenNeeded())
+        }
 
-    val onePieceAmpTaxi = autoCommand("One Piece Amp + Taxi"){
+        +shootInSpeaker(noteObserver, shooter, groundIntake, pivot, shooterSpinUpTime = 1.5.seconds)
     }
 
 
-    
+
+
+
+    val onePieceAmpTaxi = autoCommand("1 Piece Amp + Taxi"){
+        +ampAutoStartup()
+        +pivot.setAngleCommand(PivotAngle.STOWED)
+        +followPathOptimal(drivetrain, PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
+    }
+
+    val ampMultiPiece = autoCommand("2-3 Piece Amp"){
+        +ampAutoStartup()
+        +driveAndIntake(
+            PathPlannerPath.fromPathFile("AmpGrabG1"),
+            groundIntakePreSpinupTime = 0.5.seconds,
+            groundIntakePostSpinupTime = 0.5.seconds
+        )
+        +driveAndScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG1"))
+        +driveAndIntake(
+            PathPlannerPath.fromPathFile("AmpGrabG2"),
+            groundIntakePostSpinupTime = 0.5.seconds
+        )
+        +driveAndScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG2"))
+    }
+
+    val onePieceSpeakerLeft = autoCommand("1 Piece Speaker"){
+        +speakerAutoStartup(AutoStartingPose.SPEAKER_LEFT_BLUE)
+    }
+
+    val multiPieceSpeakerCenter = autoCommand("4-5 Piece Speaker"){
+        +speakerAutoStartup(AutoStartingPose.SPEAKER_CENTER_BLUE)
+
+        +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.1"), spinUpShooterDuringPath = true)
+        +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.2"))
+
+        +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.5"), spinUpShooterDuringPath = true)
+        +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.6"))
+
+        +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.7"), spinUpShooterDuringPath = true)
+        +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.8"))
+
+        +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.3"))
+        +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.4"))
+    }
+
+    /**
+     * The chosen auto from the auto chooser.
+     */
+    val selectedAuto: Command get() = sendableChooser.selected
 }

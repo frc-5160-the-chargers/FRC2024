@@ -28,6 +28,7 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy
 /**
  * A base class for a drivetrain that can estimate its own pose.
  */
+@Suppress("unused")
 abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(namespace) {
     abstract val robotPose: UnitPose2d
 
@@ -48,7 +49,7 @@ abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(names
         )
     }
 
-    fun registerPhotonCamera(
+    fun enablePhotonPoseEstimation(
         photonCam: PhotonCamera,
         robotToCamera: UnitTransform3d,
         poseStrategy: PoseStrategy = PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR
@@ -85,7 +86,7 @@ abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(names
      * This can be accomplished via gyro.broadcastOrientationForMegaTag2(),
      * where the gyro can be a [frc.chargers.hardware.sensors.imu.ChargerNavX] or a [frc.chargers.hardware.sensors.imu.ChargerPigeon2].
      */
-    fun registerLimelight(
+    fun enableLimelightPoseEstimation(
         camName: String,
         robotToCamera: UnitTransform3d,
         useMegaTag2: Boolean
@@ -107,7 +108,10 @@ abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(names
                 LimelightHelpers.getBotPoseEstimate_wpiBlue(camName)
             }
 
-            if (poseEstimation.tagCount > 0){
+            val tagEstimateAmbiguous = poseEstimation.rawFiducials.size == 1 &&
+                poseEstimation.rawFiducials[0].ambiguity >= 0.9
+
+            if (poseEstimation.tagCount > 0 && !tagEstimateAmbiguous){
                 addVisionMeasurement(
                     Measurement(
                         poseEstimation.pose.ofUnit(meters),

@@ -25,9 +25,7 @@ import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.sensors.withOffset
 import frc.chargers.hardware.subsystems.swervedrive.*
 import frc.chargers.utils.Precision
-import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
 import frc.robot.inputdevices.DriverController
-import org.photonvision.PhotonCamera
 
 
 class CompetitionRobot: ChargerRobot(){
@@ -107,21 +105,6 @@ class CompetitionRobot: ChargerRobot(){
         autonomous().whileTrue(
             AutoBuilder.followPath(PathPlannerPath.fromPathFile("RandomStuff"))
         )
-
-        /*
-        if (!isSimulation()){
-            drivetrain.registerPhotonCamera(
-                PhotonCamera("AprilTagArducam"),
-                robotToCamera = UnitTransform3d()
-            )
-
-            drivetrain.registerLimelight(
-                camName = "Limelight2Main",
-                robotToCamera = UnitTransform3d(),
-                useMegaTag2 = true
-            )
-        }
-         */
 
         IMUSimulation.configure(
             chassisSpeedsSupplier = { drivetrain.currentSpeeds },
