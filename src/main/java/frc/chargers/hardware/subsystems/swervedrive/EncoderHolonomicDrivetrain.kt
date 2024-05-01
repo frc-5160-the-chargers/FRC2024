@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused", "MemberVisibilityCanBePrivate")
+@file:Suppress("RedundantVisibilityModifier", "unused", "MemberVisibilityCanBePrivate", "LeakingThis")
 package frc.chargers.hardware.subsystems.swervedrive
 
 import com.batterystaple.kmeasure.quantities.*
@@ -23,7 +23,7 @@ import frc.chargers.hardware.motorcontrol.MotorizedComponent
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
-import frc.chargers.hardware.subsystems.PoseEstimatingDrivetrain
+import frc.chargers.hardware.subsystems.PoseEstimatingSubsystem
 import frc.chargers.pathplannerextensions.asPathPlannerConstants
 import frc.chargers.utils.Measurement
 import frc.chargers.utils.math.inputModulus
@@ -49,7 +49,7 @@ import kotlin.math.pow
  *
  * Note: TrackWidth is the horizontal length of the robot, while wheelBase is the vertical length of the robot.
  */
-public class EncoderHolonomicDrivetrain(
+public open class EncoderHolonomicDrivetrain(
     logName: String = "Drivetrain(Swerve)",
     turnMotors: SwerveData<MotorizedComponent>,
     // turn encoders are optional in sim
@@ -57,9 +57,8 @@ public class EncoderHolonomicDrivetrain(
     driveMotors: SwerveData<MotorizedComponent>,
     private val chassisConstants: SwerveChassisConstants,
     private val moduleConstants: SwerveModuleConstants,
-    public val gyro: HeadingProvider? = null,
-    startingPose: UnitPose2d = UnitPose2d(Distance(0.0), Distance(0.0), gyro?.heading ?: Angle(0.0)),
-): PoseEstimatingDrivetrain(logName), HeadingProvider {
+    public val gyro: HeadingProvider? = null
+): PoseEstimatingSubsystem(logName), HeadingProvider {
     private val moduleNames = listOf("Modules/TopLeft", "Modules/TopRight", "Modules/BottomLeft", "Modules/BottomRight")
     // A SwerveData instance that holds all the swerve modules of the drivetrain.
     private val swerveModules: SwerveData<SwerveModule> =
@@ -146,7 +145,6 @@ public class EncoderHolonomicDrivetrain(
     }
 
     init{
-        resetPose(startingPose)
         log("RealGyroUsedInPoseEstimation", gyro != null)
         ChargerRobot.runPeriodicHighFrequency(
             chassisConstants.odometryUpdateRate,
@@ -183,7 +181,7 @@ public class EncoderHolonomicDrivetrain(
     /**
      * Resets the drivetrain's pose.
      */
-    override fun resetPose(pose: UnitPose2d) {
+    final override fun resetPose(pose: UnitPose2d) {
         calculatedHeading = pose.rotation
         if (gyro is ZeroableHeadingProvider){
             gyro.zeroHeading(pose.rotation)

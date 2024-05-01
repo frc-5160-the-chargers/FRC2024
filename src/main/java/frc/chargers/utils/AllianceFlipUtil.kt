@@ -20,7 +20,7 @@ private val FIELD_LENGTH = Distance(
 )
 
 /** Flips a blue alliance translation to the correct side of the field based on the current alliance color. */
-public fun UnitTranslation2d.flipWhenNeeded(): UnitTranslation2d =
+public fun UnitTranslation2d.flipWhenRed(): UnitTranslation2d =
     if (shouldFlip()) {
         UnitTranslation2d(FIELD_LENGTH - x, y)
     } else {
@@ -28,7 +28,7 @@ public fun UnitTranslation2d.flipWhenNeeded(): UnitTranslation2d =
     }
 
 /** Flips an x coordinate to the correct side of the field based on the current alliance color. */
-public fun flipXCoordWhenNeeded(xCoordinate: Length): Length =
+public fun flipXCoordWhenRed(xCoordinate: Length): Length =
     if (shouldFlip()) {
         FIELD_LENGTH - xCoordinate
     } else {
@@ -37,7 +37,7 @@ public fun flipXCoordWhenNeeded(xCoordinate: Length): Length =
 
 
 /** Flips a rotation based on the current alliance color. */
-public fun Angle.flipWhenNeeded(): Angle =
+public fun Angle.flipWhenRed(): Angle =
     if (shouldFlip()) {
         Rotation2d(-cos(this), sin(this)).asAngle()
     } else {
@@ -45,7 +45,7 @@ public fun Angle.flipWhenNeeded(): Angle =
     }
 
 /** Flips a blue alliance pose to the correct side of the field based on the current alliance color. */
-public fun UnitPose2d.flipWhenNeeded(): UnitPose2d =
+public fun UnitPose2d.flipWhenRed(): UnitPose2d =
     if (shouldFlip()) {
         UnitPose2d(
             FIELD_LENGTH - x, y, Rotation2d(-cos(rotation),sin(rotation)).asAngle()

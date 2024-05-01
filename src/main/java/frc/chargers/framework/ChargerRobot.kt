@@ -7,8 +7,6 @@ import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.pathfinding.LocalADStar
 import com.pathplanner.lib.pathfinding.Pathfinding
 import com.pathplanner.lib.util.PathPlannerLogging
-import edu.wpi.first.apriltag.AprilTagFieldLayout
-import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.hal.FRCNetComm
 import edu.wpi.first.hal.HAL
 import edu.wpi.first.math.geometry.Pose2d
@@ -20,13 +18,15 @@ import edu.wpi.first.wpilibj.event.EventLoop
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.CommandScheduler
+import java.lang.management.GarbageCollectorMXBean
+import java.lang.management.ManagementFactory
 
 /**
  * A base class for a generic Robot; extending [TimedRobot] and providing useful utilities.
  *
  * These include: global periodic function registration, automatic DataLogManager setup, and more.
  */
-abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Loggable {
+abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Loggable, Tunable {
     override val namespace = "RobotGeneral"
 
     companion object: Loggable {
@@ -79,13 +79,30 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         val FIELD: Field2d = Field2d().also{
             SmartDashboard.putData("Field", it)
         }
-
-        /**
-         * The current' year's apriltag field layout.
-         */
-        val APRILTAG_LAYOUT: AprilTagFieldLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField()
     }
 
+    // Credits: 6328
+    // logger utilities for measuring java garbage collection
+    private val gcBeans: List<GarbageCollectorMXBean> = ManagementFactory.getGarbageCollectorMXBeans()
+    private val lastTimes = LongArray(gcBeans.size)
+    private val lastCounts = LongArray(gcBeans.size)
+
+    private fun logGcData(){
+        var accumTime: Long = 0
+        var accumCounts: Long = 0
+        for (i in gcBeans.indices) {
+            val gcTime = gcBeans[i].collectionTime
+            val gcCount = gcBeans[i].collectionCount
+            accumTime += gcTime - lastTimes[i]
+            accumCounts += gcCount - lastCounts[i]
+
+            lastTimes[i] = gcTime
+            lastCounts[i] = gcCount
+        }
+
+        log("GCTimeMS", accumTime.toDouble())
+        log("GCCounts", accumCounts.toDouble())
+    }
 
     open val tuningMode: Boolean = false
 
@@ -165,5 +182,7 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         // Runs the Command Scheduler; polling buttons and scheduling commands.
         CommandScheduler.getInstance().run()
         lowPriorityPeriodicRunnables.forEach { it() }
+
+        logGcData()
     }
 }

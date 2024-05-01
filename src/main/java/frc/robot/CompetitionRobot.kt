@@ -8,6 +8,8 @@ import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.PowerDistribution
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
 import frc.chargers.commands.setDefaultRunCommand
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
@@ -45,7 +47,7 @@ class CompetitionRobot: ChargerRobot(){
                 bottomLeft = ChargerSparkMax(DrivetrainID.BL_TURN),
                 bottomRight = ChargerSparkMax(DrivetrainID.BR_TURN)
             ){ // configure lambda; configuration below are applied to all motors
-                periodicFrameConfig = PeriodicFrameConfig.Optimized(utilizedData = listOf(MotorData.VELOCITY))
+                periodicFrameConfig = PeriodicFrameConfig.Optimized(utilizedData = listOf(MotorData.VELOCITY, MotorData.VOLTAGE, MotorData.CURRENT))
                 smartCurrentLimit = SmartCurrentLimit(30.amps)
                 voltageCompensationNominalVoltage = 12.volts
                 openLoopRampRate = 48.0
@@ -93,27 +95,46 @@ class CompetitionRobot: ChargerRobot(){
         gyro = if (isSimulation()) null else gyro
     )
 
+
+
     override fun robotInit(){
         DriverController
 
-        drivetrain.setDefaultRunCommand{
-            drivetrain.swerveDrive(DriverController.swerveOutput)
-        }
-
         DriverStation.silenceJoystickConnectionWarning(true)
-
-        autonomous().whileTrue(
-            AutoBuilder.followPath(PathPlannerPath.fromPathFile("RandomStuff"))
-        )
 
         IMUSimulation.configure(
             chassisSpeedsSupplier = { drivetrain.currentSpeeds },
             headingSupplier = { drivetrain.heading }
         )
+
+        SmartDashboard.putData(
+            "Power Distribution",
+            PowerDistribution(1, PowerDistribution.ModuleType.kRev)
+        )
+
+        setDefaultCommands()
+        setButtonBindings()
+        setAutonomousCommand()
     }
 
     override fun robotPeriodic() {
         super.robotPeriodic()
         gyro.broadcastOrientationForMegaTag2("Limelight2Main")
+    }
+
+    private fun setDefaultCommands(){
+        drivetrain.setDefaultRunCommand{
+            drivetrain.swerveDrive(DriverController.swerveOutput)
+        }
+    }
+
+    private fun setButtonBindings(){
+
+    }
+
+    private fun setAutonomousCommand(){
+        autonomous().whileTrue(
+            AutoBuilder.followPath(PathPlannerPath.fromPathFile("RandomStuff"))
+        )
     }
 }

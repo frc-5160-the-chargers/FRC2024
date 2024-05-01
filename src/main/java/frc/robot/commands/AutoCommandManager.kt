@@ -9,7 +9,7 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.BuildCommandScope
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.utils.flipWhenNeeded
+import frc.chargers.utils.flipWhenRed
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.robot.RotationOverrides
@@ -32,7 +32,7 @@ class AutoCommandManager(
             "Basic Taxi",
             buildCommand { 
                 addRequirements(drivetrain)
-                loopFor(5.seconds){ drivetrain.swerveDrive(-0.2, 0.0, 0.0) }
+                loopFor(5.seconds){ drivetrain.swerveDrive(0.2, 0.0, 0.0) }
                 onEnd{ drivetrain.stop() }
             }
         )
@@ -46,6 +46,11 @@ class AutoCommandManager(
     /**
      * Creates an auto command that automatically adds itself to the sendable chooser,
      * and requires all the subsystems necessary.
+     *
+     * This way, values defined by autoCommand("AutoName"){ block }
+     * will automatically be registered to a sendable chooser.
+     *
+     * @see buildCommand
      */
     private inline fun autoCommand(
         autoName: String,
@@ -111,7 +116,7 @@ class AutoCommandManager(
                 // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
                 // along the path.
                 runSequentially{
-                    val grabPathStartPose = path.pathPoses.last().ofUnit(meters).flipWhenNeeded()
+                    val grabPathStartPose = path.pathPoses.last().ofUnit(meters).flipWhenRed()
 
                     waitUntil{ drivetrain.robotPose.distanceTo(grabPathStartPose) < 0.8.meters }
 
@@ -168,7 +173,7 @@ class AutoCommandManager(
                 // flipWhenNeeded is an extension function of a UnitPose2d
                 // that performs alliance flip.
                 runOnce{
-                    drivetrain.resetPose(AutoStartingPose.AMP_BLUE.flipWhenNeeded())
+                    drivetrain.resetPose(AutoStartingPose.AMP_BLUE.flipWhenRed())
                 }
                 waitFor(0.3.seconds)
                 +followPathOptimal(drivetrain, PathPlannerPath.fromPathFile("DriveToAmp"))
@@ -182,7 +187,7 @@ class AutoCommandManager(
 
     private fun speakerAutoStartup(blueStartingPose: UnitPose2d): Command = buildCommand{
         runOnce{
-            drivetrain.resetPose(blueStartingPose.flipWhenNeeded())
+            drivetrain.resetPose(blueStartingPose.flipWhenRed())
         }
 
         +shootInSpeaker(noteObserver, shooter, groundIntake, pivot, shooterSpinUpTime = 1.5.seconds)
@@ -215,6 +220,16 @@ class AutoCommandManager(
 
     val onePieceSpeakerLeft = autoCommand("1 Piece Speaker"){
         +speakerAutoStartup(AutoStartingPose.SPEAKER_LEFT_BLUE)
+    }
+
+    val onePieceSpeakerLeftTaxi = autoCommand("1 Piece Speaker + Taxi"){
+        +speakerAutoStartup(AutoStartingPose.SPEAKER_LEFT_BLUE)
+        loopFor(5.seconds){
+            drivetrain.swerveDrive(0.2,0.0,0.0)
+        }
+        onEnd{
+            drivetrain.stop()
+        }
     }
 
     val multiPieceSpeakerCenter = autoCommand("4-5 Piece Speaker"){

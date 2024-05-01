@@ -6,7 +6,7 @@ import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.utils.flipWhenNeeded
+import frc.chargers.utils.flipWhenRed
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.robot.PATHFIND_CONSTRAINTS
 
@@ -27,8 +27,8 @@ fun followPathOptimal(
     runIf(
         {
             val drivetrainPose = drivetrain.robotPose
-            drivetrainPose.distanceTo(pathStartPose.flipWhenNeeded()) > ACCEPTABLE_DISTANCE_BEFORE_PATHFIND &&
-                    drivetrainPose.distanceTo(pathEndPose.flipWhenNeeded()) > drivetrainPose.distanceTo(pathStartPose.flipWhenNeeded())
+            drivetrainPose.distanceTo(pathStartPose.flipWhenRed()) > ACCEPTABLE_DISTANCE_BEFORE_PATHFIND &&
+                    drivetrainPose.distanceTo(pathEndPose.flipWhenRed()) > drivetrainPose.distanceTo(pathStartPose.flipWhenRed())
         },
         onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
         onFalse = AutoBuilder.followPath(path)

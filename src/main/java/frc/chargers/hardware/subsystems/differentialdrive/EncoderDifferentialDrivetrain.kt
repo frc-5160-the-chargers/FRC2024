@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress("RedundantVisibilityModifier", "unused", "MemberVisibilityCanBePrivate", "LeakingThis")
 package frc.chargers.hardware.subsystems.differentialdrive
 
 import com.batterystaple.kmeasure.interop.average
@@ -23,7 +23,7 @@ import frc.chargers.hardware.configuration.HardwareConfiguration
 import frc.chargers.hardware.motorcontrol.MotorizedComponent
 import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
-import frc.chargers.hardware.subsystems.PoseEstimatingDrivetrain
+import frc.chargers.hardware.subsystems.PoseEstimatingSubsystem
 import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.geometry.ofUnit
 import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
@@ -46,7 +46,6 @@ inline fun <M, reified C : HardwareConfiguration> EncoderDifferentialDrivetrain(
     bottomRight: M,
     constants: DifferentialDriveConstants,
     gyro: HeadingProvider? = null,
-    startingPose: UnitPose2d = UnitPose2d(),
     configure: C.() -> Unit
 ): EncoderDifferentialDrivetrain where M: MotorizedComponent, M: HardwareConfigurable<C> {
     try{
@@ -57,7 +56,7 @@ inline fun <M, reified C : HardwareConfiguration> EncoderDifferentialDrivetrain(
         bottomLeft.configure(configuration)
         bottomRight.configure(configuration)
 
-        return EncoderDifferentialDrivetrain(logName, topLeft, topRight, bottomLeft, bottomRight, constants, gyro, startingPose)
+        return EncoderDifferentialDrivetrain(logName, topLeft, topRight, bottomLeft, bottomRight, constants, gyro)
     }catch(e: Exception){
         error("It looks like your configuration class does not have a no-args constructor. This is not allowed.")
     }
@@ -65,8 +64,7 @@ inline fun <M, reified C : HardwareConfiguration> EncoderDifferentialDrivetrain(
 
 
 
-@Suppress("MemberVisibilityCanBePrivate")
-public class EncoderDifferentialDrivetrain(
+public open class EncoderDifferentialDrivetrain(
     logName: String = "Drivetrain(Differential)",
     private val topLeft: MotorizedComponent,
     private val topRight: MotorizedComponent,
@@ -74,10 +72,8 @@ public class EncoderDifferentialDrivetrain(
     private val bottomRight: MotorizedComponent,
 
     private val constants: DifferentialDriveConstants,
-    val gyro: HeadingProvider? = null,
-    startingPose: UnitPose2d = UnitPose2d()
-): PoseEstimatingDrivetrain(logName), DifferentialDrivetrain, HeadingProvider {
-
+    val gyro: HeadingProvider? = null
+): PoseEstimatingSubsystem(logName), DifferentialDrivetrain, HeadingProvider {
     /* Private implementation */
     private val wheelRadius = constants.wheelDiameter / 2
 
@@ -121,8 +117,6 @@ public class EncoderDifferentialDrivetrain(
             topRight.hasInvert = !topRight.hasInvert
             bottomRight.hasInvert = !bottomRight.hasInvert
         }
-
-        resetPose(startingPose)
 
         when (constants.pathAlgorithm){
             DifferentialDriveConstants.PathAlgorithm.LTV -> {

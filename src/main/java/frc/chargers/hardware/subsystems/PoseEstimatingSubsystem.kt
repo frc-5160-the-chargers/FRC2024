@@ -26,10 +26,13 @@ import org.photonvision.PhotonPoseEstimator
 import org.photonvision.PhotonPoseEstimator.PoseStrategy
 
 /**
- * A base class for a drivetrain that can estimate its own pose.
+ * A base class for a subsystem that can estimate its own pose,
+ * and fuse vision pose measurements.
+ *
+ * This is usually a drivetrain.
  */
 @Suppress("unused")
-abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(namespace) {
+abstract class PoseEstimatingSubsystem(namespace: String): SuperSubsystem(namespace) {
     abstract val robotPose: UnitPose2d
 
     abstract fun resetPose(pose: UnitPose2d = UnitPose2d())

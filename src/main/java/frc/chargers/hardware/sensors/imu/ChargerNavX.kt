@@ -96,13 +96,6 @@ public class ChargerNavX(
     }
 
     /**
-     * The altitude from the NavX. A null value represents an invalid altitude.
-     */
-    public val altitude: Distance? by logged{
-        if (ahrs.isAltitudeValid && isReal()) ahrs.altitude.toDouble().ofUnit(meters) else null
-    }
-
-    /**
      * The gyroscope of the NavX. Implements [ThreeAxisGyroscope] and HeadingProvider.
      */
     public val gyroscope: Gyroscope = Gyroscope()
