@@ -1,5 +1,5 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
-package frc.chargers.hardware.sensors.imu.gyroscopes
+package frc.chargers.hardware.sensors.imu
 
 import com.batterystaple.kmeasure.quantities.Angle
 
@@ -11,5 +11,4 @@ public interface ZeroableHeadingProvider: HeadingProvider {
      * Zeroes the heading of the [HeadingProvider].
      */
     public fun zeroHeading(angle: Angle = Angle(0.0))
-
 }

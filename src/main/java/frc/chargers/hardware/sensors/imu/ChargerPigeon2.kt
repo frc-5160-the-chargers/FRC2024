@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress("RedundantVisibilityModifier", "unused")
 package frc.chargers.hardware.sensors.imu
 
 import com.batterystaple.kmeasure.quantities.*
@@ -16,8 +16,6 @@ import frc.chargers.framework.Loggable
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
 import frc.chargers.hardware.configuration.safeConfigure
-import frc.chargers.hardware.sensors.imu.gyroscopes.ThreeAxisGyroscope
-import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.wpilibextensions.delay
 import frc.external.limelight.LimelightHelpers
 
@@ -34,7 +32,6 @@ public inline fun ChargerPigeon2(
     ChargerPigeon2Configuration().apply(configure)
 )
 
-
 /**
  * A wrapper around the [Pigeon2] class from CTRE,
  * with units support and interface implementation.
@@ -48,7 +45,6 @@ public class ChargerPigeon2(
     configuration: ChargerPigeon2Configuration? = null
 ): Pigeon2(canId, canBus), ZeroableHeadingProvider, HardwareConfigurable<ChargerPigeon2Configuration>, Loggable {
     override val namespace = "Pigeon2"
-
     private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
     private var configAppliedProperly = true
 
@@ -81,7 +77,6 @@ public class ChargerPigeon2(
      * The heading of the Pigeon; equivalent to yaw.
      */
     override val heading: Angle by logged{ gyroscope.yaw }
-
 
     /**
      * Zeroes the heading of the Pigeon.
@@ -138,8 +133,6 @@ public class ChargerPigeon2(
         internal fun getSignals(): Array<BaseStatusSignal> =
             arrayOf(yawSignal, rollSignal, pitchSignal, yawRateSignal, pitchRateSignal, rollRateSignal)
 
-
-
         override val yaw: Angle by logged{
             if (isReal()) yawSignal.refresh().value.ofUnit(degrees) else IMUSimulation.getHeading()
         }
@@ -151,8 +144,6 @@ public class ChargerPigeon2(
         override val roll: Angle by logged{
             if (isReal()) rollSignal.refresh().value.ofUnit(degrees) else Angle(0.0)
         }
-
-
 
         public val yawRate: AngularVelocity by logged{
             if (isReal()){
@@ -174,8 +165,6 @@ public class ChargerPigeon2(
         }
     }
 
-
-
     public inner class Accelerometer internal constructor(): ThreeAxisAccelerometer, Loggable {
         override val namespace = "Pigeon2/Accelerometer"
         private val xAccelSignal = accelerationX
@@ -184,8 +173,6 @@ public class ChargerPigeon2(
 
         internal fun getSignals(): Array<BaseStatusSignal> =
             arrayOf(xAccelSignal, yAccelSignal, zAccelSignal)
-
-
 
         override val xAcceleration: Acceleration by logged{
             if (isReal()) xAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
@@ -200,13 +187,11 @@ public class ChargerPigeon2(
         }
     }
 
-
     override fun configure(configuration: ChargerPigeon2Configuration) {
         val baseConfig = Pigeon2Configuration()
         configurator.refresh(baseConfig)
         configure(configuration, baseConfig)
     }
-
 
     public fun configure(configuration: ChargerPigeon2Configuration, basePigeon2Configuration: Pigeon2Configuration){
         configAppliedProperly = true

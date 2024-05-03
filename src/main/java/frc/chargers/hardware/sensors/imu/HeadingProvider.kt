@@ -1,5 +1,5 @@
 @file:Suppress("RedundantVisibilityModifier", "unused") 
-package frc.chargers.hardware.sensors.imu.gyroscopes
+package frc.chargers.hardware.sensors.imu
 
 import com.batterystaple.kmeasure.quantities.Angle
 
@@ -18,16 +18,14 @@ public interface HeadingProvider {
      * due to wrapping around.
      */
     public val heading: Angle
-
-    public companion object{
-        /**
-         * Inline syntax to create a generic [HeadingProvider].
-         *
-         * I.E:
-         * ```
-         * val headingProvider = HeadingProvider{ Angle(0.0) }
-         */
-        public inline operator fun invoke(crossinline getHeading: () -> Angle): HeadingProvider =
-            object: HeadingProvider { override val heading: Angle get() = getHeading() }
-    }
 }
+
+/**
+ * Inline syntax to create a generic [HeadingProvider].
+ *
+ * I.E:
+ * ```
+ * val headingProvider = HeadingProvider{ Angle(0.0) }
+ */
+inline fun HeadingProvider(crossinline getHeading: () -> Angle): HeadingProvider =
+    object: HeadingProvider { override val heading: Angle get() = getHeading() }

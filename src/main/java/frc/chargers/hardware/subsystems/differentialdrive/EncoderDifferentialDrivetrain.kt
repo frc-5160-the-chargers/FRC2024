@@ -21,8 +21,8 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
 import frc.chargers.hardware.motorcontrol.MotorizedComponent
-import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
-import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
+import frc.chargers.hardware.sensors.imu.HeadingProvider
+import frc.chargers.hardware.sensors.imu.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.PoseEstimatingSubsystem
 import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.Rotation2d

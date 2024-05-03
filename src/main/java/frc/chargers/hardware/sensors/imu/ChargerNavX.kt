@@ -3,15 +3,12 @@ package frc.chargers.hardware.sensors.imu
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
-import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.standardGravities
 import com.kauailabs.navx.frc.AHRS
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.Loggable
-import frc.chargers.hardware.sensors.imu.gyroscopes.ThreeAxisGyroscope
-import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.kinematics.xVelocity
 import frc.chargers.wpilibextensions.kinematics.yVelocity
@@ -71,7 +68,9 @@ public class ChargerNavX(
         }
     }
 
-
+    /**
+     * The NavX firmware version.
+     */
     public val firmwareVersion: String by logged{ ahrs.firmwareVersion }
 
     /**
@@ -105,11 +104,6 @@ public class ChargerNavX(
      */
     public val accelerometer: Accelerometer = Accelerometer()
 
-    /**
-     * The speedometer of the NavX. Implements [ThreeAxisSpeedometer].
-     */
-    public val speedometer: Speedometer = Speedometer()
-
 
     public inner class Gyroscope internal constructor(): ThreeAxisGyroscope, Loggable {
         override val namespace = "NavX/Gyroscope"
@@ -134,11 +128,11 @@ public class ChargerNavX(
             if (isReal()) ahrs.rate.ofUnit(degrees/seconds) else AngularVelocity(0.0)
         }
 
-        public fun zeroYaw(){
+        override val heading: Angle get() = this@ChargerNavX.heading
+
+        fun zeroYaw(){
             ahrs.zeroYaw()
         }
-
-        override val heading: Angle get() = this@ChargerNavX.heading
     }
 
 
@@ -146,7 +140,6 @@ public class ChargerNavX(
         override val namespace = "NavX/Accelerometer"
         private var previousXVelSim = Velocity(0.0)
         private var previousYVelSim = Velocity(0.0)
-
 
         override val xAcceleration: Acceleration by logged{
             if (isReal()){
@@ -172,25 +165,6 @@ public class ChargerNavX(
 
         override val zAcceleration: Acceleration by logged{
             if (isReal()) ahrs.worldLinearAccelZ.toDouble().ofUnit(standardGravities) else Acceleration(0.0)
-        }
-    }
-
-
-    public inner class Speedometer internal constructor(): ThreeAxisSpeedometer, Loggable {
-        override val namespace = "NavX/Speedometer"
-
-        // uses custom getters(ChassisSpeeds.xVelocity, ChassisSpeeds.yVelocity)
-        // which return kmeasure units for sim
-        override val xVelocity: Velocity by logged{
-            if (isReal()) ahrs.velocityX.toDouble().ofUnit(meters / seconds) else IMUSimulation.getChassisSpeeds().xVelocity
-        }
-
-        override val yVelocity: Velocity by logged{
-            if (isReal()) ahrs.velocityY.toDouble().ofUnit(meters / seconds) else IMUSimulation.getChassisSpeeds().yVelocity
-        }
-
-        override val zVelocity: Velocity by logged{
-            if (isReal()) ahrs.velocityZ.toDouble().ofUnit(meters / seconds) else Velocity(0.0)
         }
     }
 }

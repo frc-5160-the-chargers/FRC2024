@@ -4,7 +4,7 @@ package frc.chargers.hardware.sensors
 import com.batterystaple.kmeasure.quantities.Angle
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
-import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
+import frc.chargers.hardware.sensors.imu.HeadingProvider
 
 /**
  * Creates a [PositionEncoder] with a certain zero offset.

@@ -44,15 +44,10 @@ public inline fun ChargerDutyCycleEncoder(
     it.configure(configuration)
 }
 
-
-
-
 /**
  * An Adapter of WPILib's [DutyCycleEncoder] class; consists of REV through bore encoders, CTRE mag encoders.
  */
-public class ChargerDutyCycleEncoder: DutyCycleEncoder, PositionEncoder,
-    HardwareConfigurable<DutyCycleEncoderConfiguration> {
-
+public class ChargerDutyCycleEncoder: DutyCycleEncoder, PositionEncoder, HardwareConfigurable<DutyCycleEncoderConfiguration> {
     public constructor(channel: Int): super(channel)
     public constructor(source: DigitalSource): super(source)
     public constructor(dutyCycle: DutyCycle): super(dutyCycle)
@@ -75,7 +70,6 @@ public class ChargerDutyCycleEncoder: DutyCycleEncoder, PositionEncoder,
             inverted = it
         }
     }
-
 }
 
 public data class DutyCycleEncoderConfiguration(

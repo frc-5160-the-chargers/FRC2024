@@ -6,6 +6,8 @@ import edu.wpi.first.networktables.*
 import edu.wpi.first.util.datalog.*
 import edu.wpi.first.util.struct.Struct
 import edu.wpi.first.wpilibj.DataLogManager
+import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.RobotBase
 import java.util.*
 import kotlin.experimental.ExperimentalTypeInference
 import kotlin.internal.LowPriorityInOverloadResolution
@@ -60,11 +62,15 @@ interface Loggable {
     val namespace: String
 
     companion object{
-        var fileOnly: Boolean = false
+        // Determines whether to log to file only or not.
+        // "by lazy" ensures that DriverStation.isFMSAttached is only called
+        // the first time the value is accessed; reducing logging latency.
+        private val fileOnly: Boolean by lazy{ DriverStation.isFMSAttached() && RobotBase.isReal() }
 
         // datalog-related storage
         private val dataLogEntries: MutableMap<String, DataLogEntry> = WeakHashMap()
 
+        // fetches a data log entry; creating a new one if not present
         private fun <E : DataLogEntry> getEntry(
             identifier: String,
             entryCreator: (DataLog, String) -> E

@@ -30,10 +30,7 @@ import frc.chargers.utils.Precision
 import frc.robot.inputdevices.DriverController
 
 
-class CompetitionRobot: ChargerRobot(){
-    override val logToFileOnly = DriverStation.isFMSAttached()
-    override val logFileName = "Testing.wpilog"
-
+class CompetitionRobot: ChargerRobot(logFileName = "Testing.wpilog"){
     val gyro = ChargerNavX()
 
     val drivetrain = EncoderHolonomicDrivetrain(
@@ -104,8 +101,8 @@ class CompetitionRobot: ChargerRobot(){
         DriverStation.silenceJoystickConnectionWarning(true)
 
         IMUSimulation.configure(
-            chassisSpeedsSupplier = { drivetrain.currentSpeeds },
-            headingSupplier = { drivetrain.heading }
+            headingSupplier = { drivetrain.heading },
+            chassisSpeedsSupplier = { drivetrain.currentSpeeds }
         )
 
         SmartDashboard.putData(

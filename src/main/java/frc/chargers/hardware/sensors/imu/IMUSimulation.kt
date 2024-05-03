@@ -12,7 +12,7 @@ public object IMUSimulation{
      * Configures simulation for all IMUs.
      */
     fun configure(
-        headingSupplier: () -> Angle = { Angle(0.0) },
+        headingSupplier: () -> Angle,
         chassisSpeedsSupplier: () -> ChassisSpeeds = { ChassisSpeeds() },
     ){
         simChassisSpeedsGetter = chassisSpeedsSupplier
@@ -22,5 +22,4 @@ public object IMUSimulation{
     fun getHeading(): Angle = simHeadingGetter()
 
     fun getChassisSpeeds(): ChassisSpeeds = simChassisSpeedsGetter()
-
 }

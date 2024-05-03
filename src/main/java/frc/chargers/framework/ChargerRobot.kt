@@ -14,19 +14,26 @@ import edu.wpi.first.wpilibj.DataLogManager
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.TimedRobot
-import edu.wpi.first.wpilibj.event.EventLoop
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.CommandScheduler
+import org.littletonrobotics.urcl.URCL
 import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
 
 /**
  * A base class for a generic Robot; extending [TimedRobot] and providing useful utilities.
  *
- * These include: global periodic function registration, automatic DataLogManager setup, and more.
+ * These include: global periodic function registration, automatic DataLogManager setup,
+ * automatic URCL(Unofficial REV-Compatible logger) startup, and more.
  */
-abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Loggable, Tunable {
+abstract class ChargerRobot(
+    loopPeriod: Time = 0.02.seconds,
+    tuningMode: Boolean = false,
+    logFileFolder: String = if (isReal()) "/U/logs" else "logs",
+    logFileName: String? = null,
+    useURCL: Boolean = true
+): TimedRobot(), Loggable, Tunable {
     override val namespace = "RobotGeneral"
 
     companion object: Loggable {
@@ -41,7 +48,6 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         private val highFrequencyPeriodicRunnables = mutableListOf<HighFrequencyPeriodicRunnable>()
         private val lowPriorityPeriodicRunnables = mutableListOf<() -> Unit>()
 
-
         /**
          * Adds a specific function to the robot's periodic loop.
          *
@@ -52,19 +58,19 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         }
 
         /**
+         * Adds a specific function to the robot's periodic loop, which runs after the robot's periodic loop ends.
+         */
+        fun runPeriodicLowPriority(runnable: () -> Unit){
+            lowPriorityPeriodicRunnables.add(runnable)
+        }
+
+        /**
          * Adds a specific function to the robot's periodic loop, which runs at a higher frequency than normal.
          */
         fun runPeriodicHighFrequency(period: Time, runnable: () -> Unit){
             highFrequencyPeriodicRunnables.add(
                 HighFrequencyPeriodicRunnable(period, runnable)
             )
-        }
-
-        /**
-         * Adds a specific function to the robot's periodic loop, which runs after the robot's periodic loop ends.
-         */
-        fun runPeriodicLowPriority(runnable: () -> Unit){
-            lowPriorityPeriodicRunnables.add(runnable)
         }
 
         /**
@@ -102,43 +108,36 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         log("GCTimeMS", accumTime.toDouble())
         log("GCCounts", accumCounts.toDouble())
     }
+
     private val commandScheduler = CommandScheduler.getInstance()
 
-    open val tuningMode: Boolean = false
-    open val logFileFolder: String get() = if (isReal()) "/U/logs" else "logs"
-    open val logFileName: String? = null
-    open val logToFileOnly: Boolean = false
-
     init{
-        val fileName = logFileName
-        if (fileName == null){
+        if (logFileName == null) {
             DataLogManager.start(logFileFolder)
-        }else if (".wpilog" in fileName){
-            DataLogManager.start(logFileFolder, fileName)
-        }else{
-            DataLogManager.start(logFileFolder, "$fileName.wpilog")
+        } else if (".wpilog" in logFileName) {
+            DataLogManager.start(logFileFolder, logFileName)
+        } else {
+            DataLogManager.start(logFileFolder, "$logFileName.wpilog")
         }
 
         if (RobotBase.isReal()){
             DriverStation.startDataLog(DataLogManager.getLog())
+            if (useURCL){
+                URCL.start()
+            }
         }
 
         log("loopPeriodSeconds", loopPeriod.inUnit(seconds))
         Tunable.tuningMode = tuningMode
-        Loggable.fileOnly = logToFileOnly
 
-        CommandScheduler.getInstance().apply{
-            onCommandInitialize{
-                log("ActiveCommands/${it.name}", true)
-            }
-
-            onCommandFinish {
-                log("/ActiveCommands/${it.name}", false)
-            }
-
-            onCommandInterrupt {it ->
-                log("/ActiveCommands/${it.name}", false)
-            }
+        commandScheduler.onCommandInitialize{
+            log("ActiveCommands/${it.name}", true)
+        }
+        commandScheduler.onCommandFinish {
+            log("/ActiveCommands/${it.name}", false)
+        }
+        commandScheduler.onCommandInterrupt {it ->
+            log("/ActiveCommands/${it.name}", false)
         }
 
         Pathfinding.setPathfinder(LocalADStar())
@@ -158,13 +157,10 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         }
 
         HAL.report(FRCNetComm.tResourceType.kResourceType_Language, FRCNetComm.tInstances.kLanguage_Kotlin)
-        val eventLoop = EventLoop()
-        eventLoop.poll()
     }
 
-
     override fun robotPeriodic() {
-        logLatency("MeasuredLoopTime"){
+        logLatency("ChargerRobotLoopTime"){
             if (highFrequencyPeriodicRunnables.size > 0){
                 for (runnable in highFrequencyPeriodicRunnables){
                     addPeriodic(
