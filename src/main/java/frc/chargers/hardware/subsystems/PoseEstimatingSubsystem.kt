@@ -1,24 +1,20 @@
 package frc.chargers.hardware.subsystems
 
 import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.quantities.ofUnit
-import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Pose3d
+import edu.wpi.first.math.geometry.Transform3d
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.SuperSubsystem
 import frc.chargers.utils.Measurement
-import frc.chargers.wpilibextensions.geometry.ofUnit
-import frc.chargers.wpilibextensions.geometry.threedimensional.UnitTransform3d
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
-import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
+import frc.chargers.wpilibextensions.Rotation2d
 import frc.external.frc6995.NomadAprilTagUtil
 import frc.external.limelight.LimelightHelpers
 import org.photonvision.PhotonCamera
@@ -33,35 +29,35 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy
  */
 @Suppress("unused")
 abstract class PoseEstimatingSubsystem(namespace: String): SuperSubsystem(namespace) {
-    abstract val robotPose: UnitPose2d
+    abstract val robotPose: Pose2d
 
-    abstract fun resetPose(pose: UnitPose2d = UnitPose2d())
+    abstract fun resetPose(pose: Pose2d = Pose2d())
 
-    abstract fun addVisionMeasurement(measurement: Measurement<UnitPose2d>, stdDevs: Matrix<N3, N1>? = null)
+    abstract fun addVisionMeasurement(measurement: Measurement<Pose2d>, stdDevs: Matrix<N3, N1>? = null)
 
 
 
-    fun addVisionMeasurement(measurement: Measurement<UnitPose2d>, cameraYaw: Angle){
+    fun addVisionMeasurement(measurement: Measurement<Pose2d>, cameraYaw: Angle){
         addVisionMeasurement(
             measurement,
             NomadAprilTagUtil.calculateVisionUncertainty(
-                measurement.value.x.inUnit(meters),
-                measurement.value.rotation.asRotation2d(),
-                cameraYaw.asRotation2d()
+                measurement.value.x,
+                measurement.value.rotation,
+                Rotation2d(cameraYaw)
             )
         )
     }
 
     fun enablePhotonPoseEstimation(
         photonCam: PhotonCamera,
-        robotToCamera: UnitTransform3d,
+        robotToCamera: Transform3d,
         poseStrategy: PoseStrategy = PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR
     ){
         val poseEstimator = PhotonPoseEstimator(
             AprilTagFields.k2024Crescendo.loadAprilTagLayoutField(),
             poseStrategy,
             photonCam,
-            robotToCamera.inUnit(meters)
+            robotToCamera
         )
         val camName = photonCam.name
 
@@ -71,7 +67,7 @@ abstract class PoseEstimatingSubsystem(namespace: String): SuperSubsystem(namesp
                 log(Pose3d.struct, "PhotonPoseEstimations/$camName", poseEstimation.get().estimatedPose)
                 addVisionMeasurement(
                     Measurement(
-                        poseEstimation.get().estimatedPose.toPose2d().ofUnit(meters),
+                        poseEstimation.get().estimatedPose.toPose2d(),
                         poseEstimation.get().timestampSeconds.ofUnit(seconds)
                     ),
                     poseEstimator.robotToCameraTransform.rotation.x.ofUnit(radians)
@@ -91,14 +87,14 @@ abstract class PoseEstimatingSubsystem(namespace: String): SuperSubsystem(namesp
      */
     fun enableLimelightPoseEstimation(
         camName: String,
-        robotToCamera: UnitTransform3d,
+        robotToCamera: Transform3d,
         useMegaTag2: Boolean
     ){
         LimelightHelpers.setCameraPose_RobotSpace(
             camName,
-            robotToCamera.x.inUnit(meters),
-            robotToCamera.y.inUnit(meters),
-            robotToCamera.z.inUnit(meters),
+            robotToCamera.x,
+            robotToCamera.y,
+            robotToCamera.z,
             robotToCamera.rotation.x,
             robotToCamera.rotation.y,
             robotToCamera.rotation.z
@@ -117,7 +113,7 @@ abstract class PoseEstimatingSubsystem(namespace: String): SuperSubsystem(namesp
             if (poseEstimation.tagCount > 0 && !tagEstimateAmbiguous){
                 addVisionMeasurement(
                     Measurement(
-                        poseEstimation.pose.ofUnit(meters),
+                        poseEstimation.pose,
                         poseEstimation.timestampSeconds.ofUnit(seconds)
                     ),
                     robotToCamera.rotation.z.ofUnit(radians)

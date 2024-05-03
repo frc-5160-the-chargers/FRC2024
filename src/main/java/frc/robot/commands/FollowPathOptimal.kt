@@ -6,8 +6,8 @@ import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.utils.flipWhenRed
-import frc.chargers.wpilibextensions.geometry.ofUnit
+import frc.chargers.wpilibextensions.distanceTo
+import frc.chargers.wpilibextensions.flipWhenRed
 import frc.robot.PATHFIND_CONSTRAINTS
 
 
@@ -21,8 +21,8 @@ fun followPathOptimal(
     drivetrain: EncoderHolonomicDrivetrain,
     path: PathPlannerPath
 ): Command = buildCommand(name = "FollowPathOptimal"){
-    val pathStartPose = path.previewStartingHolonomicPose.ofUnit(meters)
-    val pathEndPose = path.pathPoses.last().ofUnit(meters)
+    val pathStartPose = path.previewStartingHolonomicPose
+    val pathEndPose = path.pathPoses.last()
 
     runIf(
         {

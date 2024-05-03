@@ -8,13 +8,13 @@ import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.atan2
 import edu.wpi.first.math.controller.PIDController
+import edu.wpi.first.math.geometry.Pose2d
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.utils.Precision
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.fpgaTimestamp
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 import frc.external.limelight.LimelightHelpers
 import org.photonvision.PhotonCamera
 import kotlin.math.PI
@@ -165,7 +165,7 @@ class AimToObjectRotationOverride (
 
 
 class AimToPoseRotationOverride(
-    private val getTarget: () -> UnitPose2d,
+    private val getTarget: () -> Pose2d,
     private val angleOffset: Angle = Angle(0.0),
     angleToVelocityPID: PIDConstants,
     motionProfile: AngularMotionProfile? = null,
@@ -174,7 +174,7 @@ class AimToPoseRotationOverride(
 ): AimToAngleRotationOverride(
     { drivetrain ->
         val drivetrainToTagTranslation = (getTarget().translation - drivetrain.robotPose.translation)
-        // custom atan2 overload that takes 2 Distances and returns an Angle.
+        // custom atan2 overload that takes 2 Doubles and returns an Angle.
         atan2(drivetrainToTagTranslation.y, drivetrainToTagTranslation.x) + angleOffset
     },
     angleToVelocityPID,

@@ -51,7 +51,7 @@ import kotlin.reflect.KProperty
  *      val value5 by logged(UnitPose2d.struct){ drivetrain.pose }
  * }
  */
-@Suppress("INAPPLICABLE_JVM_NAME", "unused", )
+@Suppress("INAPPLICABLE_JVM_NAME", "unused")
 @OptIn(ExperimentalTypeInference::class)
 interface Loggable {
     /**

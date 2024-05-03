@@ -24,16 +24,15 @@ import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.PoseEstimatingSubsystem
-import frc.chargers.pathplannerextensions.asPathPlannerConstants
 import frc.chargers.utils.Measurement
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.utils.math.units.VoltageRate
 import frc.chargers.utils.math.units.toKmeasure
 import frc.chargers.utils.math.units.toWPI
-import frc.chargers.wpilibextensions.geometry.ofUnit
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitTranslation2d
-import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
+import frc.chargers.wpilibextensions.Rotation2d
+import frc.chargers.wpilibextensions.Translation2d
+import frc.chargers.wpilibextensions.angle
+import frc.chargers.wpilibextensions.asPathPlannerConstants
 import frc.chargers.wpilibextensions.kinematics.*
 import frc.external.frc6328.SwerveSetpointGenerator
 import kotlin.jvm.optionals.getOrNull
@@ -72,16 +71,14 @@ public open class EncoderHolonomicDrivetrain(
             )
         }
 
-    private val moduleTranslationsFromRobotCenter = listOf(
-        UnitTranslation2d(chassisConstants.trackWidth/2,chassisConstants.wheelBase/2),
-        UnitTranslation2d(chassisConstants.trackWidth/2,-chassisConstants.wheelBase/2),
-        UnitTranslation2d(-chassisConstants.trackWidth/2,chassisConstants.wheelBase/2),
-        UnitTranslation2d(-chassisConstants.trackWidth/2,-chassisConstants.wheelBase/2)
+    private val moduleTranslationsFromRobotCenter = arrayOf(
+        Translation2d(chassisConstants.trackWidth/2,chassisConstants.wheelBase/2),
+        Translation2d(chassisConstants.trackWidth/2,-chassisConstants.wheelBase/2),
+        Translation2d(-chassisConstants.trackWidth/2,chassisConstants.wheelBase/2),
+        Translation2d(-chassisConstants.trackWidth/2,-chassisConstants.wheelBase/2)
     )
     // A helper class that stores the characteristics of the drivetrain.
-    private val kinematics = SwerveDriveKinematics(
-        *moduleTranslationsFromRobotCenter.map{ it.inUnit(meters) }.toTypedArray()
-    )
+    private val kinematics = SwerveDriveKinematics(*moduleTranslationsFromRobotCenter)
 
     private val constraints = SwerveSetpointGenerator.ModuleLimits(
         moduleConstants.driveMotorMaxSpeed.siValue,
@@ -90,10 +87,7 @@ public open class EncoderHolonomicDrivetrain(
     )
     // Converts ChassisSpeeds to module states
     // That respect velocity and acceleration constraints.
-    private val setpointGenerator = SwerveSetpointGenerator(
-        kinematics,
-        moduleTranslationsFromRobotCenter.map{ it.inUnit(meters) }.toTypedArray()
-    )
+    private val setpointGenerator = SwerveSetpointGenerator(kinematics, moduleTranslationsFromRobotCenter)
     // The ultimate goal state of the drivetrain; with x, y and rotational velocities.
     private var goal = ChassisSpeeds()
     // The current setpoint of the drivetrain;
@@ -124,7 +118,7 @@ public open class EncoderHolonomicDrivetrain(
     private fun updatePoseEstimation(){
         if (gyro != null){
             poseEstimator.update(
-                gyro.heading.asRotation2d(),
+                Rotation2d(gyro.heading),
                 modulePositions.toTypedArray()
             )
         }else{
@@ -138,7 +132,7 @@ public open class EncoderHolonomicDrivetrain(
             calculatedHeading += kinematics.toTwist2d(*wheelDeltas.toTypedArray()).dtheta.ofUnit(radians)
 
             poseEstimator.update(
-                calculatedHeading.asRotation2d(),
+                Rotation2d(calculatedHeading),
                 modulePositions.toTypedArray()
             )
         }
@@ -152,8 +146,8 @@ public open class EncoderHolonomicDrivetrain(
         )
 
         AutoBuilder.configureHolonomic(
-            { robotPose.inUnit(meters) },
-            { resetPose(it.ofUnit(meters)) },
+            { robotPose },
+            { resetPose(it) },
             { currentSpeeds },
             { speeds ->
                 velocityDrive(speeds, fieldRelative = false)
@@ -175,30 +169,30 @@ public open class EncoderHolonomicDrivetrain(
     /**
      * The current robot pose of the drivetrain.
      */
-    override val robotPose: UnitPose2d
-        get() = poseEstimator.estimatedPosition.ofUnit(meters)
+    override val robotPose: Pose2d
+        get() = poseEstimator.estimatedPosition
 
     /**
      * Resets the drivetrain's pose.
      */
-    final override fun resetPose(pose: UnitPose2d) {
-        calculatedHeading = pose.rotation
+    final override fun resetPose(pose: Pose2d) {
+        calculatedHeading = pose.rotation.angle
         if (gyro is ZeroableHeadingProvider){
-            gyro.zeroHeading(pose.rotation)
+            gyro.zeroHeading(pose.rotation.angle)
             // here, we do not take the gyro heading directly.
             // If we do, we will still be reading the old gyro heading value,
             // as the new(zeroed) value will not be updated until the next loop.
             // In addition, the gyro will be zeroed to the pose's rotation next loop anyway
             poseEstimator.resetPosition(
-                pose.rotation.asRotation2d(),
+                pose.rotation,
                 modulePositions.toTypedArray(),
-                pose.inUnit(meters)
+                pose
             )
         }else{
             poseEstimator.resetPosition(
-                (gyro?.heading ?: calculatedHeading).asRotation2d(),
+                Rotation2d(gyro?.heading ?: calculatedHeading),
                 modulePositions.toTypedArray(),
-                pose.inUnit(meters)
+                pose
             )
         }
     }
@@ -206,7 +200,7 @@ public open class EncoderHolonomicDrivetrain(
     /**
      * Adds a vision measurement to the drivetrain.
      */
-    override fun addVisionMeasurement(measurement: Measurement<UnitPose2d>, stdDevs: Matrix<N3, N1>?) {
+    override fun addVisionMeasurement(measurement: Measurement<Pose2d>, stdDevs: Matrix<N3, N1>?) {
         // rotationSpeed is an extension property that converts
         // omegaRadiansPerSecond to a kmeasure AngularVelocity.
         if (currentSpeeds.rotationSpeed > 720.radians / 1.seconds){
@@ -214,13 +208,13 @@ public open class EncoderHolonomicDrivetrain(
         }else{
             if (stdDevs != null){
                 poseEstimator.addVisionMeasurement(
-                    measurement.value.inUnit(meters),
+                    measurement.value,
                     measurement.timestamp.inUnit(seconds),
                     stdDevs
                 )
             }else{
                 poseEstimator.addVisionMeasurement(
-                    measurement.value.inUnit(meters),
+                    measurement.value,
                     measurement.timestamp.inUnit(seconds)
                 )
             }
@@ -254,7 +248,7 @@ public open class EncoderHolonomicDrivetrain(
     public val distanceTraveled: Distance
         get(){
             val currentPose = robotPose
-            return hypot(currentPose.x, currentPose.y)
+            return hypot(currentPose.x.ofUnit(meters), currentPose.y.ofUnit(meters))
         }
 
     /**
@@ -396,7 +390,7 @@ public open class EncoderHolonomicDrivetrain(
             }else{
                 0.degrees
             }
-            goal = ChassisSpeeds.fromFieldRelativeSpeeds(goal, (heading + allianceFieldRelativeOffset).asRotation2d())
+            goal = ChassisSpeeds.fromFieldRelativeSpeeds(goal, Rotation2d(heading + allianceFieldRelativeOffset))
         }
     }
 
@@ -434,7 +428,7 @@ public open class EncoderHolonomicDrivetrain(
             }else{
                 0.degrees
             }
-            goal = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, (heading + allianceFieldRelativeOffset).asRotation2d())
+            goal = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, Rotation2d(heading + allianceFieldRelativeOffset))
         }else{
             goal = speeds
         }

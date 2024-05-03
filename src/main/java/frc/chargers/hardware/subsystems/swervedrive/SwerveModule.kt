@@ -19,8 +19,8 @@ import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.utils.within
 import frc.chargers.wpilibextensions.Alert
-import frc.chargers.wpilibextensions.geometry.twodimensional.asAngle
-import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
+import frc.chargers.wpilibextensions.Rotation2d
+import frc.chargers.wpilibextensions.angle
 import kotlin.math.abs
 
 class SwerveModule(
@@ -115,13 +115,13 @@ class SwerveModule(
     fun getModuleState(): SwerveModuleState =
         SwerveModuleState(
             driveLinearVelocity.inUnit(meters / seconds),
-            direction.asRotation2d()
+            Rotation2d(direction)
         )
 
     fun getModulePosition(): SwerveModulePosition =
         SwerveModulePosition(
             wheelTravel.inUnit(meters),
-            direction.asRotation2d()
+            Rotation2d(direction)
         )
 
     fun setDriveVoltage(target: Voltage){
@@ -203,14 +203,14 @@ class SwerveModule(
     }
 
     fun setDesiredStateOpenLoop(state: SwerveModuleState){
-        val directionAsRotation2d = direction.asRotation2d()
+        val directionAsRotation2d = Rotation2d(direction)
         val optimizedState = SwerveModuleState.optimize(state, directionAsRotation2d)
 
         optimizedState.speedMetersPerSecond *= abs(
             (optimizedState.angle - directionAsRotation2d).cos
         )
 
-        setDirection(optimizedState.angle.asAngle())
+        setDirection(optimizedState.angle.angle)
         setDriveVoltage(
             (optimizedState.speedMetersPerSecond /
                     moduleConstants.driveMotorMaxSpeed.inUnit(meters / seconds) *
@@ -219,10 +219,10 @@ class SwerveModule(
     }
 
     fun setDesiredStateClosedLoop(state: SwerveModuleState){
-        val directionAsRotation2d = direction.asRotation2d()
+        val directionAsRotation2d = Rotation2d(direction)
         val optimizedState = SwerveModuleState.optimize(state, directionAsRotation2d)
 
-        setDirection(optimizedState.angle.asAngle())
+        setDirection(optimizedState.angle.angle)
 
         val velocitySetpoint = optimizedState.speedMetersPerSecond.ofUnit(meters / seconds) / wheelRadius
 

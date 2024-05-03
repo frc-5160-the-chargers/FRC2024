@@ -1,13 +1,21 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
-package frc.chargers.pathplannerextensions
+package frc.chargers.wpilibextensions
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
+import com.pathplanner.lib.path.GoalEndState
 import com.pathplanner.lib.path.PathConstraints
+import frc.chargers.controls.pid.PIDConstants
 
-public fun PathConstraints(
+fun GoalEndState(
+    velocity: Velocity,
+    rotation: Angle
+): GoalEndState = GoalEndState(
+    velocity.inUnit(meters / seconds), Rotation2d(rotation)
+)
+
+fun PathConstraints(
     maxLinearVelocity: Velocity,
     maxLinearAcceleration: Acceleration,
     maxAngularVelocity: AngularVelocity,
@@ -18,3 +26,9 @@ public fun PathConstraints(
     maxAngularVelocity.inUnit(radians / seconds),
     maxAngularAcceleration.inUnit(radians / seconds / seconds)
 )
+
+/**
+ * Converts ChargerLib PID constants to pathplanner PID constants.
+ */
+fun PIDConstants.asPathPlannerConstants(): com.pathplanner.lib.util.PIDConstants =
+    com.pathplanner.lib.util.PIDConstants(kP, kI, kD)

@@ -21,7 +21,7 @@ import frc.chargers.framework.SuperSubsystem
 import frc.chargers.hardware.motorcontrol.MotorizedComponent
 import frc.chargers.utils.Precision
 import frc.chargers.utils.within
-import frc.chargers.wpilibextensions.geometry.threedimensional.Rotation3d
+import frc.chargers.wpilibextensions.Rotation3d
 
 
 private val STARTING_TRANSLATION_PIVOT_SIM = Translation3d(-0.32, 0.0, 0.72)

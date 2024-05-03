@@ -4,14 +4,14 @@ import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.path.PathPlannerPath
+import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.BuildCommandScope
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
-import frc.chargers.utils.flipWhenRed
-import frc.chargers.wpilibextensions.geometry.ofUnit
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
+import frc.chargers.wpilibextensions.distanceTo
+import frc.chargers.wpilibextensions.flipWhenRed
 import frc.robot.RotationOverrides
 import frc.robot.subsystems.GroundIntakeSerializer
 import frc.robot.subsystems.NoteObserver
@@ -116,7 +116,7 @@ class AutoCommandManager(
                 // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
                 // along the path.
                 runSequentially{
-                    val grabPathStartPose = path.pathPoses.last().ofUnit(meters).flipWhenRed()
+                    val grabPathStartPose = path.pathPoses.last().flipWhenRed()
 
                     waitUntil{ drivetrain.robotPose.distanceTo(grabPathStartPose) < 0.8.meters }
 
@@ -185,7 +185,7 @@ class AutoCommandManager(
         +shootInAmp(noteObserver, shooter, pivot)
     }
 
-    private fun speakerAutoStartup(blueStartingPose: UnitPose2d): Command = buildCommand{
+    private fun speakerAutoStartup(blueStartingPose: Pose2d): Command = buildCommand{
         runOnce{
             drivetrain.resetPose(blueStartingPose.flipWhenRed())
         }

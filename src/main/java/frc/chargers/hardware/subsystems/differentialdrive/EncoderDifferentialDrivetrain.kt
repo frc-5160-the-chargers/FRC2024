@@ -25,9 +25,8 @@ import frc.chargers.hardware.sensors.imu.gyroscopes.HeadingProvider
 import frc.chargers.hardware.sensors.imu.gyroscopes.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.PoseEstimatingSubsystem
 import frc.chargers.utils.Measurement
-import frc.chargers.wpilibextensions.geometry.ofUnit
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
-import frc.chargers.wpilibextensions.geometry.twodimensional.asRotation2d
+import frc.chargers.wpilibextensions.Rotation2d
+import frc.chargers.wpilibextensions.angle
 import frc.chargers.wpilibextensions.kinematics.ChassisSpeeds
 import kotlin.jvm.optionals.getOrNull
 
@@ -121,8 +120,8 @@ public open class EncoderDifferentialDrivetrain(
         when (constants.pathAlgorithm){
             DifferentialDriveConstants.PathAlgorithm.LTV -> {
                 AutoBuilder.configureLTV(
-                    { robotPose.inUnit(meters) },
-                    { resetPose(it.ofUnit(meters)) },
+                    { robotPose },
+                    { resetPose(it) },
                     { currentSpeeds },
                     { speeds: ChassisSpeeds -> velocityDrive(speeds) },
                     ChargerRobot.LOOP_PERIOD.inUnit(seconds),
@@ -134,8 +133,8 @@ public open class EncoderDifferentialDrivetrain(
 
             DifferentialDriveConstants.PathAlgorithm.RAMSETE -> {
                 AutoBuilder.configureRamsete(
-                    { robotPose.inUnit(meters) },
-                    { resetPose(it.ofUnit(meters)) },
+                    { robotPose },
+                    { resetPose(it) },
                     { currentSpeeds },
                     { speeds: ChassisSpeeds -> velocityDrive(speeds) },
                     constants.pathReplanningConfig,
@@ -194,28 +193,28 @@ public open class EncoderDifferentialDrivetrain(
     /**
      * The current pose of the robot.
      */
-    override val robotPose: UnitPose2d
-        get() = poseEstimator.estimatedPosition.ofUnit(meters)
+    override val robotPose: Pose2d
+        get() = poseEstimator.estimatedPosition
 
     /**
      * Resets the robot pose to a certain value.
      */
-    override fun resetPose(pose: UnitPose2d) {
+    override fun resetPose(pose: Pose2d) {
         if (gyro is ZeroableHeadingProvider){
-            gyro.zeroHeading(pose.rotation)
+            gyro.zeroHeading(pose.rotation.angle)
             // uses pose rotation since gyro is going to be zeroed
             poseEstimator.resetPosition(
-                pose.rotation.asRotation2d(),
+                pose.rotation,
                 leftWheelTravel.siValue,
                 rightWheelTravel.siValue,
-                pose.inUnit(meters)
+                pose
             )
         }else{
             poseEstimator.resetPosition(
-                (gyro?.heading ?: this.heading).asRotation2d(),
+                Rotation2d(gyro?.heading ?: this.heading),
                 leftWheelTravel.siValue,
                 rightWheelTravel.siValue,
-                pose.inUnit(meters)
+                pose
             )
         }
     }
@@ -223,16 +222,16 @@ public open class EncoderDifferentialDrivetrain(
     /**
      * Adds a vision measurement to the drivetrain's pose estimator.
      */
-    override fun addVisionMeasurement(measurement: Measurement<UnitPose2d>, stdDevs: Matrix<N3, N1>?) {
+    override fun addVisionMeasurement(measurement: Measurement<Pose2d>, stdDevs: Matrix<N3, N1>?) {
         if (stdDevs != null){
             poseEstimator.addVisionMeasurement(
-                measurement.value.inUnit(meters),
+                measurement.value,
                 measurement.timestamp.inUnit(seconds),
                 stdDevs
             )
         }else{
             poseEstimator.addVisionMeasurement(
-                measurement.value.inUnit(meters),
+                measurement.value,
                 measurement.timestamp.inUnit(seconds)
             )
         }
@@ -287,7 +286,7 @@ public open class EncoderDifferentialDrivetrain(
 
     override fun periodic(){
         poseEstimator.update(
-            (gyro?.heading ?: this.heading).asRotation2d(),
+            Rotation2d(gyro?.heading ?: this.heading),
             leftWheelTravel.siValue,
             rightWheelTravel.siValue,
         )

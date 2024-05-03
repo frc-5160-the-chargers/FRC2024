@@ -32,6 +32,7 @@ import frc.robot.inputdevices.DriverController
 
 class CompetitionRobot: ChargerRobot(){
     override val logToFileOnly = DriverStation.isFMSAttached()
+    override val logFileName = "Testing.wpilog"
 
     val gyro = ChargerNavX()
 
@@ -114,7 +115,10 @@ class CompetitionRobot: ChargerRobot(){
 
         setDefaultCommands()
         setButtonBindings()
-        setAutonomousCommand()
+
+        autonomous().whileTrue(
+            AutoBuilder.followPath(PathPlannerPath.fromPathFile("RandomStuff"))
+        )
     }
 
     override fun robotPeriodic() {
@@ -128,13 +132,7 @@ class CompetitionRobot: ChargerRobot(){
         }
     }
 
-    private fun setButtonBindings(){
+    private fun setButtonBindings() {
 
-    }
-
-    private fun setAutonomousCommand(){
-        autonomous().whileTrue(
-            AutoBuilder.followPath(PathPlannerPath.fromPathFile("RandomStuff"))
-        )
     }
 }

@@ -27,8 +27,10 @@ public fun ChassisSpeeds(xVelocity: Velocity, yVelocity: Velocity, rotationalVel
 
 public val ChassisSpeeds.xVelocity: Velocity
     get() = vxMetersPerSecond.ofUnit(meters/seconds)
+
 public val ChassisSpeeds.yVelocity: Velocity
     get() = vyMetersPerSecond.ofUnit(meters/seconds)
+
 public val ChassisSpeeds.rotationSpeed: AngularVelocity
     get() = omegaRadiansPerSecond.ofUnit(radians/seconds)
 

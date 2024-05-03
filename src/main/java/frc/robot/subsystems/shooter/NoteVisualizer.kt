@@ -2,7 +2,6 @@
 package frc.robot.subsystems.shooter
 
 import com.batterystaple.kmeasure.quantities.Voltage
-import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.geometry.*
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.DriverStation.Alliance
@@ -14,7 +13,6 @@ import edu.wpi.first.wpilibj2.command.InstantCommand
 import edu.wpi.first.wpilibj2.command.ScheduleCommand
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.Loggable
-import frc.chargers.wpilibextensions.geometry.twodimensional.UnitPose2d
 
 // http://github.com/Mechanical-Advantage
 //
@@ -68,8 +66,8 @@ object NoteVisualizer: Loggable {
         }
     }
 
-    fun setRobotPoseSupplier(supplier: () -> UnitPose2d){
-        robotPoseSupplier = { supplier().inUnit(meters) }
+    fun setRobotPoseSupplier(supplier: () -> Pose2d){
+        robotPoseSupplier = supplier
     }
 
     // regular pose3d as that is whats being logged

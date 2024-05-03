@@ -86,7 +86,6 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
     private val gcBeans: List<GarbageCollectorMXBean> = ManagementFactory.getGarbageCollectorMXBeans()
     private val lastTimes = LongArray(gcBeans.size)
     private val lastCounts = LongArray(gcBeans.size)
-
     private fun logGcData(){
         var accumTime: Long = 0
         var accumCounts: Long = 0
@@ -103,14 +102,12 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
         log("GCTimeMS", accumTime.toDouble())
         log("GCCounts", accumCounts.toDouble())
     }
+    private val commandScheduler = CommandScheduler.getInstance()
 
     open val tuningMode: Boolean = false
-
     open val logFileFolder: String get() = if (isReal()) "/U/logs" else "logs"
     open val logFileName: String? = null
-
     open val logToFileOnly: Boolean = false
-
 
     init{
         val fileName = logFileName
@@ -167,22 +164,24 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(), Logg
 
 
     override fun robotPeriodic() {
-        if (highFrequencyPeriodicRunnables.size > 0){
-            for (runnable in highFrequencyPeriodicRunnables){
-                addPeriodic(
-                    runnable.toRun,
-                    runnable.period.inUnit(seconds),
-                    0.005
-                )
+        logLatency("MeasuredLoopTime"){
+            if (highFrequencyPeriodicRunnables.size > 0){
+                for (runnable in highFrequencyPeriodicRunnables){
+                    addPeriodic(
+                        runnable.toRun,
+                        runnable.period.inUnit(seconds),
+                        0.005
+                    )
+                }
+                highFrequencyPeriodicRunnables.clear()
             }
-            highFrequencyPeriodicRunnables.clear()
+
+            periodicRunnables.forEach{ it() }
+            // Runs the Command Scheduler; polling buttons and scheduling commands.
+            commandScheduler.run()
+            lowPriorityPeriodicRunnables.forEach { it() }
+
+            logGcData()
         }
-
-        periodicRunnables.forEach{ it() }
-        // Runs the Command Scheduler; polling buttons and scheduling commands.
-        CommandScheduler.getInstance().run()
-        lowPriorityPeriodicRunnables.forEach { it() }
-
-        logGcData()
     }
 }

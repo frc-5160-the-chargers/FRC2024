@@ -7,9 +7,10 @@ import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
+import com.pathplanner.lib.path.PathConstraints
 import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.pathplannerextensions.PathConstraints
 import frc.chargers.wpilibextensions.Alert
+import frc.chargers.wpilibextensions.PathConstraints
 
 /*
 This file stores all global constants on the robot
@@ -35,7 +36,8 @@ Motors, and their respective configuration(RobotContainer)
 
 const val ODOMETRY_UPDATE_FREQUENCY_HZ = 200.0
 
-val PATHFIND_CONSTRAINTS = PathConstraints(
+// custom PathConstraints overload that uses kmeasure quanitites
+val PATHFIND_CONSTRAINTS: PathConstraints = PathConstraints(
     Velocity(4.0),
     Acceleration(4.0),
     500.degrees / 1.seconds,

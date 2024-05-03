@@ -1,4 +1,4 @@
-package frc.chargers.utils.encoding
+package frc.chargers.utils.struct
 
 import java.nio.ByteBuffer
 
