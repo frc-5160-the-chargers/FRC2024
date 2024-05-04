@@ -19,8 +19,8 @@ private val CLOSED_LOOP_SPEAKER_SHOOT_SPEED = AngularVelocity(0.0) // tbd; shoul
 class Shooter(
     private val motor: MotorizedComponent,
     private val gearRatio: Double,
-    private val shootingFFEquation: AngularMotorFFEquation,
-    private val shootingPID: PIDConstants,
+    private val shootingFFEquation: AngularMotorFFEquation = AngularMotorFFEquation(0, 0, 0),
+    private val shootingPID: PIDConstants = PIDConstants(0,0,0),
     private val closedLoopSpeakerShooting: Boolean = true,
 ): SuperSubsystem("Shooter") {
     private var wasShootingInSpeaker = false

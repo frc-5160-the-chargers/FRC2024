@@ -25,13 +25,12 @@ public class DriverCameraView(
             .getTable("")
             .getEntry("CameraSelection")
 
-
     public fun switchToCamera(index: Int){
         cameraSelector.setString(driverCameras[index].name)
     }
 
-    public fun setResolutionOf(index: Int, width: Int, height: Int){
-        driverCameras[index].setResolution(width, height)
+    public fun setResolutionOf(cameraIndex: Int, width: Int, height: Int){
+        driverCameras[cameraIndex].setResolution(width, height)
     }
 
     public fun setResolution(width: Int, height: Int){

@@ -36,7 +36,9 @@ abstract class PoseEstimatingSubsystem(namespace: String): SuperSubsystem(namesp
     abstract fun addVisionMeasurement(measurement: Measurement<Pose2d>, stdDevs: Matrix<N3, N1>? = null)
 
 
-
+    /**
+     * Adds a vision pose measurement; calculating pose standard deviation from camera yaw.
+     */
     fun addVisionMeasurement(measurement: Measurement<Pose2d>, cameraYaw: Angle){
         addVisionMeasurement(
             measurement,
@@ -48,7 +50,10 @@ abstract class PoseEstimatingSubsystem(namespace: String): SuperSubsystem(namesp
         )
     }
 
-    fun enablePhotonPoseEstimation(
+    /**
+     * Registers a photon camera for vision pose estimation.
+     */
+    fun addPhotonPoseSupplier(
         photonCam: PhotonCamera,
         robotToCamera: Transform3d,
         poseStrategy: PoseStrategy = PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR
@@ -79,13 +84,13 @@ abstract class PoseEstimatingSubsystem(namespace: String): SuperSubsystem(namesp
     }
 
     /**
-     * Precondition: If useMegaTag2 is enabled, you must call
+     * Registers a limelight for vision pose estimation.
      *
-     * LimelightHelpers.setRobotOrientation periodically.
+     * Precondition: If useMegaTag2 is enabled, you must call LimelightHelpers.setRobotOrientation periodically.
      * This can be accomplished via gyro.broadcastOrientationForMegaTag2(),
      * where the gyro can be a [frc.chargers.hardware.sensors.imu.ChargerNavX] or a [frc.chargers.hardware.sensors.imu.ChargerPigeon2].
      */
-    fun enableLimelightPoseEstimation(
+    fun addLimelightPoseSupplier(
         camName: String,
         robotToCamera: Transform3d,
         useMegaTag2: Boolean

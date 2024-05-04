@@ -7,6 +7,7 @@ import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import edu.wpi.first.wpilibj.DigitalInput
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import frc.chargers.framework.SuperSubsystem
 import org.photonvision.PhotonCamera
@@ -43,20 +44,14 @@ class NoteObserver(
                 log("NoteDetection/DistanceToNoteMeters", 0.0)
             }
 
-            log("CurrentState", state.javaClass.simpleName)
+            log("CurrentState", state.toString())
         }
 
-    val noteInRobot: Boolean by logged{
-        state == State.NoteInSerializer || state == State.NoteInShooter
-    }
+    val noteInRobot: Boolean by logged{ state == State.NoteInSerializer || state == State.NoteInShooter }
 
-    val hasGroundIntakeSensor: Boolean by logged{
-        groundIntakeSensor != null
-    }
+    val hasGroundIntakeSensor: Boolean by logged(groundIntakeSensor != null && RobotBase.isReal())
 
-    val hasCamera: Boolean by logged{
-        noteDetectorCamera != null
-    }
+    val hasCamera: Boolean by logged(noteDetectorCamera != null && RobotBase.isReal())
 
     override fun periodic() {
         if (isSimulation()){

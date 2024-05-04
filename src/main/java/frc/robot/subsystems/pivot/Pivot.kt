@@ -11,12 +11,14 @@ import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.feedforward.ArmFFEquation
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.pid.PIDConstants
+import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.framework.SuperSubsystem
 import frc.chargers.hardware.motorcontrol.MotorizedComponent
 import frc.chargers.utils.Precision
@@ -30,9 +32,9 @@ private val STARTING_TRANSLATION_PIVOT_SIM = Translation3d(-0.32, 0.0, 0.72)
 @Suppress("unused")
 class Pivot(
     private val motor: MotorizedComponent,
-    private val gearRatio: Double,
     private val encoderType: PivotEncoderType,
 
+    private val useOnboardPID: Boolean = false,
     private val pidConstants: PIDConstants,
     // null indicates no motion profile
     private val motionProfile: AngularMotionProfile? = null,
@@ -43,6 +45,14 @@ class Pivot(
     private val reverseSoftStop: Angle? = null
 ): SuperSubsystem("Pivot") {
     private var offset by logged(0.degrees, "AngleReadingOffset")
+
+    private val rioController = SuperPIDController(
+        pidConstants,
+        getInput = { angle },
+        target = 0.degrees,
+        outputRange = (-12).volts..12.volts,
+        selfSustain = !useOnboardPID
+    )
 
     val angle: Angle by logged{
         when (encoderType){
@@ -73,6 +83,8 @@ class Pivot(
         }
     }
 
+    private val startingAngle = angle
+
     private var motionProfileSetpoint = AngularMotionProfileState(angle)
 
     private fun willExceedSoftStop(movingForward: Boolean): Boolean =
@@ -102,8 +114,8 @@ class Pivot(
 
     fun setSpeed(speed: Double) = setVoltage(speed * 12.volts)
 
-    fun setAngle(angle: Angle){
-        if (willExceedSoftStop(movingForward = angle > angle)){
+    fun setAngle(target: Angle){
+        if (willExceedSoftStop(movingForward = this.angle > target)){
             motor.appliedVoltage = 0.volts
             atTarget = true
             return
@@ -116,25 +128,33 @@ class Pivot(
             motionProfileSetpoint = motionProfile.calculate(
                 0.02.seconds,
                 motionProfileSetpoint,
-                AngularMotionProfileState(angle)
+                AngularMotionProfileState(target)
             )
             setpointPosition = motionProfileSetpoint.position
-            feedforward = feedforward(angle, motionProfileSetpoint.velocity)
-            log("Control/MotionProfileGoal", angle)
+            feedforward = feedforward(target, motionProfileSetpoint.velocity)
+            log("Control/MotionProfileGoal", target)
         }else{
-            setpointPosition = angle
+            setpointPosition = target
             feedforward = 0.volts
         }
         log("Control/Setpoint", setpointPosition)
         log("Control/FeedForward", feedforward)
 
-        atTarget = (angle - this.angle).within(precision)
 
-        motor.setPositionSetpoint(
-            rawPosition = setpointPosition * gearRatio,
-            pidConstants,
-            feedforward = feedforward
-        )
+        val angleDelta = target - this.angle
+        atTarget = angleDelta.within(precision)
+
+        if (useOnboardPID || RobotBase.isSimulation()){
+            rioController.constants = pidConstants
+            setVoltage(rioController.calculateOutput(target) + feedforward)
+        }else{
+            val rawPIDTarget = when (encoderType){
+                is PivotEncoderType.IntegratedAbsoluteEncoder -> target
+                is PivotEncoderType.ExternalAbsoluteEncoder -> startingAngle + angleDelta * encoderType.motorGearRatio
+                is PivotEncoderType.IntegratedRelativeEncoder -> target * encoderType.motorGearRatio
+            }
+            motor.setPositionSetpoint(rawPIDTarget, pidConstants, feedforward = feedforward)
+        }
     }
 
     fun setAngleCommand(target: Angle): Command =

@@ -231,6 +231,9 @@
         },
         "open": true
       },
+      "NavX": {
+        "open": true
+      },
       "PathPlanner": {
         "double[]##v_/PathPlanner/currentPose": {
           "open": true
