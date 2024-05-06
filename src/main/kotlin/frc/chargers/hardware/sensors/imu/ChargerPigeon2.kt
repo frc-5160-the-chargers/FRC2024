@@ -38,7 +38,8 @@ public inline fun ChargerPigeon2(
  *
  * @see ChargerPigeon2Configuration
  */
-public class ChargerPigeon2(
+@Suppress("LeakingThis")
+public open class ChargerPigeon2(
     canId: Int,
     canBus: String = "rio",
     factoryDefault: Boolean = true,

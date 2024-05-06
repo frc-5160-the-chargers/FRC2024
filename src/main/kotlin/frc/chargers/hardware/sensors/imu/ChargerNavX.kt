@@ -15,7 +15,8 @@ import frc.chargers.wpilibextensions.kinematics.yVelocity
 import frc.external.limelight.LimelightHelpers
 
 
-public class ChargerNavX(
+@Suppress("LeakingThis")
+public open class ChargerNavX(
     private val useFusedHeading: Boolean = false,
     public val ahrs: AHRS = AHRS(),
 ): ZeroableHeadingProvider, Loggable {
