@@ -12,11 +12,9 @@ import com.ctre.phoenix6.controls.PositionVoltage
 import com.ctre.phoenix6.controls.VelocityVoltage
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
-import edu.wpi.first.wpilibj.RobotBase
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
-import frc.chargers.hardware.configuration.safeConfigure
 import frc.chargers.hardware.motorcontrol.MotorizedComponent
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
 import frc.chargers.utils.math.inputModulus
@@ -89,25 +87,10 @@ public class ChargerTalonFX(
     private val talonFXFollowers: MutableSet<TalonFX> = mutableSetOf()
     private val otherFollowers: MutableSet<MotorizedComponent> = mutableSetOf()
 
-    private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
-    private var configAppliedProperly = true
-
     private val voltageSignal = supplyVoltage
     private val currentSignal = getStatorCurrent()
     private val tempSignal = deviceTemp
     private val followRequest = Follower(deviceID, false)
-
-    private fun StatusCode.updateErrorStatus(): StatusCode {
-        if (this != StatusCode.OK){
-            if (RobotBase.isSimulation()){
-                println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
-            }else{
-                allConfigErrors.add(this)
-                configAppliedProperly = false
-            }
-        }
-        return this
-    }
 
     init{
         val baseConfig = TalonFXConfiguration()
@@ -254,33 +237,25 @@ public class ChargerTalonFX(
 
 
     public fun configure(configuration: ChargerTalonFXConfiguration, baseTalonFXConfiguration: TalonFXConfiguration){
-        configAppliedProperly = true
-        safeConfigure(
-            deviceName = "ChargerTalonFX(id = $deviceID)",
-            getErrorInfo = {"All Recorded Errors: $allConfigErrors"}
-        ){
-            allConfigErrors.clear()
-            applyChanges(baseTalonFXConfiguration, configuration)
-            configurator.apply(baseTalonFXConfiguration,0.02).updateErrorStatus()
+        applyChanges(baseTalonFXConfiguration, configuration)
+        configurator.apply(baseTalonFXConfiguration,0.02)
 
-            configuration.apply{
-                positionUpdateFrequency?.let{
-                    position.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-                }
-
-                velocityUpdateFrequency?.let{
-                    velocity.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-                }
-
-                motorOutputUpdateFrequency?.let{
-                    voltageSignal.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-                }
-
-                currentUpdateFrequency?.let{
-                    currentSignal.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-                }
+        configuration.apply{
+            positionUpdateFrequency?.let{
+                position.setUpdateFrequency(it.inUnit(hertz))
             }
-            return@safeConfigure configAppliedProperly
+
+            velocityUpdateFrequency?.let{
+                velocity.setUpdateFrequency(it.inUnit(hertz))
+            }
+
+            motorOutputUpdateFrequency?.let{
+                voltageSignal.setUpdateFrequency(it.inUnit(hertz))
+            }
+
+            currentUpdateFrequency?.let{
+                currentSignal.setUpdateFrequency(it.inUnit(hertz))
+            }
         }
     }
 }

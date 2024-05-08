@@ -29,6 +29,7 @@ import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.angle
 import frc.chargers.wpilibextensions.kinematics.ChassisSpeeds
 import kotlin.jvm.optionals.getOrNull
+import kotlin.reflect.full.primaryConstructor
 
 /**
  * A convenience function to create an [EncoderDifferentialDrivetrain]
@@ -47,8 +48,9 @@ inline fun <M, reified C : HardwareConfiguration> EncoderDifferentialDrivetrain(
     gyro: HeadingProvider? = null,
     configure: C.() -> Unit
 ): EncoderDifferentialDrivetrain where M: MotorizedComponent, M: HardwareConfigurable<C> {
+    val primaryConstructor = C::class.primaryConstructor ?: error("The configuration class " + C::class.simpleName + " must have a constructor.")
     try{
-        val configuration = C::class.constructors.first().call().apply{ configure() }
+        val configuration = primaryConstructor.callBy(emptyMap()).apply(configure)
 
         topLeft.configure(configuration)
         topRight.configure(configuration)
@@ -57,7 +59,10 @@ inline fun <M, reified C : HardwareConfiguration> EncoderDifferentialDrivetrain(
 
         return EncoderDifferentialDrivetrain(logName, topLeft, topRight, bottomLeft, bottomRight, constants, gyro)
     }catch(e: Exception){
-        error("It looks like your configuration class does not have a no-args constructor. This is not allowed.")
+        error(
+            "A configuration class must have a primary constructor with only default parameters; " +
+            "however, " + C::class.simpleName + " does not."
+        )
     }
 }
 
@@ -285,6 +290,9 @@ public open class EncoderDifferentialDrivetrain(
 
 
     override fun periodic(){
+        if (DriverStation.isDisabled()){
+            stop()
+        }
         poseEstimator.update(
             Rotation2d(gyro?.heading ?: this.heading),
             leftWheelTravel.siValue,

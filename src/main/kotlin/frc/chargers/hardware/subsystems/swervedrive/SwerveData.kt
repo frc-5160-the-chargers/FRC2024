@@ -2,6 +2,7 @@ package frc.chargers.hardware.subsystems.swervedrive
 
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
+import kotlin.reflect.full.primaryConstructor
 
 /**
  * Creates a [SwerveData] instance, where all members can be configured.
@@ -15,8 +16,9 @@ inline fun <reified C: HardwareConfiguration, T: HardwareConfigurable<C>> Swerve
     bottomRight: T,
     configure: C.() -> Unit
 ): SwerveData<T> {
+    val primaryConstructor = C::class.primaryConstructor ?: error("The configuration class " + C::class.simpleName + " must have a constructor.")
     try{
-        val configuration = C::class.constructors.first().call().apply{ configure() }
+        val configuration = primaryConstructor.callBy(emptyMap()).apply(configure)
 
         topLeft.configure(configuration)
         topRight.configure(configuration)
@@ -25,7 +27,10 @@ inline fun <reified C: HardwareConfiguration, T: HardwareConfigurable<C>> Swerve
 
         return SwerveData(topLeft, topRight, bottomLeft, bottomRight)
     }catch(e: Exception){
-        error("It looks like the configuration class " + C::class.simpleName + " does not have a no-args constructor. All configuration classes must idiomatically have a no-args constructor.")
+        error(
+            "A configuration class must have a primary constructor with only default parameters; " +
+            "however, " + C::class.simpleName + " does not."
+        )
     }
 }
 

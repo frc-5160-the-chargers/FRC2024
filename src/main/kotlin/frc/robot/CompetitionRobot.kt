@@ -1,9 +1,6 @@
 package frc.robot
 
-import com.batterystaple.kmeasure.quantities.AngularAcceleration
-import com.batterystaple.kmeasure.quantities.AngularVelocity
-import com.batterystaple.kmeasure.quantities.ofUnit
-import com.batterystaple.kmeasure.quantities.times
+import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix6.signals.NeutralModeValue
 import com.pathplanner.lib.auto.AutoBuilder
@@ -14,7 +11,10 @@ import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.PowerDistribution
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
+import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
+import frc.chargers.commands.InstantCommand
+import frc.chargers.commands.RunCommand
 import frc.chargers.commands.setDefaultRunCommand
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
@@ -34,15 +34,24 @@ import frc.chargers.hardware.sensors.imu.IMUSimulation
 import frc.chargers.hardware.sensors.withOffset
 import frc.chargers.hardware.subsystems.swervedrive.*
 import frc.chargers.utils.Precision
+import frc.robot.commands.noteIntakeDriverAssist
+import frc.robot.commands.passSerializedNote
+import frc.robot.commands.shootInSpeaker
 import frc.robot.inputdevices.DriverController
+import frc.robot.inputdevices.OperatorInterface
 import frc.robot.subsystems.Climber
 import frc.robot.subsystems.GroundIntakeSerializer
 import frc.robot.subsystems.NoteObserver
 import frc.robot.subsystems.pivot.Pivot
+import frc.robot.subsystems.pivot.PivotAngle
 import frc.robot.subsystems.pivot.PivotEncoderType
 import frc.robot.subsystems.shooter.Shooter
 import org.photonvision.PhotonCamera
+import kotlin.jvm.optionals.getOrNull
 
+/**
+ * Our competition robot; rigatoni.
+ */
 @Suppress("unused")
 class CompetitionRobot: ChargerRobot(){
     val gyro = ChargerNavX()
@@ -137,9 +146,7 @@ class CompetitionRobot: ChargerRobot(){
             MotorSim(DCMotor.getNEO(1))
         }else{
             ChargerSparkMax(CONVEYOR_ID){
-                periodicFrameConfig = PeriodicFrameConfig.Optimized(
-                    utilizedData = listOf(MotorData.VELOCITY, MotorData.VOLTAGE, MotorData.TEMPERATURE)
-                )
+                periodicFrameConfig = PeriodicFrameConfig.Optimized(utilizedData = listOf(MotorData.VELOCITY, MotorData.VOLTAGE))
                 inverted = true
                 smartCurrentLimit = SmartCurrentLimit(45.amps)
             }
@@ -207,18 +214,124 @@ class CompetitionRobot: ChargerRobot(){
         )
     }
 
-    override fun robotPeriodic() {
-        super.robotPeriodic()
-        gyro.broadcastOrientationForMegaTag2("Limelight2Main")
-    }
-
     private fun setDefaultCommands(){
         drivetrain.setDefaultRunCommand{
             drivetrain.swerveDrive(DriverController.swerveOutput)
         }
+
+        shooter.setDefaultRunCommand{
+            val speed = OperatorInterface.shooterSpeedAxis()
+            if (speed > 0.0 && noteObserver.noteInRobot){
+                setIdle()
+            }else{
+                setSpeed(speed)
+            }
+        }
+
+        pivot.setDefaultRunCommand(endBehavior = { pivot.setIdle() }){
+            setSpeed(OperatorInterface.pivotSpeedAxis())
+        }
+
+        climber.setDefaultRunCommand{
+            if (DriverController.climbersUpTrigger.asBoolean){
+                moveLeftHook(1.0)
+                moveRightHook(1.0)
+            }else if (DriverController.climbersDownTrigger.asBoolean){
+                moveLeftHook(-1.0)
+                moveRightHook(-1.0)
+            }else{
+                setIdle()
+            }
+        }
+
+        groundIntake.setDefaultRunCommand{ setIdle() }
     }
 
     private fun setButtonBindings() {
+        fun resetAimToAngle() = InstantCommand{
+            drivetrain.removeRotationOverride()
+        }
 
+        fun targetAngle(heading: Angle) = InstantCommand{
+            // used to make pivot side the front instead of the ground intake side
+            val targetAngleOffset = 180.degrees
+
+            val allianceAngleCompensation = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
+                180.degrees
+            } else {
+                0.degrees
+            }
+
+            drivetrain.setRotationOverride(
+                AimToAngleRotationOverride(
+                    { heading + allianceAngleCompensation + targetAngleOffset },
+                    ANGLE_TO_ROTATIONAL_VELOCITY_PID
+                )
+            )
+        }
+
+        DriverController.apply{
+            pointNorthTrigger.onTrue(targetAngle(0.degrees)).onFalse(resetAimToAngle())
+
+            pointEastTrigger.onTrue(targetAngle(-90.degrees)).onFalse(resetAimToAngle())
+
+            pointSouthTrigger.onTrue(targetAngle(-180.degrees)).onFalse(resetAimToAngle())
+
+            pointWestTrigger.onTrue(targetAngle(-270.degrees)).onFalse(resetAimToAngle())
+
+            zeroHeadingTrigger.onTrue(InstantCommand{ gyro.zeroHeading(180.degrees) })
+
+            driveToNoteAssistTrigger.whileTrue(noteIntakeDriverAssist(drivetrain, noteObserver))
+        }
+
+        // loopCommand and runOnceCommand are wrappers around RunCommand and InstantCommand
+        // which allows for outer lambda block syntax
+        OperatorInterface.apply{
+            groundIntakeTrigger.whileTrue(
+                RunCommand(groundIntake){ groundIntake.intake() }
+            )
+
+            groundOuttakeTrigger.whileTrue(
+                RunCommand(groundIntake, shooter){
+                    groundIntake.outtake()
+                    shooter.setVoltage((-6).volts)
+                }
+            )
+
+            passToShooterTrigger.whileTrue(passSerializedNote(noteObserver, groundIntake, shooter))
+
+            spinUpShooterTrigger.whileTrue(
+                RunCommand(shooter, pivot){
+                    shooter.outtakeAtSpeakerSpeed()
+                    pivot.setAngle(PivotAngle.SPEAKER)
+                }
+            )
+
+            shootInSpeakerTrigger.whileTrue(
+                shootInSpeaker(noteObserver, shooter, groundIntake, pivot, shooterSpinUpTime = 0.3.seconds)
+            )
+
+            // when only held, the buttons will just cause the pivot to PID to the appropriate position
+            // interrupt behavior set as to prevent command scheduling conflicts
+            ampPositionTrigger.whileTrue(
+                pivot
+                    .setAngleCommand(PivotAngle.AMP)
+                    .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+            )
+
+            sourcePositionTrigger.whileTrue(
+                pivot
+                    .setAngleCommand(PivotAngle.SOURCE)
+                    .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+            )
+
+            stowPivotTrigger.whileTrue(pivot.setAngleCommand(PivotAngle.STOWED))
+
+            y().whileTrue(
+                RunCommand(shooter){
+                    shooter.outtakeAtSpeakerSpeed()
+                }
+            )
+        }
     }
 }

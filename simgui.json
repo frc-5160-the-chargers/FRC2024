@@ -210,6 +210,9 @@
         },
         "open": true
       },
+      "Drivetrain(Differential)": {
+        "open": true
+      },
       "Drivetrain(Swerve)": {
         "Modules": {
           "BottomLeft": {

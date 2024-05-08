@@ -16,16 +16,3 @@ public interface ThreeAxisGyroscope: HeadingProvider {
 
     override val heading: Angle get() = yaw
 }
-
-/**
- * Inline syntax to create a generic [ThreeAxisGyroscope].
- */
-public inline fun ThreeAxisGyroscope(
-    crossinline getYaw: () -> Angle,
-    crossinline getPitch: () -> Angle,
-    crossinline getRoll: () -> Angle
-): ThreeAxisGyroscope = object: ThreeAxisGyroscope {
-    override val yaw: Angle get() = getYaw()
-    override val pitch: Angle get() = getPitch()
-    override val roll: Angle get() = getRoll()
-}

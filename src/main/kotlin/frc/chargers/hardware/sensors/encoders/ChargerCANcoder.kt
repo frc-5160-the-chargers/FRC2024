@@ -3,19 +3,14 @@ package frc.chargers.hardware.sensors.encoders
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.hertz
-import com.batterystaple.kmeasure.units.milli
 import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.seconds
-import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.CANcoderConfiguration
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue
 import com.ctre.phoenix6.signals.SensorDirectionValue
-import edu.wpi.first.wpilibj.RobotBase
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
-import frc.chargers.hardware.configuration.safeConfigure
-import frc.chargers.wpilibextensions.delay
 
 
 /**
@@ -43,23 +38,6 @@ public class ChargerCANcoder(
     factoryDefault: Boolean = true,
     configuration: ChargerCANcoderConfiguration? = null
 ): CANcoder(deviceId, canBus), ResettableEncoder, HardwareConfigurable<ChargerCANcoderConfiguration> {
-
-    private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
-    private var configAppliedProperly = true
-    private fun StatusCode.updateErrorStatus(): StatusCode {
-        if (this != StatusCode.OK){
-            if (RobotBase.isSimulation()){
-                println("A Phoenix Device did not configure properly; however, this was ignored because the code is running in simulation.")
-            }else{
-                delay(200.milli.seconds)
-                allConfigErrors.add(this)
-                configAppliedProperly = false
-            }
-        }
-        return this
-    }
-
-
     init{
         val baseConfig = CANcoderConfiguration()
 
@@ -126,29 +104,21 @@ public class ChargerCANcoder(
     }
     
     public fun configure(configuration: ChargerCANcoderConfiguration, baseCANcoderConfiguration: CANcoderConfiguration){
-        configAppliedProperly = true
-        safeConfigure(
-            deviceName = "ChargerCANcoder(id = $deviceID)",
-            getErrorInfo = {"All Recorded Errors: $allConfigErrors"}
-        ) {
-            allConfigErrors.clear()
-            applyChanges(baseCANcoderConfiguration,configuration)
-            configurator.apply(baseCANcoderConfiguration,0.02).updateErrorStatus()
+        applyChanges(baseCANcoderConfiguration,configuration)
+        configurator.apply(baseCANcoderConfiguration,0.02)
 
 
-            configuration.positionUpdateFrequency?.let{
-                position.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-                absolutePosition.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-            }
-
-            configuration.velocityUpdateFrequency?.let{
-                velocity.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-                unfilteredVelocity.setUpdateFrequency(it.inUnit(hertz)).updateErrorStatus()
-            }
-
-            configuration.filterVelocity?.let{ filterVelocity = it }
-            return@safeConfigure configAppliedProperly
+        configuration.positionUpdateFrequency?.let{
+            position.setUpdateFrequency(it.inUnit(hertz))
+            absolutePosition.setUpdateFrequency(it.inUnit(hertz))
         }
+
+        configuration.velocityUpdateFrequency?.let{
+            velocity.setUpdateFrequency(it.inUnit(hertz))
+            unfilteredVelocity.setUpdateFrequency(it.inUnit(hertz))
+        }
+
+        configuration.filterVelocity?.let{ filterVelocity = it }
     }
 }
 

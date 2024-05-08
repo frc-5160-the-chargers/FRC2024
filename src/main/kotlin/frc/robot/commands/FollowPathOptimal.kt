@@ -28,7 +28,7 @@ fun followPathOptimal(
         {
             val drivetrainPose = drivetrain.robotPose
             drivetrainPose.distanceTo(pathStartPose.flipWhenRed()) > ACCEPTABLE_DISTANCE_BEFORE_PATHFIND &&
-                    drivetrainPose.distanceTo(pathEndPose.flipWhenRed()) > drivetrainPose.distanceTo(pathStartPose.flipWhenRed())
+                drivetrainPose.distanceTo(pathEndPose.flipWhenRed()) > drivetrainPose.distanceTo(pathStartPose.flipWhenRed())
         },
         onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
         onFalse = AutoBuilder.followPath(path)

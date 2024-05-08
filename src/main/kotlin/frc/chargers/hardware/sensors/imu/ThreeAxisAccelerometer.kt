@@ -13,16 +13,3 @@ public interface ThreeAxisAccelerometer {
 
     public val zAcceleration: Acceleration
 }
-
-/**
- * Inline syntax to create a generic [ThreeAxisAccelerometer].
- */
-inline fun ThreeAxisAccelerometer(
-    crossinline getXAccel: () -> Acceleration,
-    crossinline getYAccel: () -> Acceleration,
-    crossinline getZAccel: () -> Acceleration
-): ThreeAxisAccelerometer = object: ThreeAxisAccelerometer {
-    override val xAcceleration: Acceleration get() = getXAccel()
-    override val yAcceleration: Acceleration get() = getYAccel()
-    override val zAcceleration: Acceleration get() = getZAccel()
-}

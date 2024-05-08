@@ -9,11 +9,9 @@ import com.batterystaple.kmeasure.units.volts
 import com.revrobotics.CANSparkBase
 import com.revrobotics.CANSparkLowLevel.MotorType
 import com.revrobotics.CANSparkMax
-import com.revrobotics.REVLibError
 import edu.wpi.first.wpilibj.RobotBase
 import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.hardware.configuration.HardwareConfigurable
-import frc.chargers.hardware.configuration.safeConfigure
 import frc.chargers.hardware.motorcontrol.MotorizedComponent
 import frc.chargers.hardware.motorcontrol.rev.util.ChargerSparkConfiguration
 import frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderAdaptor
@@ -136,32 +134,13 @@ public class ChargerSparkMax(
         feedforward: Voltage
     ): Unit = pidHandler.setAngularVelocity(rawVelocity, pidConstants, feedforward)
 
-
-
-
-    private var allConfigErrors: MutableList<REVLibError> = mutableListOf()
-
     override fun configure(configuration: ChargerSparkConfiguration) {
         configuration.encoderType?.let{ configEncoderType ->
             encoderType = configEncoderType
             encoder = SparkEncoderAdaptor(this, configEncoderType)
         }
 
-        // chargerlib defined function used for safe configuration.
-        safeConfigure(
-            deviceName = "ChargerSparkMax(id = $deviceId)",
-            getErrorInfo = {"All Recorded Errors: $allConfigErrors"}
-        ){
-            /**
-             * Configures common configurations between motors that inherit [CANSparkBase].
-             * Returns a List of [REVLibError]'s
-             *
-             * @see frc.chargers.hardware.motorcontrol.rev.util.ChargerSparkConfiguration
-             */
-            allConfigErrors = configuration.applyTo(this).toMutableList()
-
-            return@safeConfigure allConfigErrors.any{ it != REVLibError.kOk }
-        }
+        configuration.applyTo(this)
 
         if (RobotBase.isReal()) {
             delay(200.milli.seconds)

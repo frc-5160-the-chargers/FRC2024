@@ -3,7 +3,6 @@ package frc.chargers.hardware.sensors.imu
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
-import com.batterystaple.kmeasure.units.milli
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.standardGravities
 import com.ctre.phoenix6.BaseStatusSignal
@@ -15,8 +14,6 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.Loggable
 import frc.chargers.hardware.configuration.HardwareConfigurable
 import frc.chargers.hardware.configuration.HardwareConfiguration
-import frc.chargers.hardware.configuration.safeConfigure
-import frc.chargers.wpilibextensions.delay
 import frc.external.limelight.LimelightHelpers
 
 /**
@@ -46,8 +43,6 @@ public open class ChargerPigeon2(
     configuration: ChargerPigeon2Configuration? = null
 ): Pigeon2(canId, canBus), ZeroableHeadingProvider, HardwareConfigurable<ChargerPigeon2Configuration>, Loggable {
     override val namespace = "Pigeon2"
-    private val allConfigErrors: LinkedHashSet<StatusCode> = linkedSetOf()
-    private var configAppliedProperly = true
 
     init{
         val baseConfig = Pigeon2Configuration()
@@ -195,21 +190,8 @@ public open class ChargerPigeon2(
     }
 
     public fun configure(configuration: ChargerPigeon2Configuration, basePigeon2Configuration: Pigeon2Configuration){
-        configAppliedProperly = true
-        safeConfigure(
-            deviceName = "ChargerCANcoder(id = $deviceID)",
-            getErrorInfo = {"All Recorded Errors: $allConfigErrors"}
-        ) {
-            allConfigErrors.clear()
-            applyChanges(basePigeon2Configuration, configuration)
-            val configurationStatus = configurator.apply(basePigeon2Configuration)
-            if (configurationStatus != StatusCode.OK && isReal()){
-                delay(200.milli.seconds)
-                return@safeConfigure false
-            }else{
-                return@safeConfigure true
-            }
-        }
+        applyChanges(basePigeon2Configuration, configuration)
+        configurator.apply(basePigeon2Configuration)
     }
 }
 
