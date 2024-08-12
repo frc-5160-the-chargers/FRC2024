@@ -13,34 +13,34 @@ import frc.chargers.utils.math.units.VoltagePerAngularVelocity
 /**
  * Constructs an [ArmFFEquation] with SI value gains.
  */
-fun ArmFFEquation(kS: Number, kG: Number, kV: Number, kA: Number = 0.0) =
+fun ArmFFEquation(kS: Double, kG: Double, kV: Double, kA: Double = 0.0) =
     ArmFFEquation(
-        Voltage(kS.toDouble()),
-        VoltagePerAngle(kG.toDouble()),
-        VoltagePerAngularVelocity(kV.toDouble()),
-        VoltagePerAngularAcceleration(kA.toDouble())
+        Voltage(kS),
+        VoltagePerAngle(kG),
+        VoltagePerAngularVelocity(kV),
+        VoltagePerAngularAcceleration(kA)
     )
 
+
+/**
+ * Represents a feedforward equation that characterizes a
+ * angular velocity targeting arm.
+ *
+ * @see ArmFeedforward
+ */
 class ArmFFEquation(
     val kS: Voltage,
     val kG: VoltagePerAngle,
     val kV: VoltagePerAngularVelocity,
     val kA: VoltagePerAngularAcceleration = VoltagePerAngularAcceleration(0.0)
-): (Angle, AngularVelocity) -> Voltage, (Angle, AngularVelocity, AngularAcceleration) -> Voltage {
-
+) {
     private val baseFF = ArmFeedforward(kS.siValue, kG.siValue, kV.siValue, kA.siValue)
 
-    override operator fun invoke(
+    fun calculate(
         position: Angle,
         velocity: AngularVelocity,
-        acceleration: AngularAcceleration
+        acceleration: AngularAcceleration = AngularAcceleration(0.0)
     ): Voltage = Voltage(baseFF.calculate(position.siValue, velocity.siValue, acceleration.siValue))
 
-    override operator fun invoke(position: Angle, velocity: AngularVelocity): Voltage =
-        invoke(position, velocity, AngularAcceleration(0.0))
-
-    inline fun withAngleSupplier(crossinline angleSupplier: () -> Angle): (AngularVelocity) -> Voltage =
-        { velocity -> invoke(angleSupplier(), velocity) }
-
-    // arm ff does not have calculatePlantInversion due to problem optimization reasons(apparently)
+    // arm ff does not have plant inversion calculation due to problem optimization reasons(apparently)
 }

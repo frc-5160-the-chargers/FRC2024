@@ -1,15 +1,15 @@
 package frc.chargers.hardware.subsystems.swervedrive
 
-import frc.chargers.hardware.configuration.HardwareConfigurable
+import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.configuration.HardwareConfiguration
 import kotlin.reflect.full.primaryConstructor
 
 /**
  * Creates a [SwerveData] instance, where all members can be configured.
  * For this function to work, the [SwerveData] instance must hold values
- * that implement [HardwareConfigurable], with the appropriate [HardwareConfiguration].
+ * that implement [ConfigurableHardware], with the appropriate [HardwareConfiguration].
  */
-inline fun <reified C: HardwareConfiguration, T: HardwareConfigurable<C>> SwerveData( // reified T allows the ::class call to work, while the inline modifier allows the configure function to be inlined(improving performance).
+inline fun <reified C: HardwareConfiguration, T: ConfigurableHardware<C>> SwerveData( // reified T allows the ::class call to work, while the inline modifier allows the configure function to be inlined(improving performance).
     topLeft: T,
     topRight: T,
     bottomLeft: T,

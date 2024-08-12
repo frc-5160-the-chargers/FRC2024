@@ -52,13 +52,13 @@ public open class CommandBuilder {
      *
      * ```
      * buildCommand{
-     *      loop{ println("hi") }.modify{ withTimeout(5) }
+     *      loop{ println("hi") }.modify{ it,withTimeout(5) }
      *
      * }
      */
-    public fun Command.modify(modifier: Command.() -> Command): Command{
+    public fun Command.modify(modifier: (Command) -> Command): Command{
         commands.remove(this)
-        val newCommand = this.modifier()
+        val newCommand = modifier(this)
         commands.add(newCommand)
         return newCommand
     }
@@ -92,27 +92,10 @@ public open class CommandBuilder {
      * }
      * ```
      */
-    @CommandBuilderMarker
     public operator fun <C: Command> C.unaryMinus(): C{
         commands.remove(this)
         return this
     }
-
-
-    /**
-     * Allows removal of commands within a code block.(For getOnceDuringRun)
-     */
-    context(CodeBlockContext)
-    public operator fun <C: Command> C.unaryMinus(): C{
-        with (this@CommandBuilder){
-            commands.remove(this@unaryMinus)
-        }
-        return this
-    }
-
-
-
-
 
     /**
      * Adds a command that will run once and then complete.

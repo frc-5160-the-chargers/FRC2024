@@ -28,7 +28,7 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy
  * This is usually a drivetrain.
  */
 @Suppress("unused")
-abstract class PoseEstimatingSubsystem(namespace: String): SuperSubsystem(namespace) {
+abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(namespace) {
     abstract val robotPose: Pose2d
 
     abstract fun resetPose(pose: Pose2d = Pose2d())

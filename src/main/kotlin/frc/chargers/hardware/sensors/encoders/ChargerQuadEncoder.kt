@@ -7,7 +7,7 @@ import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.hal.SimDevice
 import edu.wpi.first.wpilibj.CounterBase.EncodingType
 import edu.wpi.first.wpilibj.DigitalSource
-import frc.chargers.hardware.configuration.HardwareConfigurable
+import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.configuration.HardwareConfiguration
 import edu.wpi.first.wpilibj.Encoder as WPILibQuadratureEncoder
 
@@ -15,7 +15,7 @@ import edu.wpi.first.wpilibj.Encoder as WPILibQuadratureEncoder
  * An adapter from the WPILib Encoder class to the ChargerLib Encoder interface.
  */
 public class ChargerQuadEncoder:
-    WPILibQuadratureEncoder, Encoder, HardwareConfigurable<QuadEncoderConfiguration> {
+    WPILibQuadratureEncoder, Encoder, ConfigurableHardware<QuadEncoderConfiguration> {
 
     private val anglePerPulse: Angle
 

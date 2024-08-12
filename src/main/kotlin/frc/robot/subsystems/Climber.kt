@@ -7,15 +7,15 @@ import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.volts
 import frc.chargers.framework.SuperSubsystem
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.Motor
 
 
 // change this to voltage requests / positions requests
 // and/or make it stall in the same position when no power is put
 @Suppress("unused")
 class Climber(
-    private val leftMotor: MotorizedComponent,
-    private val rightMotor: MotorizedComponent,
+    private val leftMotor: Motor,
+    private val rightMotor: Motor,
     private val gearRatio: Double,
     private val climbMaxVoltage: Voltage = 8.volts,
     private val highLimit: Angle? = null,

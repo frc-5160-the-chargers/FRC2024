@@ -9,7 +9,7 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue
 import com.ctre.phoenix6.signals.SensorDirectionValue
-import frc.chargers.hardware.configuration.HardwareConfigurable
+import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.configuration.HardwareConfiguration
 
 
@@ -37,7 +37,7 @@ public class ChargerCANcoder(
     canBus: String = "",
     factoryDefault: Boolean = true,
     configuration: ChargerCANcoderConfiguration? = null
-): CANcoder(deviceId, canBus), ResettableEncoder, HardwareConfigurable<ChargerCANcoderConfiguration> {
+): CANcoder(deviceId, canBus), ResettableEncoder, ConfigurableHardware<ChargerCANcoderConfiguration> {
     init{
         val baseConfig = CANcoderConfiguration()
 
@@ -60,7 +60,7 @@ public class ChargerCANcoder(
      */
     public val absolute: ResettableEncoder = AbsoluteEncoderAdaptor()
 
-    private inner class AbsoluteEncoderAdaptor: ResettableEncoder by this, HardwareConfigurable<ChargerCANcoderConfiguration> by this{
+    private inner class AbsoluteEncoderAdaptor: ResettableEncoder by this, ConfigurableHardware<ChargerCANcoderConfiguration> by this{
         private val absolutePosSignal = absolutePosition
 
         override val angularPosition: Angle

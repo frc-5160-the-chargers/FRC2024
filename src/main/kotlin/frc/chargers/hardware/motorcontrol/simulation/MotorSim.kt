@@ -1,54 +1,40 @@
 package frc.chargers.hardware.motorcontrol.simulation
 
+import com.batterystaple.kmeasure.dimensions.AngleDimension
+import com.batterystaple.kmeasure.dimensions.AngularVelocityDimension
+import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
-import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.controls.pid.SuperPIDController
+import com.pathplanner.lib.util.PIDConstants
+import frc.chargers.controls.UnitPIDController
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.Encoder
 
 class MotorSim(
     motorType: DCMotor,
     moi: MomentOfInertia = 0.00001.ofUnit(kilo.grams * (meters * meters)),
     motorToEncoderRatio: Double = 1.0,
-): MotorizedComponent {
+): Motor {
     private val wpilibSim = DCMotorSim(
         motorType,
         motorToEncoderRatio,
         moi.inUnit(kilo.grams * (meters * meters))
     )
 
-    private val positionController = SuperPIDController(
-        PIDConstants(0,0,0),
-        getInput = { encoder.angularPosition },
-        target = 0.degrees,
-        outputRange = (-12).volts..12.volts
+    private val positionController = UnitPIDController<AngleDimension, VoltageDimension>(
+        0.0, 0.0, 0.0, outputRange = (-12).volts..12.volts
     )
 
-    private val continuousInputPositionController = SuperPIDController(
-        PIDConstants(0,0,0),
-        getInput = { encoder.angularPosition },
-        continuousInputRange = 0.degrees..360.degrees,
-        target = 0.degrees,
-        outputRange = (-12).volts..12.volts
-    )
-
-    private val velocityController = SuperPIDController(
-        PIDConstants(0,0,0),
-        getInput = { encoder.angularVelocity },
-        target = 0.degrees / 0.seconds,
-        outputRange = (-12).volts..12.volts
+    private val velocityController = UnitPIDController<AngularVelocityDimension, VoltageDimension>(
+        0.0, 0.0, 0.0, outputRange = (-12).volts..12.volts
     )
 
     init{
         ChargerRobot.runPeriodic {
             wpilibSim.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
-            positionController.calculateOutput()
-            continuousInputPositionController.calculateOutput()
-            velocityController.calculateOutput()
         }
     }
 
@@ -73,9 +59,9 @@ class MotorSim(
 
     override fun setBrakeMode(shouldBrake: Boolean){
         if (shouldBrake){
-            println("Brake Mode set for motor sim.")
+            println("Brake Mode set for arm motor sim.")
         }else{
-            println("Coast mode set for sim.")
+            println("Coast mode set for arm sim.")
         }
     }
 
@@ -86,19 +72,16 @@ class MotorSim(
         feedforward: Voltage
     ) {
         if (continuousInput){
-            continuousInputPositionController.constants = pidConstants
-            continuousInputPositionController.target = rawPosition
-            appliedVoltage = continuousInputPositionController.calculateOutput() + feedforward
+            positionController.enableContinuousInput(0.degrees..360.degrees)
         }else{
-            positionController.constants = pidConstants
-            positionController.target = rawPosition
-            appliedVoltage = positionController.calculateOutput() + feedforward
+            positionController.disableContinuousInput()
         }
+        positionController.constants = pidConstants
+        appliedVoltage = positionController.calculate(encoder.angularPosition, rawPosition, feedforward)
     }
 
     override fun setVelocitySetpoint(rawVelocity: AngularVelocity, pidConstants: PIDConstants, feedforward: Voltage) {
         velocityController.constants = pidConstants
-        velocityController.target = rawVelocity
-        appliedVoltage = positionController.calculateOutput() + feedforward
+        appliedVoltage = velocityController.calculate(encoder.angularVelocity, rawVelocity, feedforward)
     }
 }

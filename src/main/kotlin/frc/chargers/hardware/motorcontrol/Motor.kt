@@ -1,8 +1,9 @@
+@file:Suppress("unused")
 package frc.chargers.hardware.motorcontrol
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.volts
-import frc.chargers.controls.pid.PIDConstants
+import com.pathplanner.lib.util.PIDConstants
 import frc.chargers.hardware.sensors.encoders.Encoder
 
 /**
@@ -13,7 +14,7 @@ import frc.chargers.hardware.sensors.encoders.Encoder
  * moving the gearbox of an arm,
  * and more.
  */
-interface MotorizedComponent {
+interface Motor {
     val encoder: Encoder
 
     val statorCurrent: Current
@@ -46,23 +47,23 @@ interface MotorizedComponent {
         appliedVoltage = 0.volts
     }
 
-    fun withFollowers(vararg followers: MotorizedComponent) =
-        object: MotorizedComponent{
-            override val encoder: Encoder = this@MotorizedComponent.encoder
+    fun withFollowers(vararg followers: Motor) =
+        object: Motor {
+            override val encoder: Encoder = this@Motor.encoder
 
             // runs a function for all the included motors ; including followers.
-            inline fun runForAllMotors(function: (MotorizedComponent) -> Unit){
-                function(this@MotorizedComponent)
+            inline fun runForAllMotors(function: (Motor) -> Unit){
+                function(this@Motor)
                 followers.forEach(function)
             }
 
             override var appliedVoltage: Voltage
-                get() = this@MotorizedComponent.appliedVoltage
+                get() = this@Motor.appliedVoltage
                 set(value) {
                     runForAllMotors{ it.appliedVoltage = value }
                 }
 
-            override var hasInvert: Boolean = this@MotorizedComponent.hasInvert
+            override var hasInvert: Boolean = this@Motor.hasInvert
                 set(value){
                     if (field != value){
                         field = value
@@ -70,7 +71,7 @@ interface MotorizedComponent {
                     }
                 }
 
-            override val statorCurrent: Current get() = this@MotorizedComponent.statorCurrent
+            override val statorCurrent: Current get() = this@Motor.statorCurrent
 
             override fun setBrakeMode(shouldBrake: Boolean) {
                 runForAllMotors{ it.setBrakeMode(shouldBrake) }

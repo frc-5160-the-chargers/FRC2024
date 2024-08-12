@@ -1,6 +1,7 @@
 package frc.robot.subsystems.pivot
 
 import com.batterystaple.kmeasure.dimensions.AngleDimension
+import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.div
@@ -17,10 +18,10 @@ import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.feedforward.ArmFFEquation
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
-import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.controls.pid.SuperPIDController
+import com.pathplanner.lib.util.PIDConstants
+import frc.chargers.controls.UnitPIDController
 import frc.chargers.framework.SuperSubsystem
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.utils.Precision
 import frc.chargers.utils.within
 import frc.chargers.wpilibextensions.Rotation3d
@@ -31,7 +32,7 @@ private val STARTING_TRANSLATION_PIVOT_SIM = Translation3d(-0.32, 0.0, 0.72)
 // Translation3d(0.0,0.0, 0.0) // -0.25, 0.0, 0.7
 @Suppress("unused")
 class Pivot(
-    private val motor: MotorizedComponent,
+    private val motor: Motor,
     private val encoderType: PivotEncoderType,
 
     private val useOnboardPID: Boolean = false,
@@ -46,12 +47,9 @@ class Pivot(
 ): SuperSubsystem("Pivot") {
     private var offset by logged(0.degrees, "AngleReadingOffset")
 
-    private val rioController = SuperPIDController(
+    private val rioController = UnitPIDController<AngleDimension, VoltageDimension>(
         pidConstants,
-        getInput = { angle },
-        target = 0.degrees,
-        outputRange = (-12).volts..12.volts,
-        selfSustain = !useOnboardPID
+        outputRange = (-12).volts..12.volts
     )
 
     val angle: Angle by logged{
@@ -122,38 +120,37 @@ class Pivot(
         }
 
         val setpointPosition: Angle
-        val feedforward: Voltage
+        val ffVoltage: Voltage
 
         if (motionProfile != null){
             motionProfileSetpoint = motionProfile.calculate(
-                0.02.seconds,
                 motionProfileSetpoint,
-                AngularMotionProfileState(target)
+                AngularMotionProfileState(target),
+                0.02.seconds
             )
             setpointPosition = motionProfileSetpoint.position
-            feedforward = feedforward(target, motionProfileSetpoint.velocity)
+            ffVoltage = feedforward.calculate(target, motionProfileSetpoint.velocity)
             log("Control/MotionProfileGoal", target)
         }else{
             setpointPosition = target
-            feedforward = 0.volts
+            ffVoltage = 0.volts
         }
         log("Control/Setpoint", setpointPosition)
-        log("Control/FeedForward", feedforward)
+        log("Control/FeedForward", ffVoltage)
 
 
         val angleDelta = target - this.angle
         atTarget = angleDelta.within(precision)
 
         if (useOnboardPID || RobotBase.isSimulation()){
-            rioController.constants = pidConstants
-            setVoltage(rioController.calculateOutput(target) + feedforward)
+            setVoltage(rioController.calculate(angle, target, feedforwardOutput = ffVoltage))
         }else{
             val rawPIDTarget = when (encoderType){
                 is PivotEncoderType.IntegratedAbsoluteEncoder -> target
                 is PivotEncoderType.ExternalAbsoluteEncoder -> startingAngle + angleDelta * encoderType.motorGearRatio
                 is PivotEncoderType.IntegratedRelativeEncoder -> target * encoderType.motorGearRatio
             }
-            motor.setPositionSetpoint(rawPIDTarget, pidConstants, feedforward = feedforward)
+            motor.setPositionSetpoint(rawPIDTarget, pidConstants, feedforward = ffVoltage)
         }
     }
 

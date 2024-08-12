@@ -4,7 +4,6 @@ import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup
 import edu.wpi.first.wpilibj2.command.Subsystem
 import frc.chargers.commands.InstantCommand
-import frc.chargers.commands.then
 import frc.chargers.commands.withExtraRequirements
 import frc.chargers.framework.ChargerRobot
 import kotlin.internal.LowPriorityInOverloadResolution
@@ -135,5 +134,9 @@ internal fun Command.withLogInCommandGroup(commandGroupName: String): Command{
     }
 
     // uses custom infix "then" operator(more concise way to do andThen)
-    return logCommand(true) then this then logCommand(false)
+    return SequentialCommandGroup(
+        logCommand(true),
+        this,
+        logCommand(false)
+    )
 }

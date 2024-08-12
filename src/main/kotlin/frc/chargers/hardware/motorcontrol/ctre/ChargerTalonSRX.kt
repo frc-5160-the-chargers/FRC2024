@@ -6,10 +6,10 @@ import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix.ErrorCode
 import com.ctre.phoenix.motorcontrol.*
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX
-import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.hardware.configuration.HardwareConfigurable
+import com.pathplanner.lib.util.PIDConstants
+import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.configuration.HardwareConfiguration
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
 import kotlin.math.roundToInt
@@ -92,8 +92,8 @@ public class ChargerTalonSRX(
     encoderTicksPerRotation: Int,
     factoryDefault: Boolean = true,
     configuration: ChargerTalonSRXConfiguration? = null
-) : WPI_TalonSRX(deviceNumber), MotorizedComponent, HardwareConfigurable<ChargerTalonSRXConfiguration>{
-    private val nonSRXFollowers: MutableSet<MotorizedComponent> = mutableSetOf()
+) : WPI_TalonSRX(deviceNumber), Motor, ConfigurableHardware<ChargerTalonSRXConfiguration>{
+    private val nonSRXFollowers: MutableSet<Motor> = mutableSetOf()
 
     init{
         if (factoryDefault){

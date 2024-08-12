@@ -1,11 +1,14 @@
 @file:Suppress("unused")
 package frc.chargers.controls.motionprofiling.trapezoidal
 
+import com.batterystaple.kmeasure.dimensions.DistanceDimension
+import com.batterystaple.kmeasure.dimensions.VelocityDimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.trajectory.TrapezoidProfile
 import frc.chargers.controls.motionprofiling.LinearMotionProfile
 import frc.chargers.controls.motionprofiling.LinearMotionProfileState
+import frc.chargers.controls.motionprofiling.MotionProfileState
 
 class LinearTrapezoidProfile(
     val maxVelocity: Velocity,
@@ -14,9 +17,9 @@ class LinearTrapezoidProfile(
     private val profile = TrapezoidProfile(TrapezoidProfile.Constraints(maxVelocity.siValue, maxAcceleration.siValue))
 
     override fun calculate(
+        setpoint: MotionProfileState<DistanceDimension, VelocityDimension>,
+        goal: MotionProfileState<DistanceDimension, VelocityDimension>,
         dt: Time,
-        setpoint: LinearMotionProfileState,
-        goal: LinearMotionProfileState,
     ): LinearMotionProfileState {
 
         val profileState = profile.calculate(

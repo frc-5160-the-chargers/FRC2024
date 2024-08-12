@@ -1,10 +1,13 @@
 @file:Suppress("RedundantVisibilityModifier", "unused", "MemberVisibilityCanBePrivate", "LeakingThis")
 package frc.chargers.hardware.subsystems.differentialdrive
 
+import com.batterystaple.kmeasure.dimensions.AngularVelocityDimension
+import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.interop.average
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
+import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.auto.AutoBuilder
 import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.estimator.DifferentialDrivePoseEstimator
@@ -16,14 +19,14 @@ import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.wpilibj.DriverStation
-import frc.chargers.controls.pid.SuperPIDController
+import frc.chargers.controls.UnitPIDController
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.hardware.configuration.HardwareConfigurable
+import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.configuration.HardwareConfiguration
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.imu.HeadingProvider
 import frc.chargers.hardware.sensors.imu.ZeroableHeadingProvider
-import frc.chargers.hardware.subsystems.PoseEstimatingSubsystem
+import frc.chargers.hardware.subsystems.PoseEstimatingDrivetrain
 import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.angle
@@ -47,7 +50,7 @@ inline fun <M, reified C : HardwareConfiguration> EncoderDifferentialDrivetrain(
     constants: DifferentialDriveConstants,
     gyro: HeadingProvider? = null,
     configure: C.() -> Unit
-): EncoderDifferentialDrivetrain where M: MotorizedComponent, M: HardwareConfigurable<C> {
+): EncoderDifferentialDrivetrain where M: Motor, M: ConfigurableHardware<C> {
     val primaryConstructor = C::class.primaryConstructor ?: error("The configuration class " + C::class.simpleName + " must have a constructor.")
     try{
         val configuration = primaryConstructor.callBy(emptyMap()).apply(configure)
@@ -70,14 +73,14 @@ inline fun <M, reified C : HardwareConfiguration> EncoderDifferentialDrivetrain(
 
 public open class EncoderDifferentialDrivetrain(
     logName: String = "Drivetrain(Differential)",
-    private val topLeft: MotorizedComponent,
-    private val topRight: MotorizedComponent,
-    private val bottomLeft: MotorizedComponent,
-    private val bottomRight: MotorizedComponent,
+    private val topLeft: Motor,
+    private val topRight: Motor,
+    private val bottomLeft: Motor,
+    private val bottomRight: Motor,
 
     private val constants: DifferentialDriveConstants,
     val gyro: HeadingProvider? = null
-): PoseEstimatingSubsystem(logName), DifferentialDrivetrain, HeadingProvider {
+): PoseEstimatingDrivetrain(logName), DifferentialDrivetrain, HeadingProvider {
     /* Private implementation */
     private val wheelRadius = constants.wheelDiameter / 2
 
@@ -89,21 +92,17 @@ public open class EncoderDifferentialDrivetrain(
     private val startingLeftEncoderReading = leftEncoder.angularPosition
     private val startingRightEncoderReading = leftEncoder.angularPosition
 
-    private val leftController = SuperPIDController(
+    private val leftController = UnitPIDController<AngularVelocityDimension, VoltageDimension>(
         constants.velocityPID,
-        getInput = { leftEncoder.angularVelocity },
-        target = AngularVelocity(0.0),
-        feedforward = constants.velocityFF,
-        selfSustain = true,
+        outputRange = -12.volts..12.volts
+    )
+    private val rightController = UnitPIDController<AngularVelocityDimension, VoltageDimension>(
+        constants.velocityPID,
+        outputRange = -12.volts..12.volts
     )
 
-    private val rightController = SuperPIDController(
-        constants.velocityPID,
-        getInput = { rightEncoder.angularVelocity },
-        target = AngularVelocity(0.0),
-        feedforward = constants.velocityFF,
-        selfSustain = true,
-    )
+    private var leftVoltage = 0.volts
+    private var rightVoltage = 0.volts
 
     private val kinematics = DifferentialDriveKinematics(constants.width.inUnit(meters))
     private val poseEstimator = DifferentialDrivePoseEstimator(
@@ -257,10 +256,8 @@ public open class EncoderDifferentialDrivetrain(
     // arcade drive and curvature drive implementations
     // are provided in the DifferentialDrivetrain interface
     override fun tankDrive(leftPower: Double, rightPower: Double) {
-        topLeft.percentOut = leftPower
-        bottomLeft.percentOut = leftPower
-        topRight.percentOut = rightPower
-        bottomRight.percentOut = rightPower
+        leftVoltage = leftPower * 12.volts
+        rightVoltage = rightPower * 12.volts
     }
 
     public fun velocityDrive(xVelocity: Velocity, yVelocity: Velocity, rotationSpeed: AngularVelocity): Unit =
@@ -274,18 +271,20 @@ public open class EncoderDifferentialDrivetrain(
         )
     }
 
-    public fun velocityDrive(leftSpeed: Velocity, rightSpeed: Velocity){
-        leftController.target = leftSpeed / wheelTravelPerMotorRadian
-        rightController.target = rightSpeed / wheelTravelPerMotorRadian
+    public fun velocityDrive(leftSpeed: Velocity, rightSpeed: Velocity) {
+        val leftSetpoint = leftSpeed / wheelTravelPerMotorRadian
+        val rightSetpoint = rightSpeed / wheelTravelPerMotorRadian
 
-        val leftV = leftController.calculateOutput()
-        val rightV = rightController.calculateOutput()
-
-        topLeft.appliedVoltage = leftV
-        bottomLeft.appliedVoltage = leftV
-
-        topRight.appliedVoltage = rightV
-        bottomRight.appliedVoltage = rightV
+        leftVoltage = leftController.calculate(
+            leftEncoder.angularVelocity / constants.gearRatio,
+            leftSetpoint,
+            constants.velocityFF.calculate(leftSetpoint)
+        )
+        rightVoltage = rightController.calculate(
+            leftEncoder.angularVelocity / constants.gearRatio,
+            rightSetpoint,
+            constants.velocityFF.calculate(rightSetpoint)
+        )
     }
 
 
@@ -299,5 +298,10 @@ public open class EncoderDifferentialDrivetrain(
             rightWheelTravel.siValue,
         )
         robotObject.pose = poseEstimator.estimatedPosition
+
+        topLeft.appliedVoltage = leftVoltage
+        topRight.appliedVoltage = rightVoltage
+        bottomLeft.appliedVoltage = leftVoltage
+        bottomRight.appliedVoltage = rightVoltage
     }
 }

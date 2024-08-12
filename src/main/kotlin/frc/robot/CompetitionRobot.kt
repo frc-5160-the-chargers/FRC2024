@@ -18,7 +18,7 @@ import frc.chargers.commands.RunCommand
 import frc.chargers.commands.setDefaultRunCommand
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
-import frc.chargers.controls.pid.PIDConstants
+import com.pathplanner.lib.util.PIDConstants
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
@@ -105,8 +105,8 @@ class CompetitionRobot: ChargerRobot(){
         ),
         moduleConstants = SwerveModuleConstants.mk4iL2(
             useOnboardPID = false,
-            turnMotorControlScheme = SwerveAzimuthControl.PID(PIDConstants(7.0,0,0), Precision.Within(1.degrees)),
-            velocityPID = PIDConstants(0.05,0,0),
+            turnMotorControlScheme = SwerveAzimuthControl.PID(PIDConstants(7.0,0.0,0.0), Precision.Within(1.degrees)),
+            velocityPID = PIDConstants(0.05,0.0,0.0),
             velocityFF = AngularMotorFFEquation(0.0,0.13),
         ),
         gyro = if (isSimulation()) null else gyro
@@ -127,7 +127,7 @@ class CompetitionRobot: ChargerRobot(){
             offset = (-0.23).rotations
         ),
         useOnboardPID = false,
-        PIDConstants(7.0,0,0.001),
+        PIDConstants(7.0,0.0,0.001),
         AngularTrapezoidProfile(
             maxVelocity = AngularVelocity(8.0),
             maxAcceleration = AngularAcceleration(10.0)

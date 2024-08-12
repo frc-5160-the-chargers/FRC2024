@@ -8,7 +8,7 @@ import com.batterystaple.kmeasure.units.rotations
 import edu.wpi.first.wpilibj.DigitalSource
 import edu.wpi.first.wpilibj.DutyCycle
 import edu.wpi.first.wpilibj.DutyCycleEncoder
-import frc.chargers.hardware.configuration.HardwareConfigurable
+import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.configuration.HardwareConfiguration
 
 /**
@@ -47,7 +47,7 @@ public inline fun ChargerDutyCycleEncoder(
 /**
  * An Adapter of WPILib's [DutyCycleEncoder] class; consists of REV through bore encoders, CTRE mag encoders.
  */
-public class ChargerDutyCycleEncoder: DutyCycleEncoder, PositionEncoder, HardwareConfigurable<DutyCycleEncoderConfiguration> {
+public class ChargerDutyCycleEncoder: DutyCycleEncoder, PositionEncoder, ConfigurableHardware<DutyCycleEncoderConfiguration> {
     public constructor(channel: Int): super(channel)
     public constructor(source: DigitalSource): super(source)
     public constructor(dutyCycle: DutyCycle): super(dutyCycle)

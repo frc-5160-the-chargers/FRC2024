@@ -7,11 +7,12 @@ import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.atan2
+import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
+import frc.chargers.controls.PIDController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
-import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.utils.Precision
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.fpgaTimestamp
@@ -55,7 +56,7 @@ open class AimToAngleRotationOverride(
 
     private lateinit var motionState: AngularMotionProfileState
 
-    private val pidController = PIDController(angleToVelocityPID.kP, angleToVelocityPID.kI, angleToVelocityPID.kD).apply{
+    private val pidController = PIDController(angleToVelocityPID).apply{
         enableContinuousInput(0.0, 2 * PI)
 
         if (aimPrecision is Precision.Within){
@@ -79,9 +80,9 @@ open class AimToAngleRotationOverride(
         if (motionProfile != null){
             if (::motionState.isInitialized){
                 motionState = motionProfile.calculate(
-                    fetchDT(),
                     setpoint = motionState,
-                    goal = AngularMotionProfileState(targetAngle)
+                    goal = AngularMotionProfileState(targetAngle),
+                    fetchDT()
                 )
 
                 output = pidController.calculate(

@@ -8,7 +8,7 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.path.PathConstraints
-import frc.chargers.controls.pid.PIDConstants
+import com.pathplanner.lib.util.PIDConstants
 import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.PathConstraints
 
@@ -50,6 +50,6 @@ val ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE = 0.7.meters
 val NO_TARGET_FOUND_ALERT = Alert.warning(text = "A command is attempting to aim to a target using vision, but none can be found.")
 
 // pid constants used in multiple places
-val ANGLE_TO_ROTATIONAL_VELOCITY_PID = PIDConstants(1.7,0,0.001)
+val ANGLE_TO_ROTATIONAL_VELOCITY_PID = PIDConstants(1.7,0.0,0.001)
 
-val NOTE_DETECTOR_PID = PIDConstants(0.05,0,0.001)
+val NOTE_DETECTOR_PID = PIDConstants(0.05,0.0,0.001)

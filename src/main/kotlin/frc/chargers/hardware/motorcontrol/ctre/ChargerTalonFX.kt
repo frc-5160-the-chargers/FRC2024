@@ -12,10 +12,10 @@ import com.ctre.phoenix6.controls.PositionVoltage
 import com.ctre.phoenix6.controls.VelocityVoltage
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
-import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.hardware.configuration.HardwareConfigurable
+import com.pathplanner.lib.util.PIDConstants
+import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.configuration.HardwareConfiguration
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.ResettableEncoder
 import frc.chargers.utils.math.inputModulus
 
@@ -83,9 +83,9 @@ public class ChargerTalonFX(
     canBus: String = "rio",
     factoryDefault: Boolean = true,
     configuration: ChargerTalonFXConfiguration? = null
-): TalonFX(deviceId, canBus), MotorizedComponent, HardwareConfigurable<ChargerTalonFXConfiguration> {
+): TalonFX(deviceId, canBus), Motor, ConfigurableHardware<ChargerTalonFXConfiguration> {
     private val talonFXFollowers: MutableSet<TalonFX> = mutableSetOf()
-    private val otherFollowers: MutableSet<MotorizedComponent> = mutableSetOf()
+    private val otherFollowers: MutableSet<Motor> = mutableSetOf()
 
     private val voltageSignal = supplyVoltage
     private val currentSignal = getStatorCurrent()
@@ -134,8 +134,8 @@ public class ChargerTalonFX(
      * as this can lead to unexpected results. To configure followers,
      * it is recommended to use an [apply] or [also] block, or use ChargerLib's inline configuration to do so.
      */
-    override fun withFollowers(vararg followers: MotorizedComponent): MotorizedComponent {
-        val nonTalonFXFollowers = mutableListOf<MotorizedComponent>()
+    override fun withFollowers(vararg followers: Motor): Motor {
+        val nonTalonFXFollowers = mutableListOf<Motor>()
         for (follower in followers){
             if (follower is TalonFX){
                 talonFXFollowers.add(follower)

@@ -1,6 +1,6 @@
 package frc.robot
 
-import frc.chargers.controls.pid.PIDConstants
+import com.pathplanner.lib.util.PIDConstants
 import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.hardware.subsystems.swervedrive.RotationOverride
 import frc.robot.subsystems.NoteObserver
@@ -12,6 +12,6 @@ object RotationOverrides{
                 val currentState = noteDetector.state
                 if (currentState is NoteObserver.State.NoteDetected) currentState.tx else null
             },
-            PIDConstants(0.05, 0, 0.001)
+            PIDConstants(0.05, 0.0, 0.001)
         )
 }

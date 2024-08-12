@@ -8,7 +8,7 @@ import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.volts
-import frc.chargers.controls.pid.PIDConstants
+import com.pathplanner.lib.util.PIDConstants
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.utils.math.inputModulus
 

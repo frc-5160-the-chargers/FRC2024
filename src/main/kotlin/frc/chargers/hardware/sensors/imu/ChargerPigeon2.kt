@@ -12,7 +12,7 @@ import com.ctre.phoenix6.hardware.Pigeon2
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.Loggable
-import frc.chargers.hardware.configuration.HardwareConfigurable
+import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.configuration.HardwareConfiguration
 import frc.external.limelight.LimelightHelpers
 
@@ -41,7 +41,7 @@ public open class ChargerPigeon2(
     canBus: String = "rio",
     factoryDefault: Boolean = true,
     configuration: ChargerPigeon2Configuration? = null
-): Pigeon2(canId, canBus), ZeroableHeadingProvider, HardwareConfigurable<ChargerPigeon2Configuration>, Loggable {
+): Pigeon2(canId, canBus), ZeroableHeadingProvider, ConfigurableHardware<ChargerPigeon2Configuration>, Loggable {
     override val namespace = "Pigeon2"
 
     init{

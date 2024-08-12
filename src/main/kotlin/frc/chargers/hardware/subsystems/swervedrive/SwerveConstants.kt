@@ -7,10 +7,10 @@ import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
+import com.pathplanner.lib.util.PIDConstants
 import com.pathplanner.lib.util.ReplanningConfig
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
-import frc.chargers.controls.pid.PIDConstants
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.utils.Precision
 
@@ -25,8 +25,8 @@ private const val DEFAULT_GEAR_RATIO: Double = 1.0
 data class SwerveChassisConstants(
     val trackWidth: Length,
     val wheelBase: Length,
-    val robotRotationPID: PIDConstants = PIDConstants(2.5,0,0),
-    val robotTranslationPID: PIDConstants = PIDConstants(4.0,0,0),
+    val robotRotationPID: PIDConstants = PIDConstants(2.5,0.0,0.0),
+    val robotTranslationPID: PIDConstants = PIDConstants(4.0,0.0,0.0),
     val pathReplanningConfig: ReplanningConfig = ReplanningConfig(),
     val openLoopDiscretizationRate: Double = 2.0,
     val closedLoopDiscretizationRate: Double = 1.0,

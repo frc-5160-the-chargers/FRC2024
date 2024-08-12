@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package frc.chargers.wpilibextensions
 
 import com.batterystaple.kmeasure.quantities.*
@@ -6,7 +7,6 @@ import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.path.GoalEndState
 import com.pathplanner.lib.path.PathConstraints
-import frc.chargers.controls.pid.PIDConstants
 
 fun GoalEndState(
     velocity: Velocity,
@@ -26,9 +26,3 @@ fun PathConstraints(
     maxAngularVelocity.inUnit(radians / seconds),
     maxAngularAcceleration.inUnit(radians / seconds / seconds)
 )
-
-/**
- * Converts ChargerLib PID constants to pathplanner PID constants.
- */
-fun PIDConstants.asPathPlannerConstants(): com.pathplanner.lib.util.PIDConstants =
-    com.pathplanner.lib.util.PIDConstants(kP, kI, kD)

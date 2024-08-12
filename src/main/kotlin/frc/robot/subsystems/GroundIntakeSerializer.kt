@@ -5,7 +5,7 @@ import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import frc.chargers.framework.SuperSubsystem
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.Motor
 
 
 /**
@@ -15,8 +15,8 @@ import frc.chargers.hardware.motorcontrol.MotorizedComponent
 // first list value is ground intake motor; second is serialier motor.
 @Suppress("unused")
 class GroundIntakeSerializer(
-    private val groundIntakeMotor: MotorizedComponent,
-    private val serializerMotor: MotorizedComponent? = null,
+    private val groundIntakeMotor: Motor,
+    private val serializerMotor: Motor? = null,
     private val groundIntakeGearRatio: Double,
     private val serializerGearRatio: Double,
 ): SuperSubsystem("GroundIntakeSerializer"){ // implements GroundIntakeIO to inherit necessary functions from io layer

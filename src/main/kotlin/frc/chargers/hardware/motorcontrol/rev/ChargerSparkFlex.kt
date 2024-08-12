@@ -9,9 +9,9 @@ import com.batterystaple.kmeasure.units.volts
 import com.revrobotics.CANSparkBase
 import com.revrobotics.CANSparkFlex
 import edu.wpi.first.wpilibj.RobotBase
-import frc.chargers.controls.pid.PIDConstants
-import frc.chargers.hardware.configuration.HardwareConfigurable
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import com.pathplanner.lib.util.PIDConstants
+import frc.chargers.hardware.configuration.ConfigurableHardware
+import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.rev.util.ChargerSparkConfiguration
 import frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderAdaptor
 import frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderType
@@ -56,7 +56,7 @@ public class ChargerSparkFlex(
     deviceId: Int,
     factoryDefault: Boolean = true,
     configuration: ChargerSparkConfiguration? = null
-) : CANSparkFlex(deviceId, MotorType.kBrushless), MotorizedComponent, HardwareConfigurable<ChargerSparkConfiguration> {
+) : CANSparkFlex(deviceId, MotorType.kBrushless), Motor, ConfigurableHardware<ChargerSparkConfiguration> {
     private var encoderType: SparkEncoderType = SparkEncoderType.Regular()
 
     init{
@@ -107,8 +107,8 @@ public class ChargerSparkFlex(
      * as this can lead to unexpected results. To configure followers,
      * it is recommended to use an [apply] or [also] block, or use ChargerLib's inline configuration to do so.
      */
-    override fun withFollowers(vararg followers: MotorizedComponent): MotorizedComponent {
-        val nonRevFollowers = mutableListOf<MotorizedComponent>()
+    override fun withFollowers(vararg followers: Motor): Motor {
+        val nonRevFollowers = mutableListOf<Motor>()
         for (follower in followers){
             if (follower is CANSparkBase){
                 follower.follow(this)

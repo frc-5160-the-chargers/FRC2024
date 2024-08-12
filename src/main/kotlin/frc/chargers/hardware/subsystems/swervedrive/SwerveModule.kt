@@ -1,5 +1,8 @@
 package frc.chargers.hardware.subsystems.swervedrive
 
+import com.batterystaple.kmeasure.dimensions.AngleDimension
+import com.batterystaple.kmeasure.dimensions.AngularVelocityDimension
+import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
@@ -9,12 +12,11 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotController
+import frc.chargers.controls.UnitPIDController
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
-import frc.chargers.controls.motionprofiling.optimizeForContinuousInput
-import frc.chargers.controls.pid.SuperPIDController
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.Loggable
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.utils.within
@@ -25,18 +27,14 @@ import kotlin.math.abs
 
 class SwerveModule(
     override val namespace: String,
-    private val turnMotor: MotorizedComponent,
+    private val turnMotor: Motor,
     // turn encoders are optional in sim
     private val turnEncoder: PositionEncoder? = null,
-    private val driveMotor: MotorizedComponent,
+    private val driveMotor: Motor,
     private val moduleConstants: SwerveModuleConstants
 ): Loggable {
     private fun turnEncoderReading(): Angle =
-        if (turnEncoder == null){
-            turnMotor.encoder.angularPosition / moduleConstants.turnGearRatio
-        }else{
-            turnEncoder.angularPosition
-        }
+        turnEncoder?.angularPosition ?: (turnMotor.encoder.angularPosition / moduleConstants.turnGearRatio)
 
     private val startingDriveEncoderPosition: Angle = driveMotor.encoder.angularPosition
     private val startingTurnRelativeEncoderPosition: Angle = turnMotor.encoder.angularPosition
@@ -47,19 +45,11 @@ class SwerveModule(
         text = "It seems that the battery voltage from the Robot controller is being reported as extremely low(possibly 0)."
     )
 
-    private val rioAzimuthController = SuperPIDController(
+    private val rioAzimuthController = UnitPIDController<AngleDimension, VoltageDimension>(
         moduleConstants.turnMotorControlScheme.pidConstants,
-        getInput = { direction },
-        target = 0.degrees,
-        continuousInputRange = 0.degrees..360.degrees,
-        outputRange = getVoltageRange()
+        continuousInputRange = 0.degrees..360.degrees
     )
-    private val rioVelocityController = SuperPIDController(
-        moduleConstants.velocityPID,
-        getInput = { driveAngularVelocity },
-        target = AngularVelocity(0.0),
-        outputRange = getVoltageRange()
-    )
+    private val rioVelocityController = UnitPIDController<AngularVelocityDimension, VoltageDimension>(moduleConstants.velocityPID)
 
     private var couplingOffset: Angle = 0.degrees
     private var azimuthProfileState = AngularMotionProfileState(startingTurnAbsoluteEncoderPosition)
@@ -103,12 +93,6 @@ class SwerveModule(
 
             log("TurnMotorCurrent", turnMotor.statorCurrent)
             log("DriveMotorCurrent", driveMotor.statorCurrent)
-
-            // updates rio controllers periodically unless onboard pid used
-            if (!moduleConstants.useOnboardPID){
-                rioAzimuthController.calculateOutput()
-                rioVelocityController.calculateOutput()
-            }
         }
     }
 
@@ -156,18 +140,11 @@ class SwerveModule(
 
                 fun calculateSetpoint(): AngularMotionProfileState =
                     moduleConstants.turnMotorControlScheme.motionProfile.calculate(
-                        ChargerRobot.LOOP_PERIOD,
                         setpoint = azimuthProfileState,
                         goal = goalState,
+                        measurement = direction,
+                        continuousInputRange = 0.degrees..360.degrees
                     )
-
-                // optimizes profile states for continuous input
-                optimizeForContinuousInput(
-                    azimuthProfileState,
-                    goalState,
-                    direction,
-                    continuousInputRange = 0.degrees..360.degrees
-                )
 
                 // increments the setpoint by calculating a new one
                 azimuthProfileState = calculateSetpoint()
@@ -176,7 +153,7 @@ class SwerveModule(
                 // in order to do plant inversion feedforward.
                 val futureSetpoint = calculateSetpoint()
 
-                feedforwardV = moduleConstants.turnMotorControlScheme.ffEquation.calculatePlantInversion(
+                feedforwardV = moduleConstants.turnMotorControlScheme.ffEquation.calculate(
                     azimuthProfileState.velocity,
                     futureSetpoint.velocity
                 )
@@ -197,8 +174,9 @@ class SwerveModule(
                 feedforward = feedforwardV
             )
         }else{
-            rioAzimuthController.target = pidTarget
-            setTurnVoltage(rioAzimuthController.calculateOutput() + feedforwardV)
+            setTurnVoltage(
+                (rioAzimuthController.calculate(direction, pidTarget) + feedforwardV).coerceIn(getVoltageRange())
+            )
         }
     }
 
@@ -230,11 +208,13 @@ class SwerveModule(
             driveMotor.setVelocitySetpoint(
                 rawVelocity = velocitySetpoint * moduleConstants.driveGearRatio,
                 pidConstants = moduleConstants.velocityPID,
-                feedforward = moduleConstants.velocityFF(velocitySetpoint)
+                feedforward = moduleConstants.velocityFF.calculate(velocitySetpoint)
             )
         }else{
-            rioVelocityController.target = velocitySetpoint
-            setDriveVoltage(rioVelocityController.calculateOutput() + moduleConstants.velocityFF(velocitySetpoint))
+            setDriveVoltage(
+                (rioVelocityController.calculate(driveAngularVelocity, velocitySetpoint) +
+                        moduleConstants.velocityFF.calculate(velocitySetpoint)).coerceIn(getVoltageRange())
+            )
         }
     }
 

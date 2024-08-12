@@ -19,11 +19,11 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.HeadingProvider
 import frc.chargers.hardware.sensors.imu.ZeroableHeadingProvider
-import frc.chargers.hardware.subsystems.PoseEstimatingSubsystem
+import frc.chargers.hardware.subsystems.PoseEstimatingDrivetrain
 import frc.chargers.utils.Measurement
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.utils.math.units.VoltageRate
@@ -32,7 +32,6 @@ import frc.chargers.utils.math.units.toWPI
 import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.Translation2d
 import frc.chargers.wpilibextensions.angle
-import frc.chargers.wpilibextensions.asPathPlannerConstants
 import frc.chargers.wpilibextensions.kinematics.*
 import frc.external.frc6328.SwerveSetpointGenerator
 import kotlin.jvm.optionals.getOrNull
@@ -50,14 +49,14 @@ import kotlin.math.pow
  */
 public open class EncoderHolonomicDrivetrain(
     logName: String = "Drivetrain(Swerve)",
-    turnMotors: SwerveData<MotorizedComponent>,
+    turnMotors: SwerveData<Motor>,
     // turn encoders are optional in sim
     turnEncoders: SwerveData<PositionEncoder?> = SwerveData.create{ null },
-    driveMotors: SwerveData<MotorizedComponent>,
+    driveMotors: SwerveData<Motor>,
     private val chassisConstants: SwerveChassisConstants,
     private val moduleConstants: SwerveModuleConstants,
     public val gyro: HeadingProvider? = null
-): PoseEstimatingSubsystem(logName), HeadingProvider {
+): PoseEstimatingDrivetrain(logName), HeadingProvider {
     private val moduleNames = listOf("Modules/TopLeft", "Modules/TopRight", "Modules/BottomLeft", "Modules/BottomRight")
     // A SwerveData instance that holds all the swerve modules of the drivetrain.
     private val swerveModules: SwerveData<SwerveModule> =
@@ -154,8 +153,8 @@ public open class EncoderHolonomicDrivetrain(
                 log(ChassisSpeeds.struct, "PathPlanner/ChassisSpeeds", speeds)
             },
             HolonomicPathFollowerConfig(
-                chassisConstants.robotTranslationPID.asPathPlannerConstants(),
-                chassisConstants.robotRotationPID.asPathPlannerConstants(),
+                chassisConstants.robotTranslationPID,
+                chassisConstants.robotRotationPID,
                 moduleConstants.driveMotorMaxSpeed.siValue,
                 kotlin.math.sqrt(chassisConstants.trackWidth.inUnit(meters).pow(2) + chassisConstants.wheelBase.inUnit(meters).pow(2)),
                 chassisConstants.pathReplanningConfig

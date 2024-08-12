@@ -8,19 +8,19 @@ import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import frc.chargers.controls.feedforward.AngularMotorFFEquation
-import frc.chargers.controls.pid.PIDConstants
+import com.pathplanner.lib.util.PIDConstants
 import frc.chargers.framework.SuperSubsystem
-import frc.chargers.hardware.motorcontrol.MotorizedComponent
+import frc.chargers.hardware.motorcontrol.Motor
 
 private val CLOSED_LOOP_SPEAKER_SHOOT_SPEED = AngularVelocity(0.0) // tbd; should change soon depending on feedforward numbers
 
 // standard: + = outtake, - = intake; regardless of voltage set
 @Suppress("unused")
 class Shooter(
-    private val motor: MotorizedComponent,
+    private val motor: Motor,
     private val gearRatio: Double,
-    private val shootingFFEquation: AngularMotorFFEquation = AngularMotorFFEquation(0, 0, 0),
-    private val shootingPID: PIDConstants = PIDConstants(0,0,0),
+    private val shootingFFEquation: AngularMotorFFEquation = AngularMotorFFEquation(0.0, 0.0, 0.0),
+    private val shootingPID: PIDConstants = PIDConstants(0.0,0.0,0.0),
     private val closedLoopSpeakerShooting: Boolean = true,
 ): SuperSubsystem("Shooter") {
     private var wasShootingInSpeaker = false
@@ -41,7 +41,7 @@ class Shooter(
             motor.setVelocitySetpoint(
                 CLOSED_LOOP_SPEAKER_SHOOT_SPEED * gearRatio,
                 shootingPID,
-                shootingFFEquation(CLOSED_LOOP_SPEAKER_SHOOT_SPEED)
+                shootingFFEquation.calculate(CLOSED_LOOP_SPEAKER_SHOOT_SPEED)
             )
         }else{
             setVoltage(12.volts)

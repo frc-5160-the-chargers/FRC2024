@@ -11,11 +11,11 @@ import frc.chargers.utils.math.units.VoltagePerAngularVelocity
 /**
  * Constructs an [AngularMotorFFEquation] with SI value gains.
  */
-fun AngularMotorFFEquation(kS: Number, kV: Number, kA: Number = 0.0) =
+fun AngularMotorFFEquation(kS: Double, kV: Double, kA: Double = 0.0) =
     AngularMotorFFEquation(
-        Voltage(kS.toDouble()),
-        VoltagePerAngularVelocity(kV.toDouble()),
-        VoltagePerAngularAcceleration(kA.toDouble())
+        Voltage(kS),
+        VoltagePerAngularVelocity(kV),
+        VoltagePerAngularAcceleration(kA)
     )
 
 
@@ -33,26 +33,20 @@ class AngularMotorFFEquation(
     val kS: Voltage,
     val kV: VoltagePerAngularVelocity,
     val kA: VoltagePerAngularAcceleration = VoltagePerAngularAcceleration(0.0)
-): (AngularVelocity, AngularAcceleration) -> Voltage, (AngularVelocity) -> Voltage {
-
+){
     private val baseFF = SimpleMotorFeedforward(kS.siValue, kV.siValue, kA.siValue)
 
-    override operator fun invoke(
+    fun calculate(
         velocity: AngularVelocity,
-        acceleration: AngularAcceleration
-    ): Voltage = Voltage( baseFF.calculate(velocity.siValue, acceleration.siValue) )
+        acceleration: AngularAcceleration = AngularAcceleration(0.0)
+    ): Voltage = Voltage(baseFF.calculate(velocity.siValue, acceleration.siValue))
 
-    override operator fun invoke(velocity: AngularVelocity): Voltage =
-        invoke(velocity, AngularAcceleration(0.0))
-
-    fun toLinear(gearRatio: Double, wheelRadius: Length): LinearMotorFFEquation =
-        LinearMotorFFEquation(
-            kS.siValue,
-            (kV / gearRatio / wheelRadius).siValue,
-            kA.siValue / gearRatio / wheelRadius.siValue
-        )
-
-    fun calculatePlantInversion(currentTarget: AngularVelocity, nextTarget: AngularVelocity): Voltage =
+    @JvmName("calculatePlantInversion")
+    fun calculate(
+        currentTarget: AngularVelocity,
+        nextTarget: AngularVelocity,
+        dt: Time = ChargerRobot.LOOP_PERIOD
+    ): Voltage =
         Voltage(
             if (kV.siValue == 0.0 || kS.siValue == 0.0){
                 0.0
@@ -60,8 +54,15 @@ class AngularMotorFFEquation(
                 baseFF.calculate(
                     currentTarget.siValue,
                     nextTarget.siValue,
-                    ChargerRobot.LOOP_PERIOD.inUnit(seconds)
+                    dt.inUnit(seconds)
                 )
             }
+        )
+
+    fun toLinear(gearRatio: Double, wheelRadius: Length): LinearMotorFFEquation =
+        LinearMotorFFEquation(
+            kS.siValue,
+            (kV / gearRatio / wheelRadius).siValue,
+            kA.siValue / gearRatio / wheelRadius.siValue
         )
 }
