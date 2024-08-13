@@ -15,6 +15,6 @@ object Main {
     @JvmStatic
     fun main(args: Array<String>) {
         // @java-ignore
-        RobotBase.startRobot{ PushBot() }
+        RobotBase.startRobot{ TestingRobot() }
     }
 }

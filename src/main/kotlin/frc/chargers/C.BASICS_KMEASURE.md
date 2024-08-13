@@ -5,7 +5,7 @@ For more information, check the library's README page.
 
 ## Basics:
 
-A. All values are templated off of the ```Quantity<D: Dimension>``` class. This class has only one property: 'siValue', which is the base value of the quantity in the International System of Unit's designated base unit for the class. Due to being inline value classes, ```Quantity<D>```'s are represented as Double's as much as possible; this significantly reduces runtime overhead(and removes the need of a MutableQuantity/MutableMeasure class).
+In Kmeasure, all values are templated off of the ```Quantity<D: Dimension>``` class. This class has only one property: 'siValue', which is the base value of the quantity in the International System of Unit's designated base unit for the class. Due to being inline value classes, ```Quantity<D>```'s are represented as Double's as much as possible; this significantly reduces runtime overhead(and removes the need of a MutableQuantity/MutableMeasure class).
 B. The Dimension class represents a generic unit/dimension, and is used to distinguish between different ```Quantity```'s. It is represented using 4 components: Mass(M), Length(L), Time(T) and Current(I). For instance:
 ```kotlin
 typealias dimensionA =  Dimension<Mass0, Length0, Time1, Current0> // dimension = time

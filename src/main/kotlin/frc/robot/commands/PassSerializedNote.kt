@@ -13,7 +13,7 @@ fun passSerializedNote(
     groundIntake: GroundIntakeSerializer,
     shooter: Shooter,
 ): Command = buildCommand("Pass Serialized Note") {
-    addRequirements(groundIntake, shooter)
+    require(groundIntake, shooter)
 
     if (RobotBase.isReal()){
         loopUntil({noteObserver.state == NoteObserver.State.NoteInShooter}){

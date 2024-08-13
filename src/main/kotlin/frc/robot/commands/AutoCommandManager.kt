@@ -31,7 +31,7 @@ class AutoCommandManager(
         setDefaultOption(
             "Basic Taxi",
             buildCommand { 
-                addRequirements(drivetrain)
+                require(drivetrain)
                 loopFor(5.seconds){ drivetrain.swerveDrive(0.2, 0.0, 0.0) }
                 onEnd{ drivetrain.stop() }
             }
@@ -58,7 +58,7 @@ class AutoCommandManager(
     ): Command {
         // autos require all of the subsystems
         val command = buildCommand(name = autoName){
-            addRequirements(drivetrain, shooter, groundIntake, pivot, noteObserver)
+            require(drivetrain, shooter, groundIntake, pivot, noteObserver)
             builderScope()
         }
         sendableChooser.addOption(autoName, command)

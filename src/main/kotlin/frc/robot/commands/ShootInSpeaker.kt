@@ -25,7 +25,7 @@ fun shootInSpeaker(
         groundIntake.passToShooterFast()
     }
 
-    addRequirements(shooter, groundIntake, pivot)
+    require(shooter, groundIntake, pivot)
 
     val spinupStartTime by getOnceDuringRun{ fpgaTimestamp() }
 

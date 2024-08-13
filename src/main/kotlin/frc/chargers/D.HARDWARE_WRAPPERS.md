@@ -55,7 +55,7 @@ Here are the ways to retreive motor data:
     For setting and fetching motor inversion, call the ```MotorizedComponent.hasInvert``` getter-setter property.
 
 ```kotlin
-   public class Elevator(val motor: MotorizedComponent, ....){
+   public class Elevator(val motor: Motor, ....){
    
        init{
             motor.hasInvert = true

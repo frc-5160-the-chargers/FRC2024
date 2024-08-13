@@ -14,7 +14,7 @@ fun shootInAmp(
     shooter: Shooter,
     pivot: Pivot
 ): Command = buildCommand {
-    addRequirements(noteObserver, shooter, pivot)
+    require(noteObserver, shooter, pivot)
 
     +pivot.setAngleCommand(PivotAngle.AMP)
 
@@ -24,15 +24,17 @@ fun shootInAmp(
             loopUntil({noteObserver.state == NoteObserver.State.NoteInShooter}){
                 shooter.outtakeAtAmpSpeed()
             }
+
             loopUntil({noteObserver.state == NoteObserver.State.NoNote}){
                 shooter.outtakeAtAmpSpeed()
             }
-            loopFor(0.3.seconds, shooter){
+
+            loopFor(0.3.seconds){
                 shooter.outtakeAtAmpSpeed()
             }
         }
     }else{
-        loopFor(0.7.seconds, shooter){
+        loopFor(0.7.seconds){
             shooter.outtakeAtAmpSpeed()
         }
     }

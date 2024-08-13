@@ -14,11 +14,17 @@ import kotlin.reflect.KProperty
  */
 @CommandBuilderMarker
 public open class CommandBuilder {
-    public var commands: LinkedHashSet<Command> = linkedSetOf() // LinkedHashSet keeps commands in order, but also ensures they're not added multiple times
+    @PublishedApi
+    internal var commands: LinkedHashSet<Command> = linkedSetOf() // LinkedHashSet keeps commands in order, but also ensures they're not added multiple times
 
-    public var addingCommandsLocked: Boolean = false
+    @PublishedApi
+    internal var addingCommandsLocked: Boolean = false
 
-    public fun addCommand(c: Command){
+    @PublishedApi
+    internal val context = CodeBlockContext()
+
+    @PublishedApi
+    internal fun addCommand(c: Command) {
         if (addingCommandsLocked){
             error(
                 """
@@ -56,7 +62,7 @@ public open class CommandBuilder {
      *
      * }
      */
-    public fun Command.modify(modifier: (Command) -> Command): Command{
+    public fun Command.modify(modifier: (Command) -> Command): Command {
         commands.remove(this)
         val newCommand = modifier(this)
         commands.add(newCommand)
@@ -76,7 +82,7 @@ public open class CommandBuilder {
      * }
      * ```
      */
-    public operator fun <C : Command> C.unaryPlus(): C{
+    public operator fun <C : Command> C.unaryPlus(): C {
         addCommand(this)
         return this
     }
@@ -92,7 +98,7 @@ public open class CommandBuilder {
      * }
      * ```
      */
-    public operator fun <C: Command> C.unaryMinus(): C{
+    public operator fun <C: Command> C.unaryMinus(): C {
         commands.remove(this)
         return this
     }
@@ -102,11 +108,10 @@ public open class CommandBuilder {
      *
      * Equivalent to an [InstantCommand].
      *
-     * @param requirements the Subsystems this command uses
      * @param execute the code to be run
      */
-    public fun runOnce(vararg requirements: Subsystem, execute: CodeBlockContext.() -> Unit): InstantCommand =
-        InstantCommand({ CodeBlockContext.execute() }, *requirements).also(::addCommand)
+    public fun runOnce(execute: CodeBlockContext.() -> Unit): Command =
+        InstantCommand({ context.execute() }).also(::addCommand)
 
 
     /**
@@ -118,7 +123,7 @@ public open class CommandBuilder {
      * @param onTrue the command ran when the condition returns true.
      * @param onFalse the command ran when the condition returns false; defaults to an empty command.
      */
-    public fun runIf(condition: () -> Boolean, onTrue: Command, onFalse: Command = InstantCommand()): ConditionalCommand =
+    public fun runIf(condition: () -> Boolean, onTrue: Command, onFalse: Command = InstantCommand()): Command =
         ConditionalCommand(onTrue, onFalse, condition).also{
             addCommand(it)
             this.commands.remove(onTrue)
@@ -143,13 +148,13 @@ public open class CommandBuilder {
     /**
      * Adds a command that will run *until* the [condition] is met.
      *
-     * Equivalent to the until decorator for commands.
+     * Equivalent to the [Command.until] decorator.
      *
      * @param condition the condition to be met
      * @param command the command to run until [condition] is met
      */
-    public fun runUntil(condition: () -> Boolean, command: Command): ParallelRaceGroup =
-        command.until { condition() }
+    public fun runUntil(condition: () -> Boolean, command: Command): Command =
+        command.until(condition)
             .also{
                 addCommand(it)
                 this.commands.remove(command)
@@ -158,13 +163,13 @@ public open class CommandBuilder {
     /**
      * Adds a command that will run *while* the [condition] is met.
      *
-     * Equivalent to the until decorator for commands.
+     * Equivalent to the [Command.onlyWhile] decorator.
      *
      * @param condition the condition to be met
      * @param command the command to run until [condition] is met
      */
-    public fun runWhile(condition: () -> Boolean, command: Command): ParallelRaceGroup =
-        command.until { !condition() }
+    public fun runWhile(condition: () -> Boolean, command: Command): Command =
+        command.onlyWhile(condition)
             .also{
                 addCommand(it)
                 this.commands.remove(command)
@@ -174,21 +179,23 @@ public open class CommandBuilder {
      * Adds a command that will run the code block repeatedly *until* the [condition] is met.
      *
      * @param condition the condition to be met
-     * @param requirements the Subsystems this command uses
      * @param execute the code to be run until [condition] is met
      */
-    public inline fun loopUntil(noinline condition: () -> Boolean, vararg requirements: Subsystem, crossinline execute: CodeBlockContext.() -> Unit): ParallelRaceGroup =
-        runUntil(condition, RunCommand({ CodeBlockContext.execute() }, *requirements) )
+    public inline fun loopUntil(crossinline condition: () -> Boolean, crossinline execute: CodeBlockContext.() -> Unit): Command =
+        RunCommand({ context.execute() })
+            .until{ condition() || context.currentBlockStopped() }
+            .also(::addCommand)
 
     /**
      * Adds a command that will run *while* [condition] is true.
      *
      * @param condition the condition to be met
-     * @param requirements the Subsystems this command uses
      * @param execute the code to be run
      */
-    public fun loopWhile(condition: () -> Boolean, vararg requirements: Subsystem, execute: CodeBlockContext.() -> Unit): ParallelRaceGroup =
-        runWhile(condition, RunCommand({ CodeBlockContext.execute() }, *requirements))
+    public inline fun loopWhile(crossinline condition: () -> Boolean, crossinline execute: CodeBlockContext.() -> Unit): Command =
+        RunCommand({ context.execute() })
+            .onlyWhile{ condition() && !context.currentBlockStopped() }
+            .also(::addCommand)
 
     /**
      * Adds several commands that will run at the same time, all stopping as soon as one finishes.
@@ -281,22 +288,30 @@ public open class CommandBuilder {
     public inline fun runSequentiallyFor(time: Time, vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
         val sequentialCommand = runSequentially(*commands, block = block)
         this.commands.remove(sequentialCommand)
-        return sequentialCommand.withTimeout(time.inUnit(seconds))
+        return sequentialCommand.withTimeout(time.inUnit(seconds)).also(::addCommand)
     }
 
     /**
      * Runs certain commands sequentially **until** a certain condition is met.
      */
-    public inline fun runSequentiallyUntil(noinline condition: () -> Boolean, vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
+    public inline fun runSequentiallyUntil(
+        noinline condition: () -> Boolean,
+        vararg commands: Command,
+        block: CommandBuilder.() -> Unit = {}
+    ): Command {
         val sequentialCommand = runSequentially(*commands, block = block)
         this.commands.remove(sequentialCommand)
-        return sequentialCommand.unless(condition)
+        return sequentialCommand.unless(condition).also(::addCommand)
     }
 
     /**
      * Runs certain commands sequentially **until** a certain condition is met.
      */
-    public inline fun runSequentiallyWhile(crossinline condition: () -> Boolean, vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command =
+    public inline fun runSequentiallyWhile(
+        crossinline condition: () -> Boolean,
+        vararg commands: Command,
+        block: CommandBuilder.() -> Unit = {}
+    ): Command =
         runSequentiallyUntil({ !condition() }, *commands, block = block)
 
 
@@ -322,10 +337,12 @@ public open class CommandBuilder {
     /**
      * Adds a command that will run until either the [timeInterval] expires or it completes on its own.
      *
+     * Equivalent to the [Command.withTimeout] decorator.
+     *
      * @param command the command to run
      * @param timeInterval the maximum allowed runtime of the command
      */
-    public fun runFor(timeInterval: Time, command: Command): ParallelRaceGroup =
+    public fun runFor(timeInterval: Time, command: Command): Command =
         command
         .withTimeout(timeInterval.inUnit(seconds))
         .also(::addCommand)
@@ -334,27 +351,25 @@ public open class CommandBuilder {
      * Adds a command that will run until either the [timeInterval] expires or it completes on its own.
      *
      * @param timeInterval the maximum allowed runtime of the command
-     * @param requirements the Subsystems this command requires
      * @param execute the code to be run
      */
-    public inline fun loopFor(
-        timeInterval: Time,
-        vararg requirements: Subsystem,
-        crossinline execute: CodeBlockContext.() -> Unit
-    ): ParallelRaceGroup =
-        RunCommand({ CodeBlockContext.execute() }, *requirements).withTimeout(timeInterval.inUnit(seconds)).also(::addCommand)
+    public inline fun loopFor(timeInterval: Time, crossinline execute: CodeBlockContext.() -> Unit): Command =
+        RunCommand({ context.execute() })
+            .withTimeout(timeInterval.inUnit(seconds))
+            .until(context::currentBlockStopped)
+            .also(::addCommand)
 
     /**
      * Adds a command to be run continuously.
      *
-     * @param requirements the Subsystems this command requires
+     * Equivalent to a [RunCommand].
+     *
      * @param execute the code to be run
      */
-    public inline fun loop(
-        vararg requirements: Subsystem,
-        crossinline execute: CodeBlockContext.() -> Unit
-    ): RunCommand =
-        RunCommand({ CodeBlockContext.execute() }, *requirements).also(::addCommand)
+    public inline fun loop(crossinline execute: CodeBlockContext.() -> Unit): Command =
+        RunCommand({ context.execute() })
+            .until(context::currentBlockStopped)
+            .also(::addCommand)
 
     /**
      * Adds a command that does nothing for a specified [timeInterval], then completes.
@@ -384,20 +399,18 @@ public open class CommandBuilder {
      *
      * ```
      * val command = buildCommand{
-     *      val armStartingPosition by getOnceDuringRun{ arm.position }
+     *      // this fetches the value of armStartingPosition when the buildCommand is created
+     *      // this means that p2 will not refresh itself when the command runs, unlike armStartingPosition.
+     *      val p2 = arm.position
+     *
+     *      // this, on the other hand, is valid.
+     *      val p2 by getOnceDuringRun{ arm.position }
      *
      *      runOnce{
      *          // because this is called in a function block(CodeBlockContext),
      *          // it will print the new armStartingPosition whenever the command runs.
      *          println(armStartingPosition)
      *      }
-     *
-     *      // this fetches the value of armStartingPosition when the command is initialized;
-     *      // this means that p2 will not refresh itself when the command runs, unlike armStartingPosition.
-     *      val p2 = armStartingPosition
-     *
-     *      // this, on the other hand, is valid.
-     *      val p2 by getOnceDuringRun{ armStartingPosition }
      * }
      */
     public fun <T : Any> getOnceDuringRun(get: CodeBlockContext.() -> T) : ReadOnlyProperty<Any?, T> =
@@ -407,7 +420,7 @@ public open class CommandBuilder {
             private var hasInitialized: Boolean = false
 
             private fun initializeValue() {
-                value = CodeBlockContext.get()
+                value = context.get()
                 hasInitialized = true
             }
 
@@ -445,7 +458,7 @@ public open class CommandBuilder {
 
     /**
      *
-     * Adds a command that resets a variable when it is run.
+     * Adds a command that resets a variable to it's default(provided by getDefault) when it is run.
      *
      * Returns a property delegate; see [here](https://kotlinlang.org/docs/delegated-properties.html#standard-delegates)
      * for an explanation of property delegates.
@@ -462,6 +475,7 @@ public open class CommandBuilder {
             }
 
             override fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+
             override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) { this.value = value }
         }
 }

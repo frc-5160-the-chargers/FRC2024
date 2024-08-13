@@ -63,7 +63,7 @@ class PushBot: ChargerRobot() {
 
         autonomous().whileTrue(
             buildCommand {
-                addRequirements(drivetrain)
+                require(drivetrain)
 
                 loopFor(0.5.seconds){
                     drivetrain.arcadeDrive(shakePower, 0.0, squareInputs = false)

@@ -156,11 +156,11 @@ class Pivot(
 
     fun setAngleCommand(target: Angle): Command =
         buildCommand{
-            runOnce(this@Pivot){ setAngle(target) }
+            require(this@Pivot)
 
-            loopUntil({ atTarget }, this@Pivot){
-                setAngle(target)
-            }
+            runOnce{ setAngle(target) }
+
+            loopUntil({ atTarget }){ setAngle(target) }
 
             onEnd{ setIdle() }
         }

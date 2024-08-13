@@ -12,22 +12,24 @@ import kotlin.math.max
 fun noteIntakeDriverAssist(
     drivetrain: EncoderHolonomicDrivetrain,
     noteObserver: NoteObserver
-): Command = buildCommand(logIndividualCommands = true) {
+): Command = buildCommand(log = true) {
     fun getNotePursuitSpeed(txValue: Double): Double{
         val swerveOutput = DriverController.swerveOutput
         return max(abs(swerveOutput.xPower), abs(swerveOutput.yPower)) * (1.0 - txValue / 50.0) // scales based off of the vision target error
     }
+
+    require(drivetrain)
 
     // regular drive occurs until suitable target found
     loopUntil({
         val currentState = noteObserver.state
         currentState is NoteObserver.State.NoteDetected &&
         currentState.distanceToNote <= ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
-    }, drivetrain){
+    }){
         drivetrain.swerveDrive(DriverController.swerveOutput, !DriverController.shouldDisableFieldRelative)
     }
 
-    loop(drivetrain){
+    loop{
         // drives back to grab note
         val currentState = noteObserver.state
         if (currentState is NoteObserver.State.NoteDetected){

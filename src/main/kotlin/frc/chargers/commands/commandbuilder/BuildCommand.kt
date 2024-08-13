@@ -3,9 +3,8 @@ package frc.chargers.commands.commandbuilder
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup
 import edu.wpi.first.wpilibj2.command.Subsystem
-import frc.chargers.commands.InstantCommand
 import frc.chargers.commands.withExtraRequirements
-import frc.chargers.framework.ChargerRobot
+import frc.chargers.commands.withLogging
 import kotlin.internal.LowPriorityInOverloadResolution
 
 /**
@@ -17,8 +16,10 @@ import kotlin.internal.LowPriorityInOverloadResolution
  * Example usage:
  * ```
  * val armCommand: Command = buildCommand{
+ *      require(arm) // adds requirements across the entire command group
+ *
  *      // equivalent to an InstantCommand within a SequentialCommandGroup
- *      runOnce{
+ *      runOnce{ // requirements of the entire command group can also be added here
  *          armSubsystem.resetEncoders()
  *      }
  *
@@ -31,30 +32,30 @@ import kotlin.internal.LowPriorityInOverloadResolution
  *      // loops through the block below until the condition is met
  *      loopUntil(condition = { abs(pidController.target - arm.distalAngle) < 0.1 }){
  *          armSubsystem.setDistalVoltage(pidController.calculateOutput())
- *      }
+ *      }.modify{ it.unless(booleanSupplier).withTimeout(5) } // All command factory methods must be called from a modify() function call
  *
  * }
  * ```
  * @param name The name of the buildCommand(defaults to "Generic BuildCommand").
- * @param logIndividualCommands If true, will log the individual commands that are part of the DSL. Defaults to false.
+ * @param log If true, will log the individual commands that are part of the DSL. Defaults to false.
  * @param block The entry point to the DSL. Has the context of [CommandBuilder].
  */
 inline fun buildCommand(
-    name: String = "Generic BuildCommand",
-    logIndividualCommands: Boolean = false,
+    name: String = "Unnamed BuildCommand",
+    log: Boolean = false,
     block: BuildCommandScope.() -> Unit
 ): Command {
     val builder = BuildCommandScope().apply(block)
 
-    val commandArray: Array<Command> = builder.commands.map{
-        if (logIndividualCommands){
-            it.withLogInCommandGroup(name)
-        }else{
-            it
-        }
+    val subCommands = builder.commands.map{
+        if (log) it.withLogging("$name/${it.name}") else it
     }.toTypedArray()
 
-    var command: Command = SequentialCommandGroup(*commandArray).withName(name).finallyDo(builder.endBehavior)
+    var command: Command = SequentialCommandGroup(*subCommands)
+        .withName(name)
+        .until(builder.context::commandStopped)
+        .finallyDo(builder.endBehavior)
+        .withLogging("$name/overallCommand")
 
     if (builder.requirements.size > 0){
         command = command.withExtraRequirements(*builder.requirements.toTypedArray())
@@ -85,7 +86,7 @@ inline fun Subsystem.buildCommand(
  * (like runSequentially, runParallelUntilAllFinish, etc.)
  */
 @CommandBuilderMarker
-class BuildCommandScope: CommandBuilder(){
+class BuildCommandScope: CommandBuilder() {
     val requirements: LinkedHashSet<Subsystem> = linkedSetOf()
 
     var addingRequirementsLocked: Boolean = false
@@ -95,7 +96,7 @@ class BuildCommandScope: CommandBuilder(){
     /**
      * Adds subsystems that are required across the entire [buildCommand].
      */
-    fun addRequirements(vararg requirements: Subsystem){
+    fun require(vararg requirements: Subsystem){
         if (addingRequirementsLocked){
             error("""
                 It looks like you are attempting to add requirements to the command while it is running.
@@ -104,11 +105,11 @@ class BuildCommandScope: CommandBuilder(){
                 For instance:
                 buildCommand{
                     // correct way to do it; outside of any block
-                    addRequirements(...)
+                    require(...)
                     
                     runOnce{
                         // does not compile
-                        addRequirements(...)
+                        require(...)
                         // compiles, but will NOT WORK!
                         this@buildCommand.addRequirements(...)
                     }
@@ -120,23 +121,18 @@ class BuildCommandScope: CommandBuilder(){
     }
 
     /**
+     * Alternative syntax for adding requirements,
+     * that more closely follows the syntax of base commands.
+     */
+    @Suppress("unused")
+    fun addRequirements(vararg requirements: Subsystem){
+        require(*requirements)
+    }
+
+    /**
      * Runs the function block when the [buildCommand] is finished.
      */
-    inline fun onEnd(crossinline run: CodeBlockContext.(Boolean) -> Unit){
-        endBehavior = { CodeBlockContext.run(it) }
+    fun onEnd(run: (Boolean) -> Unit){
+        endBehavior = run
     }
-}
-
-@PublishedApi
-internal fun Command.withLogInCommandGroup(commandGroupName: String): Command{
-    fun logCommand(active: Boolean) = InstantCommand{
-        ChargerRobot.log("/ActiveCommands/Subcommands Of: $commandGroupName/$name", active)
-    }
-
-    // uses custom infix "then" operator(more concise way to do andThen)
-    return SequentialCommandGroup(
-        logCommand(true),
-        this,
-        logCommand(false)
-    )
 }
