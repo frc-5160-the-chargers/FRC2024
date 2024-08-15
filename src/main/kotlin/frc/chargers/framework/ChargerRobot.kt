@@ -60,14 +60,17 @@ abstract class ChargerRobot(
         /**
          * Adds a specific function to the robot's periodic loop, which runs after the robot's periodic loop ends.
          */
-        fun runPeriodicLowPriority(runnable: () -> Unit){
+        fun runPeriodicWithLowPriority(runnable: () -> Unit){
             lowPriorityPeriodicRunnables.add(runnable)
         }
 
         /**
-         * Adds a specific function to the robot's periodic loop, which runs at a higher frequency than normal.
+         * Adds a specific function to the robot's periodic loop, which can run in a higher frequency
+         * than normal.
+         *
+         * Equivalent to WPILib's [addPeriodic] method.
          */
-        fun runPeriodicHighFrequency(period: Time, runnable: () -> Unit){
+        fun runPeriodicAtPeriod(period: Time, runnable: () -> Unit){
             highFrequencyPeriodicRunnables.add(
                 HighFrequencyPeriodicRunnable(period, runnable)
             )

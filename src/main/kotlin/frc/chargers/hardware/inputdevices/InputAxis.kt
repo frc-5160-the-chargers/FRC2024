@@ -56,7 +56,7 @@ public class InputAxis(
         withModifier(equation)
 
     public fun mapToRange(range: ClosedRange<Double>): InputAxis =
-        withModifier{
+        withModifier {
             val initialValue = abs(it).mapBetweenRanges(from = 0.0..1.0, to = range)
             if (it < 0.0){
                 -initialValue
@@ -67,25 +67,25 @@ public class InputAxis(
 
     public fun rateLimit(positiveLimit: Frequency, negativeLimit: Frequency): InputAxis{
         val rateLimiter = SlewRateLimiter(positiveLimit.siValue, negativeLimit.siValue, 0.0)
-        return withModifier{ rateLimiter.calculate(it) }
+        return withModifier { rateLimiter.calculate(it) }
     }
 
     public fun rateLimit(limit: Frequency): InputAxis{
         val rateLimiter = SlewRateLimiter(limit.siValue)
-        return withModifier{ rateLimiter.calculate(it) }
+        return withModifier { rateLimiter.calculate(it) }
     }
 
     public fun square(): InputAxis =
-        withModifier{ (it * it).preserveSign(it) }
+        withModifier { (it * it).preserveSign(it) }
 
     public fun invert(): InputAxis =
-        withModifier{ it * -1.0 }
+        withModifier { it * -1.0 }
 
     public fun invertWhen(booleanSupplier: () -> Boolean): InputAxis =
-        withModifier{ it * if (booleanSupplier()) -1.0 else 1.0 }
+        withModifier { it * if (booleanSupplier()) -1.0 else 1.0 }
 
     public fun log(namespace: String): InputAxis =
-        withModifier{
+        withModifier {
             log(namespace, it)
             it
         }

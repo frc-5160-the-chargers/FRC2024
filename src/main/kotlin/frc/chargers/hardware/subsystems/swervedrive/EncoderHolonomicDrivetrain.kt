@@ -139,7 +139,7 @@ public open class EncoderHolonomicDrivetrain(
 
     init{
         log("RealGyroUsedInPoseEstimation", gyro != null)
-        ChargerRobot.runPeriodicHighFrequency(
+        ChargerRobot.runPeriodicAtPeriod(
             chassisConstants.odometryUpdateRate,
             ::updatePoseEstimation
         )

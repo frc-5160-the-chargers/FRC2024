@@ -49,7 +49,7 @@ object NoteVisualizer: Loggable {
         private set
 
     init{
-        ChargerRobot.runPeriodicLowPriority {
+        ChargerRobot.runPeriodicWithLowPriority {
             if (hasNoteInShooter){
                 log(
                     Pose3d.struct,
