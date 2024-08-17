@@ -90,7 +90,6 @@ dependencies {
 kotlin {
     compileKotlin {
         kotlinOptions {
-            freeCompilerArgs += "-Xcontext-receivers"
             freeCompilerArgs += "-Xallow-kotlin-package"
             freeCompilerArgs += "-Xskip-prerelease-check"
         }

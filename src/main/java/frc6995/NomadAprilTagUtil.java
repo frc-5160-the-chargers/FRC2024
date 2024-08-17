@@ -1,4 +1,4 @@
-package frc.external.frc6995;
+package frc6995;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;

@@ -12,7 +12,7 @@ import frc.chargers.framework.Loggable
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.kinematics.xVelocity
 import frc.chargers.wpilibextensions.kinematics.yVelocity
-import frc.external.limelight.LimelightHelpers
+import limelight.LimelightHelpers
 
 
 @Suppress("LeakingThis")

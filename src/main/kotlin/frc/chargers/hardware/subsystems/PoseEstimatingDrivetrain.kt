@@ -15,8 +15,8 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.SuperSubsystem
 import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.Rotation2d
-import frc.external.frc6995.NomadAprilTagUtil
-import frc.external.limelight.LimelightHelpers
+import frc6995.NomadAprilTagUtil
+import limelight.LimelightHelpers
 import org.photonvision.PhotonCamera
 import org.photonvision.PhotonPoseEstimator
 import org.photonvision.PhotonPoseEstimator.PoseStrategy

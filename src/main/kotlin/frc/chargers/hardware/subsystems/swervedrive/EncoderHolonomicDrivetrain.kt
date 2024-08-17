@@ -33,7 +33,7 @@ import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.Translation2d
 import frc.chargers.wpilibextensions.angle
 import frc.chargers.wpilibextensions.kinematics.*
-import frc.external.frc6328.SwerveSetpointGenerator
+import frc6328.SwerveSetpointGenerator
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.pow
 
@@ -86,7 +86,8 @@ public open class EncoderHolonomicDrivetrain(
     )
     // Converts ChassisSpeeds to module states
     // That respect velocity and acceleration constraints.
-    private val setpointGenerator = SwerveSetpointGenerator(kinematics, moduleTranslationsFromRobotCenter)
+    private val setpointGenerator =
+        SwerveSetpointGenerator(kinematics, moduleTranslationsFromRobotCenter)
     // The ultimate goal state of the drivetrain; with x, y and rotational velocities.
     private var goal = ChassisSpeeds()
     // The current setpoint of the drivetrain;

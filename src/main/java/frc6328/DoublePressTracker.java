@@ -1,6 +1,6 @@
 // Copyright (c) 2023 FRC 6328
 // http://github.com/Mechanical-Advantage
-package frc.external.frc6328;
+package frc6328;
 
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.button.Trigger;

@@ -1,4 +1,4 @@
-package frc.external.frc6328;
+package frc6328;
 
 // Copyright (c) 2023 FRC 6328
 // http://github.com/Mechanical-Advantage

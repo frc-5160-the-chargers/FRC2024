@@ -16,7 +16,7 @@ import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.utils.Precision
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.fpgaTimestamp
-import frc.external.limelight.LimelightHelpers
+import limelight.LimelightHelpers
 import org.photonvision.PhotonCamera
 import kotlin.math.PI
 

@@ -1,4 +1,4 @@
-package frc.external.frc6328;
+package frc6328;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -30,9 +30,9 @@ public class SwerveSetpointGenerator {
     }
 
 
-    public record Setpoint(ChassisSpeeds chassisSpeeds, SwerveModuleState[] moduleStates) {}
+    public static record Setpoint(ChassisSpeeds chassisSpeeds, SwerveModuleState[] moduleStates) {}
 
-    public record ModuleLimits(double maxDriveVelocity, double maxDriveAcceleration, double maxSteeringVelocity) {}
+    public static record ModuleLimits(double maxDriveVelocity, double maxDriveAcceleration, double maxSteeringVelocity) {}
 
     /**
      * Check if it would be faster to go to the opposite of the goal heading (and reverse drive

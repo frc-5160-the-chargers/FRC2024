@@ -6,7 +6,7 @@ import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.button.Trigger
-import frc.external.frc6328.DoublePressTracker
+import frc6328.DoublePressTracker
 
 fun Trigger.withDoubleClick(clickTimeout: Time? = null): Trigger =
     if (clickTimeout == null){

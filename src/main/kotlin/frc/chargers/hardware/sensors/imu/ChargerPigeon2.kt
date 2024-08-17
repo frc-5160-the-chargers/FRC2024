@@ -14,7 +14,7 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.Loggable
 import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.configuration.HardwareConfiguration
-import frc.external.limelight.LimelightHelpers
+import limelight.LimelightHelpers
 
 /**
  * Creates a [ChargerPigeon2] with inline configuration.

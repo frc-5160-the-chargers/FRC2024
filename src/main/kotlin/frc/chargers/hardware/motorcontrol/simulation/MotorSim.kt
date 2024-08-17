@@ -57,13 +57,7 @@ class MotorSim(
     override val statorCurrent: Current
         get() = wpilibSim.currentDrawAmps.ofUnit(amps)
 
-    override fun setBrakeMode(shouldBrake: Boolean){
-        if (shouldBrake){
-            println("Brake Mode set for arm motor sim.")
-        }else{
-            println("Coast mode set for arm sim.")
-        }
-    }
+    override fun setBrakeMode(shouldBrake: Boolean){}
 
     override fun setPositionSetpoint(
         rawPosition: Angle,

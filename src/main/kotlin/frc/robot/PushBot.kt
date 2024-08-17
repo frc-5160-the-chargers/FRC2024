@@ -17,6 +17,7 @@ import frc.chargers.hardware.subsystems.differentialdrive.DifferentialDriveConst
 import frc.chargers.hardware.subsystems.differentialdrive.EncoderDifferentialDrivetrain
 import frc.chargers.utils.math.mapBetweenRanges
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
+import kotlin.math.abs
 
 /**
  * A testbed robot used for driver practice and USAYPT.
@@ -51,7 +52,7 @@ class PushBot: ChargerRobot() {
 
     init{
         drivetrain.setDefaultRunCommand {
-            val precisionModePower = xboxController.leftTriggerAxis.mapBetweenRanges(0.0..1.0, 1.0..6.0)
+            val precisionModePower = abs(xboxController.leftTriggerAxis).mapBetweenRanges(0.0..1.0, 1.0..6.0)
             drivetrain.curvatureDrive(
                 ChassisPowers(
                     MathUtil.applyDeadband(xboxController.leftY, .2) * precisionModePower,

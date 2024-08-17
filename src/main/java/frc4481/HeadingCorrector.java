@@ -1,4 +1,4 @@
-package frc.external.frc4481;
+package frc4481;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -9,8 +9,6 @@ import edu.wpi.first.wpilibj.Timer;
  */
 @SuppressWarnings("unused")
 public class HeadingCorrector {
-
-
     double previousT;
     double offT;
     Timer timer = new Timer();
