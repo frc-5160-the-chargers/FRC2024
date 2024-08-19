@@ -103,7 +103,6 @@ public data class SecondaryCurrentLimit(
  */
 @Suppress("MemberVisibilityCanBePrivate")
 public class ChargerSparkConfiguration(
-    public var encoderType: SparkEncoderType? = null,
     public var idleMode: CANSparkBase.IdleMode? = null,
     public var inverted: Boolean? = null,
     public var voltageCompensationNominalVoltage: Voltage? = null,
@@ -115,6 +114,9 @@ public class ChargerSparkConfiguration(
     public var smartCurrentLimit: SmartCurrentLimit? = null,
     public var secondaryCurrentLimit: SecondaryCurrentLimit? = null,
     public var softLimits: MutableMap<CANSparkBase.SoftLimitDirection, Angle> = mutableMapOf(),
+    public var useDutyCycleEncoder: Boolean? = null,
+    public var encoderInverted: Boolean? = null,
+    public var encoderAverageDepth: Int? = null
 ): HardwareConfiguration {
     public fun setSoftLimit(direction: CANSparkBase.SoftLimitDirection, limit: Angle){
         softLimits[direction] = limit
@@ -198,8 +200,8 @@ public class ChargerSparkConfiguration(
                 var status2 = SLOW_PERIODIC_FRAME_STRATEGY
                 // status 3 is skipped due to chargerlib not interfacing w/ analog encoders
                 var status4 = DISABLED_PERIODIC_FRAME_STRATEGY
-                var status5 = DISABLED_PERIODIC_FRAME_STRATEGY
-                var status6 = DISABLED_PERIODIC_FRAME_STRATEGY
+                val status5 = DISABLED_PERIODIC_FRAME_STRATEGY
+                val status6 = DISABLED_PERIODIC_FRAME_STRATEGY
 
                 if (MotorData.TEMPERATURE in frameConfig.utilizedData ||
                     MotorData.VELOCITY in frameConfig.utilizedData ||
@@ -214,22 +216,8 @@ public class ChargerSparkConfiguration(
                 }
 
                 if (frameConfig.optimizeEncoderFrames){
-                    println(this.encoderType)
-                    when (this.encoderType){
-                        is SparkEncoderType.DutyCycle -> {
-                            status4 = FAST_PERIODIC_FRAME_STRATEGY
-                        }
-
-                        is SparkEncoderType.Quadrature -> {
-                            if (MotorData.POSITION in frameConfig.utilizedData){
-                                status5 = FAST_PERIODIC_FRAME_STRATEGY
-                            }
-                            if (MotorData.VELOCITY in frameConfig.utilizedData){
-                                status6 = FAST_PERIODIC_FRAME_STRATEGY
-                            }
-                        }
-
-                        is SparkEncoderType.Regular, null -> {}
+                    if (useDutyCycleEncoder == true){
+                        status4 = FAST_PERIODIC_FRAME_STRATEGY
                     }
                     motor.setPeriodicFramePeriod(PeriodicFrame.kStatus1, status1).updateConfigStatus()
                     motor.setPeriodicFramePeriod(PeriodicFrame.kStatus2, status2).updateConfigStatus()

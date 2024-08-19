@@ -38,39 +38,29 @@ public class ChargerCANcoder(
     factoryDefault: Boolean = true,
     configuration: ChargerCANcoderConfiguration? = null
 ): CANcoder(deviceId, canBus), ResettableEncoder, ConfigurableHardware<ChargerCANcoderConfiguration> {
-    init{
-        val baseConfig = CANcoderConfiguration()
-
-        if (!factoryDefault){
-            configurator.refresh(baseConfig)
+    init {
+        if (factoryDefault){
+            applyConfiguration(configuration ?: ChargerCANcoderConfiguration(), factoryDefault = true)
         }else{
-            // an empty CTRE CANcoderConfiguration will factory default the encoder if applied.
-            println("CANcoder will factory default.")
-        }
-
-        if (configuration != null){
-            configure(configuration, baseConfig)
-        }else {
-            configure(ChargerCANcoderConfiguration(), baseConfig)
+            if (configuration != null){
+                applyConfiguration(configuration, factoryDefault = false)
+            }
         }
     }
+
+    private val posSignal = position
+    private var velSignal = velocity
 
     /**
      * Represents the absolute encoder of the CANcoder.
      */
-    public val absolute: ResettableEncoder = AbsoluteEncoderAdaptor()
-
-    private inner class AbsoluteEncoderAdaptor: ResettableEncoder by this, ConfigurableHardware<ChargerCANcoderConfiguration> by this{
+    public val absolute: Encoder = AbsoluteEncoderAdaptor()
+    private inner class AbsoluteEncoderAdaptor: Encoder by this, ConfigurableHardware<ChargerCANcoderConfiguration> by this {
         private val absolutePosSignal = absolutePosition
 
         override val angularPosition: Angle
             get() = absolutePosSignal.refresh(true).value.ofUnit(rotations)
     }
-
-
-    private var filterVelocity: Boolean = true
-    private val posSignal = position
-    private val velSignal = if (filterVelocity) velocity else unfilteredVelocity
 
     override fun setZero(newZero: Angle){
         setPosition(newZero.inUnit(rotations))
@@ -88,37 +78,43 @@ public class ChargerCANcoder(
     override val angularVelocity: AngularVelocity
         get() = velSignal.refresh(true).value.ofUnit(rotations/seconds)
 
+    override fun configure(configuration: ChargerCANcoderConfiguration) =
+        applyConfiguration(configuration, factoryDefault = false)
 
+    private fun applyConfiguration(configuration: ChargerCANcoderConfiguration, factoryDefault: Boolean) {
+        val ctreConfig = CANcoderConfiguration()
+        if (!factoryDefault){
+            // if you don't want to factory default,
+            // refresh the ctre configuration with the device's existing configs
+            // before making changes
+            configurator.refresh(ctreConfig)
+        }
+        ctreConfig.apply{
+            configuration.futureProofConfigs?.let{
+                FutureProofConfigs = it
+            }
 
-    override fun configure(configuration: ChargerCANcoderConfiguration) {
-        // for a CTRE CANcoderConfiguration,
-        // calling configurator.apply(configuration) will cause all configurations not explicitly specified
-        // to revert to the factory default.
-        // in contrast, ChargerCANcoderConfiguration has all values default to null,
-        // where "null" is an untouched configuration(aka preserved from previous configurations).
-        // thus, to acheive this functionality, a CTRE configuration must be refreshed FIRST
-        // before changes are applied and the configuration is configured.
-        val baseConfig = CANcoderConfiguration()
-        configurator.refresh(baseConfig)
-        configure(configuration, baseConfig)
-    }
-    
-    public fun configure(configuration: ChargerCANcoderConfiguration, baseCANcoderConfiguration: CANcoderConfiguration){
-        applyChanges(baseCANcoderConfiguration,configuration)
-        configurator.apply(baseCANcoderConfiguration,0.02)
-
+            MagnetSensor.apply{
+                configuration.sensorDirection?.let{SensorDirection = it}
+                configuration.absoluteSensorRange?.let{AbsoluteSensorRange = it}
+                configuration.magnetOffset?.let{MagnetOffset = it.inUnit(rotations)}
+            }
+        }
+        configurator.apply(ctreConfig, 0.02)
 
         configuration.positionUpdateFrequency?.let{
             position.setUpdateFrequency(it.inUnit(hertz))
             absolutePosition.setUpdateFrequency(it.inUnit(hertz))
         }
-
         configuration.velocityUpdateFrequency?.let{
             velocity.setUpdateFrequency(it.inUnit(hertz))
             unfilteredVelocity.setUpdateFrequency(it.inUnit(hertz))
         }
-
-        configuration.filterVelocity?.let{ filterVelocity = it }
+        if (configuration.filterVelocity == true){
+            velSignal = velocity
+        }else if (configuration.filterVelocity == false){
+            velSignal = unfilteredVelocity
+        }
     }
 }
 
@@ -133,18 +129,3 @@ public data class ChargerCANcoderConfiguration(
     var positionUpdateFrequency: Frequency? = null,
     var velocityUpdateFrequency: Frequency? = null
 ): HardwareConfiguration
-
-internal fun applyChanges(ctreConfig: CANcoderConfiguration, chargerConfig: ChargerCANcoderConfiguration): CANcoderConfiguration{
-    ctreConfig.apply{
-        chargerConfig.futureProofConfigs?.let{
-            FutureProofConfigs = it
-        }
-
-        MagnetSensor.apply{
-            chargerConfig.sensorDirection?.let{SensorDirection = it}
-            chargerConfig.absoluteSensorRange?.let{AbsoluteSensorRange = it}
-            chargerConfig.magnetOffset?.let{MagnetOffset = it.inUnit(rotations)}
-        }
-    }
-    return ctreConfig
-}

@@ -3,9 +3,9 @@ package frc.chargers.hardware.sensors.imu
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
+import com.batterystaple.kmeasure.units.hertz
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.standardGravities
-import com.ctre.phoenix6.BaseStatusSignal
 import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.Pigeon2Configuration
 import com.ctre.phoenix6.hardware.Pigeon2
@@ -45,16 +45,12 @@ public open class ChargerPigeon2(
     override val namespace = "Pigeon2"
 
     init{
-        val baseConfig = Pigeon2Configuration()
-        if (!factoryDefault){
-            configurator.refresh(baseConfig)
+        if (factoryDefault){
+            applyConfiguration(configuration ?: ChargerPigeon2Configuration(), factoryDefault = true)
         }else{
-            println("Pigeon2 will factory default.")
-        }
-        if (configuration != null){
-            configure(configuration, baseConfig)
-        }else{
-            configure(ChargerPigeon2Configuration(), baseConfig)
+            if (configuration != null){
+                applyConfiguration(configuration, factoryDefault = false)
+            }
         }
     }
 
@@ -101,7 +97,7 @@ public open class ChargerPigeon2(
         }
     }
 
-    private val allSignals = gyroscope.getSignals() + accelerometer.getSignals()
+    private val allSignals = gyroscope.allSignals + accelerometer.allSignals
 
     /**
      * Determines if the gyro is connected or not.
@@ -126,8 +122,7 @@ public open class ChargerPigeon2(
         private val pitchRateSignal = angularVelocityYWorld
         private val rollRateSignal = angularVelocityXWorld
 
-        internal fun getSignals(): Array<BaseStatusSignal> =
-            arrayOf(yawSignal, rollSignal, pitchSignal, yawRateSignal, pitchRateSignal, rollRateSignal)
+        internal val allSignals = listOf(yawSignal, rollSignal, pitchSignal, yawRateSignal, pitchRateSignal, rollRateSignal)
 
         override val yaw: Angle by logged{
             if (isReal()) yawSignal.refresh().value.ofUnit(degrees) else IMUSimulation.getHeading()
@@ -163,12 +158,12 @@ public open class ChargerPigeon2(
 
     public inner class Accelerometer internal constructor(): ThreeAxisAccelerometer, Loggable {
         override val namespace = "Pigeon2/Accelerometer"
+
         private val xAccelSignal = accelerationX
         private val yAccelSignal = accelerationY
         private val zAccelSignal = accelerationZ
 
-        internal fun getSignals(): Array<BaseStatusSignal> =
-            arrayOf(xAccelSignal, yAccelSignal, zAccelSignal)
+        internal val allSignals = listOf(xAccelSignal, yAccelSignal, zAccelSignal)
 
         override val xAcceleration: Acceleration by logged{
             if (isReal()) xAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
@@ -183,15 +178,40 @@ public open class ChargerPigeon2(
         }
     }
 
-    override fun configure(configuration: ChargerPigeon2Configuration) {
-        val baseConfig = Pigeon2Configuration()
-        configurator.refresh(baseConfig)
-        configure(configuration, baseConfig)
-    }
+    override fun configure(configuration: ChargerPigeon2Configuration) =
+        applyConfiguration(configuration, factoryDefault = false)
 
-    public fun configure(configuration: ChargerPigeon2Configuration, basePigeon2Configuration: Pigeon2Configuration){
-        applyChanges(basePigeon2Configuration, configuration)
-        configurator.apply(basePigeon2Configuration)
+    private fun applyConfiguration(configuration: ChargerPigeon2Configuration, factoryDefault: Boolean){
+        val ctreConfig = Pigeon2Configuration()
+        if (!factoryDefault){
+            configurator.refresh(ctreConfig)
+        }
+        ctreConfig.apply{
+            configuration.futureProofConfigs?.let{ FutureProofConfigs = it }
+            GyroTrim.apply{
+                configuration.gyroScalarX?.let{ GyroScalarX = it.inUnit(degrees) }
+                configuration.gyroScalarY?.let{ GyroScalarY = it.inUnit(degrees) }
+                configuration.gyroScalarZ?.let{ GyroScalarZ = it.inUnit(degrees) }
+            }
+
+            MountPose.apply{
+                configuration.mountPosePitch?.let{ MountPosePitch = it.inUnit(degrees) }
+                configuration.mountPoseYaw?.let{ MountPoseYaw = it.inUnit(degrees) }
+                configuration.mountPoseRoll?.let{ MountPoseRoll = it.inUnit(degrees) }
+            }
+
+            Pigeon2Features.apply{
+                configuration.disableTemperatureCompensation?.let{DisableTemperatureCompensation = it}
+                configuration.disableNoMotionCalibration?.let{DisableNoMotionCalibration = it}
+                configuration.enableCompass?.let{EnableCompass = it}
+            }
+        }
+        configurator.apply(ctreConfig, 0.02)
+
+        configuration.headingUpdateFrequency?.let{
+            val headingSignal = gyroscope.allSignals[0]
+            headingSignal.setUpdateFrequency(it.inUnit(hertz))
+        }
     }
 }
 
@@ -208,29 +228,6 @@ public data class ChargerPigeon2Configuration(
     var mountPoseRoll: Angle? = null,
     var disableNoMotionCalibration: Boolean? = null,
     var disableTemperatureCompensation: Boolean? = null,
-    var enableCompass: Boolean? = null
+    var enableCompass: Boolean? = null,
+    var headingUpdateFrequency: Frequency? = null
 ): HardwareConfiguration
-
-internal fun applyChanges(ctreConfig: Pigeon2Configuration, configuration: ChargerPigeon2Configuration): Pigeon2Configuration{
-    ctreConfig.apply{
-        configuration.futureProofConfigs?.let{ FutureProofConfigs = it }
-        GyroTrim.apply{
-            configuration.gyroScalarX?.let{ GyroScalarX = it.inUnit(degrees) }
-            configuration.gyroScalarY?.let{ GyroScalarY = it.inUnit(degrees) }
-            configuration.gyroScalarZ?.let{ GyroScalarZ = it.inUnit(degrees) }
-        }
-
-        MountPose.apply{
-            configuration.mountPosePitch?.let{ MountPosePitch = it.inUnit(degrees) }
-            configuration.mountPoseYaw?.let{ MountPoseYaw = it.inUnit(degrees) }
-            configuration.mountPoseRoll?.let{ MountPoseRoll = it.inUnit(degrees) }
-        }
-
-        Pigeon2Features.apply{
-            configuration.disableTemperatureCompensation?.let{DisableTemperatureCompensation = it}
-            configuration.disableNoMotionCalibration?.let{DisableNoMotionCalibration = it}
-            configuration.enableCompass?.let{EnableCompass = it}
-        }
-    }
-    return ctreConfig
-}

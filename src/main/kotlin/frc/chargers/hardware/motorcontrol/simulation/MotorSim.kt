@@ -38,7 +38,8 @@ class MotorSim(
         }
     }
 
-    override val encoder: Encoder = object: Encoder {
+    override val encoder: Encoder = SimEncoder()
+    private inner class SimEncoder: Encoder {
         override val angularPosition: Angle
             get() = wpilibSim.angularPositionRad.ofUnit(radians)
 

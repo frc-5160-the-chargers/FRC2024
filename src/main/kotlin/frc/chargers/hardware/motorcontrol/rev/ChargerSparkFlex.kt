@@ -14,7 +14,6 @@ import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.rev.util.ChargerSparkConfiguration
 import frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderAdaptor
-import frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderType
 import frc.chargers.hardware.motorcontrol.rev.util.SparkPIDHandler
 import frc.chargers.utils.filterInvalid
 import frc.chargers.utils.withSetter
@@ -57,7 +56,6 @@ public class ChargerSparkFlex(
     factoryDefault: Boolean = true,
     configuration: ChargerSparkConfiguration? = null
 ) : CANSparkFlex(deviceId, MotorType.kBrushless), Motor, ConfigurableHardware<ChargerSparkConfiguration> {
-    private var encoderType: SparkEncoderType = SparkEncoderType.Regular()
 
     init{
         if (factoryDefault) {
@@ -73,8 +71,7 @@ public class ChargerSparkFlex(
     /**
      * The encoder of the spark flex.
      */
-    override var encoder: SparkEncoderAdaptor = SparkEncoderAdaptor(this, encoderType)
-        private set
+    override val encoder: SparkEncoderAdaptor = SparkEncoderAdaptor(this)
 
     /**
      * The current applied current of the spark flex.
@@ -138,10 +135,11 @@ public class ChargerSparkFlex(
     ): Unit = pidHandler.setAngularVelocity(rawVelocity, pidConstants, feedforward)
 
     override fun configure(configuration: ChargerSparkConfiguration) {
-        configuration.encoderType?.let{ configEncoderType ->
-            encoder = SparkEncoderAdaptor(this, configEncoderType)
-            encoderType = configEncoderType
-        }
+        encoder.configure(
+            configuration.useDutyCycleEncoder,
+            configuration.encoderAverageDepth,
+            configuration.encoderInverted
+        )
 
         configuration.applyTo(this)
 

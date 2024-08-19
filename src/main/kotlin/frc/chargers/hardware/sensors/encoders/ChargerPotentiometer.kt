@@ -16,7 +16,7 @@ public class ChargerPotentiometer(
     input: AnalogInput,
     fullRange: Angle,
     offset: Angle = 0.degrees,
-    private val inverted: Boolean = false
+    var inverted: Boolean = false
 ): AnalogPotentiometer(input, fullRange.inUnit(degrees), offset.inUnit(degrees)), PositionEncoder {
     public constructor(
         channel: Int,

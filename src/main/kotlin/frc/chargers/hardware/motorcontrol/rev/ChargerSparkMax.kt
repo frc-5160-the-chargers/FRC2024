@@ -15,7 +15,6 @@ import frc.chargers.hardware.configuration.ConfigurableHardware
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.rev.util.ChargerSparkConfiguration
 import frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderAdaptor
-import frc.chargers.hardware.motorcontrol.rev.util.SparkEncoderType
 import frc.chargers.hardware.motorcontrol.rev.util.SparkPIDHandler
 import frc.chargers.utils.filterInvalid
 import frc.chargers.utils.withSetter
@@ -43,8 +42,6 @@ public inline fun ChargerSparkMax(
 )
 
 
-
-
 /**
  * Represents a Spark Max motor controller.
  * Includes everything in the REV Robotics [CANSparkMax] class,
@@ -63,7 +60,6 @@ public class ChargerSparkMax(
     factoryDefault: Boolean = true,
     configuration: ChargerSparkConfiguration? = null
 ) : CANSparkMax(deviceId, type), Motor, ConfigurableHardware<ChargerSparkConfiguration>{
-    private var encoderType: SparkEncoderType = SparkEncoderType.Regular()
 
     init{
         if (factoryDefault) {
@@ -80,7 +76,7 @@ public class ChargerSparkMax(
     /**
      * The encoder of the spark max.
      */
-    override var encoder: SparkEncoderAdaptor = SparkEncoderAdaptor(this, encoderType)
+    override var encoder: SparkEncoderAdaptor = SparkEncoderAdaptor(this)
 
     /**
      * Adds a generic amount of followers to the Spark Max, where all followers
@@ -135,10 +131,11 @@ public class ChargerSparkMax(
     ): Unit = pidHandler.setAngularVelocity(rawVelocity, pidConstants, feedforward)
 
     override fun configure(configuration: ChargerSparkConfiguration) {
-        configuration.encoderType?.let{ configEncoderType ->
-            encoderType = configEncoderType
-            encoder = SparkEncoderAdaptor(this, configEncoderType)
-        }
+        encoder.configure(
+            configuration.useDutyCycleEncoder,
+            configuration.encoderAverageDepth,
+            configuration.encoderInverted
+        )
 
         configuration.applyTo(this)
 

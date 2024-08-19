@@ -46,7 +46,8 @@ class ElevatorMotorSim(
         }
     }
 
-    override val encoder: Encoder = object: Encoder {
+    override val encoder: Encoder = SimEncoder()
+    private inner class SimEncoder: Encoder {
         // drum radius is specified to be 1 meters; thus, we divide by that to get angular position/velocity
         override val angularPosition: Angle
             get() = wpilibSim.positionMeters.ofUnit(meters) / 1.meters
