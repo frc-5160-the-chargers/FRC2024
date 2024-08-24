@@ -5,13 +5,16 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 
-internal class CompetitionRobotContainersTest {
+internal class RobotTest {
     @BeforeEach
     fun setup(){
         assert(HAL.initialize(500,0))
     }
 
     @Test
-    fun `robot containers should initialize`(){
+    fun `robot classes should initialize`(){
+        CompetitionRobot()
+        TestingRobot()
+        PushBot()
     }
 }
