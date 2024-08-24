@@ -1,10 +1,12 @@
 package frc.chargers.commands.commandbuilder
 
-import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.SequentialCommandGroup
-import edu.wpi.first.wpilibj2.command.Subsystem
+import com.batterystaple.kmeasure.quantities.Time
+import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.units.seconds
+import edu.wpi.first.wpilibj2.command.*
 import frc.chargers.commands.withExtraRequirements
 import frc.chargers.commands.withLogging
+import kotlin.experimental.ExperimentalTypeInference
 import kotlin.internal.LowPriorityInOverloadResolution
 
 /**
@@ -53,7 +55,7 @@ inline fun buildCommand(
 
     var command: Command = SequentialCommandGroup(*subCommands)
         .withName(name)
-        .until(builder.context::commandStopped)
+        .until{ builder.stopped }
         .finallyDo(builder.endBehavior)
         .withLogging("$name/overallCommand")
 
@@ -61,11 +63,12 @@ inline fun buildCommand(
         command = command.withExtraRequirements(*builder.requirements.toTypedArray())
     }
 
-    builder.addingCommandsLocked = true
+    builder.commandModificationBlocked = true
     builder.addingRequirementsLocked = true
 
     return command
 }
+
 
 /**
 * Creates a [buildCommand] that automatically requires a subsystem.
@@ -86,12 +89,18 @@ inline fun Subsystem.buildCommand(
  * (like runSequentially, runParallelUntilAllFinish, etc.)
  */
 @CommandBuilderMarker
+@OptIn(ExperimentalTypeInference::class)
+@Suppress("unused")
 class BuildCommandScope: CommandBuilder() {
     val requirements: LinkedHashSet<Subsystem> = linkedSetOf()
 
     var addingRequirementsLocked: Boolean = false
 
+    var stopped: Boolean = false
+        private set
+
     var endBehavior: (Boolean) -> Unit = {}
+        private set
 
     /**
      * Adds subsystems that are required across the entire [buildCommand].
@@ -99,12 +108,11 @@ class BuildCommandScope: CommandBuilder() {
     fun require(vararg requirements: Subsystem){
         if (addingRequirementsLocked){
             error("""
-                It looks like you are attempting to add requirements to the command while it is running.
-                This is not allowed; you must call addRequirements() within the block of the buildCommand, and not in a CodeBlockContext.
+                It looks like you are attempting to add requirements to the buildCommand while it is running.
+                This is not allowed.
                 
-                For instance:
                 buildCommand{
-                    // correct way to do it; outside of any block
+                    // correct way to add requirements; outside of any block
                     require(...)
                     
                     runOnce{
@@ -135,4 +143,53 @@ class BuildCommandScope: CommandBuilder() {
     fun onEnd(run: (Boolean) -> Unit){
         endBehavior = run
     }
+
+
+    /**
+     * A variant of [CommandBuilder.runOnce] whose [run] block must return a [CommandState].
+     *
+     * This allows you to end the entire build command(by returning [CommandState.STOP_COMMAND])
+     * during runtime. To continue like normal, use [CommandState.CONTINUE].
+     *
+     * This can only be called in the main [buildCommand] block, and not in parallel/sequential blocks.
+     */
+    @OverloadResolutionByLambdaReturnType
+    fun runOnce(run: CodeBlockContext.() -> CommandState): Command =
+        InstantCommand({
+            val result = CodeBlockContext.run()
+            this@BuildCommandScope.stopped = result == CommandState.STOP_COMMAND
+        }).also{ +it }
+
+    /**
+     * A variant of [CommandBuilder.loop] whose [run] block must return a [CommandState].
+     *
+     * This allows you to end the entire build command(by returning [CommandState.STOP_COMMAND])
+     * during runtime, and end the block's execution by returning [CommandState.BREAK].
+     * To continue like normal, use [CommandState.CONTINUE].
+     *
+     * This can only be called in the main [buildCommand] block, and not in parallel/sequential blocks.
+     */
+    @OverloadResolutionByLambdaReturnType
+    fun loop(run: CodeBlockContext.() -> CommandState): Command =
+        object: Command() {
+            init{ +this }
+
+            private var result = CommandState.CONTINUE
+
+            override fun execute() {
+                result = CodeBlockContext.run()
+                this@BuildCommandScope.stopped = result == CommandState.STOP_COMMAND
+            }
+
+            override fun isFinished(): Boolean = result != CommandState.CONTINUE
+        }
+
+    /**
+     * A variant of [CommandBuilder.loopFor] whose [run] block must return a [CommandState].
+     *
+     * @see BuildCommandScope.loop
+     */
+    @OverloadResolutionByLambdaReturnType
+    inline fun loopFor(time: Time, crossinline run: CodeBlockContext.() -> CommandState): Command =
+        loop{ return@loop run() }.modify{ it.withTimeout(time.inUnit(seconds)) }
 }

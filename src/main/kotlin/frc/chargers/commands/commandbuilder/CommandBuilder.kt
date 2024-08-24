@@ -18,18 +18,13 @@ public open class CommandBuilder {
     internal var commands: LinkedHashSet<Command> = linkedSetOf() // LinkedHashSet keeps commands in order, but also ensures they're not added multiple times
 
     @PublishedApi
-    internal var addingCommandsLocked: Boolean = false
+    internal var commandModificationBlocked: Boolean = false
 
-    @PublishedApi
-    internal val context = CodeBlockContext()
-
-    @PublishedApi
-    internal fun addCommand(c: Command) {
-        if (addingCommandsLocked){
-            error(
-                """
-                It seems that you have attempted to add a command to the CommandBuilder during runtime. This is not allowed.
-                Make sure that you don't have any nested runOnce, loopForever, loopUntil, etc. blocks 
+    private fun errorIfCommandModificationBlocked(){
+        require(!commandModificationBlocked){
+            """
+                It seems that you are attempting to add a command to the CommandBuilder during runtime. This is not allowed.
+                Make sure that you don't have any nested runOnce, loop, loopUntil, etc. blocks 
                 within another command-adding block, and no explicit builtCommand receivers are called.
                 
                 buildCommand{
@@ -44,21 +39,19 @@ public open class CommandBuilder {
                         }
                     }
                 } 
-                """.trimIndent()
-            )
-        }else{
-            commands.add(c)
+            """.trimIndent()
         }
     }
 
     /**
      * Applies a generic modifier to a command.
-     * This function must be used for command-returning functions in order for the new versions to be added to the command builder.
+     * This function must be used for command decorators(withTimeout, unless, raceWith)
+     * in order for them to be actually applied.
      * For instance:
      *
      * ```
      * buildCommand{
-     *      loop{ println("hi") }.modify{ it,withTimeout(5) }
+     *      loop{ println("hi") }.modify{ it.withTimeout(5) }
      *
      * }
      */
@@ -69,8 +62,6 @@ public open class CommandBuilder {
         return newCommand
     }
 
-
-    
     /**
      * Adds a single command to be run until its completion.
      * Usage Example:
@@ -78,12 +69,14 @@ public open class CommandBuilder {
      * class ArmCommand(val angle: Angle, val arm: Arm): Command(){...}
      *
      * val command = buildCommand{
+     *      // here, "+" is called like a function
      *      +ArmCommand(2.0.radians, armSubsystem)
      * }
      * ```
      */
     public operator fun <C : Command> C.unaryPlus(): C {
-        addCommand(this)
+        errorIfCommandModificationBlocked()
+        commands.add(this)
         return this
     }
 
@@ -99,6 +92,7 @@ public open class CommandBuilder {
      * ```
      */
     public operator fun <C: Command> C.unaryMinus(): C {
+        errorIfCommandModificationBlocked()
         commands.remove(this)
         return this
     }
@@ -111,8 +105,7 @@ public open class CommandBuilder {
      * @param execute the code to be run
      */
     public fun runOnce(execute: CodeBlockContext.() -> Unit): Command =
-        InstantCommand({ context.execute() }).also(::addCommand)
-
+        InstantCommand({ CodeBlockContext.execute() }).also{ +it }
 
     /**
      * Adds a command that will run the command onTrue or only if a condition is met.
@@ -125,7 +118,7 @@ public open class CommandBuilder {
      */
     public fun runIf(condition: () -> Boolean, onTrue: Command, onFalse: Command = InstantCommand()): Command =
         ConditionalCommand(onTrue, onFalse, condition).also{
-            addCommand(it)
+            +it
             this.commands.remove(onTrue)
             this.commands.remove(onFalse)
         }
@@ -140,7 +133,7 @@ public open class CommandBuilder {
      */
     public fun <T: Any> runWhen(key: () -> T, commands: Map<T, Command>): Command =
         SelectCommand(commands, key).also{
-            addCommand(it)
+            +it
             this.commands.removeAll(commands.values.toSet())
         }
 
@@ -156,7 +149,7 @@ public open class CommandBuilder {
     public fun runUntil(condition: () -> Boolean, command: Command): Command =
         command.until(condition)
             .also{
-                addCommand(it)
+                +it
                 this.commands.remove(command)
             }
 
@@ -171,31 +164,9 @@ public open class CommandBuilder {
     public fun runWhile(condition: () -> Boolean, command: Command): Command =
         command.onlyWhile(condition)
             .also{
-                addCommand(it)
+                +it
                 this.commands.remove(command)
             }
-
-    /**
-     * Adds a command that will run the code block repeatedly *until* the [condition] is met.
-     *
-     * @param condition the condition to be met
-     * @param execute the code to be run until [condition] is met
-     */
-    public inline fun loopUntil(crossinline condition: () -> Boolean, crossinline execute: CodeBlockContext.() -> Unit): Command =
-        RunCommand({ context.execute() })
-            .until{ condition() || context.currentBlockStopped() }
-            .also(::addCommand)
-
-    /**
-     * Adds a command that will run *while* [condition] is true.
-     *
-     * @param condition the condition to be met
-     * @param execute the code to be run
-     */
-    public inline fun loopWhile(crossinline condition: () -> Boolean, crossinline execute: CodeBlockContext.() -> Unit): Command =
-        RunCommand({ context.execute() })
-            .onlyWhile{ condition() && !context.currentBlockStopped() }
-            .also(::addCommand)
 
     /**
      * Adds several commands that will run at the same time, all stopping as soon as one finishes.
@@ -212,8 +183,8 @@ public open class CommandBuilder {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
-        builder.addingCommandsLocked = true
-        return ParallelRaceGroup(*commandsSet.toTypedArray()).also(::addCommand)
+        builder.commandModificationBlocked = true
+        return ParallelRaceGroup(*commandsSet.toTypedArray()).also{ +it }
     }
 
 
@@ -232,11 +203,11 @@ public open class CommandBuilder {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
-        builder.addingCommandsLocked = true
+        builder.commandModificationBlocked = true
         try{
             val firstCommand = commandsSet.first()
             val otherCommands = commandsSet - firstCommand
-            return ParallelDeadlineGroup(firstCommand, *otherCommands.toTypedArray()).also(::addCommand)
+            return ParallelDeadlineGroup(firstCommand, *otherCommands.toTypedArray()).also{ +it }
         }catch(e: NoSuchElementException){
             throw NoSuchElementException("Your runParallelUntilFirstCommandFinishes needs to have a first command(or deadline); however, you have not specified any commands.")
         }
@@ -257,8 +228,8 @@ public open class CommandBuilder {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
-        builder.addingCommandsLocked = true
-        return ParallelCommandGroup(*commandsSet.toTypedArray()).also(::addCommand)
+        builder.commandModificationBlocked = true
+        return ParallelCommandGroup(*commandsSet.toTypedArray()).also{ +it }
     }
 
 
@@ -278,8 +249,8 @@ public open class CommandBuilder {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
-        builder.addingCommandsLocked = true
-        return SequentialCommandGroup(*commandsSet.toTypedArray()).also(::addCommand)
+        builder.commandModificationBlocked = true
+        return SequentialCommandGroup(*commandsSet.toTypedArray()).also{ +it }
     }
 
     /**
@@ -288,7 +259,7 @@ public open class CommandBuilder {
     public inline fun runSequentiallyFor(time: Time, vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
         val sequentialCommand = runSequentially(*commands, block = block)
         this.commands.remove(sequentialCommand)
-        return sequentialCommand.withTimeout(time.inUnit(seconds)).also(::addCommand)
+        return sequentialCommand.withTimeout(time.inUnit(seconds)).also{ +it }
     }
 
     /**
@@ -301,7 +272,7 @@ public open class CommandBuilder {
     ): Command {
         val sequentialCommand = runSequentially(*commands, block = block)
         this.commands.remove(sequentialCommand)
-        return sequentialCommand.unless(condition).also(::addCommand)
+        return sequentialCommand.unless(condition).also{ +it }
     }
 
     /**
@@ -329,8 +300,8 @@ public open class CommandBuilder {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
-        builder.addingCommandsLocked = true
-        return ScheduleCommand(*commandsSet.toTypedArray()).also(::addCommand)
+        builder.commandModificationBlocked = true
+        return ScheduleCommand(*commandsSet.toTypedArray()).also{ +it }
     }
 
 
@@ -345,7 +316,29 @@ public open class CommandBuilder {
     public fun runFor(timeInterval: Time, command: Command): Command =
         command
         .withTimeout(timeInterval.inUnit(seconds))
-        .also(::addCommand)
+        .also{ +it }
+
+    /**
+     * Adds a command that will run the code block repeatedly *until* the [condition] is met.
+     *
+     * @param condition the condition to be met
+     * @param execute the code to be run until [condition] is met
+     */
+    public inline fun loopUntil(noinline condition: () -> Boolean, crossinline execute: CodeBlockContext.() -> Unit): Command =
+        RunCommand({ CodeBlockContext.execute() })
+            .until(condition)
+            .also{ +it }
+
+    /**
+     * Adds a command that will run *while* [condition] is true.
+     *
+     * @param condition the condition to be met
+     * @param execute the code to be run
+     */
+    public inline fun loopWhile(noinline condition: () -> Boolean, crossinline execute: CodeBlockContext.() -> Unit): Command =
+        RunCommand({ CodeBlockContext.execute() })
+            .onlyWhile(condition)
+            .also{ +it }
 
     /**
      * Adds a command that will run until either the [timeInterval] expires or it completes on its own.
@@ -354,10 +347,9 @@ public open class CommandBuilder {
      * @param execute the code to be run
      */
     public inline fun loopFor(timeInterval: Time, crossinline execute: CodeBlockContext.() -> Unit): Command =
-        RunCommand({ context.execute() })
+        RunCommand({ CodeBlockContext.execute() })
             .withTimeout(timeInterval.inUnit(seconds))
-            .until(context::currentBlockStopped)
-            .also(::addCommand)
+            .also{ +it }
 
     /**
      * Adds a command to be run continuously.
@@ -367,9 +359,8 @@ public open class CommandBuilder {
      * @param execute the code to be run
      */
     public inline fun loop(crossinline execute: CodeBlockContext.() -> Unit): Command =
-        RunCommand({ context.execute() })
-            .until(context::currentBlockStopped)
-            .also(::addCommand)
+        RunCommand({ CodeBlockContext.execute() })
+            .also{ +it }
 
     /**
      * Adds a command that does nothing for a specified [timeInterval], then completes.
@@ -377,7 +368,7 @@ public open class CommandBuilder {
      * Useful if a delay is needed between two commands in a [SequentialCommandGroup].
      */
     public fun waitFor(timeInterval: Time): WaitCommand =
-        WaitCommand(timeInterval.inUnit(seconds)).also(::addCommand)
+        WaitCommand(timeInterval.inUnit(seconds)).also{ +it }
 
     /**
      * Adds a command that does nothing until a [condition] is met, then completes.
@@ -385,7 +376,7 @@ public open class CommandBuilder {
      * Useful if some condition must be met before proceeding to the next command in a [SequentialCommandGroup].
      */
     public fun waitUntil(condition: () -> Boolean): WaitUntilCommand =
-        WaitUntilCommand(condition).also(::addCommand)
+        WaitUntilCommand(condition).also{ +it }
 
     /**
      * Creates a value that will refresh once during run;
@@ -420,30 +411,28 @@ public open class CommandBuilder {
             private var hasInitialized: Boolean = false
 
             private fun initializeValue() {
-                value = context.get()
+                value = CodeBlockContext.get()
                 hasInitialized = true
             }
 
             init {
-                addCommand(
-                    object : Command() { // Add a new command that initializes this value in its initialize() function.
-                        override fun initialize() {
-                            // if the value is not initialized yet, initialize it.
-                            if (!hasInitialized) {
-                                initializeValue()
-                            }
-                        }
-
-                        // command does not stop until value is initialized
-                        override fun isFinished(): Boolean = hasInitialized
-
-                        override fun end(interrupted: Boolean) {
-                            // sets hasInitialized to false when command ends,
-                            // so that the value can re-initialize when the command is executed again.
-                            hasInitialized = false
+                +object : Command() { // Add a new command that initializes this value in its initialize() function.
+                    override fun initialize() {
+                        // if the value is not initialized yet, initialize it.
+                        if (!hasInitialized) {
+                            initializeValue()
                         }
                     }
-                )
+
+                    // command does not stop until value is initialized
+                    override fun isFinished(): Boolean = hasInitialized
+
+                    override fun end(interrupted: Boolean) {
+                        // sets hasInitialized to false when command ends,
+                        // so that the value can re-initialize when the command is executed again.
+                        hasInitialized = false
+                    }
+                }
             }
 
             override fun getValue(thisRef: Any?, property: KProperty<*>): T =
@@ -468,10 +457,8 @@ public open class CommandBuilder {
             private var value: T = getDefault()
 
             init{
-                addCommand(
-                    // adds a command that resets the value
-                    InstantCommand({ value = getDefault() })
-                )
+                // adds a command that resets the value
+                +InstantCommand({ value = getDefault() })
             }
 
             override fun getValue(thisRef: Any?, property: KProperty<*>): T = value
