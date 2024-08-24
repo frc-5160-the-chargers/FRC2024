@@ -144,21 +144,23 @@ class BuildCommandScope: CommandBuilder() {
         endBehavior = run
     }
 
-
     /**
-     * A variant of [CommandBuilder.runOnce] whose [run] block must return a [CommandState].
-     *
-     * This allows you to end the entire build command(by returning [CommandState.STOP_COMMAND])
-     * during runtime. To continue like normal, use [CommandState.CONTINUE].
-     *
-     * This can only be called in the main [buildCommand] block, and not in parallel/sequential blocks.
+     * Stops the entire [buildCommand] if the condition is met;
+     * otherwise, continues execution.
+     * Code within an [onEnd] block will still be run.
      */
-    @OverloadResolutionByLambdaReturnType
-    fun runOnce(run: CodeBlockContext.() -> CommandState): Command =
+    fun stopIf(condition: () -> Boolean): Command =
         InstantCommand({
-            val result = CodeBlockContext.run()
-            this@BuildCommandScope.stopped = result == CommandState.STOP_COMMAND
+            if (condition()){
+                this@BuildCommandScope.stopped = true
+            }
         }).also{ +it }
+
+    enum class CommandState {
+        CONTINUE,
+        BREAK,
+        STOP_COMMAND
+    }
 
     /**
      * A variant of [CommandBuilder.loop] whose [run] block must return a [CommandState].
