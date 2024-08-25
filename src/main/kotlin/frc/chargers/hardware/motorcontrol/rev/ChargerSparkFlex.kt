@@ -56,6 +56,10 @@ public class ChargerSparkFlex(
     factoryDefault: Boolean = true,
     configuration: ChargerSparkConfiguration? = null
 ) : CANSparkFlex(deviceId, MotorType.kBrushless), Motor, ConfigurableHardware<ChargerSparkConfiguration> {
+    /**
+     * The encoder of the spark flex.
+     */
+    override val encoder: SparkEncoderAdaptor = SparkEncoderAdaptor(this)
 
     init{
         if (factoryDefault) {
@@ -67,11 +71,6 @@ public class ChargerSparkFlex(
             configure(configuration)
         }
     }
-
-    /**
-     * The encoder of the spark flex.
-     */
-    override val encoder: SparkEncoderAdaptor = SparkEncoderAdaptor(this)
 
     /**
      * The current applied current of the spark flex.

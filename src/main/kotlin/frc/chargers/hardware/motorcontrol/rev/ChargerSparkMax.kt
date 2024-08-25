@@ -60,6 +60,10 @@ public class ChargerSparkMax(
     factoryDefault: Boolean = true,
     configuration: ChargerSparkConfiguration? = null
 ) : CANSparkMax(deviceId, type), Motor, ConfigurableHardware<ChargerSparkConfiguration>{
+    /**
+     * The encoder of the spark max.
+     */
+    override val encoder: SparkEncoderAdaptor = SparkEncoderAdaptor(this)
 
     init{
         if (factoryDefault) {
@@ -72,11 +76,6 @@ public class ChargerSparkMax(
             configure(configuration)
         }
     }
-
-    /**
-     * The encoder of the spark max.
-     */
-    override var encoder: SparkEncoderAdaptor = SparkEncoderAdaptor(this)
 
     /**
      * Adds a generic amount of followers to the Spark Max, where all followers
@@ -144,5 +143,4 @@ public class ChargerSparkMax(
             burnFlash()
         }
     }
-
 }

@@ -78,5 +78,4 @@ internal class SparkPIDHandler(
             extraVoltage.siValue
         )
     }
-
 }

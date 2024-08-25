@@ -104,7 +104,7 @@ class CompetitionRobot: ChargerRobot(){
             wheelBase = 27.inches,
         ),
         moduleConstants = SwerveModuleConstants.mk4iL2(
-            useOnboardPID = false,
+            useOnboardPID = true,
             turnMotorControlScheme = SwerveAzimuthControl.PID(PIDConstants(7.0,0.0,0.0), Precision.Within(1.degrees)),
             velocityPID = PIDConstants(0.05,0.0,0.0),
             velocityFF = AngularMotorFFEquation(0.0,0.13),
@@ -220,7 +220,7 @@ class CompetitionRobot: ChargerRobot(){
         }
 
         shooter.setDefaultRunCommand{
-            val speed = OperatorInterface.shooterSpeedAxis()
+            val speed = OperatorInterface.shooterSpeed
             if (speed > 0.0 && noteObserver.noteInRobot){
                 setIdle()
             }else{
@@ -229,7 +229,7 @@ class CompetitionRobot: ChargerRobot(){
         }
 
         pivot.setDefaultRunCommand(endBehavior = { pivot.setIdle() }){
-            setSpeed(OperatorInterface.pivotSpeedAxis())
+            setSpeed(OperatorInterface.pivotSpeed)
         }
 
         climber.setDefaultRunCommand{

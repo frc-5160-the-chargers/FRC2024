@@ -1,5 +1,5 @@
 @file:Suppress("unused")
-package frc.chargers.hardware.inputdevices
+package frc.chargers.wpilibextensions.inputdevices
 
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler

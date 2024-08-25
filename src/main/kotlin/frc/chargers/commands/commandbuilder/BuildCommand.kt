@@ -156,42 +156,38 @@ class BuildCommandScope: CommandBuilder() {
             }
         }).also{ +it }
 
-    enum class CommandState {
-        CONTINUE,
-        BREAK,
-        STOP_COMMAND
-    }
-
     /**
-     * A variant of [CommandBuilder.loop] whose [run] block must return a [CommandState].
+     * A variant of [CommandBuilder.loop] whose [run] block must return a [Request].
      *
-     * This allows you to end the entire build command(by returning [CommandState.STOP_COMMAND])
-     * during runtime, and end the block's execution by returning [CommandState.BREAK].
-     * To continue like normal, use [CommandState.CONTINUE].
+     * This allows you to end the entire build command(by returning [Request.STOP_COMMAND])
+     * during runtime, and end the block's execution by returning [Request.BREAK].
+     * To continue like normal, use [Request.CONTINUE].
      *
      * This can only be called in the main [buildCommand] block, and not in parallel/sequential blocks.
      */
     @OverloadResolutionByLambdaReturnType
-    fun loop(run: CodeBlockContext.() -> CommandState): Command =
+    @JvmName("LoopWithBreakAndReturn")
+    fun loop(run: CodeBlockContext.() -> Request): Command =
         object: Command() {
             init{ +this }
 
-            private var result = CommandState.CONTINUE
+            private var result = Request.CONTINUE
 
             override fun execute() {
                 result = CodeBlockContext.run()
-                this@BuildCommandScope.stopped = result == CommandState.STOP_COMMAND
+                this@BuildCommandScope.stopped = result == Request.STOP_COMMAND
             }
 
-            override fun isFinished(): Boolean = result != CommandState.CONTINUE
+            override fun isFinished(): Boolean = result != Request.CONTINUE
         }
 
     /**
-     * A variant of [CommandBuilder.loopFor] whose [run] block must return a [CommandState].
+     * A variant of [CommandBuilder.loopFor] whose [run] block must return a [Request].
      *
      * @see BuildCommandScope.loop
      */
     @OverloadResolutionByLambdaReturnType
-    inline fun loopFor(time: Time, crossinline run: CodeBlockContext.() -> CommandState): Command =
+    @JvmName("LoopForWithBreakAndReturn")
+    inline fun loopFor(time: Time, crossinline run: CodeBlockContext.() -> Request): Command =
         loop{ return@loop run() }.modify{ it.withTimeout(time.inUnit(seconds)) }
 }
