@@ -10,15 +10,13 @@ import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.Loggable
 import frc.chargers.utils.math.inputModulus
-import frc.chargers.wpilibextensions.kinematics.xVelocity
-import frc.chargers.wpilibextensions.kinematics.yVelocity
 import limelight.LimelightHelpers
 
 
-@Suppress("LeakingThis")
-public open class ChargerNavX(
+class ChargerNavX(
+    val base: AHRS = AHRS(),
     private val useFusedHeading: Boolean = false,
-    public val ahrs: AHRS = AHRS(),
+    var simHeadingSource: () -> Angle = { Angle(0.0) }
 ): ZeroableHeadingProvider, Loggable {
     override val namespace = "NavX"
     private var headingOffset by logged(0.degrees)
@@ -30,7 +28,7 @@ public open class ChargerNavX(
      */
     override fun zeroHeading(angle: Angle){
         if (isReal()){
-            while (ahrs.isCalibrating){
+            while (base.isCalibrating){
                 println("Waiting for AHRS to calibrate...")
                 // Wait for 1 second (hardware initialization) before zeroing heading
                 Thread.sleep(1000)
@@ -42,7 +40,7 @@ public open class ChargerNavX(
 
             println("AHRS angle and fused heading has been offset. This does not impact ahrs.getYaw()!")
         }else{
-            headingOffset = -IMUSimulation.getHeading()
+            headingOffset = -simHeadingSource()
             println("AHRS heading has been offset in sim.")
         }
     }
@@ -72,12 +70,12 @@ public open class ChargerNavX(
     /**
      * The NavX firmware version.
      */
-    public val firmwareVersion: String by logged{ ahrs.firmwareVersion }
+    val firmwareVersion: String by logged{ base.firmwareVersion }
 
     /**
      * Returns if the NavX is connected or not. Automatically false during simulation.
      */
-    public val isConnected: Boolean by logged{ ahrs.isConnected && isReal() }
+    val isConnected: Boolean by logged{ base.isConnected && isReal() }
 
     /**
      * The heading of the NavX. Reports a value in between 0-360 degrees.
@@ -85,87 +83,70 @@ public open class ChargerNavX(
     override val heading: Angle by logged{
         (if (isReal()) {
             // Negative sign because the navX reports clockwise as positive, whereas we want counterclockwise to be positive
-            if (useFusedHeading && ahrs.isMagnetometerCalibrated && !ahrs.isMagneticDisturbance){
-                -ahrs.fusedHeading.toDouble().ofUnit(degrees)
+            if (useFusedHeading && base.isMagnetometerCalibrated && !base.isMagneticDisturbance){
+                -base.fusedHeading.toDouble().ofUnit(degrees)
             }else{
-                -ahrs.angle.ofUnit(degrees)
+                -base.angle.ofUnit(degrees)
             }
         }else{
-            IMUSimulation.getHeading()
+            simHeadingSource()
         } + headingOffset).inputModulus(0.degrees..360.degrees)
     }
 
     /**
      * The gyroscope of the NavX. Implements [ThreeAxisGyroscope] and HeadingProvider.
      */
-    public val gyroscope: Gyroscope = Gyroscope()
-
-    /**
-     * The accelerometer of the NavX. Implements [ThreeAxisAccelerometer].
-     */
-    public val accelerometer: Accelerometer = Accelerometer()
-
-
-    public inner class Gyroscope internal constructor(): ThreeAxisGyroscope, Loggable {
+    val gyroscope: Gyroscope = Gyroscope()
+    inner class Gyroscope internal constructor(): ThreeAxisGyroscope, Loggable {
         override val namespace = "NavX/Gyroscope"
 
         override val yaw: Angle by logged{
             if (isReal()) {
-                ahrs.yaw.toDouble().ofUnit(degrees)
+                base.yaw.toDouble().ofUnit(degrees)
             } else {
-                IMUSimulation.getHeading().inputModulus(-180.degrees..180.degrees)
+                simHeadingSource().inputModulus(-180.degrees..180.degrees)
             }
         }
 
         override val pitch: Angle by logged{
-            if (isReal()) ahrs.pitch.toDouble().ofUnit(degrees) else Angle(0.0)
+            if (isReal()) base.pitch.toDouble().ofUnit(degrees) else Angle(0.0)
         }
 
         override val roll: Angle by logged{
-            if (isReal()) ahrs.roll.toDouble().ofUnit(degrees) else Angle(0.0)
+            if (isReal()) base.roll.toDouble().ofUnit(degrees) else Angle(0.0)
         }
 
         val yawRate: AngularVelocity by logged {
-            if (isReal()) ahrs.rate.ofUnit(degrees/seconds) else AngularVelocity(0.0)
+            if (isReal()) base.rate.ofUnit(degrees/seconds) else AngularVelocity(0.0)
         }
 
         override val heading: Angle get() = this@ChargerNavX.heading
 
         fun zeroYaw(){
-            ahrs.zeroYaw()
+            base.zeroYaw()
         }
     }
 
-
-    public inner class Accelerometer internal constructor(): ThreeAxisAccelerometer, Loggable {
+    /**
+     * The accelerometer of the NavX. Implements [ThreeAxisAccelerometer].
+     */
+    val accelerometer: Accelerometer = Accelerometer()
+    inner class Accelerometer internal constructor(): ThreeAxisAccelerometer, Loggable {
         override val namespace = "NavX/Accelerometer"
+
         private var previousXVelSim = Velocity(0.0)
         private var previousYVelSim = Velocity(0.0)
 
         override val xAcceleration: Acceleration by logged{
-            if (isReal()){
-                ahrs.worldLinearAccelX.toDouble().ofUnit(standardGravities)
-            }else{
-                val currXVelSim = IMUSimulation.getChassisSpeeds().xVelocity
-                ((currXVelSim - previousXVelSim) / ChargerRobot.LOOP_PERIOD).also{
-                    previousXVelSim = currXVelSim
-                }
-            }
+            if (isReal()) base.worldLinearAccelX.toDouble().ofUnit(standardGravities) else Acceleration(0.0)
         }
 
         override val yAcceleration: Acceleration by logged{
-            if (isReal()){
-                ahrs.worldLinearAccelY.toDouble().ofUnit(standardGravities)
-            }else{
-                val currYVelSim = IMUSimulation.getChassisSpeeds().yVelocity
-                ((currYVelSim - previousYVelSim) / ChargerRobot.LOOP_PERIOD).also{
-                    previousYVelSim = currYVelSim
-                }
-            }
+            if (isReal()) base.worldLinearAccelY.toDouble().ofUnit(standardGravities) else Acceleration(0.0)
         }
 
         override val zAcceleration: Acceleration by logged{
-            if (isReal()) ahrs.worldLinearAccelZ.toDouble().ofUnit(standardGravities) else Acceleration(0.0)
+            if (isReal()) base.worldLinearAccelZ.toDouble().ofUnit(standardGravities) else Acceleration(0.0)
         }
     }
 }

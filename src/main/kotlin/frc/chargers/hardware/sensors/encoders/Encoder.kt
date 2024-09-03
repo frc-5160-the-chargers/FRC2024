@@ -13,6 +13,17 @@ import com.batterystaple.kmeasure.quantities.AngularVelocity
  */
 public interface Encoder : PositionEncoder {
     public val angularVelocity: AngularVelocity
+
+    /**
+     * Adds the [offset] to the [angularPosition] of the encoder.
+     */
+    override operator fun plus(offset: Angle): Encoder =
+        object: Encoder by this { override val angularPosition: Angle get() = this@Encoder.angularPosition + offset }
+
+    /**
+     * Subtracts the [offset] from the [angularPosition] of the encoder.
+     */
+    override operator fun minus(offset: Angle): Encoder = this + (-offset)
 }
 
 /**
@@ -20,4 +31,15 @@ public interface Encoder : PositionEncoder {
  */
 public interface PositionEncoder {
     public val angularPosition: Angle
+
+    /**
+     * Adds the [offset] to the [angularPosition] of the encoder.
+     */
+    public operator fun plus(offset: Angle): PositionEncoder =
+        object: PositionEncoder { override val angularPosition: Angle get() = this@PositionEncoder.angularPosition + offset }
+
+    /**
+     * Subtracts the [offset] from the [angularPosition] of the encoder.
+     */
+    public operator fun minus(offset: Angle): PositionEncoder = this + (-offset)
 }

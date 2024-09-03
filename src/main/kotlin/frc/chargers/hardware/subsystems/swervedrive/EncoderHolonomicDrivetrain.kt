@@ -53,8 +53,7 @@ public open class EncoderHolonomicDrivetrain(
     // turn encoders are optional in sim
     turnEncoders: SwerveData<PositionEncoder?> = SwerveData.create{ null },
     driveMotors: SwerveData<Motor>,
-    private val chassisConstants: SwerveChassisConstants,
-    private val moduleConstants: SwerveModuleConstants,
+    private val constants: SwerveConstants,
     public val gyro: HeadingProvider? = null
 ): PoseEstimatingDrivetrain(logName), HeadingProvider {
     private val moduleNames = listOf("Modules/TopLeft", "Modules/TopRight", "Modules/BottomLeft", "Modules/BottomRight")
@@ -66,23 +65,23 @@ public open class EncoderHolonomicDrivetrain(
                 turnMotors[index],
                 turnEncoders[index],
                 driveMotors[index],
-                moduleConstants
+                constants
             )
         }
 
     private val moduleTranslationsFromRobotCenter = arrayOf(
-        Translation2d(chassisConstants.trackWidth/2,chassisConstants.wheelBase/2),
-        Translation2d(chassisConstants.trackWidth/2,-chassisConstants.wheelBase/2),
-        Translation2d(-chassisConstants.trackWidth/2,chassisConstants.wheelBase/2),
-        Translation2d(-chassisConstants.trackWidth/2,-chassisConstants.wheelBase/2)
+        Translation2d(constants.trackWidth/2, constants.wheelBase/2),
+        Translation2d(constants.trackWidth/2, -constants.wheelBase/2),
+        Translation2d(-constants.trackWidth/2, constants.wheelBase/2),
+        Translation2d(-constants.trackWidth/2, -constants.wheelBase/2)
     )
     // A helper class that stores the characteristics of the drivetrain.
     private val kinematics = SwerveDriveKinematics(*moduleTranslationsFromRobotCenter)
 
     private val constraints = SwerveSetpointGenerator.ModuleLimits(
-        moduleConstants.driveMotorMaxSpeed.siValue,
-        moduleConstants.driveMotorMaxAcceleration.siValue,
-        moduleConstants.turnMotorMaxSpeed.siValue
+        constants.driveMotorMaxSpeed.siValue,
+        constants.driveMotorMaxAcceleration.siValue,
+        constants.turnMotorMaxSpeed.siValue
     )
     // Converts ChassisSpeeds to module states
     // That respect velocity and acceleration constraints.
@@ -141,7 +140,7 @@ public open class EncoderHolonomicDrivetrain(
     init{
         log("RealGyroUsedInPoseEstimation", gyro != null)
         ChargerRobot.runPeriodicAtPeriod(
-            chassisConstants.odometryUpdateRate,
+            constants.odometryUpdateRate,
             ::updatePoseEstimation
         )
 
@@ -154,11 +153,11 @@ public open class EncoderHolonomicDrivetrain(
                 log(ChassisSpeeds.struct, "PathPlanner/ChassisSpeeds", speeds)
             },
             HolonomicPathFollowerConfig(
-                chassisConstants.robotTranslationPID,
-                chassisConstants.robotRotationPID,
-                moduleConstants.driveMotorMaxSpeed.siValue,
-                kotlin.math.sqrt(chassisConstants.trackWidth.inUnit(meters).pow(2) + chassisConstants.wheelBase.inUnit(meters).pow(2)),
-                chassisConstants.pathReplanningConfig
+                constants.robotTranslationPID,
+                constants.robotRotationPID,
+                constants.driveMotorMaxSpeed.siValue,
+                kotlin.math.sqrt(constants.trackWidth.inUnit(meters).pow(2) + constants.wheelBase.inUnit(meters).pow(2)),
+                constants.pathReplanningConfig
             ),
             { DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red }, // determines if alliance flip for paths is necessary
             this
@@ -297,7 +296,7 @@ public open class EncoderHolonomicDrivetrain(
      * driving each swerve module at their maximum potential,
      * then calculating the output using the kinematics object.
      */
-    public val maxLinearVelocity: Velocity = moduleConstants.driveMotorMaxSpeed
+    public val maxLinearVelocity: Velocity = constants.driveMotorMaxSpeed
 
     /**
      * The max angular velocity of the drivetrain, calculated by simulating
@@ -306,10 +305,10 @@ public open class EncoderHolonomicDrivetrain(
      */
     public val maxRotationalVelocity: AngularVelocity = abs(
         kinematics.toChassisSpeeds(
-            SwerveModuleState(moduleConstants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(-45.0)),
-            SwerveModuleState(-moduleConstants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(45.0)),
-            SwerveModuleState(moduleConstants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(45.0)),
-            SwerveModuleState(-moduleConstants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(-45.0))
+            SwerveModuleState(constants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(-45.0)),
+            SwerveModuleState(-constants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(45.0)),
+            SwerveModuleState(constants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(45.0)),
+            SwerveModuleState(-constants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(-45.0))
         ).rotationSpeed
     )
 
@@ -343,7 +342,7 @@ public open class EncoderHolonomicDrivetrain(
                 setDriveVoltages(SwerveData.create{ voltage.toKmeasure() })
                 setTurnDirections(SwerveData.create{ Angle(0.0) })
             },
-            null, // no need for log consumer since data is recorded by advantagekit
+            null, // no need for log consumer since data is recorded by logging
             this
         )
     )
@@ -526,7 +525,7 @@ public open class EncoderHolonomicDrivetrain(
                 if (output != null) {
                     goal.omegaRadiansPerSecond = output.closedLoopRotation.siValue
                 }
-                goal = goal.discretize(driftRate = chassisConstants.closedLoopDiscretizationRate)
+                goal = goal.discretize(driftRate = constants.closedLoopDiscretizationRate)
             }
 
             ControlMode.OPEN_LOOP -> {
@@ -534,7 +533,7 @@ public open class EncoderHolonomicDrivetrain(
                 if (output != null) {
                     goal.omegaRadiansPerSecond = output.openLoopRotation * maxRotationalVelocity.siValue
                 }
-                goal = goal.discretize(driftRate = chassisConstants.openLoopDiscretizationRate)
+                goal = goal.discretize(driftRate = constants.openLoopDiscretizationRate)
             }
 
             else -> {}

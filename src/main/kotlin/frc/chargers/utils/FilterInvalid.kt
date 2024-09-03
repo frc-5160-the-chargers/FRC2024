@@ -7,19 +7,16 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 /**
- * Creates a [Quantity] getter that filters invalid values.
+ * Creates a [Quantity] getter that filters NaN and infinity
  */
 @OptIn(ExperimentalTypeInference::class)
 @OverloadResolutionByLambdaReturnType
-fun <D: AnyDimension> filterInvalid(
-    additionalInvalidFilter: (Quantity<D>) -> Boolean = {false},
-    getter: () -> Quantity<D>
-) = object: ReadOnlyProperty<Any?, Quantity<D>> {
+fun <D: AnyDimension> filterNaN(getter: () -> Quantity<D>) = object: ReadOnlyProperty<Any?, Quantity<D>> {
     private var previousValue = Quantity<D>(0.0)
 
     override fun getValue(thisRef: Any?, property: KProperty<*>): Quantity<D> {
         val value = getter()
-        if (value.siValue.isNaN() || value.siValue.isInfinite() || additionalInvalidFilter(value)){
+        if (value.siValue.isNaN() || value.siValue.isInfinite()){
             return previousValue
         }else{
             previousValue = value

@@ -1,39 +1,5 @@
 package frc.chargers.hardware.subsystems.swervedrive
 
-import frc.chargers.hardware.configuration.ConfigurableHardware
-import frc.chargers.hardware.configuration.HardwareConfiguration
-import kotlin.reflect.full.primaryConstructor
-
-/**
- * Creates a [SwerveData] instance, where all members can be configured.
- * For this function to work, the [SwerveData] instance must hold values
- * that implement [ConfigurableHardware], with the appropriate [HardwareConfiguration].
- */
-inline fun <reified C: HardwareConfiguration, T: ConfigurableHardware<C>> SwerveData( // reified T allows the ::class call to work, while the inline modifier allows the configure function to be inlined(improving performance).
-    topLeft: T,
-    topRight: T,
-    bottomLeft: T,
-    bottomRight: T,
-    configure: C.() -> Unit
-): SwerveData<T> {
-    val primaryConstructor = C::class.primaryConstructor ?: error("The configuration class " + C::class.simpleName + " must have a constructor.")
-    try{
-        val configuration = primaryConstructor.callBy(emptyMap()).apply(configure)
-
-        topLeft.configure(configuration)
-        topRight.configure(configuration)
-        bottomLeft.configure(configuration)
-        bottomRight.configure(configuration)
-
-        return SwerveData(topLeft, topRight, bottomLeft, bottomRight)
-    }catch(e: Exception){
-        error(
-            "A configuration class must have a primary constructor with only default parameters; " +
-            "however, " + C::class.simpleName + " does not."
-        )
-    }
-}
-
 /**
  * Represents generic data useful to an [EncoderHolonomicDrivetrain];
  * with values corresponding to the top left, top right, bottom left and bottom right modules of the drivetrain.
@@ -43,7 +9,6 @@ inline fun <reified C: HardwareConfiguration, T: ConfigurableHardware<C>> Swerve
  * This class implements the [List] interface, allowing it to call the same functions that a list can(like forEach, map, etc.)
  * along with being substituted for a list.
  */
-@Suppress("unused")
 data class SwerveData<out T>(
     val topLeft: T,
     val topRight: T,

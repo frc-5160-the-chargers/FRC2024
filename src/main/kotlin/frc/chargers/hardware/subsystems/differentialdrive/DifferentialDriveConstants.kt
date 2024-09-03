@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package frc.chargers.hardware.subsystems.differentialdrive
 
 import com.batterystaple.kmeasure.quantities.Length
@@ -9,6 +10,10 @@ import frc.chargers.controls.feedforward.AngularMotorFFEquation
 @PublishedApi
 internal const val DEFAULT_GEAR_RATIO: Double = 1.0
 
+enum class PathAlgorithm {
+    LTV, RAMSETE
+}
+
 class DifferentialDriveConstants(
     val invertMotors: Boolean = false,
     val gearRatio: Double = DEFAULT_GEAR_RATIO,
@@ -19,10 +24,6 @@ class DifferentialDriveConstants(
     val pathAlgorithm: PathAlgorithm = PathAlgorithm.LTV,
     val pathReplanningConfig: ReplanningConfig = ReplanningConfig(),
 ){
-    enum class PathAlgorithm{
-        LTV, RAMSETE
-    }
-
     companion object{
         fun andymarkKitbot(
             invertMotors: Boolean,

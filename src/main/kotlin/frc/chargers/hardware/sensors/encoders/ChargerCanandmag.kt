@@ -7,16 +7,25 @@ import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.seconds
 import com.reduxrobotics.sensors.canandmag.Canandmag
 
-class ChargerCanandmag(id: Int): Canandmag(id), Encoder{
+class ChargerCanandmag(val deviceID: Int, settings: Canandmag.Settings = Canandmag.Settings()): Encoder {
+    val base = Canandmag(deviceID)
+
+    init {
+        base.settings = settings
+    }
+
     val absolute: Encoder = AbsoluteEncoderAdaptor()
     private inner class AbsoluteEncoderAdaptor: Encoder by this {
         override val angularPosition: Angle
-            get() = getAbsPosition().ofUnit(radians)
+            get() = base.absPosition.ofUnit(radians)
     }
 
     override val angularVelocity: AngularVelocity
-        get() = getVelocity().ofUnit(rotations / seconds)
+        get() = base.velocity.ofUnit(rotations / seconds)
 
     override val angularPosition: Angle
-        get() = getPosition().ofUnit(rotations)
+        get() = base.position.ofUnit(rotations)
 }
+
+fun Canandmag.Settings.setZeroOffset(zeroOffset: Angle): Canandmag.Settings =
+    setZeroOffset(zeroOffset.inUnit(rotations))

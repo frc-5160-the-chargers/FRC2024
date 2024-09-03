@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package frc.chargers.commands.commandbuilder
 
 import com.batterystaple.kmeasure.quantities.Time
@@ -7,7 +8,6 @@ import edu.wpi.first.wpilibj2.command.*
 import frc.chargers.commands.withExtraRequirements
 import frc.chargers.commands.withLogging
 import kotlin.experimental.ExperimentalTypeInference
-import kotlin.internal.LowPriorityInOverloadResolution
 
 /**
  * The entry point for the CommandBuilder DSL (Domain Specific Language).
@@ -69,19 +69,27 @@ inline fun buildCommand(
     return command
 }
 
-
 /**
 * Creates a [buildCommand] that automatically requires a subsystem.
 */
-@LowPriorityInOverloadResolution
+@JvmName("BuildCommandWithSubsystem")
 inline fun Subsystem.buildCommand(
     name: String = "Generic BuildCommand of " + getName(),
     logIndividualCommands: Boolean = false,
     block: BuildCommandScope.() -> Unit
 ): Command =
-    buildCommand(name, logIndividualCommands, block)
+    frc.chargers.commands.commandbuilder.buildCommand(name, logIndividualCommands, block)
         .withExtraRequirements(this@buildCommand)
 
+/**
+ * A command request, to be returned within a [BuildCommandScope.loop]
+ * or [BuildCommandScope.loopFor] block.
+ */
+enum class Request {
+    CONTINUE,
+    BREAK,
+    STOP_COMMAND,
+}
 
 /**
  * A scope exclusive to [buildCommand]; this contains things like end behavior and command requirements
@@ -90,7 +98,6 @@ inline fun Subsystem.buildCommand(
  */
 @CommandBuilderMarker
 @OptIn(ExperimentalTypeInference::class)
-@Suppress("unused")
 class BuildCommandScope: CommandBuilder() {
     val requirements: LinkedHashSet<Subsystem> = linkedSetOf()
 
@@ -132,7 +139,6 @@ class BuildCommandScope: CommandBuilder() {
      * Alternative syntax for adding requirements,
      * that more closely follows the syntax of base commands.
      */
-    @Suppress("unused")
     fun addRequirements(vararg requirements: Subsystem){
         require(*requirements)
     }

@@ -1,90 +1,61 @@
 package frc.chargers.hardware.motorcontrol.simulation
 
-import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.dimensions.AngularVelocityDimension
-import com.batterystaple.kmeasure.dimensions.VoltageDimension
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim
-import com.pathplanner.lib.util.PIDConstants
-import frc.chargers.controls.UnitPIDController
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.Encoder
 
+/**
+ * Simulates 1(or a group of) motors on a single arm joint.
+ * Acts as wrapper around WPILib's [SingleJointedArmSim] that extends the [frc.chargers.hardware.motorcontrol.Motor] interface.
+ */
 @Suppress("unused")
 class ArmMotorSim(
-    motorType: DCMotor,
-    armLength: Distance,
-    moi: MomentOfInertia = 0.000015.ofUnit(kilo.grams * (meters * meters)),
-    motorToEncoderRatio: Double = 1.0,
-    minimumEncoderMeasurement: Angle = Angle(Double.NEGATIVE_INFINITY),
-    maximumEncoderMeasurement: Angle = Angle(Double.POSITIVE_INFINITY)
-): Motor {
-    private val wpilibSim = SingleJointedArmSim(
-        motorType,
-        motorToEncoderRatio,
-        moi.inUnit(kilo.grams * (meters * meters)),
-        armLength.inUnit(meters),
-        minimumEncoderMeasurement.inUnit(radians),
-        maximumEncoderMeasurement.inUnit(radians),
-        true, 0.0
-    )
+    private val motorType: DCMotor,
+    private val armLength: Distance,
+    private val moi: MomentOfInertia,
+    private val angleRange: ClosedRange<Angle> = Angle(Double.NEGATIVE_INFINITY)..Angle(Double.POSITIVE_INFINITY)
+): SimulatedMotorBase() {
+    lateinit var base: SingleJointedArmSim
+        private set
 
-    private val positionController = UnitPIDController<AngleDimension, VoltageDimension>(
-        0.0, 0.0, 0.0, outputRange = (-12).volts..12.volts
-    )
-
-    private val velocityController = UnitPIDController<AngularVelocityDimension, VoltageDimension>(
-        0.0, 0.0, 0.0, outputRange = (-12).volts..12.volts
-    )
-
-    init{
+    init {
+        initializeWPILibSim(1.0)
         ChargerRobot.runPeriodic {
-            wpilibSim.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
+            base.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
         }
+    }
+
+    override fun initializeWPILibSim(gearRatio: Double) {
+        base = SingleJointedArmSim(
+            motorType,
+            gearRatio,
+            moi.inUnit(kilo.grams * (meters * meters)),
+            armLength.inUnit(meters),
+            angleRange.start.inUnit(radians),
+            angleRange.endInclusive.inUnit(radians),
+            true, 0.0
+        )
     }
 
     override val encoder: Encoder = SimEncoder()
     private inner class SimEncoder: Encoder {
         override val angularPosition: Angle
-            get() = wpilibSim.angleRads.ofUnit(radians)
+            get() = base.angleRads.ofUnit(radians)
 
         override val angularVelocity: AngularVelocity
-            get() = wpilibSim.velocityRadPerSec.ofUnit(radians / seconds)
+            get() = base.velocityRadPerSec.ofUnit(radians / seconds)
     }
-
-    override var hasInvert: Boolean = false
 
     override var appliedVoltage: Voltage = 0.volts
         set(value) {
             field = value
-            wpilibSim.setInputVoltage(value.siValue * if (hasInvert) -1.0 else 1.0 )
+            base.setInputVoltage(value.siValue * if (super.inverted) -1.0 else 1.0)
+            super.followers.forEach{ it.appliedVoltage = value }
         }
 
     override val statorCurrent: Current
-        get() = wpilibSim.currentDrawAmps.ofUnit(amps)
-
-    override fun setBrakeMode(shouldBrake: Boolean){}
-
-    override fun setPositionSetpoint(
-        rawPosition: Angle,
-        pidConstants: PIDConstants,
-        continuousInput: Boolean,
-        feedforward: Voltage
-    ) {
-        if (continuousInput){
-            positionController.enableContinuousInput(0.degrees..360.degrees)
-        }else{
-            positionController.disableContinuousInput()
-        }
-        positionController.constants = pidConstants
-        appliedVoltage = positionController.calculate(encoder.angularPosition, rawPosition, feedforward)
-    }
-
-    override fun setVelocitySetpoint(rawVelocity: AngularVelocity, pidConstants: PIDConstants, feedforward: Voltage) {
-        velocityController.constants = pidConstants
-        appliedVoltage = velocityController.calculate(encoder.angularVelocity, rawVelocity, feedforward)
-    }
+        get() = base.currentDrawAmps.ofUnit(amps)
 }

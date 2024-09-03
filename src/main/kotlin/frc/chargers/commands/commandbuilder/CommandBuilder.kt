@@ -10,6 +10,34 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 /**
+ * This object serves to restrict the scope of runOnce, loopForever, etc. blocks within the buildCommand.
+ *
+ * This discourages scenarios like this:
+ * ```
+ * buildCommand{
+ *      loop{
+ *          // does not compile due to CodeBlockContext
+ *          loop{
+ *              println("hi")
+ *          }
+ *      }
+ * }
+ * ```
+ * Which would factually do nothing due to the command already being created when buildCommand is initialized.
+ */
+@CommandBuilderMarker
+object CodeBlockContext
+
+/**
+ * This "marker" serves to restrict the scope of the buildCommand DSL.
+ *
+ * See [here](https://kotlinlang.org/docs/type-safe-builders.html#scope-control-dslmarker)
+ * for the purpose of this annotation class.
+ */
+@DslMarker
+annotation class CommandBuilderMarker
+
+/**
  * The scope class responsible for governing the BuildCommand DSL.
  */
 @CommandBuilderMarker

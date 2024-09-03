@@ -13,18 +13,13 @@ import edu.wpi.first.wpilibj.AnalogPotentiometer
  * A wrapper around WPILib's [AnalogPotentiometer] with units support.
  */
 public class ChargerPotentiometer(
-    input: AnalogInput,
+    val channel: Int,
     fullRange: Angle,
     offset: Angle = 0.degrees,
     var inverted: Boolean = false
-): AnalogPotentiometer(input, fullRange.inUnit(degrees), offset.inUnit(degrees)), PositionEncoder {
-    public constructor(
-        channel: Int,
-        fullRange: Angle,
-        offset: Angle = 0.degrees,
-        inverted: Boolean = false
-    ) : this(AnalogInput(channel), fullRange, offset, inverted)
+): PositionEncoder {
+    val base = AnalogPotentiometer(AnalogInput(channel), fullRange.inUnit(degrees), offset.inUnit(degrees))
 
     override val angularPosition: Angle
-        get() = (if (inverted) -1.0 else 1.0) * get().ofUnit(degrees)
+        get() = (if (inverted) -1.0 else 1.0) * base.get().ofUnit(degrees)
 }

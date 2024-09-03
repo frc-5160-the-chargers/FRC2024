@@ -6,18 +6,16 @@ import edu.wpi.first.wpilibj.motorcontrol.MotorController
 import edu.wpi.first.wpilibj2.command.Subsystem
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 
+
 public fun DifferentialDrivetrain(
     leftMotors: List<MotorController>,
     rightMotors: List<MotorController>,
     invertMotors: Boolean = false
 ) = DifferentialDrivetrain{ leftPower, rightPower ->
-
-    val invert = if (invertMotors) -1.0 else 1.0
-    leftMotors.forEach { it.set(leftPower * invert) }
-    rightMotors.forEach { it.set(rightPower * invert) }
-
+    val scalar = if (invertMotors) -1.0 else 1.0
+    leftMotors.forEach { it.set(leftPower * scalar) }
+    rightMotors.forEach { it.set(rightPower * scalar) }
 }
-
 
 /**
  * A interface that controls a differential drivetrain.

@@ -12,9 +12,11 @@ import edu.wpi.first.wpilibj.DutyCycleEncoder
  * An Adapter of WPILib's [DutyCycleEncoder] class; consists of REV through bore encoders, CTRE mag encoders.
  */
 public class ChargerDutyCycleEncoder(
-    channel: Int,
+    val channel: Int,
     var inverted: Boolean = false
-): DutyCycleEncoder(channel), PositionEncoder {
+): PositionEncoder {
+    val base: DutyCycleEncoder = DutyCycleEncoder(channel)
+
     override val angularPosition: Angle
-        get() = (if (inverted) -1.0 else 1.0) * absolutePosition.ofUnit(rotations)
+        get() = (if (inverted) -1.0 else 1.0) * base.absolutePosition.ofUnit(rotations)
 }

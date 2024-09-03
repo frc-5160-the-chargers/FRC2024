@@ -15,74 +15,76 @@ import frc.chargers.hardware.sensors.encoders.Encoder
  * and more.
  */
 interface Motor {
+    /**
+     * The encoder of the motor.
+     */
     val encoder: Encoder
 
-    val statorCurrent: Current
-
+    /**
+     * A property that either fetches the current applied voltage,
+     * or sets its value.
+     */
     var appliedVoltage: Voltage
 
-    var hasInvert: Boolean
+    /**
+     * The motor's stator current.
+     */
+    val statorCurrent: Current
 
-    fun setBrakeMode(shouldBrake: Boolean)
+    /**
+     * Whether the motor is inverted or not.
+     */
+    val inverted: Boolean
 
-    fun setPositionSetpoint(
-        rawPosition: Angle,
-        pidConstants: PIDConstants,
-        continuousInput: Boolean = false,
-        feedforward: Voltage = 0.volts
-    )
+    /**
+     * Uses onboard closed-loop control to set the position of a motor.
+     * This function will only work if you set the positionPID property
+     * via the [configure] function.
+     */
+    fun setPositionSetpoint(position: Angle, feedforward: Voltage = 0.volts)
 
-    fun setVelocitySetpoint(
-        rawVelocity: AngularVelocity,
-        pidConstants: PIDConstants,
-        feedforward: Voltage
-    )
+    /**
+     * Uses onboard closed-loop control to set the velocity of a motor.
+     * This function will only work if you set the velocityPID property
+     * via the [configure] function.
+     */
+    fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage)
+
+    /**
+     * Configures the motor with a couple of standard settings.
+     *
+     * This is intended to either be an isolated call or an inline call;
+     * with the [Motor] being returned for convenient inline configuration.
+     *
+     * Note: a [positionUpdateRate] or [velocityUpdateRate] of 0.hertz
+     * will disable updating for those signals.
+     */
+    fun configure(
+        inverted: Boolean? = null,
+        brakeWhenIdle: Boolean? = null,
+        rampRate: Time? = null,
+        statorCurrentLimit: Current? = null,
+        followerMotors: List<Motor> = listOf(),
+        positionUpdateRate: Frequency? = null,
+        velocityUpdateRate: Frequency? = null,
+        optimizeUpdateRate: Boolean? = null,
+
+        gearRatio: Double? = null,
+        startingPosition: Angle? = null,
+        positionPID: PIDConstants? = null,
+        velocityPID: PIDConstants? = null,
+        continuousInput: Boolean? = null
+    ): Motor
 
 
-    var percentOut: Double
-        get() = appliedVoltage.siValue / 12.0
-        set(value){ appliedVoltage = value * 12.volts }
-
-    fun stop(){
-        appliedVoltage = 0.volts
-    }
-
-    fun withFollowers(vararg followers: Motor) =
-        object: Motor {
-            override val encoder: Encoder = this@Motor.encoder
-
-            // runs a function for all the included motors ; including followers.
-            inline fun runForAllMotors(function: (Motor) -> Unit){
-                function(this@Motor)
-                followers.forEach(function)
-            }
-
-            override var appliedVoltage: Voltage
-                get() = this@Motor.appliedVoltage
-                set(value) {
-                    runForAllMotors{ it.appliedVoltage = value }
-                }
-
-            override var hasInvert: Boolean = this@Motor.hasInvert
-                set(value){
-                    if (field != value){
-                        field = value
-                        runForAllMotors{ it.hasInvert = !it.hasInvert }
-                    }
-                }
-
-            override val statorCurrent: Current get() = this@Motor.statorCurrent
-
-            override fun setBrakeMode(shouldBrake: Boolean) {
-                runForAllMotors{ it.setBrakeMode(shouldBrake) }
-            }
-
-            override fun setPositionSetpoint(rawPosition: Angle, pidConstants: PIDConstants, continuousInput: Boolean, feedforward: Voltage) {
-                runForAllMotors{ it.setPositionSetpoint(rawPosition, pidConstants, continuousInput, feedforward) }
-            }
-
-            override fun setVelocitySetpoint(rawVelocity: AngularVelocity, pidConstants: PIDConstants, feedforward: Voltage) {
-                runForAllMotors{ it.setVelocitySetpoint(rawVelocity, pidConstants, feedforward) }
-            }
+    var speed: Double
+        get() = (appliedVoltage / 12.volts).siValue
+        set(value) {
+            appliedVoltage = value * 12.volts
         }
+
+    /**
+     * Stops the motor.
+     */
+    fun stop() { appliedVoltage = 0.volts }
 }
