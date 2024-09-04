@@ -17,6 +17,7 @@
       "/AdvantageKit/RealOutputs/Shooter/MechanismCanvas": "Mechanism2d",
       "/AdvantageKit/RealOutputs/Shooter/mechanism2d": "Mechanism2d",
       "/FMSInfo": "FMSInfo",
+      "/SmartDashboard/Auto Choices": "String Chooser",
       "/SmartDashboard/Auto Command": "String Chooser",
       "/SmartDashboard/AutoOptions": "String Chooser",
       "/SmartDashboard/Autonomous": "String Chooser",
@@ -28,6 +29,11 @@
     },
     "windows": {
       "/AdvantageKit/RealOutputs/Shooter/MechanismCanvas": {
+        "window": {
+          "visible": true
+        }
+      },
+      "/SmartDashboard/Auto Choices": {
         "window": {
           "visible": true
         }
@@ -234,9 +240,6 @@
         },
         "open": true
       },
-      "NavX": {
-        "open": true
-      },
       "PathPlanner": {
         "double[]##v_/PathPlanner/currentPose": {
           "open": true
@@ -246,8 +249,7 @@
         },
         "double[]##v_/PathPlanner/vel": {
           "open": true
-        },
-        "open": true
+        }
       },
       "RobotGeneral": {
         "ActiveCommands": {
@@ -261,6 +263,9 @@
       },
       "SmartDashboard": {
         "Alerts": {
+          "open": true
+        },
+        "Auto Choices": {
           "open": true
         },
         "AutoOptions": {
@@ -280,7 +285,8 @@
         },
         "TunableValues": {
           "open": true
-        }
+        },
+        "open": true
       },
       "limelight": {
         "open": true
@@ -300,8 +306,7 @@
       },
       "Subscribers": {
         "open": true
-      },
-      "open": true
+      }
     },
     "visible": true
   }

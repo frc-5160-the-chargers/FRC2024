@@ -26,6 +26,7 @@ enum class ModuleType(
 ){
     MK4iL2(4.inches, true, 150.0 / 7.0, 6.75),
     MK4iL3(4.inches, true, 150.0 / 7.0, 6.12)
+    // we don't have maxswerve so there isn't an option here
 }
 
 data class SwerveConstants(

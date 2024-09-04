@@ -12,11 +12,11 @@ import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 
-private const val CONVEYOR_ID = 29
+private const val SERIALIZER_ID = 29
 private const val GROUND_INTAKE_ID = 7
 
 // standard: + = outtake, - = intake for both conveyor and ground intake components
-// first list value is ground intake motor; second is serialier motor.
+// first list value is ground intake motor; second is serializer motor.
 class GroundIntakeSerializer: SuperSubsystem("GroundIntakeSerializer"){
     private val groundIntakeMotor: Motor
     private val serializerMotor: Motor?
@@ -27,7 +27,7 @@ class GroundIntakeSerializer: SuperSubsystem("GroundIntakeSerializer"){
             serializerMotor = MotorSim(DCMotor.getNEO(1))
         } else {
             groundIntakeMotor = ChargerTalonFX(GROUND_INTAKE_ID)
-            serializerMotor = ChargerSparkMax(CONVEYOR_ID).configure(inverted = true)
+            serializerMotor = ChargerSparkMax(SERIALIZER_ID).configure(inverted = true)
         }
 
         groundIntakeMotor.configure(

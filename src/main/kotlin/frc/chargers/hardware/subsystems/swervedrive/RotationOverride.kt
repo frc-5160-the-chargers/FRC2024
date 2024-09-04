@@ -21,7 +21,7 @@ import org.photonvision.PhotonCamera
 import kotlin.math.PI
 
 /**
- * Represents a supplier of a rotation override;
+ * Represents a rotation override;
  * which has access to the drivetrain object reference,
  * and returns a nullable [RotationOverrideResult].
  */

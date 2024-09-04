@@ -35,16 +35,16 @@ import kotlin.jvm.optionals.getOrNull
  * Our competition robot; rigatoni.
  */
 @Suppress("unused")
-class CompetitionRobot: ChargerRobot(){
-    val gyro = ChargerNavX()
-    val drivetrain = getDrivetrain(gyro)
-    val pivot = Pivot()
-    val groundIntake = GroundIntakeSerializer()
-    val shooter = Shooter()
-    val climber = Climber()
-    val noteObserver = NoteObserver()
+class CompetitionRobot: ChargerRobot(logFileName="SomeLogs"){
+    private val gyro = ChargerNavX()
+    private val drivetrain = getDrivetrain(gyro)
+    private val pivot = Pivot()
+    private val groundIntake = GroundIntakeSerializer()
+    private val shooter = Shooter()
+    private val climber = Climber()
+    private val noteObserver = NoteObserver()
 
-    val autoChooser = AutoCommandManager(drivetrain, shooter, groundIntake, pivot, noteObserver)
+    private val autoChooser = AutoCommandManager(drivetrain, shooter, groundIntake, pivot, noteObserver)
 
     override fun robotInit(){
         DriverController

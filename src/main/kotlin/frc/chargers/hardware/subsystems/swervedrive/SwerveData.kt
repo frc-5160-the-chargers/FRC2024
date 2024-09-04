@@ -35,16 +35,4 @@ data class SwerveData<out T>(
             mapper(bottomLeft),
             mapper(bottomRight)
         )
-
-    /**
-     * Zips 2 SwerveData classes together into one,
-     * which holds pairs of values.
-     */
-    fun <S> zip(otherData: SwerveData<S>): SwerveData<Pair<T, S>> =
-        SwerveData(
-            Pair(this.topLeft, otherData.topLeft),
-            Pair(this.topRight, otherData.topRight),
-            Pair(this.bottomLeft, otherData.bottomLeft),
-            Pair(this.bottomRight, otherData.bottomRight)
-        )
 }

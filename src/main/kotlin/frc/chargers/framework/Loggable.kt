@@ -61,14 +61,16 @@ interface Loggable {
      */
     val namespace: String
 
-    companion object{
+    companion object {
         // Determines whether to log to file only or not.
         // "by lazy" ensures that DriverStation.isFMSAttached is only called
         // the first time the value is accessed; reducing logging latency.
         private val fileOnly: Boolean by lazy{ DriverStation.isFMSAttached() && RobotBase.isReal() }
-
         // datalog-related storage
         private val dataLogEntries: MutableMap<String, DataLogEntry> = WeakHashMap()
+        // networktables-related storage
+        private val ntInstance by lazy{ NetworkTableInstance.getDefault() }
+        private val ntPublishers: MutableMap<String, Publisher> = HashMap()
 
         // fetches a data log entry; creating a new one if not present
         private fun <E : DataLogEntry> getEntry(
@@ -93,10 +95,6 @@ interface Loggable {
             dataLogEntries[identifier] = entry
             return entry
         }
-
-        // networktables-related storage
-        private val ntInstance by lazy{ NetworkTableInstance.getDefault() }
-        private val ntPublishers: MutableMap<String, Publisher> = HashMap()
 
         // capitalization
         private fun capitalize(input: String): String =
@@ -158,7 +156,7 @@ interface Loggable {
 
     @JvmName("logEnum")
     fun log(identifier: String, value: Enum<*>) {
-        log("$namespace/$identifier", value.name)
+        log(identifier, value.name)
     }
 
     @JvmName("logStructable")
@@ -228,7 +226,7 @@ interface Loggable {
 
     @JvmName("logQuantityList")
     fun log(identifier: String, value: Collection<Quantity<*>>) {
-        log("$namespace/$identifier", value.map{ it.siValue })
+        log(identifier, value.map{ it.siValue })
     }
 
     @JvmName("logStructableList")

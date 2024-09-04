@@ -6,6 +6,7 @@ import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.PrintCommand
 import frc.chargers.commands.commandbuilder.BuildCommandScope
@@ -42,6 +43,8 @@ class AutoCommandManager(
             "Do Nothing",
             buildCommand{ }
         )
+
+        SmartDashboard.putData("Auto Choices", this)
     }
 
     /**
@@ -96,6 +99,8 @@ class AutoCommandManager(
                     drivetrain.swerveDrive(0.3, 0.0, 0.0, fieldRelative = false)
                 }
 
+                runOnce { drivetrain.stop() }
+
                 waitFor(groundIntakePostSpinupTime)
             }
 
@@ -114,6 +119,7 @@ class AutoCommandManager(
 
             // parallel #4
             if (noteObserver.hasCamera){
+                println("Hello!")
                 // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
                 // along the path.
                 runSequentially{

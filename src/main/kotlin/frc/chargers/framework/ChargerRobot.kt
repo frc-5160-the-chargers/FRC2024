@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import org.littletonrobotics.urcl.URCL
+import java.io.File
 import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
 
@@ -117,10 +118,10 @@ abstract class ChargerRobot(
     init{
         if (logFileName == null) {
             DataLogManager.start(logFileFolder)
-        } else if (".wpilog" in logFileName) {
-            DataLogManager.start(logFileFolder, logFileName)
         } else {
-            DataLogManager.start(logFileFolder, "$logFileName.wpilog")
+            val actualFileName = if (logFileName.endsWith(".wpilog")) logFileName else "$logFileName.wpilog"
+            File("$logFileFolder/$actualFileName").createNewFile()
+            DataLogManager.start(logFileFolder, actualFileName)
         }
 
         if (RobotBase.isReal()){

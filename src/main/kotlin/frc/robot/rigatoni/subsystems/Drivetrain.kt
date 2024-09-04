@@ -15,13 +15,16 @@ import frc.chargers.hardware.sensors.imu.HeadingProvider
 import frc.chargers.hardware.subsystems.swervedrive.*
 
 fun getDrivetrain(gyro: HeadingProvider): EncoderHolonomicDrivetrain =
-    EncoderHolonomicDrivetrain(
-        turnMotors = if (isSimulation()) SwerveData.create{ MotorSim(DCMotor.getNEO(1), moi = TURN_MOTOR_MOI) } else TURN_MOTORS,
-        turnEncoders = if (isSimulation()) SwerveData.create{ null } else TURN_ENCODERS,
-        driveMotors = if (isSimulation()) SwerveData.create{ MotorSim(DCMotor.getKrakenX60(1), moi = DRIVE_MOTOR_MOI) } else DRIVE_MOTORS,
-        constants = SWERVE_CONSTANTS,
-        gyro = if (isSimulation()) null else gyro
-    )
+    if (isSimulation()) {
+        EncoderHolonomicDrivetrain(
+            turnMotors = SwerveData.create{ MotorSim(DCMotor.getNEO(1), moi = TURN_MOTOR_MOI) },
+            turnEncoders = SwerveData.create { null },
+            driveMotors = SwerveData.create{ MotorSim(DCMotor.getKrakenX60(1), moi = DRIVE_MOTOR_MOI) },
+            constants = SWERVE_CONSTANTS
+        )
+    } else {
+        EncoderHolonomicDrivetrain(turnMotors = TURN_MOTORS, turnEncoders = TURN_ENCODERS, driveMotors = DRIVE_MOTORS, constants = SWERVE_CONSTANTS, gyro = gyro)
+    }
 
 object DrivetrainID {
     const val TL_DRIVE = 10

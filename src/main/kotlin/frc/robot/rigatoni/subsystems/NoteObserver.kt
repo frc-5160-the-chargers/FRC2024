@@ -33,7 +33,7 @@ class NoteObserver: SuperSubsystem("NoteObserver") {
 
     private val groundIntakeSensor: DigitalInput? = DigitalInput(GROUND_INTAKE_SENSOR_ID)
     private val shooterSensor = DigitalInput(SHOOTER_SENSOR_ID)
-    private val noteDetectorCamera: PhotonCamera? = PhotonCamera("MLWebcam")
+    private val noteDetectorCamera: PhotonCamera? = if (isSimulation()) null else PhotonCamera("MLWebcam")
 
     var state: State = State.NoNote
         private set(value) {
@@ -56,10 +56,11 @@ class NoteObserver: SuperSubsystem("NoteObserver") {
 
     val hasGroundIntakeSensor: Boolean by logged(groundIntakeSensor != null && RobotBase.isReal())
 
-    val hasCamera: Boolean by logged(noteDetectorCamera != null && RobotBase.isReal())
+    val hasCamera: Boolean by logged(noteDetectorCamera != null)
 
     override fun periodic() {
         if (isSimulation()){
+            state = State.NoNote
             return
         }
 

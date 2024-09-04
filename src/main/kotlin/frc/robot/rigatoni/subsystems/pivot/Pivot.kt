@@ -45,13 +45,7 @@ class Pivot: SuperSubsystem("Pivot") {
         }
     }
 
-    private val motionProfile: AngularMotionProfile? = AngularTrapezoidProfile(
-        maxVelocity = AngularVelocity(8.0),
-        maxAcceleration = AngularAcceleration(10.0)
-    )
-    private val feedforward = ArmFFEquation(0.0, 0.0, 0.0)
     private val startingAngle = absoluteEncoder?.angularPosition ?: PivotAngle.STARTING
-    private var motionProfileSetpoint = AngularMotionProfileState(startingAngle)
 
     init {
         motor.configure(
@@ -62,6 +56,13 @@ class Pivot: SuperSubsystem("Pivot") {
             positionPID = PIDConstants(7.0,0.0,0.001)
         )
     }
+
+    private val motionProfile: AngularMotionProfile? = AngularTrapezoidProfile(
+        maxVelocity = AngularVelocity(8.0),
+        maxAcceleration = AngularAcceleration(10.0)
+    )
+    private var motionProfileSetpoint = AngularMotionProfileState(startingAngle)
+    private val feedforward = ArmFFEquation(0.0, 0.0, 0.0)
 
     val angle: Angle by logged { motor.encoder.angularPosition }
 
@@ -124,7 +125,7 @@ class Pivot: SuperSubsystem("Pivot") {
     }
 
     fun setAngleCommand(target: Angle): Command =
-        buildCommand{
+        buildCommand("SetAngleCommand") {
             require(this@Pivot)
 
             runOnce{ setAngle(target) }
