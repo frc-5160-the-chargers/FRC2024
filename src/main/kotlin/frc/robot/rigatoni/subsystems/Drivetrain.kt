@@ -26,7 +26,7 @@ fun getDrivetrain(gyro: HeadingProvider): EncoderHolonomicDrivetrain =
         EncoderHolonomicDrivetrain(turnMotors = TURN_MOTORS, turnEncoders = TURN_ENCODERS, driveMotors = DRIVE_MOTORS, constants = SWERVE_CONSTANTS, gyro = gyro)
     }
 
-object DrivetrainID {
+private object DrivetrainID {
     const val TL_DRIVE = 10
     const val TR_DRIVE = 3
     const val BL_DRIVE = 16
@@ -42,7 +42,15 @@ object DrivetrainID {
     const val BL_ENCODER = 42
     const val BR_ENCODER = 43
 }
-
+private val SWERVE_CONSTANTS = SwerveConstants(
+    moduleType = ModuleType.MK4iL2,
+    trackWidth = 27.inches,
+    wheelBase = 27.inches,
+    azimuthPID = PIDConstants(7.0,0.0,0.0),
+    azimuthPIDTolerance = 1.degrees,
+    velocityPID = PIDConstants(0.05,0.0,0.0),
+    velocityFF = AngularMotorFFEquation(0.0,0.13)
+)
 private val TURN_MOTORS = SwerveData(
     topLeft = ChargerSparkMax(DrivetrainID.TL_TURN),
     topRight = ChargerSparkMax(DrivetrainID.TR_TURN).configure(inverted = true),
@@ -82,12 +90,3 @@ private val DRIVE_MOTORS = SwerveData(
 }
 private val TURN_MOTOR_MOI = 0.004.kilo.grams * (meters * meters)
 private val DRIVE_MOTOR_MOI = 0.025.kilo.grams * (meters * meters)
-private val SWERVE_CONSTANTS = SwerveConstants(
-    moduleType = ModuleType.MK4iL2,
-    trackWidth = 27.inches,
-    wheelBase = 27.inches,
-    azimuthPID = PIDConstants(7.0,0.0,0.0),
-    azimuthPIDTolerance = 1.degrees,
-    velocityPID = PIDConstants(0.05,0.0,0.0),
-    velocityFF = AngularMotorFFEquation(0.0,0.13)
-)

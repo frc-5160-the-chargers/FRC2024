@@ -1,4 +1,4 @@
-package frc.robot.rigatoni.subsystems.pivot
+package frc.robot.rigatoni.subsystems
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
@@ -8,8 +8,6 @@ import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
-import edu.wpi.first.wpilibj2.command.Command
-import frc.chargers.commands.commandbuilder.buildCommand
 import frc.chargers.controls.feedforward.ArmFFEquation
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
@@ -30,6 +28,20 @@ private val FORWARD_LIMIT: Angle = 1.636.radians
 private val REVERSE_LIMIT: Angle = (-1.8).radians
 private val PID_TOLERANCE = 1.3.degrees
 private val ABSOLUTE_ENCODER_OFFSET = (-0.23).radians
+
+object PivotAngle {
+    val AMP: Angle = 0.72.radians
+
+    val SOURCE: Angle = 0.degrees
+
+    val GROUND_INTAKE_HANDOFF: Angle = -0.9.radians
+
+    val STOWED: Angle = GROUND_INTAKE_HANDOFF // same as of now
+
+    val SPEAKER: Angle = -0.77.radians
+
+    val STARTING: Angle = -1.15.radians
+}
 
 class Pivot: SuperSubsystem("Pivot") {
     private val motor: Motor
@@ -86,7 +98,7 @@ class Pivot: SuperSubsystem("Pivot") {
     fun setVoltage(voltage: Voltage){
         resetMotionProfile()
         if (willExceedSoftStop(movingForward = voltage > 0.volts)){
-            motor.appliedVoltage = 0.volts
+            setIdle()
             atTarget = true
             return
         }
@@ -95,9 +107,9 @@ class Pivot: SuperSubsystem("Pivot") {
 
     fun setSpeed(speed: Double) = setVoltage(speed * 12.volts)
 
-    fun setAngle(target: Angle){
+    fun setAngle(target: Angle) {
         if (willExceedSoftStop(movingForward = this.angle > target)){
-            motor.appliedVoltage = 0.volts
+            setIdle()
             atTarget = true
             return
         }
@@ -123,17 +135,6 @@ class Pivot: SuperSubsystem("Pivot") {
         log("Control/FeedForward", ffVoltage)
         atTarget = (target - this.angle) < PID_TOLERANCE
     }
-
-    fun setAngleCommand(target: Angle): Command =
-        buildCommand("SetAngleCommand") {
-            require(this@Pivot)
-
-            runOnce{ setAngle(target) }
-
-            loopUntil({ atTarget }){ setAngle(target) }
-
-            onEnd{ setIdle() }
-        }
 
     override fun periodic(){
         if (DriverStation.isDisabled()){

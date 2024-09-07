@@ -4,6 +4,7 @@ package frc.chargers.commands.commandbuilder
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.*
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
@@ -260,8 +261,6 @@ public open class CommandBuilder {
         return ParallelCommandGroup(*commandsSet.toTypedArray()).also{ +it }
     }
 
-
-
     /**
      * Adds several commands that will run one after another.
      * These commands can either be specified as a function parameter, or as a builder block
@@ -273,7 +272,7 @@ public open class CommandBuilder {
      * these are automatically removed from the overarching builder(so you can use runOnce/loopUntil).
      * @param block a builder to create the commands to run sequentially
      */
-    public inline fun runSequentially(vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
+    public inline fun runSequential(vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
         val builder = CommandBuilder().apply(block)
         val commandsSet = commands.toMutableSet() + builder.commands
         this.commands.removeAll(commandsSet)
@@ -283,55 +282,14 @@ public open class CommandBuilder {
 
     /**
      * Runs certain commands sequentially for a certain [Time].
+     *
+     * @see runSequential
      */
-    public inline fun runSequentiallyFor(time: Time, vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
-        val sequentialCommand = runSequentially(*commands, block = block)
+    public inline fun runSequentialFor(time: Time, vararg commands: Command, block: CommandBuilder.() -> Unit = {}): Command {
+        val sequentialCommand = runSequential(*commands, block = block)
         this.commands.remove(sequentialCommand)
         return sequentialCommand.withTimeout(time.inUnit(seconds)).also{ +it }
     }
-
-    /**
-     * Runs certain commands sequentially **until** a certain condition is met.
-     */
-    public inline fun runSequentiallyUntil(
-        noinline condition: () -> Boolean,
-        vararg commands: Command,
-        block: CommandBuilder.() -> Unit = {}
-    ): Command {
-        val sequentialCommand = runSequentially(*commands, block = block)
-        this.commands.remove(sequentialCommand)
-        return sequentialCommand.unless(condition).also{ +it }
-    }
-
-    /**
-     * Runs certain commands sequentially **until** a certain condition is met.
-     */
-    public inline fun runSequentiallyWhile(
-        crossinline condition: () -> Boolean,
-        vararg commands: Command,
-        block: CommandBuilder.() -> Unit = {}
-    ): Command =
-        runSequentiallyUntil({ !condition() }, *commands, block = block)
-
-
-    /**
-     * Adds a command that will schedule the given commands provided
-     * instead of running them sequentially within the command group itself.
-     *
-     * This is useful for forking off of command groups.
-     *
-     *
-     * @param block a builder to create the commands to run sequentially
-     * @see ScheduleCommand
-     */
-    public inline fun runSeparately(vararg commands: Command, block: CommandBuilder.() -> Unit): Command {
-        val builder = CommandBuilder().apply(block)
-        val commandsSet = commands.toMutableSet() + builder.commands
-        this.commands.removeAll(commandsSet)
-        builder.commandModificationBlocked = true
-        return ScheduleCommand(*commandsSet.toTypedArray()).also{ +it }
-    }
-
 
     /**
      * Adds a command that will run until either the [timeInterval] expires or it completes on its own.
@@ -399,12 +357,34 @@ public open class CommandBuilder {
         WaitCommand(timeInterval.inUnit(seconds)).also{ +it }
 
     /**
+     * Adds a command that does nothing until the command itself is interrupted.
+     */
+    public fun waitForever(): Command =
+        +RunCommand({})
+
+    /**
      * Adds a command that does nothing until a [condition] is met, then completes.
      *
      * Useful if some condition must be met before proceeding to the next command in a [SequentialCommandGroup].
      */
     public fun waitUntil(condition: () -> Boolean): WaitUntilCommand =
         WaitUntilCommand(condition).also{ +it }
+
+    /**
+     * Declares that the commands specified within the [block]
+     * are only added within a real robot.
+     */
+    public inline fun realRobotOnly(block: () -> Unit){
+        if (RobotBase.isReal()) block()
+    }
+
+    /**
+     * Declares that the commands specified within the [block]
+     * are only added within a simulated robot.
+     */
+    public inline fun simOnly(block: () -> Unit){
+        if (RobotBase.isSimulation()) block()
+    }
 
     /**
      * Creates a value that will refresh once during run;
@@ -472,7 +452,6 @@ public open class CommandBuilder {
                 }
         }
 
-
     /**
      *
      * Adds a command that resets a variable to it's default(provided by getDefault) when it is run.
@@ -494,4 +473,3 @@ public open class CommandBuilder {
             override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) { this.value = value }
         }
 }
-

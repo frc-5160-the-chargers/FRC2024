@@ -15,11 +15,11 @@ fun Trigger.withDoubleClick(clickTimeout: Time? = null): Trigger =
         DoublePressTracker.createTrigger(this, clickTimeout.inUnit(seconds))
     }
 
-fun Trigger.onDoubleClick(clickTimeout: Time? = null, command: Command){
+fun Trigger.onDoubleClick(command: Command, clickTimeout: Time? = null){
     withDoubleClick(clickTimeout).onTrue(command)
 }
 
-fun Trigger.onClickAndHold(clickTimeout: Time? = null, command: Command){
+fun Trigger.onClickAndHold(command: Command, clickTimeout: Time? = null){
     withDoubleClick(clickTimeout).whileTrue(command)
 }
 

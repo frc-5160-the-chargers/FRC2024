@@ -19,7 +19,7 @@ private val FIELD_LENGTH = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField
 private fun shouldFlip(): Boolean = DriverStation.getAlliance() == Optional.of(DriverStation.Alliance.Red)
 
 /** Flips a blue alliance pose to the correct side of the field based on the current alliance color. */
-public fun Pose2d.flipWhenRed(): Pose2d =
+public fun Pose2d.flipWhenRedAlliance(): Pose2d =
     if (shouldFlip()) {
         Pose2d(FIELD_LENGTH - x, y, Rotation2d(-rotation.cos, rotation.sin))
     } else {
@@ -27,7 +27,7 @@ public fun Pose2d.flipWhenRed(): Pose2d =
     }
 
 /** Flips a blue alliance translation to the correct side of the field based on the current alliance color. */
-public fun Translation2d.flipWhenRed(): Translation2d =
+public fun Translation2d.flipWhenRedAlliance(): Translation2d =
     if (shouldFlip()) {
         Translation2d(FIELD_LENGTH - x, y)
     } else {
@@ -35,7 +35,7 @@ public fun Translation2d.flipWhenRed(): Translation2d =
     }
 
 /** Flips a rotation based on the current alliance color. */
-public fun Angle.flipWhenRed(): Angle =
+public fun Angle.flipWhenRedAlliance(): Angle =
     if (shouldFlip()) {
         Rotation2d(-cos(this), sin(this)).angle
     } else {
@@ -43,7 +43,7 @@ public fun Angle.flipWhenRed(): Angle =
     }
 
 /** Flips an x coordinate to the correct side of the field based on the current alliance color. */
-public fun flipXCoordWhenRed(xCoordinate: Length): Length =
+public fun flipXCoordinateWhenRedAlliance(xCoordinate: Length): Length =
     if (shouldFlip()) {
         FIELD_LENGTH.ofUnit(meters) - xCoordinate
     } else {
