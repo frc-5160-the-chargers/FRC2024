@@ -21,12 +21,13 @@ import frc.chargers.commands.setDefaultRunCommand
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
+import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
 import frc.chargers.utils.math.withDeadband
 import frc.chargers.wpilibextensions.distanceTo
 import frc.chargers.wpilibextensions.flipWhenRedAlliance
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.inputdevices.onDoubleClick
-import frc.robot.rigatoni.inputdevices.SwerveDriveController
+import frc.robot.rigatoni.inputdevices.PS5SwerveController
 import frc.robot.rigatoni.subsystems.Climber
 import frc.robot.rigatoni.subsystems.GroundIntakeSerializer
 import frc.robot.rigatoni.subsystems.NoteObserver
@@ -52,8 +53,8 @@ class CompetitionRobot: ChargerRobot() {
     private val climber = Climber()
     private val noteObserver = NoteObserver()
     
-    val driverController = SwerveDriveController(DRIVER_CONTROLLER_PORT, DEFAULT_DEADBAND, DRIVER_RIGHT_HANDED)
-    val operatorController = CommandXboxController(OPERATOR_CONTROLLER_PORT)
+    private val driverController = PS5SwerveController(DRIVER_CONTROLLER_PORT, DEFAULT_DEADBAND, DRIVER_RIGHT_HANDED)
+    private val operatorController = CommandXboxController(OPERATOR_CONTROLLER_PORT)
 
     private val autoChooser = SendableChooser<Command>()
 
@@ -75,6 +76,7 @@ class CompetitionRobot: ChargerRobot() {
         for (autoCommand in getAutoCommands()){
             autoChooser.addOption(autoCommand.name, autoCommand)
         }
+        SmartDashboard.putData("AutoChoices", autoChooser)
     }
 
     override fun autonomousInit() {
@@ -162,6 +164,7 @@ class CompetitionRobot: ChargerRobot() {
         shooter.setDefaultRunCommand{
             var speed = operatorController.leftY.withDeadband(SHOOTER_DEADBAND)
             speed *= SHOOTER_SPEED_MULTIPLIER
+            log("OperatorController/ShooterSpeed", speed)
             if (speed > 0.0 && noteObserver.noteInRobot){
                 shooter.setIdle()
             }else{
@@ -172,6 +175,7 @@ class CompetitionRobot: ChargerRobot() {
         pivot.defaultCommand = RunCommand(pivot){
             var speed = operatorController.rightY.withDeadband(PIVOT_DEADBAND).pow(2)
             speed *= PIVOT_SPEED_MULTIPLIER
+            log("OperatorController/PivotSpeed", speed)
             pivot.setSpeed(speed)
         }.finallyDo(pivot::setIdle)
 
@@ -187,7 +191,7 @@ class CompetitionRobot: ChargerRobot() {
             drivetrain.setRotationOverride(
                 AimToAngleRotationOverride(
                     { heading.flipWhenRedAlliance() },
-                    ANGLE_TO_ROTATIONAL_VELOCITY_PID
+                    AIM_TO_ANGLE_PID
                 )
             )
         }
@@ -232,7 +236,10 @@ class CompetitionRobot: ChargerRobot() {
         }
 
         // regular drive occurs until suitable target found
-        runUntil(::shouldStartPursuit, drivetrain.defaultCommand)
+        val touchpad = driverController.touchpad()
+        loopUntil(::shouldStartPursuit){
+            drivetrain.swerveDrive(driverController.swerveOutput, fieldRelative = !touchpad.asBoolean)
+        }
 
         loop{
             // drives back to grab note
@@ -462,10 +469,19 @@ class CompetitionRobot: ChargerRobot() {
             if (noteObserver.hasCamera){
                 // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
                 // along the path.
+                fun getCrosshairOffset(): Double? {
+                    val currentState = noteObserver.state
+                    return if (currentState is NoteObserver.State.NoteDetected) currentState.tx else null
+                }
+
                 runSequential{
                     val startPose by getOnceDuringRun { path.pathPoses.last().flipWhenRedAlliance() }
+
                     waitUntil{ drivetrain.robotPose.distanceTo(startPose) < 0.8.meters }
-                    runOnce{ drivetrain.setRotationOverride(RotationOverrides.aimToNote(noteObserver)) }
+
+                    runOnce{
+                        drivetrain.setRotationOverride(AimToObjectRotationOverride(::getCrosshairOffset, AIM_TO_NOTE_PID))
+                    }
                 }
             }
         }

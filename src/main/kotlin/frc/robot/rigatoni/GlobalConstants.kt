@@ -12,7 +12,8 @@ import frc.chargers.wpilibextensions.PathConstraints
 /* Command/Control Constants */
 val ACCEPTABLE_DISTANCE_BEFORE_PATHFIND = 0.3.meters
 val ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE = 0.7.meters
-val ANGLE_TO_ROTATIONAL_VELOCITY_PID = PIDConstants(1.7,0.0,0.001)
+val AIM_TO_ANGLE_PID = PIDConstants(1.7,0.0,0.001)
+val AIM_TO_NOTE_PID = PIDConstants(0.05, 0.0, 0.001)
 // custom overload of path constraints that uses kmeasure quantities
 val PATHFIND_CONSTRAINTS = PathConstraints(
     Velocity(4.0),
