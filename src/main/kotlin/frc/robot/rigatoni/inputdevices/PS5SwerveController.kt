@@ -10,12 +10,12 @@ import frc.chargers.utils.math.withDeadband
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import kotlin.math.abs
 
-class SwerveDriveController(
+class PS5SwerveController(
     port: Int,
     private val defaultDeadband: Double,
     private val driverRightHanded: Boolean
 ): CommandPS5Controller(port), Loggable {
-    override val namespace = "DriveController"
+    override val namespace = "RobotGeneral/DriveController"
 
     private fun filterNan(input: Double): Double =
         if (input.isInfinite() || input.isNaN()) 0.0 else input
@@ -25,7 +25,7 @@ class SwerveDriveController(
     private var forward by logged(0.0)
     private var strafe by logged(0.0)
     private var rotation by logged(0.0)
-    private var scalar by logged(0.0, "OutputScalar")
+    private var scalar by logged(0.0, "OutputMultiplier")
 
     val swerveOutput: ChassisPowers get() {
         forward = filterNan(if (driverRightHanded) rightY else leftY)
