@@ -3,6 +3,7 @@ package frc.chargers.hardware.motorcontrol.ctre
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
+import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.controls.Follower
 import com.ctre.phoenix6.controls.PositionVoltage
@@ -10,6 +11,8 @@ import com.ctre.phoenix6.controls.VelocityVoltage
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
 import com.pathplanner.lib.util.PIDConstants
+import frc.chargers.framework.faultchecking.FaultChecking
+import frc.chargers.framework.faultchecking.SubsystemFault
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
 import frc.chargers.hardware.sensors.encoders.Encoder
@@ -32,7 +35,7 @@ class ChargerTalonFX(
     canBus: String? = null,
     factoryDefault: Boolean = true,
     private val fusedCANCoder: ChargerCANcoder? = null
-): Motor {
+): Motor, FaultChecking {
     /**
      * The base [TalonFX] instance.
      */
@@ -207,5 +210,29 @@ class ChargerTalonFX(
         setVelRequest.FeedForward = feedforward.inUnit(volts)
         base.setControl(setVelRequest)
         runFollowing{ it.setVelocitySetpoint(velocity, feedforward) }
+    }
+
+    private val faultMap = mutableMapOf(
+        base.fault_Hardware to "Hardware failure detected",
+        base.fault_DeviceTemp to "Device temp exceeded limit",
+        base.fault_BootDuringEnable to "Device booted when enabled",
+        base.fault_FusedSensorOutOfSync to "Fused CANcoder out of sync",
+        base.fault_OverSupplyV to "Voltage exceeded limit",
+        base.fault_ProcTemp to "Processor is overheating",
+        base.fault_Undervoltage to "Device supply voltage near brownout",
+        base.fault_UnlicensedFeatureInUse to "Unlicensed feature in use(git Phoenix Pro Pls)",
+        base.fault_UnstableSupplyV to "Supply voltage unstable",
+    )
+
+    override fun getFaults(deviceName: String): List<SubsystemFault> {
+        val faults = mutableListOf<SubsystemFault>()
+        for ((faultSignal, faultMsg) in faultMap){
+            // != false prevents null
+            if (faultSignal.refresh().value != false) faults.add(SubsystemFault("$deviceName: $faultMsg"))
+        }
+        if (voltageSignal.refresh().status != StatusCode.OK) {
+            faults.add(SubsystemFault("$deviceName: Device is unreachable"))
+        }
+        return faults
     }
 }

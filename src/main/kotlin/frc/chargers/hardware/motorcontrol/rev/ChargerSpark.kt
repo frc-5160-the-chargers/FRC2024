@@ -5,7 +5,10 @@ import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.util.PIDConstants
 import com.revrobotics.CANSparkBase
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame
+import com.revrobotics.REVLibError
 import com.revrobotics.SparkAbsoluteEncoder
+import frc.chargers.framework.faultchecking.FaultChecking
+import frc.chargers.framework.faultchecking.SubsystemFault
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.utils.filterNaN
@@ -26,7 +29,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     val base: BaseMotorType,
     private val useAbsoluteEncoder: Boolean = false,
     factoryDefault: Boolean = true
-): Motor {
+): Motor, FaultChecking {
     val deviceID: Int = base.deviceId
 
     private val nonRevFollowers = mutableListOf<Motor>()
@@ -178,5 +181,14 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
 
         base.burnFlash()
         return this
+    }
+
+    override fun getFaults(deviceName: String): List<SubsystemFault> {
+        val err: REVLibError = base.lastError
+        return if (err != REVLibError.kOk) {
+            listOf(SubsystemFault("$deviceName: Error: ${err.name}"))
+        } else {
+            emptyList()
+        }
     }
 }
