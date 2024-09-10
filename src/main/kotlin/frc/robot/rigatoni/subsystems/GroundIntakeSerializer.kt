@@ -26,8 +26,10 @@ class GroundIntakeSerializer: SuperSubsystem("GroundIntakeSerializer"){
             groundIntakeMotor = MotorSim(DCMotor.getFalcon500(1))
             serializerMotor = MotorSim(DCMotor.getNEO(1))
         } else {
-            groundIntakeMotor = ChargerTalonFX(GROUND_INTAKE_ID)
-            serializerMotor = ChargerSparkMax(SERIALIZER_ID).configure(inverted = true)
+            groundIntakeMotor = ChargerTalonFX(GROUND_INTAKE_ID).checkForFaults("GroundIntakeMotor")
+            serializerMotor = ChargerSparkMax(SERIALIZER_ID)
+                .configure(inverted = true)
+                .checkForFaults("SerializerMotor")
         }
 
         groundIntakeMotor.configure(

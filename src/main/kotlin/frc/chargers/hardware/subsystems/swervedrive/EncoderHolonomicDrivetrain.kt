@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.framework.ChargerRobot
+import frc.chargers.framework.faultchecking.FaultChecking
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.HeadingProvider
@@ -143,6 +144,14 @@ public open class EncoderHolonomicDrivetrain(
             constants.odometryUpdateRate,
             ::updatePoseEstimation
         )
+
+        turnMotors.forEachIndexed { idx: Int, motor ->
+            if (motor is FaultChecking) motor.checkForFaults(moduleNames[idx] + "/" + "TurnMotor")
+        }
+
+        driveMotors.forEachIndexed { idx: Int, motor ->
+            if (motor is FaultChecking) motor.checkForFaults(moduleNames[idx] + "/" + "DriveMotor")
+        }
 
         AutoBuilder.configureHolonomic(
             { robotPose },

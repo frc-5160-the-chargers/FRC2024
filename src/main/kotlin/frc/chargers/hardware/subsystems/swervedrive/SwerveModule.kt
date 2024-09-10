@@ -4,6 +4,7 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
+import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotController
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
@@ -13,7 +14,6 @@ import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.utils.math.units.periodToFrequency
-import frc.chargers.wpilibextensions.Alert
 import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.angle
 import kotlin.math.abs
@@ -28,9 +28,6 @@ class SwerveModule(
 ): Loggable {
     private val startingDirection: Angle? = turnEncoder?.angularPosition?.inputModulus(0.degrees..360.degrees)
     private val wheelRadius = moduleConstants.moduleType.wheelDiameter / 2
-    private val batteryVoltageIssueAlert = Alert.warning(
-        text = "It seems that the battery voltage from the Robot controller is being reported as extremely low(possibly 0)."
-    )
     private var couplingOffset: Angle = 0.degrees
     private var azimuthProfileState = AngularMotionProfileState(startingDirection ?: turnMotor.encoder.angularPosition)
 
@@ -167,7 +164,7 @@ class SwerveModule(
     private fun getVoltageRange(): ClosedRange<Voltage>{
         val upperLimit = RobotController.getBatteryVoltage().ofUnit(volts)
         return if (upperLimit < 1.volts){
-            batteryVoltageIssueAlert.active = true
+            DriverStation.reportWarning("The battery voltage of the RobotController seems to be extremely low.", true)
             (-12).volts..12.volts
         }else{
             -upperLimit..upperLimit

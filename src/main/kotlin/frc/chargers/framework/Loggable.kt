@@ -63,10 +63,10 @@ interface Loggable {
     val namespace: String
 
     companion object {
-        // Determines whether to log to file only or not.
-        // "by lazy" ensures that DriverStation.isFMSAttached is only called
-        // the first time the value is accessed; reducing logging latency.
-        private val fileOnly: Boolean by lazy{ DriverStation.isFMSAttached() && RobotBase.isReal() }
+        private var fileOnly: Boolean = false
+        init {
+            ChargerRobot.runPeriodic{ if (DriverStation.isFMSAttached()) fileOnly = true }
+        }
         // datalog-related storage
         private val dataLogEntries: MutableMap<String, DataLogEntry> = WeakHashMap()
         // networktables-related storage

@@ -24,7 +24,9 @@ class Shooter: SuperSubsystem("Shooter") {
     private val motor: Motor = if (isSimulation()) {
         MotorSim(DCMotor.getNeoVortex(1))
     } else {
-        ChargerSparkFlex(SHOOTER_MOTOR_ID).configure(inverted = true)
+        ChargerSparkFlex(SHOOTER_MOTOR_ID)
+            .configure(inverted = true)
+            .checkForFaults("ShooterMotor")
     }
 
     init {

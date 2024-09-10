@@ -25,7 +25,7 @@ class Climber: SuperSubsystem("Climber") {
         inverted = false,
         brakeWhenIdle = true,
         gearRatio = GEAR_RATIO
-    )
+    ).checkForFaults("LeftClimberMotor")
 
     private val rightMotor: Motor = ChargerSparkMax(CLIMBER_ID_RIGHT).configure(
         optimizeUpdateRate = true,
@@ -33,7 +33,7 @@ class Climber: SuperSubsystem("Climber") {
         inverted = true,
         brakeWhenIdle = true,
         gearRatio = GEAR_RATIO
-    )
+    ).checkForFaults("RightClimberMotor")
 
     private val leftPosition by logged{ leftMotor.encoder.angularPosition }
     private val rightPosition by logged{ rightMotor.encoder.angularPosition }

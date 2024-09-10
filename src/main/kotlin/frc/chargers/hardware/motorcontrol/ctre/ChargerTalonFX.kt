@@ -19,7 +19,7 @@ import frc.chargers.hardware.sensors.encoders.Encoder
 
 
 /**
- * A [TalonFX] motor controller that implements the [Motor] interface.
+ * A [TalonFX] motor controller that implements the [Motor] and [FaultChecking] interfaces.
  *
  * Includes everything in the CTRE TalonFX class(accessed via the [base] property),
  * but has additional features to mesh better with the rest

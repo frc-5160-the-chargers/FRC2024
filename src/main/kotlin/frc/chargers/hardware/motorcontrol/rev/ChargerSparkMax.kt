@@ -5,7 +5,8 @@ import com.revrobotics.CANSparkLowLevel
 
 
 /**
- * Creates a [CANSparkMax] that implements the [frc.chargers.hardware.motorcontrol.Motor] interface.
+ * Creates a [CANSparkMax] that implements the [frc.chargers.hardware.motorcontrol.Motor] and
+ * [frc.chargers.framework.faultchecking.FaultChecking] interfaces.
  *
  * @see ChargerSpark
  */

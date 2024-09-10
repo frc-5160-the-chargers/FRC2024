@@ -5,8 +5,8 @@ import edu.wpi.first.math.MathUtil
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
-import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.commands.setDefaultRunCommand
+import kcommand.commandbuilder.buildCommand
+import kcommand.setDefaultRunCommand
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.subsystems.differentialdrive.DifferentialDriveConstants
@@ -54,11 +54,11 @@ class PushBot: ChargerRobot() {
             buildCommand {
                 require(drivetrain)
 
-                loopFor(0.5.seconds){
+                loopForDuration(0.5){
                     drivetrain.arcadeDrive(shakePower, 0.0, squareInputs = false)
                 }
 
-                loopFor(0.5.seconds){
+                loopForDuration(0.5){
                     drivetrain.arcadeDrive(-shakePower, 0.0, squareInputs = false)
                 }
             }.repeatedly()

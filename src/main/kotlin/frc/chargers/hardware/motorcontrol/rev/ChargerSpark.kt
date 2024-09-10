@@ -17,8 +17,8 @@ import frc.chargers.utils.withSetter
 
 
 /**
- * A utility class that implements the [Motor] interface
- * for spark max/flex motors from REV robotics.
+ * A utility class that implements the [Motor] and [FaultChecking] interfaces
+ * for spark max/flex motors.
  *
  * To access the base motor, use the [base] property.
  */

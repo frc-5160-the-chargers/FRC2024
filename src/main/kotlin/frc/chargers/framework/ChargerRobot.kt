@@ -134,16 +134,6 @@ abstract class ChargerRobot(
         log("loopPeriodSeconds", loopPeriod.inUnit(seconds))
         Tunable.tuningMode = tuningMode
 
-        commandScheduler.onCommandInitialize{
-            log("ActiveCommands/${it.name}", true)
-        }
-        commandScheduler.onCommandFinish {
-            log("/ActiveCommands/${it.name}", false)
-        }
-        commandScheduler.onCommandInterrupt {it ->
-            log("/ActiveCommands/${it.name}", false)
-        }
-
         Pathfinding.setPathfinder(LocalADStar())
 
         var currPose = Pose2d()

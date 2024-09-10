@@ -26,7 +26,7 @@ private const val PIVOT_ENCODER_ID = 0
 private val PIVOT_SIM_STARTING_TRANSLATION = Translation3d(-0.32, 0.0, 0.72)
 private val FORWARD_LIMIT: Angle = 1.636.radians
 private val REVERSE_LIMIT: Angle = (-1.8).radians
-private val PID_TOLERANCE = 1.3.degrees
+private val PID_TOLERANCE = 4.degrees
 private val ABSOLUTE_ENCODER_OFFSET = (-0.23).radians
 
 object PivotAngle {
@@ -52,7 +52,7 @@ class Pivot: SuperSubsystem("Pivot") {
             motor = MotorSim(DCMotor.getNEO(1), moi = 0.004.kilo.grams * (meters * meters))
             absoluteEncoder = null
         }else{
-            motor = ChargerSparkMax(PIVOT_MOTOR_ID)
+            motor = ChargerSparkMax(PIVOT_MOTOR_ID).checkForFaults("PivotMotor")
             absoluteEncoder = ChargerDutyCycleEncoder(PIVOT_ENCODER_ID) + ABSOLUTE_ENCODER_OFFSET
         }
     }
@@ -133,7 +133,7 @@ class Pivot: SuperSubsystem("Pivot") {
 
         log("Control/Setpoint", pidTarget)
         log("Control/FeedForward", ffVoltage)
-        atTarget = (target - this.angle) < PID_TOLERANCE
+        atTarget = abs(pidTarget - this.angle) < PID_TOLERANCE
     }
 
     override fun periodic(){

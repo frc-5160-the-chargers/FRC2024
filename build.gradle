@@ -66,6 +66,7 @@ dependencies {
     implementation wpi.java.vendor.java()
     api('io.github.battery-staple:KMeasure:1.4.1')
     implementation "gov.nist.math:jama:1.0.3"
+    implementation 'com.github.frc-5160-the-chargers:KCommand:1.0.0-Beta1'
 
     roborioDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.roborio)
     roborioDebug wpi.java.vendor.jniDebug(wpi.platforms.roborio)

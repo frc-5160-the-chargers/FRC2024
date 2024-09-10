@@ -14,10 +14,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
-import frc.chargers.commands.InstantCommand
-import frc.chargers.commands.RunCommand
-import frc.chargers.commands.commandbuilder.buildCommand
-import frc.chargers.commands.setDefaultRunCommand
+import kcommand.InstantCommand
+import kcommand.RunCommand
+import kcommand.commandbuilder.buildCommand
+import kcommand.setDefaultRunCommand
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
@@ -35,10 +35,10 @@ import frc.robot.rigatoni.subsystems.getDrivetrain
 import frc.robot.rigatoni.subsystems.Pivot
 import frc.robot.rigatoni.subsystems.PivotAngle
 import frc.robot.rigatoni.subsystems.shooter.Shooter
+import kcommand.LoggedCommand
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.pow
-
 
 /**
  * Our competition robot; rigatoni.
@@ -58,7 +58,19 @@ class CompetitionRobot: ChargerRobot() {
 
     private val autoChooser = SendableChooser<Command>()
 
+    private val aimToNoteRotationOverride = AimToObjectRotationOverride(
+        getCrosshairOffset = {
+            val currentState = noteObserver.state
+            if (currentState is NoteObserver.State.NoteDetected) currentState.tx else null
+        },
+        AIM_TO_NOTE_PID
+    )
+
     override fun robotInit() {
+        LoggedCommand.configure(
+            logCommandRunning = this::log,
+            logCommandExecutionTime = this::log
+        )
         DriverStation.silenceJoystickConnectionWarning(true)
         gyro.simHeadingSource = { drivetrain.heading }
         SmartDashboard.putData(
@@ -72,6 +84,20 @@ class CompetitionRobot: ChargerRobot() {
             RunCommand(drivetrain){ drivetrain.swerveDrive(0.2, 0.0, 0.0, fieldRelative = false) }
                 .withTimeout(5.0)
         )
+
+        autoChooser.addOption(
+            "BuildCommandDebugging",
+            buildCommand {
+                var test by getOnceDuringRun { 0 }
+
+                runOnce {
+                    println(test)
+                    test = 2
+                    println(test)
+                }
+            }
+        )
+
         // getAutoCommands is implemented below
         for (autoCommand in getAutoCommands()){
             autoChooser.addOption(autoCommand.name, autoCommand)
@@ -199,9 +225,7 @@ class CompetitionRobot: ChargerRobot() {
         // only ends when interrupted(the whileTrue decorator does this)
         waitForever()
 
-        onEnd {
-            drivetrain.removeRotationOverride()
-        }
+        onEnd { drivetrain.removeRotationOverride() }
     }
 
     private fun followPathOptimal(path: PathPlannerPath) = buildCommand(name = "FollowPathOptimal"){
@@ -214,16 +238,14 @@ class CompetitionRobot: ChargerRobot() {
                     drivetrainPose.distanceTo(pathEndPose) > drivetrainPose.distanceTo(pathStartPose)
         }
 
-        runIf(
-            ::shouldPathFind,
-            onTrue = AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS),
-            onFalse = AutoBuilder.followPath(path)
-        )
+        runSequenceIf(::shouldPathFind){
+            +AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS)
+        }.orElse{
+            +AutoBuilder.followPath(path)
+        }
     }
 
     private fun noteIntakeDriverAssist() = buildCommand {
-        require(drivetrain)
-
         fun getNotePursuitSpeed(txValue: Double): Double {
             val swerveOutput = driverController.swerveOutput
             return max(abs(swerveOutput.xPower), abs(swerveOutput.yPower)) * (1.0 - txValue / 50.0) // scales based off of the vision target error
@@ -235,30 +257,30 @@ class CompetitionRobot: ChargerRobot() {
                     currentState.distanceToNote <= ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
         }
 
+        require(drivetrain)
+
         // regular drive occurs until suitable target found
         val touchpad = driverController.touchpad()
         loopUntil(::shouldStartPursuit){
             drivetrain.swerveDrive(driverController.swerveOutput, fieldRelative = !touchpad.asBoolean)
         }
 
+        runOnce { drivetrain.setRotationOverride(aimToNoteRotationOverride) }
+
         loop{
             // drives back to grab note
-            val currentState = noteObserver.state
-            if (currentState is NoteObserver.State.NoteDetected){
-                drivetrain.swerveDrive(getNotePursuitSpeed(currentState.tx), 0.0, 0.0, fieldRelative = false)
-            }else{
-                drivetrain.swerveDrive(getNotePursuitSpeed(0.0), 0.0, 0.0, fieldRelative = false)
-            }
+            val state = noteObserver.state
+            val speed = getNotePursuitSpeed(if (state is NoteObserver.State.NoteDetected) state.tx else 0.0)
+            drivetrain.swerveDrive(speed, 0.0, 0.0, fieldRelative = false)
         }
+
+        onEnd { drivetrain.removeRotationOverride() }
     }
 
     private fun setPivotAngle(target: Angle) = buildCommand("SetAngleCommand") {
         require(pivot)
-
         runOnce{ pivot.setAngle(target) }
-
         loopUntil({ pivot.atTarget }){ pivot.setAngle(target) }
-
         onEnd{ pivot.setIdle() }
     }
 
@@ -272,7 +294,7 @@ class CompetitionRobot: ChargerRobot() {
             }
         }
 
-        loopFor(0.4.seconds){
+        loopForDuration(0.4){
             shooter.receiveFromGroundIntake()
             groundIntake.passToShooterSlow()
         }
@@ -298,7 +320,7 @@ class CompetitionRobot: ChargerRobot() {
             }
         }
 
-        loopFor(0.3.seconds){
+        loopForDuration(0.3){
             shooter.outtakeAtAmpSpeed()
         }
     }.withTimeout(4.0)
@@ -316,30 +338,24 @@ class CompetitionRobot: ChargerRobot() {
 
         val spinupStartTime by getOnceDuringRun{ fpgaTimestamp() }
 
-        runIf(
-            {movePivot},
+        runSequenceIf({movePivot}){
             runParallelUntilFirstCommandFinishes{
                 +setPivotAngle(PivotAngle.SPEAKER)
                 loop{ shooter.outtakeAtSpeakerSpeed() }
             }
-        )
+        }
 
         loopUntil( { fpgaTimestamp() - spinupStartTime > shooterSpinUpTime } ){
             shooter.outtakeAtSpeakerSpeed()
         }
 
         realRobotOnly{
-            loopUntil({noteObserver.state == NoteObserver.State.NoteInShooter}){
-                runShooting()
-            }
-            loopUntil({noteObserver.state == NoteObserver.State.NoNote}){
-                runShooting()
-            }
+            loopUntil({noteObserver.state == NoteObserver.State.NoteInShooter}){ runShooting() }
+
+            loopUntil({noteObserver.state == NoteObserver.State.NoNote}){ runShooting() }
         }
 
-        loopFor(0.4.seconds){
-            runShooting()
-        }
+        loopForDuration(0.4){ runShooting() }
 
         onEnd{
             shooter.setIdle()
@@ -355,19 +371,19 @@ class CompetitionRobot: ChargerRobot() {
                 +ampAutoStartup()
                 +setPivotAngle(PivotAngle.STOWED)
                 +followPathOptimal(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
-            },
+            }.also{ println(it.name) },
 
-            buildCommand("2-3 Piece Amp"){
+            buildCommand("2-3 Piece Amp", log = true){
                 +ampAutoStartup()
                 +driveAndIntake(
                     PathPlannerPath.fromPathFile("AmpGrabG1"),
-                    groundIntakePreSpinupTime = 0.5.seconds,
-                    groundIntakePostSpinupTime = 0.5.seconds
+                    intakeSpinupTime = 0.5.seconds,
+                    noteIntakeTime = 0.5.seconds
                 )
                 +driveAndScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG1"))
                 +driveAndIntake(
                     PathPlannerPath.fromPathFile("AmpGrabG2"),
-                    groundIntakePostSpinupTime = 0.5.seconds
+                    noteIntakeTime = 0.5.seconds
                 )
                 +driveAndScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG2"))
             },
@@ -376,12 +392,12 @@ class CompetitionRobot: ChargerRobot() {
 
             buildCommand("1 Piece Speaker + Taxi"){
                 +speakerAutoStartup(AutoStartingPose::getSpeakerLeft)
-                loopFor(5.seconds){
+
+                loopForDuration(5){
                     drivetrain.swerveDrive(0.2,0.0,0.0)
                 }
-                onEnd{
-                    drivetrain.stop()
-                }
+
+                onEnd{ drivetrain.stop() }
             },
 
             buildCommand("4-5 Piece Speaker"){
@@ -405,9 +421,9 @@ class CompetitionRobot: ChargerRobot() {
         require(drivetrain, pivot, shooter, groundIntake)
 
         runParallelUntilAllFinish{
-            runSequential{
+            runSequence{
                 runOnce{ drivetrain.resetPose(AutoStartingPose.getAmp()) }
-                waitFor(0.3.seconds)
+                wait(0.3)
                 +followPathOptimal(PathPlannerPath.fromPathFile("DriveToAmp"))
             }
 
@@ -429,27 +445,30 @@ class CompetitionRobot: ChargerRobot() {
         path: PathPlannerPath,
         useGroundIntakeSensor: Boolean = true,
         spinUpShooterDuringPath: Boolean = false,
-        groundIntakePreSpinupTime: Time = 0.seconds,
-        groundIntakePostSpinupTime: Time = 0.seconds,
-    ) = buildCommand {
+        intakeSpinupTime: Time = 0.seconds,
+        noteIntakeTime: Time = 0.seconds,
+    ) = buildCommand("Drive and Intake", log = true){
         require(drivetrain, pivot, shooter, groundIntake)
 
-        loopFor(groundIntakePreSpinupTime){ groundIntake.intake() }
+        fun noteInSerializer(): Boolean {
+            return useGroundIntakeSensor &&
+                    noteObserver.hasGroundIntakeSensor &&
+                    noteObserver.state != NoteObserver.State.NoteInSerializer
+        }
+
+        loopForDuration(intakeSpinupTime.inUnit(seconds)){
+            groundIntake.intake()
+        }
 
         runParallelUntilFirstCommandFinishes {
-            runIf(
-                { useGroundIntakeSensor && noteObserver.hasGroundIntakeSensor },
-                waitUntil{ noteObserver.state == NoteObserver.State.NoteInSerializer }
-            )
-
             // parallel #1
-            runSequential {
+            runSequenceUntil(::noteInSerializer) {
                 +followPathOptimal(path)
                 loopWhile({noteObserver.state is NoteObserver.State.NoteDetected}){
                     drivetrain.swerveDrive(0.3, 0.0, 0.0, fieldRelative = false)
                 }
                 runOnce { drivetrain.stop() }
-                waitFor(groundIntakePostSpinupTime)
+                wait(noteIntakeTime.inUnit(seconds))
             }
 
             // parallel #2
@@ -465,39 +484,28 @@ class CompetitionRobot: ChargerRobot() {
                 }
             }
 
-            // parallel #4
-            if (noteObserver.hasCamera){
-                // rotation override set is delayed as to prevent the drivetrain from aiming to a random note
-                // along the path.
+            runSequenceIf({noteObserver.hasCamera}) {
                 fun getCrosshairOffset(): Double? {
                     val currentState = noteObserver.state
                     return if (currentState is NoteObserver.State.NoteDetected) currentState.tx else null
                 }
 
-                runSequential{
-                    val startPose by getOnceDuringRun { path.pathPoses.last().flipWhenRedAlliance() }
-
-                    waitUntil{ drivetrain.robotPose.distanceTo(startPose) < 0.8.meters }
-
-                    runOnce{
-                        drivetrain.setRotationOverride(AimToObjectRotationOverride(::getCrosshairOffset, AIM_TO_NOTE_PID))
-                    }
-                }
+                val startPose by getOnceDuringRun { path.pathPoses.last().flipWhenRedAlliance() }
+                waitUntil{ drivetrain.robotPose.distanceTo(startPose) < 0.8.meters }
+                runOnce{ drivetrain.setRotationOverride(aimToNoteRotationOverride) }
             }
         }
 
-        onEnd{
-            drivetrain.removeRotationOverride()
-        }
+        onEnd{ drivetrain.removeRotationOverride() }
     }
 
-    private fun driveAndScoreAmp(path: PathPlannerPath) = buildCommand {
+    private fun driveAndScoreAmp(path: PathPlannerPath) = buildCommand("Drive And Score Amp", log = true) {
         require(drivetrain, pivot, shooter, groundIntake)
 
         runParallelUntilAllFinish {
             +followPathOptimal(path)
 
-            runSequential {
+            runSequence {
                 +setPivotAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
                 +passSerializedNote()
             }

@@ -1,19 +1,15 @@
 @file:Suppress("unused")
 package frc.chargers.hardware.subsystems.swervedrive
 
-import com.batterystaple.kmeasure.dimensions.AngleDimension
-import com.batterystaple.kmeasure.dimensions.ScalarDimension
 import com.batterystaple.kmeasure.quantities.Angle
 import com.batterystaple.kmeasure.quantities.AngularVelocity
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.atan2
 import com.pathplanner.lib.util.PIDConstants
-import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import frc.chargers.controls.PIDController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
-import frc.chargers.utils.Precision
 import frc.chargers.utils.math.inputModulus
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import limelight.LimelightHelpers
@@ -50,21 +46,19 @@ open class AimToAngleRotationOverride(
     private val getTarget: (EncoderHolonomicDrivetrain) -> Angle,
     angleToVelocityPID: PIDConstants,
     private val motionProfile: AngularMotionProfile? = null,
-    private val aimPrecision: Precision<AngleDimension> = Precision.AllowOvershoot,
+    private val aimPrecision: Angle? = null,
     private val invert: Boolean = false
 ): RotationOverride {
-
     private lateinit var motionState: AngularMotionProfileState
+    private val pidController = PIDController(angleToVelocityPID)
+    private var previousT = fpgaTimestamp()
 
-    private val pidController = PIDController(angleToVelocityPID).apply{
-        enableContinuousInput(0.0, 2 * PI)
-
-        if (aimPrecision is Precision.Within){
-            this.setTolerance( (aimPrecision.allowableError.endInclusive - aimPrecision.allowableError.start).siValue )
+    init {
+        pidController.enableContinuousInput(0.0, 2 * PI)
+        if (aimPrecision != null){
+            pidController.setTolerance(aimPrecision.siValue)
         }
     }
-
-    private var previousT = fpgaTimestamp()
 
     private fun fetchDT(): Time{
         val currentT = fpgaTimestamp()
@@ -115,15 +109,14 @@ open class AimToAngleRotationOverride(
 class AimToObjectRotationOverride (
     private val getCrosshairOffset: () -> Double?,
     cameraYawToVelocityPID: PIDConstants,
-    private val aimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
+    private val aimPrecision: Double? = null,
     private val invert: Boolean = false
 ): RotationOverride { // implements function type in order to be passed into rotation override acceptor
-
     companion object{
         fun fromLimelight(
             camName: String,
             cameraYawToVelocityPID: PIDConstants,
-            aimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
+            aimPrecision: Double? = null,
             invert: Boolean = false
         ): AimToObjectRotationOverride =
             AimToObjectRotationOverride(
@@ -134,7 +127,7 @@ class AimToObjectRotationOverride (
         fun fromPhotonCamera(
             photonCamera: PhotonCamera,
             cameraYawToVelocityPID: PIDConstants,
-            aimPrecision: Precision<ScalarDimension> = Precision.AllowOvershoot,
+            aimPrecision: Double? = null,
             invert: Boolean = false
         ): AimToObjectRotationOverride =
             AimToObjectRotationOverride(
@@ -143,13 +136,12 @@ class AimToObjectRotationOverride (
             )
     }
 
-    private val pidController = PIDController(cameraYawToVelocityPID.kP, cameraYawToVelocityPID.kI, cameraYawToVelocityPID.kD).apply{
-        if (aimPrecision is Precision.Within){
-            this.setTolerance( (aimPrecision.allowableError.endInclusive - aimPrecision.allowableError.start).siValue )
-        }
-    }
-
+    private val pidController = PIDController(cameraYawToVelocityPID)
     private var previousTY: Double? = null
+
+    init {
+        if (aimPrecision != null) pidController.setTolerance(aimPrecision)
+    }
 
     val atSetpoint: Boolean get() = pidController.atSetpoint()
 
@@ -170,7 +162,7 @@ class AimToPoseRotationOverride(
     private val angleOffset: Angle = Angle(0.0),
     angleToVelocityPID: PIDConstants,
     motionProfile: AngularMotionProfile? = null,
-    aimPrecision: Precision<AngleDimension> = Precision.AllowOvershoot,
+    aimPrecision: Angle? = null,
     invert: Boolean = false
 ): AimToAngleRotationOverride(
     { drivetrain ->
