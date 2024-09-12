@@ -1,6 +1,6 @@
 package frc.robot.pushbot
 
-import com.batterystaple.kmeasure.units.seconds
+import com.batterystaple.kmeasure.units.meters
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
@@ -54,11 +54,11 @@ class PushBot: ChargerRobot() {
             buildCommand {
                 require(drivetrain)
 
-                loopForDuration(0.5){
+                loopUntil({drivetrain.distanceTraveled > 0.1.meters}){
                     drivetrain.arcadeDrive(shakePower, 0.0, squareInputs = false)
                 }
 
-                loopForDuration(0.5){
+                loopUntil({drivetrain.distanceTraveled < -0.1.meters}){
                     drivetrain.arcadeDrive(-shakePower, 0.0, squareInputs = false)
                 }
             }.repeatedly()

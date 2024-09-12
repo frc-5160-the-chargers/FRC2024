@@ -15,13 +15,11 @@ import edu.wpi.first.units.Voltage as WPIVoltageUnit
 Extension functions that convert WPILib Measures to kmeasure Quantities and vise versa.
  */
 
-
 @JvmName("toKmeasureVoltage")
 fun Measure<WPIVoltageUnit>.toKmeasure(): Voltage = Voltage(baseUnitMagnitude())
 
 @JvmName("toWPIVoltage")
 fun Voltage.toWPI(): Measure<WPIVoltageUnit> = Units.Volts.of(siValue)
-
 
 
 @JvmName("toKmeasureTime")
@@ -31,13 +29,11 @@ fun Measure<WPITimeUnit>.toKmeasure(): Time = Time(baseUnitMagnitude())
 fun Time.toWPI(): Measure<WPITimeUnit> = Units.Seconds.of(siValue)
 
 
-
 @JvmName("toKmeasureDistance")
 fun Measure<WPIDistanceUnit>.toKmeasure(): Distance = Distance(baseUnitMagnitude())
 
 @JvmName("toWPIDistance")
 fun Distance.toWPI(): Measure<WPIDistanceUnit> = Units.Meters.of(siValue)
-
 
 
 @JvmName("toKmeasureAngle")
@@ -47,7 +43,6 @@ fun Measure<WPIAngleUnit>.toKmeasure(): Angle = Angle(baseUnitMagnitude())
 fun Angle.toWPI(): Measure<WPIAngleUnit> = Units.Radians.of(siValue)
 
 
-
 @JvmName("toKmeasureCurrent")
 fun Measure<WPICurrentUnit>.toKmeasure(): Current = Current(baseUnitMagnitude())
 
@@ -55,13 +50,11 @@ fun Measure<WPICurrentUnit>.toKmeasure(): Current = Current(baseUnitMagnitude())
 fun Current.toWPI(): Measure<WPICurrentUnit> = Units.Amps.of(siValue)
 
 
-
 private typealias WPIVelocityUnit = WPIRate<WPIDistanceUnit>
 private typealias WPIAccelerationUnit = WPIRate<WPIVelocityUnit>
 private typealias WPIAngularVelocityUnit = WPIRate<WPIAngleUnit>
 private typealias WPIAngularAccelerationUnit = WPIRate<WPIAngularVelocityUnit>
 private typealias WPIVoltageRateUnit = WPIRate<WPIVoltageUnit>
-
 
 
 @JvmName("toKmeasureVelocity")
@@ -78,13 +71,11 @@ fun Measure<WPIVoltageRateUnit>.toKmeasure(): VoltageRate = VoltageRate(baseUnit
 fun VoltageRate.toWPI(): Measure<WPIVoltageRateUnit> = Units.Volts.per(Units.Second).of(siValue)
 
 
-
 @JvmName("toKmeasureAcceleration")
 fun Measure<WPIAccelerationUnit>.toKmeasure(): Acceleration = Acceleration(baseUnitMagnitude())
 
 @JvmName("toWPIAcceleration")
 fun Acceleration.toWPI(): Measure<WPIAccelerationUnit> = Units.MetersPerSecondPerSecond.of(siValue)
-
 
 
 @JvmName("toKmeasureAngularVelocity")
@@ -94,14 +85,8 @@ fun Measure<WPIAngularVelocityUnit>.toKmeasure(): AngularVelocity = AngularVeloc
 fun AngularVelocity.toWPI(): Measure<WPIAngularVelocityUnit> = Units.RadiansPerSecond.of(siValue)
 
 
-
 @JvmName("toKmeasureAngularAcceleration")
 fun Measure<WPIAngularAccelerationUnit>.toKmeasure(): AngularAcceleration = AngularAcceleration(baseUnitMagnitude())
 
 @JvmName("toWPIAngularAcceleration")
 fun AngularAcceleration.toWPI(): Measure<WPIAngularAccelerationUnit> = Units.RadiansPerSecond.per(Units.Second).of(siValue)
-
-
-
-
-

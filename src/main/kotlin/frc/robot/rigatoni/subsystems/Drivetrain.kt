@@ -6,7 +6,7 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs
 import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.TimedRobot.isSimulation
-import frc.chargers.controls.feedforward.AngularMotorFFEquation
+import frc.chargers.controls.feedforward.AngularMotorFeedforward
 import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
@@ -49,7 +49,7 @@ private val SWERVE_CONSTANTS = SwerveConstants(
     azimuthPID = PIDConstants(7.0,0.0,0.0),
     azimuthPIDTolerance = 1.degrees,
     velocityPID = PIDConstants(0.05,0.0,0.0),
-    velocityFF = AngularMotorFFEquation(0.0,0.13)
+    velocityFF = AngularMotorFeedforward(0.0,0.13)
 )
 private val TURN_MOTORS = SwerveData(
     topLeft = ChargerSparkMax(DrivetrainID.TL_TURN),
@@ -65,11 +65,10 @@ private val TURN_MOTORS = SwerveData(
 }
 private val TURN_ENCODERS = SwerveData(
     // encoder - angleOffset = encoder with angle offset
-    // ChargerCANcoder.absolute returns its absolute encoder
-    topLeft = ChargerCANcoder(DrivetrainID.TL_ENCODER).absolute - 0.621.radians,
-    topRight = ChargerCANcoder(DrivetrainID.TR_ENCODER).absolute - 1.37.radians,
-    bottomLeft = ChargerCANcoder(DrivetrainID.BL_ENCODER).absolute - 4.971.radians,
-    bottomRight = ChargerCANcoder(DrivetrainID.BR_ENCODER).absolute - 6.243.radians
+    topLeft = ChargerCANcoder(DrivetrainID.TL_ENCODER) - 0.621.radians,
+    topRight = ChargerCANcoder(DrivetrainID.TR_ENCODER) - 1.37.radians,
+    bottomLeft = ChargerCANcoder(DrivetrainID.BL_ENCODER) - 4.971.radians,
+    bottomRight = ChargerCANcoder(DrivetrainID.BR_ENCODER) - 6.243.radians
 )
 private val DRIVE_MOTORS = SwerveData(
     topLeft = ChargerTalonFX(DrivetrainID.TL_DRIVE),

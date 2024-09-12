@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress("unused")
 package frc.chargers.hardware.sensors.imu
 
 import com.batterystaple.kmeasure.quantities.Angle
@@ -6,9 +6,9 @@ import com.batterystaple.kmeasure.quantities.Angle
 /**
  * A [HeadingProvider] that can be zeroed.
  */
-public interface ZeroableHeadingProvider: HeadingProvider {
+interface ZeroableHeadingProvider: HeadingProvider {
     /**
      * Zeroes the heading of the [HeadingProvider].
      */
-    public fun zeroHeading(angle: Angle = Angle(0.0))
+    fun zeroHeading(angle: Angle = Angle(0.0))
 }

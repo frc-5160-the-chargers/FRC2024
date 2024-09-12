@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused")
+@file:Suppress("unused")
 package frc.chargers.hardware.sensors.imu
 
 import com.batterystaple.kmeasure.quantities.*

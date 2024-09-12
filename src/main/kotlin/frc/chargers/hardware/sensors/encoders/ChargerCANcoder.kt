@@ -11,6 +11,7 @@ import com.ctre.phoenix6.signals.SensorDirectionValue
 class ChargerCANcoder(
     val deviceID: Int,
     factoryDefault: Boolean = true,
+    useAbsolutePosition: Boolean = true,
     sensorDirection: SensorDirectionValue? = null,
     absoluteSensorRange: AbsoluteSensorRangeValue? = null,
     magnetOffset: Angle? = null,
@@ -29,21 +30,13 @@ class ChargerCANcoder(
         base.configurator.apply(config)
     }
 
-    private val posSignal = base.position
-    private var velSignal = base.velocity
-    private val absolutePosSignal = base.absolutePosition
+    private val posSignal = if (useAbsolutePosition) base.absolutePosition else base.position
+    private val velSignal = base.velocity
 
     /**
-     * Represents the absolute encoder of the CANcoder.
-     */
-    val absolute: Encoder = AbsoluteEncoderAdaptor()
-    private inner class AbsoluteEncoderAdaptor: Encoder by this {
-        override val angularPosition: Angle
-            get() = absolutePosSignal.refresh(true).value.ofUnit(rotations)
-    }
-
-    /**
-     * Obtains the relative position from the CANcoder.
+     * Obtains the position of the CANcoder.
+     * If useAbsolutePosition is set to false, this measured from the CANcoder's relative encoder;
+     * otherwise, it is measured from the CANcoder's absolute encoder.
      */
     override val angularPosition: Angle
         get() = posSignal.refresh(true).value.ofUnit(rotations)
@@ -52,5 +45,5 @@ class ChargerCANcoder(
      * Obtains the velocity of the CANcoder.
      */
     override val angularVelocity: AngularVelocity
-        get() = velSignal.refresh(true).value.ofUnit(rotations/ seconds)
+        get() = velSignal.refresh(true).value.ofUnit(rotations / seconds)
 }

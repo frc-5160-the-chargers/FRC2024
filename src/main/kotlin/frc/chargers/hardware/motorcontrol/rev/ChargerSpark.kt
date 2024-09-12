@@ -120,9 +120,14 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
         }
         if (statorCurrentLimit != null) base.setSmartCurrentLimit(statorCurrent.inUnit(amps).toInt())
         for (follower in followerMotors) {
+            follower.configure(
+                positionPID = positionPID,
+                velocityPID = velocityPID,
+                gearRatio = gearRatio,
+                startingPosition = startingPosition
+            )
             when (follower) {
-                is ChargerSparkMax -> follower.base.follow(base, follower.inverted)
-                is ChargerSparkFlex -> follower.base.follow(base, follower.inverted)
+                is ChargerSpark<*> -> follower.base.follow(base, follower.inverted)
                 else -> nonRevFollowers.add(follower)
             }
         }

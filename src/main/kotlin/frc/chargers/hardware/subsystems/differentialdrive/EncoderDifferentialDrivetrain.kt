@@ -243,13 +243,13 @@ open class EncoderDifferentialDrivetrain(
         leftMotors.forEach{
             it.setVelocitySetpoint(
                 leftSpeed / wheelRadius,
-                constants.velocityFF.calculate(leftSpeed / wheelRadius)
+                constants.velocityFF(leftSpeed / wheelRadius)
             )
         }
         rightMotors.forEach{
             it.setVelocitySetpoint(
                 rightSpeed / wheelRadius,
-                constants.velocityFF.calculate(rightSpeed / wheelRadius)
+                constants.velocityFF(rightSpeed / wheelRadius)
             )
         }
     }

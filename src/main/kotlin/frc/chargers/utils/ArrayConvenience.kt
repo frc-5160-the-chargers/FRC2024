@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress("unused")
 package frc.chargers.utils
 
 
@@ -29,8 +29,8 @@ package frc.chargers.utils
  *               ]
  * ```
  */
-public object a {
-    public inline operator fun <reified T> get(vararg elements: T): Array<T> = arrayOf(*elements)
+object a {
+    inline operator fun <reified T> get(vararg elements: T): Array<T> = arrayOf(*elements)
 }
 
 /**
@@ -45,10 +45,10 @@ public object a {
  * ```
  * @see a
  */
-public object p{
-    public operator fun get(vararg elements: Int): IntArray = intArrayOf(*elements)
-    public operator fun get(vararg elements: Double): DoubleArray = doubleArrayOf(*elements)
-    public operator fun get(vararg elements: Byte): ByteArray = byteArrayOf(*elements)
-    public operator fun get(vararg elements: Float): FloatArray = floatArrayOf(*elements)
-    public operator fun get(vararg elements: Char): CharArray = charArrayOf(*elements)
+object p {
+    operator fun get(vararg elements: Int): IntArray = intArrayOf(*elements)
+    operator fun get(vararg elements: Double): DoubleArray = doubleArrayOf(*elements)
+    operator fun get(vararg elements: Byte): ByteArray = byteArrayOf(*elements)
+    operator fun get(vararg elements: Float): FloatArray = floatArrayOf(*elements)
+    operator fun get(vararg elements: Char): CharArray = charArrayOf(*elements)
 }

@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress("unused")
 package frc.chargers.hardware.sensors.imu
 
 import com.batterystaple.kmeasure.quantities.Angle
@@ -6,7 +6,7 @@ import com.batterystaple.kmeasure.quantities.Angle
 /**
  * An interface representing a device capable of calculating the heading of a robot (the direction it is facing).
  */
-public interface HeadingProvider {
+interface HeadingProvider {
     /**
      * The heading of the robot, with the clockwise direction as positive.
      *
@@ -17,7 +17,7 @@ public interface HeadingProvider {
      * a (say) 2º rotation at position 359º would give 1º, a smaller value
      * due to wrapping around.
      */
-    public val heading: Angle
+    val heading: Angle
 }
 
 /**

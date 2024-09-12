@@ -8,7 +8,7 @@ import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
-import frc.chargers.controls.feedforward.ArmFFEquation
+import frc.chargers.controls.feedforward.UnitArmFeedforward
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
@@ -74,7 +74,7 @@ class Pivot: SuperSubsystem("Pivot") {
         maxAcceleration = AngularAcceleration(10.0)
     )
     private var motionProfileSetpoint = AngularMotionProfileState(startingAngle)
-    private val feedforward = ArmFFEquation(0.0, 0.0, 0.0)
+    private val feedforward = UnitArmFeedforward(0.0, 0.0, 0.0)
 
     val angle: Angle by logged { motor.encoder.angularPosition }
 
@@ -123,7 +123,7 @@ class Pivot: SuperSubsystem("Pivot") {
                 0.02.seconds
             )
             pidTarget = motionProfileSetpoint.position
-            ffVoltage = feedforward.calculate(target, motionProfileSetpoint.velocity)
+            ffVoltage = feedforward(target, motionProfileSetpoint.velocity)
             log("Control/MotionProfileGoal", target)
         }else{
             pidTarget = target

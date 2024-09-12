@@ -35,7 +35,6 @@ import frc.robot.rigatoni.subsystems.getDrivetrain
 import frc.robot.rigatoni.subsystems.Pivot
 import frc.robot.rigatoni.subsystems.PivotAngle
 import frc.robot.rigatoni.subsystems.shooter.Shooter
-import kcommand.LoggedCommand
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.pow
@@ -67,10 +66,6 @@ class CompetitionRobot: ChargerRobot() {
     )
 
     override fun robotInit() {
-        LoggedCommand.configure(
-            logCommandRunning = this::log,
-            logCommandExecutionTime = this::log
-        )
         DriverStation.silenceJoystickConnectionWarning(true)
         gyro.simHeadingSource = { drivetrain.heading }
         SmartDashboard.putData(
@@ -246,6 +241,8 @@ class CompetitionRobot: ChargerRobot() {
     }
 
     private fun noteIntakeDriverAssist() = buildCommand {
+        require(drivetrain)
+
         fun getNotePursuitSpeed(txValue: Double): Double {
             val swerveOutput = driverController.swerveOutput
             return max(abs(swerveOutput.xPower), abs(swerveOutput.yPower)) * (1.0 - txValue / 50.0) // scales based off of the vision target error
@@ -256,8 +253,6 @@ class CompetitionRobot: ChargerRobot() {
             return currentState is NoteObserver.State.NoteDetected &&
                     currentState.distanceToNote <= ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
         }
-
-        require(drivetrain)
 
         // regular drive occurs until suitable target found
         val touchpad = driverController.touchpad()
@@ -338,8 +333,8 @@ class CompetitionRobot: ChargerRobot() {
 
         val spinupStartTime by getOnceDuringRun{ fpgaTimestamp() }
 
-        runSequenceIf({movePivot}){
-            runParallelUntilFirstCommandFinishes{
+        runSequenceIf({movePivot}) {
+            parallelUntilLeadFinishes {
                 +setPivotAngle(PivotAngle.SPEAKER)
                 loop{ shooter.outtakeAtSpeakerSpeed() }
             }
@@ -420,7 +415,7 @@ class CompetitionRobot: ChargerRobot() {
     private fun ampAutoStartup() = buildCommand {
         require(drivetrain, pivot, shooter, groundIntake)
 
-        runParallelUntilAllFinish{
+        parallelUntilAllFinish{
             runSequence{
                 runOnce{ drivetrain.resetPose(AutoStartingPose.getAmp()) }
                 wait(0.3)
@@ -456,12 +451,17 @@ class CompetitionRobot: ChargerRobot() {
                     noteObserver.state != NoteObserver.State.NoteInSerializer
         }
 
+        fun getCrosshairOffset(): Double? {
+            val currentState = noteObserver.state
+            return if (currentState is NoteObserver.State.NoteDetected) currentState.tx else null
+        }
+
         loopForDuration(intakeSpinupTime.inUnit(seconds)){
             groundIntake.intake()
         }
 
-        runParallelUntilFirstCommandFinishes {
-            // parallel #1
+        parallelUntilLeadFinishes {
+            // will run until this finishes
             runSequenceUntil(::noteInSerializer) {
                 +followPathOptimal(path)
                 loopWhile({noteObserver.state is NoteObserver.State.NoteDetected}){
@@ -485,11 +485,6 @@ class CompetitionRobot: ChargerRobot() {
             }
 
             runSequenceIf({noteObserver.hasCamera}) {
-                fun getCrosshairOffset(): Double? {
-                    val currentState = noteObserver.state
-                    return if (currentState is NoteObserver.State.NoteDetected) currentState.tx else null
-                }
-
                 val startPose by getOnceDuringRun { path.pathPoses.last().flipWhenRedAlliance() }
                 waitUntil{ drivetrain.robotPose.distanceTo(startPose) < 0.8.meters }
                 runOnce{ drivetrain.setRotationOverride(aimToNoteRotationOverride) }
@@ -502,7 +497,7 @@ class CompetitionRobot: ChargerRobot() {
     private fun driveAndScoreAmp(path: PathPlannerPath) = buildCommand("Drive And Score Amp", log = true) {
         require(drivetrain, pivot, shooter, groundIntake)
 
-        runParallelUntilAllFinish {
+        parallelUntilAllFinish {
             +followPathOptimal(path)
 
             runSequence {
@@ -520,7 +515,7 @@ class CompetitionRobot: ChargerRobot() {
     ) = buildCommand {
         require(drivetrain, pivot, shooter, groundIntake)
 
-        runParallelUntilOneFinishes{
+        parallelUntilLeadFinishes {
             +followPathOptimal(path)
 
             loop{

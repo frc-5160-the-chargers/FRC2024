@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused")
+@file:Suppress("unused")
 package frc.chargers.hardware.sensors.imu
 
 import com.batterystaple.kmeasure.quantities.*
@@ -134,7 +134,7 @@ class ChargerPigeon2(
     /**
      * Determines if the gyro is connected or not.
      */
-    public val isConnected: Boolean by logged {
+    val isConnected: Boolean by logged {
         allSignals.all { it.status == StatusCode.OK }
     }
 

@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress("unused")
 package frc.chargers.utils
 
 import com.batterystaple.kmeasure.dimensions.AnyDimension
@@ -14,7 +14,7 @@ import java.nio.ByteBuffer
 /**
  * Represents a simple value accompanied by a timestamp
  */
-public data class Measurement<T>(
+data class Measurement<T>(
     val value: T,
     val timestamp: Time
 ){

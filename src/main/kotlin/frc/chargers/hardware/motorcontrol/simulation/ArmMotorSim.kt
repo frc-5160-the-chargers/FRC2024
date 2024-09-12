@@ -53,7 +53,6 @@ class ArmMotorSim(
         set(value) {
             field = value
             base.setInputVoltage(value.siValue * if (super.inverted) -1.0 else 1.0)
-            super.followers.forEach{ it.appliedVoltage = value }
         }
 
     override val statorCurrent: Current

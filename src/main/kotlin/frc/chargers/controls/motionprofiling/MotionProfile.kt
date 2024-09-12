@@ -10,13 +10,10 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.utils.math.inputModulus
 
 typealias AngularMotionProfile = MotionProfile<AngleDimension, AngularVelocityDimension>
-
 typealias AngularMotionProfileState = MotionProfileState<AngleDimension, AngularVelocityDimension>
 
 typealias LinearMotionProfile = MotionProfile<DistanceDimension, VelocityDimension>
-
 typealias LinearMotionProfileState = MotionProfileState<DistanceDimension, VelocityDimension>
-
 
 /**
  * Represents a Generic motion profile, that can calculate an intermediate state

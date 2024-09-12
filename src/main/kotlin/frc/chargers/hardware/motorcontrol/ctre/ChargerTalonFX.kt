@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress("unused")
 package frc.chargers.hardware.motorcontrol.ctre
 
 import com.batterystaple.kmeasure.quantities.*
@@ -16,6 +16,7 @@ import frc.chargers.framework.faultchecking.SubsystemFault
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
 import frc.chargers.hardware.sensors.encoders.Encoder
+
 
 
 /**
@@ -165,6 +166,12 @@ class ChargerTalonFX(
             }
         }
         for (follower in followerMotors){
+            follower.configure(
+                positionPID = positionPID,
+                velocityPID = velocityPID,
+                gearRatio = gearRatio,
+                startingPosition = startingPosition
+            )
             if (follower is TalonFX){
                 if (follower.inverted){
                     invertedTalonFXFollowers.add(follower)

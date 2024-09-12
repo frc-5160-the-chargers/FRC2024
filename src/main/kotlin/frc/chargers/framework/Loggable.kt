@@ -7,7 +7,6 @@ import edu.wpi.first.util.datalog.*
 import edu.wpi.first.util.struct.Struct
 import edu.wpi.first.wpilibj.DataLogManager
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.Timer
 import java.util.*
 import kotlin.experimental.ExperimentalTypeInference

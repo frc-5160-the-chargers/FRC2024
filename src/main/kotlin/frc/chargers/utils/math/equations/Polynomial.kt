@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress("unused")
 package frc.chargers.utils.math.equations
 
 import kotlin.math.pow
@@ -13,8 +13,8 @@ import kotlin.math.pow
  * For example, `Polynomial(1.0, 2.0, 3.0)` represents the polynomial
  * x^2 + 2x + 3.
  */
-public data class Polynomial(val coefficients: List<Double>) : (Double) -> Double {
-    public constructor(vararg coefficients: Number) : this(coefficients.map{it.toDouble()})
+data class Polynomial(val coefficients: List<Double>) : (Double) -> Double {
+    constructor(vararg coefficients: Number) : this(coefficients.map{it.toDouble()})
 
     init{
         require(coefficients.isNotEmpty()){"Your polynomial must have at least 1 coefficient."}
@@ -25,7 +25,7 @@ public data class Polynomial(val coefficients: List<Double>) : (Double) -> Doubl
      * when the input is negative, it will always return a negative value,
      * and if the input is positive, it will always return a positive value.
      */
-    public fun preserveSign(): (Double) -> Double = {
+    fun preserveSign(): (Double) -> Double = {
         val result = invoke(it)
         result * if ( (result < 0 && it > 0) || (result > 0 && it < 0) ) -1 else 1
     }

@@ -16,8 +16,6 @@ import kotlin.math.PI
 abstract class SimulatedMotorBase: Motor {
     abstract fun initializeWPILibSim(gearRatio: Double)
 
-    protected val followers = mutableListOf<Motor>()
-
     private val positionController = PIDController(0.0, 0.0, 0.0)
     private val velocityController = PIDController(0.0, 0.0, 0.0)
 
@@ -33,14 +31,12 @@ abstract class SimulatedMotorBase: Motor {
 
         val pidOutput = positionController.calculate(encoderReading.siValue, position.siValue)
         this.appliedVoltage = (Voltage(pidOutput) + feedforward).coerceIn(-12.volts..12.volts)
-        followers.forEach { it.setPositionSetpoint(position, feedforward) }
     }
 
     override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
         require(velocityPIDConfigured){" You must specify a velocityPID value using the configure() method. "}
         val pidOutput = velocityController.calculate(encoder.angularVelocity.siValue, velocity.siValue)
         this.appliedVoltage = (Voltage(pidOutput) + feedforward).coerceIn(-12.volts..12.volts)
-        followers.forEach { it.setVelocitySetpoint(velocity, feedforward) }
     }
 
     override fun configure(
@@ -59,7 +55,7 @@ abstract class SimulatedMotorBase: Motor {
         continuousInput: Boolean?
     ): SimulatedMotorBase {
         if (inverted != null) this.inverted = inverted
-        followers.addAll(followerMotors)
+        require(followerMotors.isEmpty()) { "Don't add followers to a simulated motor; consider increasing the # of motors in the DCMotor.getNEO or DCMotor.getNeoVortex calls." }
         if (positionPID != null) positionController.constants = positionPID; positionPIDConfigured = true
         if (velocityPID != null) velocityController.constants = velocityPID; velocityPIDConfigured = true
         if (continuousInput == true) {

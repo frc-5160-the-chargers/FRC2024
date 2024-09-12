@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused")
+@file:Suppress("unused")
 package frc.chargers.hardware.sensors.encoders
 
 import com.batterystaple.kmeasure.quantities.Angle
@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj.DutyCycleEncoder
 /**
  * An Adapter of WPILib's [DutyCycleEncoder] class; consists of REV through bore encoders, CTRE mag encoders.
  */
-public class ChargerDutyCycleEncoder(
+class ChargerDutyCycleEncoder(
     val channel: Int,
     var inverted: Boolean = false
 ): PositionEncoder {

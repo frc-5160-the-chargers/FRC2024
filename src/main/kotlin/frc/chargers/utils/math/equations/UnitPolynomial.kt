@@ -1,12 +1,10 @@
-@file:Suppress("RedundantVisibilityModifier", "unused")
+@file:Suppress("unused")
 package frc.chargers.utils.math.equations
 
 import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.quantities.Quantity
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.quantities.ofUnit
-import frc.chargers.utils.math.units.KmeasureUnit
-import frc.chargers.utils.math.units.siUnit
 import kotlin.math.pow
 
 /**
@@ -21,12 +19,12 @@ import kotlin.math.pow
  * ```
  * @see Polynomial
  */
-public data class UnitPolynomial<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
-    val units: Pair<KmeasureUnit<I>, KmeasureUnit<O>> = siUnit<I>() to siUnit<O>(),
+data class UnitPolynomial<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
+    val units: Pair<Quantity<I>, Quantity<O>> = Quantity<I>(1.0) to Quantity(1.0),
     val coefficients: List<Double>
 ) : (Quantity<I>) -> Quantity<O> {
-    public constructor(
-        unitsUsed: Pair<KmeasureUnit<I>, KmeasureUnit<O>> = KmeasureUnit<I>(1.0) to KmeasureUnit<O>(1.0),
+    constructor(
+        unitsUsed: Pair<Quantity<I>, Quantity<O>> = Quantity<I>(1.0) to Quantity(1.0),
         vararg coefficients: Number
     ) : this(unitsUsed, coefficients.map{it.toDouble()})
 
@@ -40,7 +38,7 @@ public data class UnitPolynomial<I: Dimension<*,*,*,*>, O: Dimension<*,*,*,*>>(
      * when the input is negative, it will always return a negative value,
      * and if the input is positive, it will always return a positive value.
      */
-    public fun preserveSign(): (Quantity<I>) -> Quantity<O> = {
+    fun preserveSign(): (Quantity<I>) -> Quantity<O> = {
         val result = invoke(it)
 
         if ( (result.siValue < 0 && it.siValue > 0) || (result.siValue > 0 && it.siValue < 0) ){

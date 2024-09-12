@@ -1,4 +1,3 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
 package frc.chargers.utils.math
 
 import com.batterystaple.kmeasure.dimensions.Dimension
@@ -10,7 +9,7 @@ import edu.wpi.first.math.MathUtil
  *
  * @see MathUtil.inputModulus
  */
-public fun Double.inputModulus(min: Double, max: Double): Double =
+fun Double.inputModulus(min: Double, max: Double): Double =
     MathUtil.inputModulus(this, min, max)
 
 /**
@@ -18,7 +17,7 @@ public fun Double.inputModulus(min: Double, max: Double): Double =
  *
  * @see MathUtil.inputModulus
  */
-public fun Double.inputModulus(range: ClosedRange<Double>): Double =
+fun Double.inputModulus(range: ClosedRange<Double>): Double =
     inputModulus(range.start,range.endInclusive)
 
 /**
@@ -26,7 +25,7 @@ public fun Double.inputModulus(range: ClosedRange<Double>): Double =
  *
  * @see MathUtil.inputModulus
  */
-public fun <D: Dimension<*, *, *, *>> Quantity<D>.inputModulus(min: Quantity<D>, max: Quantity<D>): Quantity<D> =
+fun <D: Dimension<*, *, *, *>> Quantity<D>.inputModulus(min: Quantity<D>, max: Quantity<D>): Quantity<D> =
     Quantity(MathUtil.inputModulus(siValue, min.siValue, max.siValue))
 
 /**
@@ -34,5 +33,5 @@ public fun <D: Dimension<*, *, *, *>> Quantity<D>.inputModulus(min: Quantity<D>,
  *
  * @see MathUtil.inputModulus
  */
-public fun <D: Dimension<*, *, *, *>> Quantity<D>.inputModulus(range: ClosedRange<Quantity<D>>): Quantity<D> =
+fun <D: Dimension<*, *, *, *>> Quantity<D>.inputModulus(range: ClosedRange<Quantity<D>>): Quantity<D> =
     inputModulus(range.start, range.endInclusive)

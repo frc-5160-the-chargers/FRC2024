@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused", "MemberVisibilityCanBePrivate", "LeakingThis")
+@file:Suppress("unused", "MemberVisibilityCanBePrivate", "LeakingThis")
 package frc.chargers.hardware.subsystems.swervedrive
 
 import com.batterystaple.kmeasure.quantities.*
@@ -48,14 +48,14 @@ import kotlin.math.pow
  *
  * Note: TrackWidth is the horizontal length of the robot, while wheelBase is the vertical length of the robot.
  */
-public open class EncoderHolonomicDrivetrain(
+open class EncoderHolonomicDrivetrain(
     logName: String = "Drivetrain(Swerve)",
     turnMotors: SwerveData<Motor>,
     // turn encoders are optional in sim
     turnEncoders: SwerveData<PositionEncoder?> = SwerveData.create{ null },
     driveMotors: SwerveData<Motor>,
     private val constants: SwerveConstants,
-    public val gyro: HeadingProvider? = null
+    val gyro: HeadingProvider? = null
 ): PoseEstimatingDrivetrain(logName), HeadingProvider {
     private val moduleNames = listOf("Modules/TopLeft", "Modules/TopRight", "Modules/BottomLeft", "Modules/BottomRight")
     // A SwerveData instance that holds all the swerve modules of the drivetrain.
@@ -253,7 +253,7 @@ public open class EncoderHolonomicDrivetrain(
     /**
      * The distance the robot has traveled in total.
      */
-    public val distanceTraveled: Distance
+    val distanceTraveled: Distance
         get(){
             val currentPose = robotPose
             return hypot(currentPose.x.ofUnit(meters), currentPose.y.ofUnit(meters))
@@ -262,7 +262,7 @@ public open class EncoderHolonomicDrivetrain(
     /**
      * The current overall velocity of the robot.
      */
-    public val velocity: Velocity
+    val velocity: Velocity
         get(){
             val speeds = currentSpeeds
             return hypot(speeds.xVelocity, speeds.yVelocity)
@@ -271,33 +271,33 @@ public open class EncoderHolonomicDrivetrain(
     /**
      * The current [ChassisSpeeds] of the robot.
      */
-    public val currentSpeeds: ChassisSpeeds
+    val currentSpeeds: ChassisSpeeds
         get() = setpoint.chassisSpeeds
 
     /**
      * Fetches a [SwerveData] instance containing [SwerveModulePosition]s,
      * which store the distance traveled and the angle of each swerve module.
      */
-    public val modulePositions: SwerveData<SwerveModulePosition>
+    val modulePositions: SwerveData<SwerveModulePosition>
         get() = swerveModules.map{ it.getModulePosition() }
 
     /**
      * Fetches a [SwerveData] instance containing [SwerveModulePosition]s,
      * which store the velocity and the angle of each swerve module.
      */
-    public val moduleStates: SwerveData<SwerveModuleState>
+    val moduleStates: SwerveData<SwerveModuleState>
         get() = swerveModules.map{ it.getModuleState() }
 
     /**
      * Fetches a [SwerveData] instance containing each module's drive angular velocity.
      */
-    public val moduleAngularVelocities: SwerveData<AngularVelocity>
+    val moduleAngularVelocities: SwerveData<AngularVelocity>
         get() = swerveModules.map{ it.driveAngularVelocity }
 
     /**
      * Fetches a [SwerveData] instance containing each module's drive linear velocity.
      */
-    public val moduleLinearVelocities: SwerveData<Velocity>
+    val moduleLinearVelocities: SwerveData<Velocity>
         get() = swerveModules.map{ it.driveLinearVelocity }
 
     /**
@@ -305,14 +305,14 @@ public open class EncoderHolonomicDrivetrain(
      * driving each swerve module at their maximum potential,
      * then calculating the output using the kinematics object.
      */
-    public val maxLinearVelocity: Velocity = constants.driveMotorMaxSpeed
+    val maxLinearVelocity: Velocity = constants.driveMotorMaxSpeed
 
     /**
      * The max angular velocity of the drivetrain, calculated by simulating
      * driving each swerve module at their maximum potential(with each being oriented at a 45 or -45 degrees angle),
      * then calculating the output using the kinematics object.
      */
-    public val maxRotationalVelocity: AngularVelocity = abs(
+    val maxRotationalVelocity: AngularVelocity = abs(
         kinematics.toChassisSpeeds(
             SwerveModuleState(constants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(-45.0)),
             SwerveModuleState(-constants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(45.0)),
@@ -324,21 +324,21 @@ public open class EncoderHolonomicDrivetrain(
     /**
      * Sets a rotation override for the drivetrain.
      */
-    public fun setRotationOverride(rotationOverride: RotationOverride){
+    fun setRotationOverride(rotationOverride: RotationOverride){
         this.rotationOverride = rotationOverride
     }
 
     /**
      * Removes a rotation override for the drivetrain.
      */
-    public fun removeRotationOverride(){
+    fun removeRotationOverride(){
         this.rotationOverride = null
     }
 
     /**
      * Creates a [SysIdRoutine] for characterizing a drivetrain's drive motors.
      */
-    public fun getDriveSysIdRoutine(
+    fun getDriveSysIdRoutine(
         quasistaticRampRate: VoltageRate? = null,
         dynamicStepVoltage: Voltage? = null,
         timeout: Time? = null
@@ -366,7 +366,7 @@ public open class EncoderHolonomicDrivetrain(
      *
      * This value can be changed with the [fieldRelative] parameter.
      */
-    public fun swerveDrive(
+    fun swerveDrive(
         xPower: Double,
         yPower: Double,
         rotationPower: Double,
@@ -381,7 +381,7 @@ public open class EncoderHolonomicDrivetrain(
      *
      * This value can be changed with the [fieldRelative] parameter.
      */
-    public fun swerveDrive(
+    fun swerveDrive(
         powers: ChassisPowers,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
@@ -410,7 +410,7 @@ public open class EncoderHolonomicDrivetrain(
      *
      * This value can be changed with the [fieldRelative] parameter.
      */
-    public fun velocityDrive(
+    fun velocityDrive(
         xVelocity: Velocity,
         yVelocity: Velocity,
         rotationVelocity: AngularVelocity,
@@ -425,7 +425,7 @@ public open class EncoderHolonomicDrivetrain(
      *
      * This value can be changed with the [fieldRelative] parameter.
      */
-    public fun velocityDrive(
+    fun velocityDrive(
         speeds: ChassisSpeeds,
         fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
     ){
@@ -446,7 +446,7 @@ public open class EncoderHolonomicDrivetrain(
     /**
      * Sets driving voltages for each module.
      */
-    public fun setDriveVoltages(voltages: SwerveData<Voltage>){
+    fun setDriveVoltages(voltages: SwerveData<Voltage>){
         currentControlMode = ControlMode.NONE
         swerveModules.zip(voltages).forEach{ (module, voltage) ->
             module.setDriveVoltage(voltage)
@@ -457,7 +457,7 @@ public open class EncoderHolonomicDrivetrain(
      * Sets turn voltages for each module.
      * The standard order is top left, top right, bottom left, bottom right.
      */
-    public fun setTurnVoltages(voltages: SwerveData<Voltage>){
+    fun setTurnVoltages(voltages: SwerveData<Voltage>){
         currentControlMode = ControlMode.NONE
         swerveModules.zip(voltages).forEach{ (module, voltage) ->
             module.setTurnVoltage(voltage)
@@ -468,7 +468,7 @@ public open class EncoderHolonomicDrivetrain(
      * Sets azimuth directions for each module.
      * The standard order is top left, top right, bottom left, bottom right.
      */
-    public fun setTurnDirections(directions: SwerveData<Angle>){
+    fun setTurnDirections(directions: SwerveData<Angle>){
         currentControlMode = ControlMode.NONE
         swerveModules.zip(directions).forEach{ (module, direction) ->
             module.setDirection(direction)
@@ -478,7 +478,7 @@ public open class EncoderHolonomicDrivetrain(
     /**
      * Stops the drivetrain.
      */
-    public fun stop(){
+    fun stop(){
         // prevents driving anywhere else
         currentControlMode = ControlMode.NONE
         goal = ChassisSpeeds()
@@ -492,7 +492,7 @@ public open class EncoderHolonomicDrivetrain(
     /**
      * Stops the drivetrain in an X.
      */
-    public fun stopInX(){
+    fun stopInX(){
         // prevents driving anywhere else
         currentControlMode = ControlMode.NONE
         goal = ChassisSpeeds()
@@ -531,30 +531,24 @@ public open class EncoderHolonomicDrivetrain(
         when (currentControlMode) {
             ControlMode.CLOSED_LOOP -> {
                 val output = rotationOverride?.invoke(this)
-                if (output != null) {
-                    goal.omegaRadiansPerSecond = output.closedLoopRotation.siValue
-                }
-                goal = goal.discretize(driftRate = constants.closedLoopDiscretizationRate)
+                if (output != null) goal.omegaRadiansPerSecond = output.closedLoopRotation.siValue
             }
 
             ControlMode.OPEN_LOOP -> {
                 val output = rotationOverride?.invoke(this)
-                if (output != null) {
-                    goal.omegaRadiansPerSecond = output.openLoopRotation * maxRotationalVelocity.siValue
-                }
-                goal = goal.discretize(driftRate = constants.openLoopDiscretizationRate)
+                if (output != null) goal.omegaRadiansPerSecond = output.openLoopRotation * maxRotationalVelocity.siValue
             }
 
             else -> {}
         }
 
+        goal = ChassisSpeeds.discretize(goal, ChargerRobot.LOOP_PERIOD.inUnit(seconds))
         setpoint = setpointGenerator.generateSetpoint(
             constraints,
             setpoint,
             goal,
             ChargerRobot.LOOP_PERIOD.inUnit(seconds)
         )
-
         swerveModules.forEachIndexed { index, module ->
             when (currentControlMode){
                 ControlMode.OPEN_LOOP -> module.setDesiredStateOpenLoop(setpoint.moduleStates[index])

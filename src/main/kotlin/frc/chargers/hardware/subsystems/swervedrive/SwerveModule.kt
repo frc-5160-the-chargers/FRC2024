@@ -124,7 +124,7 @@ class SwerveModule(
             // in order to do plant inversion feedforward.
             val futureSetpoint = calculateSetpoint()
 
-            feedforwardV = moduleConstants.azimuthFF.calculate(
+            feedforwardV = moduleConstants.azimuthFF(
                 azimuthProfileState.velocity,
                 futureSetpoint.velocity
             )
@@ -157,7 +157,7 @@ class SwerveModule(
         val optimizedState = SwerveModuleState.optimize(state, directionAsRotation2d)
         setDirection(optimizedState.angle.angle)
         val velocitySetpoint = optimizedState.speedMetersPerSecond.ofUnit(meters / seconds) / wheelRadius
-        val feedforwardV = moduleConstants.velocityFF.calculate(velocitySetpoint)
+        val feedforwardV = moduleConstants.velocityFF(velocitySetpoint)
         driveMotor.setVelocitySetpoint(velocitySetpoint, feedforwardV)
     }
 

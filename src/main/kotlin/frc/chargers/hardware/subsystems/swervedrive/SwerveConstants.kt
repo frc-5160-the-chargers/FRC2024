@@ -8,7 +8,7 @@ import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.util.PIDConstants
 import com.pathplanner.lib.util.ReplanningConfig
-import frc.chargers.controls.feedforward.AngularMotorFFEquation
+import frc.chargers.controls.feedforward.AngularMotorFeedforward
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.framework.ChargerRobot
 
@@ -48,8 +48,8 @@ data class SwerveConstants(
     val azimuthPID: PIDConstants,
     val azimuthPIDTolerance: Angle? = null,
     val azimuthMotionProfile: AngularMotionProfile? = null,
-    val azimuthFF: AngularMotorFFEquation = AngularMotorFFEquation(0.0, 0.0, 0.0),
+    val azimuthFF: AngularMotorFeedforward = AngularMotorFeedforward(0.0, 0.0, 0.0),
 
     val velocityPID: PIDConstants,
-    val velocityFF: AngularMotorFFEquation,
+    val velocityFF: AngularMotorFeedforward,
 )

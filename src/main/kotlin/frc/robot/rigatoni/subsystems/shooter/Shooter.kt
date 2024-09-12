@@ -6,7 +6,7 @@ import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.amps
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj.DriverStation
-import frc.chargers.controls.feedforward.AngularMotorFFEquation
+import frc.chargers.controls.feedforward.AngularMotorFeedforward
 import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
@@ -38,7 +38,7 @@ class Shooter: SuperSubsystem("Shooter") {
         )
     }
 
-    private val shootingFFEquation = AngularMotorFFEquation(0.0, 0.0, 0.0)
+    private val shootingFFEquation = AngularMotorFeedforward(0.0, 0.0, 0.0)
     private val closedLoopSpeakerShooting = false
     private var wasShootingInSpeaker = false
 
@@ -57,7 +57,7 @@ class Shooter: SuperSubsystem("Shooter") {
         if (closedLoopSpeakerShooting){
             motor.setVelocitySetpoint(
                 CLOSED_LOOP_SPEAKER_SHOOT_SPEED,
-                shootingFFEquation.calculate(CLOSED_LOOP_SPEAKER_SHOOT_SPEED)
+                shootingFFEquation(CLOSED_LOOP_SPEAKER_SHOOT_SPEED)
             )
         }else{
             setVoltage(12.volts)

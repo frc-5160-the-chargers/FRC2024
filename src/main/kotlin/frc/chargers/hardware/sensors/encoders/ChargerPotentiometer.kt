@@ -1,4 +1,4 @@
-@file:Suppress("RedundantVisibilityModifier", "unused") 
+@file:Suppress("unused")
 package frc.chargers.hardware.sensors.encoders
 
 import com.batterystaple.kmeasure.quantities.Angle
@@ -12,7 +12,7 @@ import edu.wpi.first.wpilibj.AnalogPotentiometer
 /**
  * A wrapper around WPILib's [AnalogPotentiometer] with units support.
  */
-public class ChargerPotentiometer(
+class ChargerPotentiometer(
     val channel: Int,
     fullRange: Angle,
     offset: Angle = 0.degrees,

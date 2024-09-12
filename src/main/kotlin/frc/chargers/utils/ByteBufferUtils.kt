@@ -1,6 +1,13 @@
-package frc.chargers.utils.struct
+package frc.chargers.utils
 
 import java.nio.ByteBuffer
+
+/**
+ * A utility function to get a boolean from a [ByteBuffer].
+ */
+@Suppress("unused")
+fun ByteBuffer.getBoolean(): Boolean =
+    get() == 1.toByte()
 
 /**
  * A utility function to put a boolean to a [ByteBuffer];
