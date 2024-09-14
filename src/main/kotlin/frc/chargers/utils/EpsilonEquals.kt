@@ -1,5 +1,5 @@
 @file:Suppress("unused")
-package frc.chargers.utils.math
+package frc.chargers.utils
 
 import com.batterystaple.kmeasure.dimensions.Dimension
 import com.batterystaple.kmeasure.quantities.Quantity

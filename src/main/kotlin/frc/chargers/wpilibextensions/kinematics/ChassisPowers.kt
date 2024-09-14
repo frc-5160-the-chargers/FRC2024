@@ -22,18 +22,10 @@ data class ChassisPowers(
         val struct = object: Struct<ChassisPowers> {
             override fun getTypeClass(): Class<ChassisPowers> = ChassisPowers::class.java
             override fun getTypeString(): String = "struct:ChassisPowers"
-
             override fun getSize(): Int = Struct.kSizeDouble * 3
-
             override fun getSchema(): String = "double xPower;double yPower;double rotationPower;"
-
             override fun unpack(bb: ByteBuffer): ChassisPowers =
-                ChassisPowers(
-                    bb.getDouble(),
-                    bb.getDouble(),
-                    bb.getDouble()
-                )
-
+                ChassisPowers(bb.getDouble(), bb.getDouble(), bb.getDouble())
             override fun pack(bb: ByteBuffer, value: ChassisPowers) {
                 bb.putDouble(value.xPower)
                 bb.putDouble(value.yPower)

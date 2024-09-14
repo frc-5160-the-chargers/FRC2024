@@ -48,6 +48,7 @@ class ChargerPigeon2(
         yawRateSignal, pitchRateSignal, rollRateSignal,
         xAccelSignal, yAccelSignal, zAccelSignal
     )
+    private var simPreviousYaw = Angle(0.0)
 
     init {
         if (factoryDefault) base.configurator.apply(Pigeon2Configuration())
@@ -55,80 +56,58 @@ class ChargerPigeon2(
     }
 
     /**
-     * The gyroscope of the Pigeon; contains yaw, pitch, and roll data
-     * as well as the recorded rate(s) for those values.
-     */
-    val gyroscope: Gyroscope = Gyroscope()
-    inner class Gyroscope internal constructor() : ThreeAxisGyroscope, Loggable {
-        /*
-        Internal constructor makes it so that the inner class can be accepted as a type argument,
-        but can't be instantiated.
-         */
-        override val namespace = "Pigeon2/Gyroscope"
-        private var simPreviousYaw = Angle(0.0)
-
-        override val yaw: Angle by logged {
-            if (isReal()) yawSignal.refresh().value.ofUnit(degrees) else simHeadingSource()
-        }
-
-        override val pitch: Angle by logged {
-            if (isReal()) pitchSignal.refresh().value.ofUnit(degrees) else Angle(0.0)
-        }
-
-        override val roll: Angle by logged {
-            if (isReal()) rollSignal.refresh().value.ofUnit(degrees) else Angle(0.0)
-        }
-
-        val yawRate: AngularVelocity by logged {
-            if (isReal()) {
-                yawRateSignal.refresh().value.ofUnit(degrees / seconds)
-            } else {
-                val currH = simHeadingSource()
-                ((currH - simPreviousYaw) / ChargerRobot.LOOP_PERIOD).also {
-                    simPreviousYaw = currH
-                }
-            }
-        }
-
-        val pitchRate: AngularVelocity by logged {
-            if (isReal()) pitchRateSignal.refresh().value.ofUnit(degrees / seconds) else AngularVelocity(0.0)
-        }
-
-        val rollRate: AngularVelocity by logged {
-            if (isReal()) rollRateSignal.refresh().value.ofUnit(degrees / seconds) else AngularVelocity(0.0)
-        }
-    }
-
-    /**
-     * The accelerometer of the Pigeon; contains x, y, and z acceleration.
-     */
-    val accelerometer: Accelerometer = Accelerometer()
-    inner class Accelerometer internal constructor() : ThreeAxisAccelerometer, Loggable {
-        override val namespace = "Pigeon2/Accelerometer"
-
-        override val xAcceleration: Acceleration by logged {
-            if (isReal()) xAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
-        }
-
-        override val yAcceleration: Acceleration by logged {
-            if (isReal()) yAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
-        }
-
-        override val zAcceleration: Acceleration by logged {
-            if (isReal()) zAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
-        }
-    }
-
-    /**
      * The heading of the Pigeon; equivalent to yaw.
      */
-    override val heading: Angle by logged { gyroscope.yaw }
+    override val heading: Angle get() = this.yaw
 
     /**
      * Zeroes the heading of the Pigeon.
      */
     override fun zeroHeading(angle: Angle) {
         base.setYaw(angle.inUnit(degrees))
+    }
+
+    val yaw: Angle by logged {
+        if (isReal()) yawSignal.refresh().value.ofUnit(degrees) else simHeadingSource()
+    }
+
+    val pitch: Angle by logged {
+        if (isReal()) pitchSignal.refresh().value.ofUnit(degrees) else Angle(0.0)
+    }
+
+    val roll: Angle by logged {
+        if (isReal()) rollSignal.refresh().value.ofUnit(degrees) else Angle(0.0)
+    }
+
+    val yawRate: AngularVelocity by logged {
+        if (isReal()) {
+            yawRateSignal.refresh().value.ofUnit(degrees / seconds)
+        } else {
+            val currH = simHeadingSource()
+            ((currH - simPreviousYaw) / ChargerRobot.LOOP_PERIOD).also {
+                simPreviousYaw = currH
+            }
+        }
+    }
+
+    val pitchRate: AngularVelocity by logged {
+        if (isReal()) pitchRateSignal.refresh().value.ofUnit(degrees / seconds) else AngularVelocity(0.0)
+    }
+
+    val rollRate: AngularVelocity by logged {
+        if (isReal()) rollRateSignal.refresh().value.ofUnit(degrees / seconds) else AngularVelocity(0.0)
+    }
+
+    val xAcceleration: Acceleration by logged {
+        if (isReal()) xAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
+    }
+
+    val yAcceleration: Acceleration by logged {
+        if (isReal()) yAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
+    }
+
+    val zAcceleration: Acceleration by logged {
+        if (isReal()) zAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
     }
 
     /**
@@ -150,11 +129,11 @@ class ChargerPigeon2(
             LimelightHelpers.setRobotOrientation(
                 llName,
                 heading.inUnit(degrees),
-                gyroscope.yawRate.inUnit(degrees / seconds),
-                gyroscope.pitch.inUnit(degrees),
-                gyroscope.pitchRate.inUnit(degrees / seconds),
-                gyroscope.roll.inUnit(degrees),
-                gyroscope.rollRate.inUnit(degrees / seconds),
+                yawRate.inUnit(degrees / seconds),
+                pitch.inUnit(degrees),
+                pitchRate.inUnit(degrees / seconds),
+                roll.inUnit(degrees),
+                rollRate.inUnit(degrees / seconds),
             )
         }
     }

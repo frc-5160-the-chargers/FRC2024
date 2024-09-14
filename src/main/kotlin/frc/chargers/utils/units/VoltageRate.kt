@@ -1,4 +1,4 @@
-package frc.chargers.utils.math.units
+package frc.chargers.utils.units
 
 import com.batterystaple.kmeasure.dimensions.*
 import com.batterystaple.kmeasure.quantities.Quantity

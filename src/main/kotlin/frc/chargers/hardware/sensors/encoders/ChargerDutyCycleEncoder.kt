@@ -7,9 +7,8 @@ import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.rotations
 import edu.wpi.first.wpilibj.DutyCycleEncoder
 
-
 /**
- * An Adapter of WPILib's [DutyCycleEncoder] class; consists of REV through bore encoders, CTRE mag encoders.
+ * An Adapter of WPILib's [DutyCycleEncoder] class; consists of REV through bore encoders and CTRE mag encoders.
  */
 class ChargerDutyCycleEncoder(
     val channel: Int,

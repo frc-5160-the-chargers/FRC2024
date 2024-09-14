@@ -119,7 +119,7 @@ abstract class ChargerRobot(
     init{
         LoggedCommand.configure(
             logCommandRunning = this::log,
-            logCommandExecutionTime = this::log
+            logExecutionTime = this::log
         )
 
         if (logFileName == null) {

@@ -8,7 +8,7 @@ import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.volts
 import frc.chargers.framework.SuperSubsystem
 import frc.chargers.hardware.motorcontrol.Motor
-import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
+import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 
 private const val CLIMBER_ID_LEFT = 6
 private const val CLIMBER_ID_RIGHT = 8

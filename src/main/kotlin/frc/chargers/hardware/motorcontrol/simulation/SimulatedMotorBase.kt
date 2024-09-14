@@ -7,7 +7,6 @@ import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.math.controller.PIDController
 import frc.chargers.controls.constants
 import frc.chargers.hardware.motorcontrol.Motor
-import frc.chargers.utils.math.inputModulus
 import kotlin.math.PI
 
 /**
@@ -27,7 +26,7 @@ abstract class SimulatedMotorBase: Motor {
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
         require(positionPIDConfigured){" You must specify a positionPID value using the configure() method. "}
         var encoderReading = this.encoder.angularPosition
-        if (positionController.isContinuousInputEnabled) encoderReading = encoderReading.inputModulus(0.degrees..360.degrees)
+        if (positionController.isContinuousInputEnabled) encoderReading %= 360.degrees
 
         val pidOutput = positionController.calculate(encoderReading.siValue, position.siValue)
         this.appliedVoltage = (Voltage(pidOutput) + feedforward).coerceIn(-12.volts..12.volts)

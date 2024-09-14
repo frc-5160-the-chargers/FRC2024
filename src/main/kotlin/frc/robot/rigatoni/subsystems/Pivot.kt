@@ -14,7 +14,7 @@ import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.framework.SuperSubsystem
 import frc.chargers.hardware.motorcontrol.Motor
-import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
+import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 import frc.chargers.hardware.sensors.encoders.ChargerDutyCycleEncoder
 import frc.chargers.hardware.sensors.encoders.PositionEncoder

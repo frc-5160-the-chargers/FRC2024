@@ -8,10 +8,10 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
 import kcommand.commandbuilder.buildCommand
 import kcommand.setDefaultRunCommand
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
+import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 import frc.chargers.hardware.subsystems.differentialdrive.DifferentialDriveConstants
 import frc.chargers.hardware.subsystems.differentialdrive.EncoderDifferentialDrivetrain
-import frc.chargers.utils.math.mapBetweenRanges
+import frc.chargers.utils.mapControllerInput
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import kotlin.math.abs
 
@@ -21,15 +21,19 @@ import kotlin.math.abs
 class PushBot: ChargerRobot() {
     private val drivetrain = if (isSimulation()){
         EncoderDifferentialDrivetrain.simulated(
-            motorType = DCMotor.getNEO(1),
+            motorType = DCMotor.getNEO(2),
             constants = DifferentialDriveConstants.andymarkKitbot(invertMotors = false)
         )
     }else{
         EncoderDifferentialDrivetrain(
-            topLeft = ChargerSparkMax(15).configure(inverted = true),
-            topRight = ChargerSparkMax(7),
-            bottomLeft = ChargerSparkMax(11).configure(inverted = true),
-            bottomRight = ChargerSparkMax(23),
+            leftMotors = listOf(
+                ChargerSparkMax(15).configure(inverted = true),
+                ChargerSparkMax(11).configure(inverted = true)
+            ),
+            rightMotors = listOf(
+                ChargerSparkMax(7),
+                ChargerSparkMax(23)
+            ),
             constants = DifferentialDriveConstants.andymarkKitbot(invertMotors = false)
         )
     }
@@ -40,7 +44,7 @@ class PushBot: ChargerRobot() {
 
     init{
         drivetrain.setDefaultRunCommand {
-            val precisionModePower = abs(xboxController.leftTriggerAxis).mapBetweenRanges(0.0..1.0, 1.0..6.0)
+            val precisionModePower = abs(xboxController.leftTriggerAxis).mapControllerInput(1.0..6.0)
             drivetrain.curvatureDrive(
                 ChassisPowers(
                     MathUtil.applyDeadband(xboxController.leftY, .2) * precisionModePower,

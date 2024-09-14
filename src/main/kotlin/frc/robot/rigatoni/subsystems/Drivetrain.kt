@@ -7,8 +7,8 @@ import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.TimedRobot.isSimulation
 import frc.chargers.controls.feedforward.AngularMotorFeedforward
-import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
-import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
+import frc.chargers.hardware.motorcontrol.ChargerTalonFX
+import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
 import frc.chargers.hardware.sensors.imu.HeadingProvider
@@ -49,7 +49,7 @@ private val SWERVE_CONSTANTS = SwerveConstants(
     azimuthPID = PIDConstants(7.0,0.0,0.0),
     azimuthPIDTolerance = 1.degrees,
     velocityPID = PIDConstants(0.05,0.0,0.0),
-    velocityFF = AngularMotorFeedforward(0.0,0.13)
+    velocityFF = AngularMotorFeedforward(0.0,0.13),
 )
 private val TURN_MOTORS = SwerveData(
     topLeft = ChargerSparkMax(DrivetrainID.TL_TURN),

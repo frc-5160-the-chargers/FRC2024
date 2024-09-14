@@ -18,15 +18,16 @@ import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.drive.DifferentialDrive
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 import frc.chargers.hardware.sensors.imu.HeadingProvider
 import frc.chargers.hardware.sensors.imu.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.PoseEstimatingDrivetrain
-import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.angle
+import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.chargers.wpilibextensions.kinematics.ChassisSpeeds
 import kotlin.jvm.optionals.getOrNull
 
@@ -35,13 +36,11 @@ import kotlin.jvm.optionals.getOrNull
  */
 open class EncoderDifferentialDrivetrain(
     logName: String = "Drivetrain(Differential)",
-    private val topLeft: Motor,
-    private val topRight: Motor,
-    private val bottomLeft: Motor,
-    private val bottomRight: Motor,
+    private val leftMotors: List<Motor>,
+    private val rightMotors: List<Motor>,
     private val constants: DifferentialDriveConstants,
-    val gyro: HeadingProvider? = null
-): PoseEstimatingDrivetrain(logName), DifferentialDrivetrain, HeadingProvider {
+    private val gyro: HeadingProvider? = null
+): PoseEstimatingDrivetrain(logName), HeadingProvider {
     companion object {
         /**
          * Creates a [EncoderDifferentialDrivetrain] with simulated motors.
@@ -52,18 +51,14 @@ open class EncoderDifferentialDrivetrain(
             constants: DifferentialDriveConstants
         ): EncoderDifferentialDrivetrain =
             EncoderDifferentialDrivetrain(
-                logName, MotorSim(motorType), MotorSim(motorType),
-                MotorSim(motorType), MotorSim(motorType), constants
+                logName, listOf(MotorSim(motorType)), listOf(MotorSim(motorType)), constants
             )
     }
     /* Private implementation */
     private val wheelRadius = constants.wheelDiameter / 2
 
-    private val leftEncoder = topLeft.encoder
-    private val rightEncoder = topRight.encoder
-
-    private val leftMotors = listOf(topLeft, bottomLeft)
-    private val rightMotors = listOf(topRight, bottomRight)
+    private val leftEncoder = leftMotors[0].encoder
+    private val rightEncoder = rightMotors[0].encoder
 
     private val kinematics = DifferentialDriveKinematics(constants.width.inUnit(meters))
     private val poseEstimator = DifferentialDrivePoseEstimator(
@@ -76,19 +71,19 @@ open class EncoderDifferentialDrivetrain(
     private val robotObject = ChargerRobot.FIELD.getObject(logName)
 
     /* Public API */
-    init{
+    init {
         if (constants.invertMotors){
-            topRight.configure(inverted = !topRight.inverted)
-            bottomRight.configure(inverted = !bottomRight.inverted)
+            for (motor in rightMotors){
+                motor.configure(inverted = !motor.inverted)
+            }
         }
-        for (motor in listOf(topLeft, topRight, bottomLeft, bottomRight)){
+        for (motor in leftMotors + rightMotors){
             motor.configure(
                 velocityPID = constants.velocityPID,
                 startingPosition = 0.degrees,
                 gearRatio = constants.gearRatio
             )
         }
-
         when (constants.pathAlgorithm){
             PathAlgorithm.LTV -> {
                 AutoBuilder.configureLTV(
@@ -194,18 +189,11 @@ open class EncoderDifferentialDrivetrain(
     /**
      * Adds a vision measurement to the drivetrain's pose estimator.
      */
-    override fun addVisionMeasurement(measurement: Measurement<Pose2d>, stdDevs: Matrix<N3, N1>?) {
+    override fun addVisionMeasurement(pose: Pose2d, timestamp: Time, stdDevs: Matrix<N3, N1>?) {
         if (stdDevs != null){
-            poseEstimator.addVisionMeasurement(
-                measurement.value,
-                measurement.timestamp.inUnit(seconds),
-                stdDevs
-            )
+            poseEstimator.addVisionMeasurement(pose, timestamp.inUnit(seconds), stdDevs)
         }else{
-            poseEstimator.addVisionMeasurement(
-                measurement.value,
-                measurement.timestamp.inUnit(seconds)
-            )
+            poseEstimator.addVisionMeasurement(pose, timestamp.inUnit(seconds))
         }
     }
 
@@ -221,11 +209,58 @@ open class EncoderDifferentialDrivetrain(
         )
     }
 
-    // arcade drive and curvature drive implementations
-    // are provided in the DifferentialDrivetrain interface
-    override fun tankDrive(leftPower: Double, rightPower: Double) {
+    /**
+     * Drives using "tank controls", a system by which each side of the drivetrain is controlled independently.
+     * @param leftPower the power of the left side of the drivetrain (from [-1..1]).
+     * @param rightPower the power of the right side of the drivetrain (from [-1..1]).
+     */
+    fun tankDrive(leftPower: Double, rightPower: Double) {
         leftMotors.forEach{ it.speed = leftPower }
         rightMotors.forEach{ it.speed = rightPower }
+    }
+
+    /**
+     * Drives the robot at a certain power forward and with a certain amount of rotation.
+     * @param power the power with which to drive forward (from [-1..1]).
+     * @param rotation the power with which to rotate (proportional to the angular velocity, or how quickly the heading changes). (Must be from [-1..1]).
+     */
+    fun arcadeDrive(power: Double, rotation: Double = 0.0, squareInputs: Boolean = true){
+        val wheelSpeeds = DifferentialDrive.arcadeDriveIK(power,rotation, squareInputs)
+        tankDrive(wheelSpeeds.left,wheelSpeeds.right)
+    }
+
+    /**
+     * Drives the robot at a certain power forward and with a certain amount of steering.
+     * This method makes turning easier at high speeds.
+     * @param power the power with which to drive forward (from [-1..1]).
+     * @param steering the amount of steering (inversely proportional to the turn radius).
+     * Changing this value is can be thought of as changing how far a car's steering wheel is turned.
+     * (Must be from [-1..1]).
+     */
+    fun curvatureDrive(power: Double, steering: Double, allowTurnInPlace: Boolean = true){
+        val wheelSpeeds = DifferentialDrive.curvatureDriveIK(power, steering, allowTurnInPlace)
+        tankDrive(wheelSpeeds.left, wheelSpeeds.right)
+    }
+
+    /**
+     * Stops the robot.
+     */
+    fun stop(){
+        tankDrive(0.0,0.0)
+    }
+
+    /**
+     * Calls [arcadeDrive] with a [ChassisPowers].
+     */
+    fun arcadeDrive(chassisPowers: ChassisPowers, squareInputs: Boolean = true) {
+        arcadeDrive(power = chassisPowers.xPower, rotation = chassisPowers.rotationPower, squareInputs)
+    }
+
+    /**
+     * Calls [curvatureDrive] with a [ChassisPowers].
+     */
+    fun curvatureDrive(chassisPowers: ChassisPowers, allowTurnInPlace: Boolean = true) {
+        curvatureDrive(power = chassisPowers.xPower, steering = chassisPowers.rotationPower, allowTurnInPlace)
     }
 
     fun velocityDrive(xVelocity: Velocity, yVelocity: Velocity, rotationSpeed: AngularVelocity): Unit =

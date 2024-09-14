@@ -2,11 +2,11 @@ package frc.robot.rigatoni
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
-import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
+import edu.wpi.first.math.MathUtil.applyDeadband
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.PowerDistribution
@@ -14,19 +14,20 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
+import edu.wpi.first.wpilibj2.command.button.Trigger
+import frc.chargers.controls.PIDController
 import kcommand.InstantCommand
 import kcommand.RunCommand
 import kcommand.commandbuilder.buildCommand
 import kcommand.setDefaultRunCommand
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.imu.ChargerNavX
-import frc.chargers.hardware.subsystems.swervedrive.AimToAngleRotationOverride
-import frc.chargers.hardware.subsystems.swervedrive.AimToObjectRotationOverride
-import frc.chargers.utils.math.withDeadband
+import frc.chargers.utils.squareMagnitude
 import frc.chargers.wpilibextensions.distanceTo
 import frc.chargers.wpilibextensions.flipWhenRedAlliance
 import frc.chargers.wpilibextensions.fpgaTimestamp
-import frc.chargers.wpilibextensions.inputdevices.onDoubleClick
+import frc.chargers.wpilibextensions.kinematics.ChassisPowers
+import frc.chargers.wpilibextensions.onDoubleClick
 import frc.robot.rigatoni.inputdevices.PS5SwerveController
 import frc.robot.rigatoni.subsystems.Climber
 import frc.robot.rigatoni.subsystems.GroundIntakeSerializer
@@ -37,7 +38,6 @@ import frc.robot.rigatoni.subsystems.PivotAngle
 import frc.robot.rigatoni.subsystems.shooter.Shooter
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.math.pow
 
 /**
  * Our competition robot; rigatoni.
@@ -53,17 +53,10 @@ class CompetitionRobot: ChargerRobot() {
     private val noteObserver = NoteObserver()
     
     private val driverController = PS5SwerveController(DRIVER_CONTROLLER_PORT, DEFAULT_DEADBAND, DRIVER_RIGHT_HANDED)
+    private val driverTouchpad = driverController.touchpad()
     private val operatorController = CommandXboxController(OPERATOR_CONTROLLER_PORT)
 
     private val autoChooser = SendableChooser<Command>()
-
-    private val aimToNoteRotationOverride = AimToObjectRotationOverride(
-        getCrosshairOffset = {
-            val currentState = noteObserver.state
-            if (currentState is NoteObserver.State.NoteDetected) currentState.tx else null
-        },
-        AIM_TO_NOTE_PID
-    )
 
     override fun robotInit() {
         DriverStation.silenceJoystickConnectionWarning(true)
@@ -78,19 +71,6 @@ class CompetitionRobot: ChargerRobot() {
             "Taxi",
             RunCommand(drivetrain){ drivetrain.swerveDrive(0.2, 0.0, 0.0, fieldRelative = false) }
                 .withTimeout(5.0)
-        )
-
-        autoChooser.addOption(
-            "BuildCommandDebugging",
-            buildCommand {
-                var test by getOnceDuringRun { 0 }
-
-                runOnce {
-                    println(test)
-                    test = 2
-                    println(test)
-                }
-            }
         )
 
         // getAutoCommands is implemented below
@@ -110,30 +90,40 @@ class CompetitionRobot: ChargerRobot() {
 
     private fun setButtonBindings() {
         driverController.apply {
-            touchpad().onDoubleClick(InstantCommand{ gyro.zeroHeading(180.degrees) })
-
-            if (DRIVER_RIGHT_HANDED) {
-                povUp().whileTrue(targetAngle(0.degrees))
-                povRight().whileTrue(targetAngle(-90.degrees))
-                povRight().whileTrue(targetAngle(-180.degrees))
-                povLeft().whileTrue(targetAngle(-270.degrees))
-                L2().whileTrue(noteIntakeDriverAssist())
+            val aimTriggers: List<Trigger>
+            val noteIntakeTrigger: Trigger
+            val climbUpTrigger: Trigger
+            val climbDownTrigger: Trigger
+            if (DRIVER_RIGHT_HANDED){
+                aimTriggers = listOf(povUp(), povRight(), povDown(), povLeft())
+                noteIntakeTrigger = L2()
+                climbUpTrigger = triangle()
+                climbDownTrigger = cross()
             } else {
-                triangle().whileTrue(targetAngle(0.degrees))
-                circle().whileTrue(targetAngle(-90.degrees))
-                cross().whileTrue(targetAngle(-180.degrees))
-                square().whileTrue(targetAngle(-270.degrees))
-                R2().whileTrue(noteIntakeDriverAssist())
+                aimTriggers = listOf(triangle(), circle(), cross(), square())
+                noteIntakeTrigger = R2()
+                climbUpTrigger = povUp()
+                climbDownTrigger = povDown()
             }
 
-            povUp().whileTrue(
+            touchpad().onDoubleClick(InstantCommand{ gyro.zeroHeading(180.degrees) })
+
+            var current = 0.degrees
+            for (trigger in aimTriggers){
+                trigger.whileTrue(AngleAimCommand({current}, drivetrain, { driverController.swerveOutput }))
+                current -= 90.degrees
+            }
+
+            noteIntakeTrigger.whileTrue(noteIntakeDriverAssist())
+
+            climbUpTrigger.whileTrue(
                 RunCommand(climber){
                     climber.moveLeftHook(1.0)
                     climber.moveRightHook(1.0)
                 }
             )
 
-            povDown().whileTrue(
+            climbDownTrigger.whileTrue(
                 RunCommand(climber){
                     climber.moveLeftHook(-1.0)
                     climber.moveRightHook(-1.0)
@@ -177,13 +167,12 @@ class CompetitionRobot: ChargerRobot() {
     }
 
     private fun setDefaultCommands(){
-        val touchpad = driverController.touchpad()
         drivetrain.setDefaultRunCommand{
-            drivetrain.swerveDrive(driverController.swerveOutput, fieldRelative = !touchpad.asBoolean)
+            drivetrain.swerveDrive(driverController.swerveOutput, fieldRelative = !driverTouchpad.asBoolean)
         }
 
         shooter.setDefaultRunCommand{
-            var speed = operatorController.leftY.withDeadband(SHOOTER_DEADBAND)
+            var speed = applyDeadband(operatorController.leftY, SHOOTER_DEADBAND)
             speed *= SHOOTER_SPEED_MULTIPLIER
             log("OperatorController/ShooterSpeed", speed)
             if (speed > 0.0 && noteObserver.noteInRobot){
@@ -194,7 +183,7 @@ class CompetitionRobot: ChargerRobot() {
         }
 
         pivot.defaultCommand = RunCommand(pivot){
-            var speed = operatorController.rightY.withDeadband(PIVOT_DEADBAND).pow(2)
+            var speed = applyDeadband(operatorController.rightY, PIVOT_DEADBAND).squareMagnitude()
             speed *= PIVOT_SPEED_MULTIPLIER
             log("OperatorController/PivotSpeed", speed)
             pivot.setSpeed(speed)
@@ -205,46 +194,32 @@ class CompetitionRobot: ChargerRobot() {
         groundIntake.setDefaultRunCommand { groundIntake.setIdle() }
     }
 
-    /* Commands */
+    private fun shouldPathFind(path: PathPlannerPath): Boolean {
+        val pathStartPose = path.previewStartingHolonomicPose.flipWhenRedAlliance()
+        val pathEndPose = path.pathPoses.last().flipWhenRedAlliance()
+        val drivetrainPose = drivetrain.robotPose
 
-    private fun targetAngle(heading: Angle) = buildCommand {
-        runOnce {
-            drivetrain.setRotationOverride(
-                AimToAngleRotationOverride(
-                    { heading.flipWhenRedAlliance() },
-                    AIM_TO_ANGLE_PID
-                )
-            )
-        }
-
-        // only ends when interrupted(the whileTrue decorator does this)
-        waitForever()
-
-        onEnd { drivetrain.removeRotationOverride() }
+        return drivetrainPose.distanceTo(pathStartPose) > ACCEPTABLE_DISTANCE_BEFORE_PATHFIND &&
+                drivetrainPose.distanceTo(pathEndPose) > drivetrainPose.distanceTo(pathStartPose)
     }
 
+    /* Commands */
+
     private fun followPathOptimal(path: PathPlannerPath) = buildCommand(name = "FollowPathOptimal"){
-        fun shouldPathFind(): Boolean {
-            val pathStartPose = path.previewStartingHolonomicPose.flipWhenRedAlliance()
-            val pathEndPose = path.pathPoses.last().flipWhenRedAlliance()
-            val drivetrainPose = drivetrain.robotPose
-
-            return drivetrainPose.distanceTo(pathStartPose) > ACCEPTABLE_DISTANCE_BEFORE_PATHFIND &&
-                    drivetrainPose.distanceTo(pathEndPose) > drivetrainPose.distanceTo(pathStartPose)
-        }
-
-        runSequenceIf(::shouldPathFind){
+        runSequenceIf({shouldPathFind(path)}){
             +AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS)
         }.orElse{
             +AutoBuilder.followPath(path)
         }
     }
 
-    private fun noteIntakeDriverAssist() = buildCommand {
+    private fun noteIntakeDriverAssist(
+        getChassisPowers: () -> ChassisPowers = { driverController.swerveOutput }
+    ) = buildCommand {
         require(drivetrain)
 
         fun getNotePursuitSpeed(txValue: Double): Double {
-            val swerveOutput = driverController.swerveOutput
+            val swerveOutput = getChassisPowers()
             return max(abs(swerveOutput.xPower), abs(swerveOutput.yPower)) * (1.0 - txValue / 50.0) // scales based off of the vision target error
         }
 
@@ -254,22 +229,25 @@ class CompetitionRobot: ChargerRobot() {
                     currentState.distanceToNote <= ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
         }
 
+        // custom PID controller constructor that accepts pid constants
+        val aimController by getOnceDuringRun { PIDController(AIM_TO_NOTE_PID) }
+
         // regular drive occurs until suitable target found
-        val touchpad = driverController.touchpad()
         loopUntil(::shouldStartPursuit){
-            drivetrain.swerveDrive(driverController.swerveOutput, fieldRelative = !touchpad.asBoolean)
+            drivetrain.swerveDrive(driverController.swerveOutput, fieldRelative = !driverTouchpad.asBoolean)
         }
 
-        runOnce { drivetrain.setRotationOverride(aimToNoteRotationOverride) }
-
-        loop{
-            // drives back to grab note
+        // drives back to grab note
+        loop {
             val state = noteObserver.state
-            val speed = getNotePursuitSpeed(if (state is NoteObserver.State.NoteDetected) state.tx else 0.0)
-            drivetrain.swerveDrive(speed, 0.0, 0.0, fieldRelative = false)
+            if (state is NoteObserver.State.NoteDetected){
+                val forwardPower = getNotePursuitSpeed(state.tx)
+                val rotationPower = aimController.calculate(state.tx, 0.0)
+                drivetrain.swerveDrive(forwardPower, 0.0, rotationPower, fieldRelative = false)
+            } else {
+                drivetrain.stop()
+            }
         }
-
-        onEnd { drivetrain.removeRotationOverride() }
     }
 
     private fun setPivotAngle(target: Angle) = buildCommand("SetAngleCommand") {
@@ -334,7 +312,7 @@ class CompetitionRobot: ChargerRobot() {
         val spinupStartTime by getOnceDuringRun{ fpgaTimestamp() }
 
         runSequenceIf({movePivot}) {
-            parallelUntilLeadFinishes {
+            parallelUntilLeadEnds {
                 +setPivotAngle(PivotAngle.SPEAKER)
                 loop{ shooter.outtakeAtSpeakerSpeed() }
             }
@@ -366,7 +344,7 @@ class CompetitionRobot: ChargerRobot() {
                 +ampAutoStartup()
                 +setPivotAngle(PivotAngle.STOWED)
                 +followPathOptimal(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
-            }.also{ println(it.name) },
+            },
 
             buildCommand("2-3 Piece Amp", log = true){
                 +ampAutoStartup()
@@ -415,9 +393,9 @@ class CompetitionRobot: ChargerRobot() {
     private fun ampAutoStartup() = buildCommand {
         require(drivetrain, pivot, shooter, groundIntake)
 
-        parallelUntilAllFinish{
-            runSequence{
-                runOnce{ drivetrain.resetPose(AutoStartingPose.getAmp()) }
+        parallelUntilAllEnd {
+            runSequence {
+                runOnce { drivetrain.resetPose(AutoStartingPose.getAmp()) }
                 wait(0.3)
                 +followPathOptimal(PathPlannerPath.fromPathFile("DriveToAmp"))
             }
@@ -460,21 +438,19 @@ class CompetitionRobot: ChargerRobot() {
             groundIntake.intake()
         }
 
-        parallelUntilLeadFinishes {
-            // will run until this finishes
+        parallelUntilLeadEnds {
             runSequenceUntil(::noteInSerializer) {
-                +followPathOptimal(path)
-                loopWhile({noteObserver.state is NoteObserver.State.NoteDetected}){
-                    drivetrain.swerveDrive(0.3, 0.0, 0.0, fieldRelative = false)
-                }
-                runOnce { drivetrain.stop() }
+                +(followPathOptimal(path)
+                    .onlyWhile{ noteObserver.hasCamera && !noteObserver.noteFound })
+
+                +(noteIntakeDriverAssist{ ChassisPowers(0.3, 0.0, 0.0) }
+                    .onlyWhile{ noteObserver.noteFound })
+
                 wait(noteIntakeTime.inUnit(seconds))
             }
 
-            // parallel #2
             +setPivotAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
 
-            // parallel #3
             loop{
                 groundIntake.intake()
                 if (spinUpShooterDuringPath){
@@ -483,21 +459,13 @@ class CompetitionRobot: ChargerRobot() {
                     shooter.setIdle()
                 }
             }
-
-            runSequenceIf({noteObserver.hasCamera}) {
-                val startPose by getOnceDuringRun { path.pathPoses.last().flipWhenRedAlliance() }
-                waitUntil{ drivetrain.robotPose.distanceTo(startPose) < 0.8.meters }
-                runOnce{ drivetrain.setRotationOverride(aimToNoteRotationOverride) }
-            }
         }
-
-        onEnd{ drivetrain.removeRotationOverride() }
     }
 
     private fun driveAndScoreAmp(path: PathPlannerPath) = buildCommand("Drive And Score Amp", log = true) {
         require(drivetrain, pivot, shooter, groundIntake)
 
-        parallelUntilAllFinish {
+        parallelUntilAllEnd {
             +followPathOptimal(path)
 
             runSequence {
@@ -515,7 +483,7 @@ class CompetitionRobot: ChargerRobot() {
     ) = buildCommand {
         require(drivetrain, pivot, shooter, groundIntake)
 
-        parallelUntilLeadFinishes {
+        parallelUntilLeadEnds {
             +followPathOptimal(path)
 
             loop{

@@ -9,7 +9,6 @@ import com.kauailabs.navx.frc.AHRS
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.Loggable
-import frc.chargers.utils.math.inputModulus
 import limelight.LimelightHelpers
 
 
@@ -20,6 +19,11 @@ class ChargerNavX(
 ): ZeroableHeadingProvider, Loggable {
     override val namespace = "NavX"
     private var headingOffset by logged(0.degrees)
+
+    /**
+     * Equivalent to the NavX [yaw].
+     */
+    override val heading: Angle get() = this.yaw
 
     /**
      * Zeroes the heading of the NavX.
@@ -57,10 +61,10 @@ class ChargerNavX(
                 LimelightHelpers.setRobotOrientation(
                     llName,
                     heading.inUnit(degrees),
-                    gyroscope.yawRate.inUnit(degrees/seconds),
-                    gyroscope.pitch.inUnit(degrees),
+                    yawRate.inUnit(degrees/seconds),
+                    pitch.inUnit(degrees),
                     0.0,
-                    gyroscope.roll.inUnit(degrees),
+                    roll.inUnit(degrees),
                     0.0
                 )
             }
@@ -78,10 +82,10 @@ class ChargerNavX(
     val isConnected: Boolean by logged{ base.isConnected && isReal() }
 
     /**
-     * The heading of the NavX. Reports a value in between 0-360 degrees.
+     * The heading of the NavX. Reports a continuous value(can go over 360 and -360 degrees).
      */
-    override val heading: Angle by logged{
-        (if (isReal()) {
+    val yaw: Angle by logged{
+        if (isReal()) {
             // Negative sign because the navX reports clockwise as positive, whereas we want counterclockwise to be positive
             if (useFusedHeading && base.isMagnetometerCalibrated && !base.isMagneticDisturbance){
                 -base.fusedHeading.toDouble().ofUnit(degrees)
@@ -90,63 +94,39 @@ class ChargerNavX(
             }
         }else{
             simHeadingSource()
-        } + headingOffset).inputModulus(0.degrees..360.degrees)
+        } + headingOffset
     }
 
     /**
-     * The gyroscope of the NavX. Implements [ThreeAxisGyroscope] and HeadingProvider.
+     * The NavX pitch. Is between -180 and 180 degrees.
      */
-    val gyroscope: Gyroscope = Gyroscope()
-    inner class Gyroscope internal constructor(): ThreeAxisGyroscope, Loggable {
-        override val namespace = "NavX/Gyroscope"
-
-        override val yaw: Angle by logged{
-            if (isReal()) {
-                base.yaw.toDouble().ofUnit(degrees)
-            } else {
-                simHeadingSource().inputModulus(-180.degrees..180.degrees)
-            }
-        }
-
-        override val pitch: Angle by logged{
-            if (isReal()) base.pitch.toDouble().ofUnit(degrees) else Angle(0.0)
-        }
-
-        override val roll: Angle by logged{
-            if (isReal()) base.roll.toDouble().ofUnit(degrees) else Angle(0.0)
-        }
-
-        val yawRate: AngularVelocity by logged {
-            if (isReal()) base.rate.ofUnit(degrees/seconds) else AngularVelocity(0.0)
-        }
-
-        override val heading: Angle get() = this@ChargerNavX.heading
-
-        fun zeroYaw(){
-            base.zeroYaw()
-        }
+    val pitch: Angle by logged{
+        if (isReal()) base.pitch.toDouble().ofUnit(degrees) else Angle(0.0)
     }
 
     /**
-     * The accelerometer of the NavX. Implements [ThreeAxisAccelerometer].
+     * The NavX roll. Is between -180 and 180 degrees.
      */
-    val accelerometer: Accelerometer = Accelerometer()
-    inner class Accelerometer internal constructor(): ThreeAxisAccelerometer, Loggable {
-        override val namespace = "NavX/Accelerometer"
+    val roll: Angle by logged{
+        if (isReal()) base.roll.toDouble().ofUnit(degrees) else Angle(0.0)
+    }
 
-        private var previousXVelSim = Velocity(0.0)
-        private var previousYVelSim = Velocity(0.0)
+    /**
+     * The angular acceleration of the robot.
+     */
+    val yawRate: AngularVelocity by logged {
+        base.rate.ofUnit(degrees/seconds)
+    }
 
-        override val xAcceleration: Acceleration by logged{
-            if (isReal()) base.worldLinearAccelX.toDouble().ofUnit(standardGravities) else Acceleration(0.0)
-        }
+    val xAcceleration: Acceleration by logged{
+        base.worldLinearAccelX.toDouble().ofUnit(standardGravities)
+    }
 
-        override val yAcceleration: Acceleration by logged{
-            if (isReal()) base.worldLinearAccelY.toDouble().ofUnit(standardGravities) else Acceleration(0.0)
-        }
+    val yAcceleration: Acceleration by logged{
+        base.worldLinearAccelY.toDouble().ofUnit(standardGravities)
+    }
 
-        override val zAcceleration: Acceleration by logged{
-            if (isReal()) base.worldLinearAccelZ.toDouble().ofUnit(standardGravities) else Acceleration(0.0)
-        }
+    val zAcceleration: Acceleration by logged{
+        base.worldLinearAccelZ.toDouble().ofUnit(standardGravities)
     }
 }

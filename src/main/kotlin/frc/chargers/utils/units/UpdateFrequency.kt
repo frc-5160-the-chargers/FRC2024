@@ -1,5 +1,5 @@
 @file:Suppress("unused")
-package frc.chargers.utils.math.units
+package frc.chargers.utils.units
 
 import com.batterystaple.kmeasure.quantities.Frequency
 import com.batterystaple.kmeasure.quantities.Time

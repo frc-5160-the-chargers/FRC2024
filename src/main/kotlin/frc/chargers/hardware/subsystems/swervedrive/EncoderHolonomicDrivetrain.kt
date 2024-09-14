@@ -18,6 +18,9 @@ import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
+import frc.chargers.controls.PIDController
+import frc.chargers.controls.motionprofiling.AngularMotionProfileState
+import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.faultchecking.FaultChecking
 import frc.chargers.hardware.motorcontrol.Motor
@@ -25,17 +28,16 @@ import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.HeadingProvider
 import frc.chargers.hardware.sensors.imu.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.PoseEstimatingDrivetrain
-import frc.chargers.utils.Measurement
-import frc.chargers.utils.math.inputModulus
-import frc.chargers.utils.math.units.VoltageRate
-import frc.chargers.utils.math.units.toKmeasure
-import frc.chargers.utils.math.units.toWPI
+import frc.chargers.utils.units.VoltageRate
+import frc.chargers.utils.units.toKmeasure
+import frc.chargers.utils.units.toWPI
 import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.Translation2d
 import frc.chargers.wpilibextensions.angle
 import frc.chargers.wpilibextensions.kinematics.*
 import frc6328.SwerveSetpointGenerator
 import kotlin.jvm.optionals.getOrNull
+import kotlin.math.abs
 import kotlin.math.pow
 
 
@@ -54,8 +56,8 @@ open class EncoderHolonomicDrivetrain(
     // turn encoders are optional in sim
     turnEncoders: SwerveData<PositionEncoder?> = SwerveData.create{ null },
     driveMotors: SwerveData<Motor>,
-    private val constants: SwerveConstants,
-    val gyro: HeadingProvider? = null
+    val constants: SwerveConstants,
+    private val gyro: HeadingProvider? = null
 ): PoseEstimatingDrivetrain(logName), HeadingProvider {
     private val moduleNames = listOf("Modules/TopLeft", "Modules/TopRight", "Modules/BottomLeft", "Modules/BottomRight")
     // A SwerveData instance that holds all the swerve modules of the drivetrain.
@@ -102,8 +104,6 @@ open class EncoderHolonomicDrivetrain(
     }
     private var currentControlMode = ControlMode.NONE
 
-    // a property that can override the drivetrain's rotation.
-    private var rotationOverride: RotationOverride? = null
     private val robotWidget = ChargerRobot.FIELD.getObject(namespace)
 
     private val poseEstimator = SwerveDrivePoseEstimator(
@@ -208,23 +208,16 @@ open class EncoderHolonomicDrivetrain(
     /**
      * Adds a vision measurement to the drivetrain.
      */
-    override fun addVisionMeasurement(measurement: Measurement<Pose2d>, stdDevs: Matrix<N3, N1>?) {
+    override fun addVisionMeasurement(pose: Pose2d, timestamp: Time, stdDevs: Matrix<N3, N1>?) {
         // rotationSpeed is an extension property that converts
         // omegaRadiansPerSecond to a kmeasure AngularVelocity.
         if (currentSpeeds.rotationSpeed > 720.radians / 1.seconds){
             println("Gyro rotating too fast; vision measurements ignored.")
         }else{
             if (stdDevs != null){
-                poseEstimator.addVisionMeasurement(
-                    measurement.value,
-                    measurement.timestamp.inUnit(seconds),
-                    stdDevs
-                )
+                poseEstimator.addVisionMeasurement(pose, timestamp.inUnit(seconds), stdDevs)
             }else{
-                poseEstimator.addVisionMeasurement(
-                    measurement.value,
-                    measurement.timestamp.inUnit(seconds)
-                )
+                poseEstimator.addVisionMeasurement(pose, timestamp.inUnit(seconds))
             }
         }
     }
@@ -248,7 +241,7 @@ open class EncoderHolonomicDrivetrain(
      * @see HeadingProvider
      */
     override val heading: Angle get() =
-        (gyro?.heading ?: calculatedHeading).inputModulus(0.degrees..360.degrees)
+        (gyro?.heading ?: calculatedHeading) % 360.degrees
 
     /**
      * The distance the robot has traveled in total.
@@ -318,22 +311,8 @@ open class EncoderHolonomicDrivetrain(
             SwerveModuleState(-constants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(45.0)),
             SwerveModuleState(constants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(45.0)),
             SwerveModuleState(-constants.driveMotorMaxSpeed.siValue, Rotation2d.fromDegrees(-45.0))
-        ).rotationSpeed
-    )
-
-    /**
-     * Sets a rotation override for the drivetrain.
-     */
-    fun setRotationOverride(rotationOverride: RotationOverride){
-        this.rotationOverride = rotationOverride
-    }
-
-    /**
-     * Removes a rotation override for the drivetrain.
-     */
-    fun removeRotationOverride(){
-        this.rotationOverride = null
-    }
+        ).omegaRadiansPerSecond
+    ).ofUnit(radians / seconds)
 
     /**
      * Creates a [SysIdRoutine] for characterizing a drivetrain's drive motors.
@@ -505,13 +484,32 @@ open class EncoderHolonomicDrivetrain(
         }
     }
 
+    private val aimToAngleProfile = AngularTrapezoidProfile(
+        maxRotationalVelocity,
+        maxRotationalVelocity / 1.seconds
+    )
+    private var aimToAngleState = AngularMotionProfileState()
+    private val aimToAnglePID = PIDController(constants.robotRotationPID)
+
+    private fun rotationPIDOutput(targetAngle: Angle): AngularVelocity {
+        log("TargetAngle", targetAngle)
+        aimToAngleState = aimToAngleProfile.calculate(aimToAngleState, AngularMotionProfileState(targetAngle))
+        return aimToAnglePID.calculate(this.heading.siValue, aimToAngleState.position.siValue).ofUnit(radians / seconds)
+    }
+
+    fun swerveDriveWhileAiming(xPower: Double, yPower: Double, targetAngle: Angle) {
+        swerveDrive(
+            xPower, yPower, (rotationPIDOutput(targetAngle) / maxRotationalVelocity).siValue,
+            fieldRelative = true
+        )
+    }
+
     /**
      * Called periodically in the subsystem.
      */
     override fun periodic() {
         log("DistanceTraveledMeters", distanceTraveled.inUnit(meters))
         log("OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
-        log("HasRotationOverride", rotationOverride != null)
         log("RequestedControlMode", currentControlMode)
         log(SwerveModuleState.struct, "DesiredModuleStates", setpoint.moduleStates.toList())
         log(SwerveModuleState.struct, "MeasuredModuleStates", moduleStates)
@@ -528,20 +526,6 @@ open class EncoderHolonomicDrivetrain(
             return
         }
 
-        when (currentControlMode) {
-            ControlMode.CLOSED_LOOP -> {
-                val output = rotationOverride?.invoke(this)
-                if (output != null) goal.omegaRadiansPerSecond = output.closedLoopRotation.siValue
-            }
-
-            ControlMode.OPEN_LOOP -> {
-                val output = rotationOverride?.invoke(this)
-                if (output != null) goal.omegaRadiansPerSecond = output.openLoopRotation * maxRotationalVelocity.siValue
-            }
-
-            else -> {}
-        }
-
         goal = ChassisSpeeds.discretize(goal, ChargerRobot.LOOP_PERIOD.inUnit(seconds))
         setpoint = setpointGenerator.generateSetpoint(
             constraints,
@@ -555,7 +539,7 @@ open class EncoderHolonomicDrivetrain(
 
                 ControlMode.CLOSED_LOOP -> module.setDesiredStateClosedLoop(setpoint.moduleStates[index])
 
-                else -> {}
+                ControlMode.NONE -> {}
             }
         }
     }

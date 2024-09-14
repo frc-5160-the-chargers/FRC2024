@@ -12,8 +12,7 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.Loggable
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
-import frc.chargers.utils.math.inputModulus
-import frc.chargers.utils.math.units.periodToFrequency
+import frc.chargers.utils.units.periodToFrequency
 import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.angle
 import kotlin.math.abs
@@ -26,12 +25,12 @@ class SwerveModule(
     private val driveMotor: Motor,
     private val moduleConstants: SwerveConstants
 ): Loggable {
-    private val startingDirection: Angle? = turnEncoder?.angularPosition?.inputModulus(0.degrees..360.degrees)
+    private val startingDirection: Angle? = if (turnEncoder != null) turnEncoder.angularPosition % 360.degrees else null
     private val wheelRadius = moduleConstants.moduleType.wheelDiameter / 2
     private var couplingOffset: Angle = 0.degrees
     private var azimuthProfileState = AngularMotionProfileState(startingDirection ?: turnMotor.encoder.angularPosition)
 
-    val direction: Angle by logged { turnMotor.encoder.angularPosition.inputModulus(0.degrees..360.degrees) }
+    val direction: Angle by logged { turnMotor.encoder.angularPosition % 360.degrees }
     val driveAngularVelocity: AngularVelocity by logged { driveMotor.encoder.angularVelocity }
     val driveLinearVelocity: Velocity by logged { driveAngularVelocity * wheelRadius }
     val wheelTravel: Distance by logged { driveMotor.encoder.angularPosition * wheelRadius }
@@ -57,7 +56,7 @@ class SwerveModule(
 
         ChargerRobot.runPeriodic {
             if (moduleConstants.couplingRatio != null){
-                couplingOffset -= moduleConstants.couplingRatio * direction.inputModulus(-180.degrees..180.degrees)
+                couplingOffset -= moduleConstants.couplingRatio * (direction % 360.degrees - 180.degrees)
                 log("CouplingOffset", couplingOffset)
             }
 

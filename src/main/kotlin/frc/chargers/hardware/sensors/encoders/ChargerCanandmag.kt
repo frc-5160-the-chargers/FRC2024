@@ -6,6 +6,10 @@ import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.seconds
 import com.reduxrobotics.sensors.canandmag.Canandmag
 
+
+/**
+ * A wrapper around the [Canandmag] class that implements the [Encoder] interface.
+ */
 class ChargerCanandmag(
     val deviceID: Int,
     settings: Canandmag.Settings = Canandmag.Settings(),

@@ -8,6 +8,9 @@ import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue
 import com.ctre.phoenix6.signals.SensorDirectionValue
 
+/**
+ * A wrapper around the [CANcoder] class that implements the [Encoder] interface.
+ */
 class ChargerCANcoder(
     val deviceID: Int,
     factoryDefault: Boolean = true,

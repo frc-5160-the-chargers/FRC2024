@@ -1,19 +1,47 @@
-package frc.chargers.hardware.motorcontrol.rev
+package frc.chargers.hardware.motorcontrol
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.util.PIDConstants
-import com.revrobotics.CANSparkBase
+import com.revrobotics.*
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame
-import com.revrobotics.REVLibError
-import com.revrobotics.SparkAbsoluteEncoder
 import frc.chargers.framework.faultchecking.FaultChecking
 import frc.chargers.framework.faultchecking.SubsystemFault
-import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.Encoder
-import frc.chargers.utils.filterNaN
-import frc.chargers.utils.math.units.frequencyToPeriod
-import frc.chargers.utils.withSetter
+import frc.chargers.utils.units.frequencyToPeriod
+
+
+/**
+ * Creates a [CANSparkMax] that implements the [frc.chargers.hardware.motorcontrol.Motor] and
+ * [frc.chargers.framework.faultchecking.FaultChecking] interfaces.
+ *
+ * @see ChargerSpark
+ */
+class ChargerSparkMax(
+    deviceID: Int,
+    motorType: CANSparkLowLevel.MotorType = CANSparkLowLevel.MotorType.kBrushless,
+    useAbsoluteEncoder: Boolean = false,
+    factoryDefault: Boolean = true
+): ChargerSpark<CANSparkMax>(
+    CANSparkMax(deviceID, motorType),
+    useAbsoluteEncoder, factoryDefault
+)
+
+
+/**
+ * Creates a [CANSparkFlex] that implements the [frc.chargers.hardware.motorcontrol.Motor]
+ * and [frc.chargers.framework.faultchecking.FaultChecking] interfaces.
+ *
+ * @see ChargerSpark
+ */
+class ChargerSparkFlex(
+    deviceID: Int,
+    useAbsoluteEncoder: Boolean = false,
+    factoryDefault: Boolean = true
+): ChargerSpark<CANSparkFlex>(
+    CANSparkFlex(deviceID, CANSparkLowLevel.MotorType.kBrushless),
+    useAbsoluteEncoder, factoryDefault
+)
 
 
 /**
@@ -52,19 +80,25 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
 
     override val encoder: Encoder = if (useAbsoluteEncoder) AbsoluteEncoderImpl() else RelativeEncoderImpl()
     private inner class RelativeEncoderImpl: Encoder {
-        override val angularVelocity: AngularVelocity by filterNaN { relativeEncoder.velocity.ofUnit(rotations / seconds) }
-        override val angularPosition: Angle by filterNaN { relativeEncoder.position.ofUnit(rotations) }
+        override val angularVelocity: AngularVelocity
+            get() = relativeEncoder.velocity.ofUnit(rotations / seconds)
+        override val angularPosition: Angle
+            get() = relativeEncoder.position.ofUnit(rotations)
     }
     private inner class AbsoluteEncoderImpl: Encoder {
-        override val angularVelocity: AngularVelocity by filterNaN { absoluteEncoder.velocity.ofUnit(rotations / minutes) }
-        override val angularPosition: Angle by filterNaN { absoluteEncoder.position.ofUnit(rotations) }
+        override val angularVelocity: AngularVelocity
+            get() = absoluteEncoder.velocity.ofUnit(rotations / minutes)
+        override val angularPosition: Angle
+            get() = absoluteEncoder.position.ofUnit(rotations)
     }
 
     override var appliedVoltage: Voltage
-        by filterNaN { Voltage(base.appliedOutput * base.busVoltage) }
-            .withSetter { base.setVoltage(it.siValue) }
+        get() = Voltage(base.appliedOutput * base.busVoltage)
+        set(voltage){
+            base.setVoltage(voltage.siValue)
+        }
 
-    override val statorCurrent: Current by filterNaN { Current(base.outputCurrent) }
+    override val statorCurrent: Current get() = Current(base.outputCurrent)
 
     override val inverted: Boolean get() = base.inverted
 

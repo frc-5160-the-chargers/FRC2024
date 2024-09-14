@@ -21,6 +21,16 @@ interface HeadingProvider {
 }
 
 /**
+ * A [HeadingProvider] that can be zeroed.
+ */
+interface ZeroableHeadingProvider: HeadingProvider {
+    /**
+     * Zeroes the heading of the [HeadingProvider].
+     */
+    fun zeroHeading(angle: Angle = Angle(0.0))
+}
+
+/**
  * Inline syntax to create a generic [HeadingProvider].
  *
  * I.E:

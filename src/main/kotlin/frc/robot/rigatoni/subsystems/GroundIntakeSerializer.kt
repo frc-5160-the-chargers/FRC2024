@@ -8,8 +8,8 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.TimedRobot.isSimulation
 import frc.chargers.framework.SuperSubsystem
 import frc.chargers.hardware.motorcontrol.Motor
-import frc.chargers.hardware.motorcontrol.ctre.ChargerTalonFX
-import frc.chargers.hardware.motorcontrol.rev.ChargerSparkMax
+import frc.chargers.hardware.motorcontrol.ChargerTalonFX
+import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 
 private const val SERIALIZER_ID = 29
@@ -26,7 +26,8 @@ class GroundIntakeSerializer: SuperSubsystem("GroundIntakeSerializer"){
             groundIntakeMotor = MotorSim(DCMotor.getFalcon500(1))
             serializerMotor = MotorSim(DCMotor.getNEO(1))
         } else {
-            groundIntakeMotor = ChargerTalonFX(GROUND_INTAKE_ID).checkForFaults("GroundIntakeMotor")
+            groundIntakeMotor = ChargerTalonFX(GROUND_INTAKE_ID)
+                .checkForFaults("GroundIntakeMotor")
             serializerMotor = ChargerSparkMax(SERIALIZER_ID)
                 .configure(inverted = true)
                 .checkForFaults("SerializerMotor")

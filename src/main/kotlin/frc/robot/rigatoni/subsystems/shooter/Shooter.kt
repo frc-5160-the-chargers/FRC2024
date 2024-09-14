@@ -12,7 +12,7 @@ import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import frc.chargers.framework.SuperSubsystem
 import frc.chargers.hardware.motorcontrol.Motor
-import frc.chargers.hardware.motorcontrol.rev.ChargerSparkFlex
+import frc.chargers.hardware.motorcontrol.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 
 private const val SHOOTER_MOTOR_ID = 7

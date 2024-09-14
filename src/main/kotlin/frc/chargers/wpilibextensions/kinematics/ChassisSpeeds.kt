@@ -10,8 +10,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 
 /**
  * A convenience function that creates a [ChassisSpeeds]
- *
- * with kmeasure units instead.
+ * with kmeasure Quantities.
  */
 fun ChassisSpeeds(xVelocity: Velocity, yVelocity: Velocity, rotationalVelocity: AngularVelocity): ChassisSpeeds =
     ChassisSpeeds(

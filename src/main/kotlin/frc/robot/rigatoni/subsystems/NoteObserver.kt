@@ -54,6 +54,8 @@ class NoteObserver: SuperSubsystem("NoteObserver") {
 
     val noteInRobot: Boolean by logged{ state == State.NoteInSerializer || state == State.NoteInShooter }
 
+    val noteFound: Boolean by logged{ state is State.NoteDetected }
+
     val hasGroundIntakeSensor: Boolean by logged(groundIntakeSensor != null && RobotBase.isReal())
 
     val hasCamera: Boolean by logged(noteDetectorCamera != null)

@@ -1,6 +1,7 @@
 package frc.chargers.hardware.subsystems
 
 import com.batterystaple.kmeasure.quantities.Angle
+import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.ofUnit
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
@@ -13,7 +14,6 @@ import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.SuperSubsystem
-import frc.chargers.utils.Measurement
 import frc.chargers.wpilibextensions.Rotation2d
 import frc6995.NomadAprilTagUtil
 import limelight.LimelightHelpers
@@ -33,20 +33,16 @@ abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(names
 
     abstract fun resetPose(pose: Pose2d = Pose2d())
 
-    abstract fun addVisionMeasurement(measurement: Measurement<Pose2d>, stdDevs: Matrix<N3, N1>? = null)
+    abstract fun addVisionMeasurement(pose: Pose2d, timestamp: Time, stdDevs: Matrix<N3, N1>? = null)
 
 
     /**
      * Adds a vision pose measurement; calculating pose standard deviation from camera yaw.
      */
-    fun addVisionMeasurement(measurement: Measurement<Pose2d>, cameraYaw: Angle){
+    fun addVisionMeasurement(pose: Pose2d, timestamp: Time, cameraYaw: Angle){
         addVisionMeasurement(
-            measurement,
-            NomadAprilTagUtil.calculateVisionUncertainty(
-                measurement.value.x,
-                measurement.value.rotation,
-                Rotation2d(cameraYaw)
-            )
+            pose, timestamp,
+            NomadAprilTagUtil.calculateVisionUncertainty(pose.x, pose.rotation, Rotation2d(cameraYaw))
         )
     }
 
@@ -71,10 +67,8 @@ abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(names
             if (poseEstimation.isPresent){
                 log(Pose3d.struct, "PhotonPoseEstimations/$camName", poseEstimation.get().estimatedPose)
                 addVisionMeasurement(
-                    Measurement(
-                        poseEstimation.get().estimatedPose.toPose2d(),
-                        poseEstimation.get().timestampSeconds.ofUnit(seconds)
-                    ),
+                    poseEstimation.get().estimatedPose.toPose2d(),
+                    poseEstimation.get().timestampSeconds.ofUnit(seconds),
                     poseEstimator.robotToCameraTransform.rotation.x.ofUnit(radians)
                 )
             }else{
@@ -117,10 +111,8 @@ abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(names
 
             if (poseEstimation.tagCount > 0 && !tagEstimateAmbiguous){
                 addVisionMeasurement(
-                    Measurement(
-                        poseEstimation.pose,
-                        poseEstimation.timestampSeconds.ofUnit(seconds)
-                    ),
+                    poseEstimation.pose,
+                    poseEstimation.timestampSeconds.ofUnit(seconds),
                     robotToCamera.rotation.z.ofUnit(radians)
                 )
                 log(Pose2d.struct, "LimelightPoseEstimations/$camName", poseEstimation.pose)

@@ -1,5 +1,5 @@
 @file:Suppress("unused")
-package frc.chargers.hardware.motorcontrol.ctre
+package frc.chargers.hardware.motorcontrol
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
@@ -13,10 +13,8 @@ import com.ctre.phoenix6.signals.*
 import com.pathplanner.lib.util.PIDConstants
 import frc.chargers.framework.faultchecking.FaultChecking
 import frc.chargers.framework.faultchecking.SubsystemFault
-import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
 import frc.chargers.hardware.sensors.encoders.Encoder
-
 
 
 /**
@@ -226,7 +224,6 @@ class ChargerTalonFX(
         base.fault_FusedSensorOutOfSync to "Fused CANcoder out of sync",
         base.fault_OverSupplyV to "Voltage exceeded limit",
         base.fault_ProcTemp to "Processor is overheating",
-        base.fault_Undervoltage to "Device supply voltage near brownout",
         base.fault_UnlicensedFeatureInUse to "Unlicensed feature in use(git Phoenix Pro Pls)",
         base.fault_UnstableSupplyV to "Supply voltage unstable",
     )
