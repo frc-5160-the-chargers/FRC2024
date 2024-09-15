@@ -18,9 +18,6 @@ import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
-import frc.chargers.controls.PIDController
-import frc.chargers.controls.motionprofiling.AngularMotionProfileState
-import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.faultchecking.FaultChecking
 import frc.chargers.hardware.motorcontrol.Motor
@@ -482,26 +479,6 @@ open class EncoderHolonomicDrivetrain(
         swerveModules.forEach{
             it.setDriveVoltage(0.volts)
         }
-    }
-
-    private val aimToAngleProfile = AngularTrapezoidProfile(
-        maxRotationalVelocity,
-        maxRotationalVelocity / 1.seconds
-    )
-    private var aimToAngleState = AngularMotionProfileState()
-    private val aimToAnglePID = PIDController(constants.robotRotationPID)
-
-    private fun rotationPIDOutput(targetAngle: Angle): AngularVelocity {
-        log("TargetAngle", targetAngle)
-        aimToAngleState = aimToAngleProfile.calculate(aimToAngleState, AngularMotionProfileState(targetAngle))
-        return aimToAnglePID.calculate(this.heading.siValue, aimToAngleState.position.siValue).ofUnit(radians / seconds)
-    }
-
-    fun swerveDriveWhileAiming(xPower: Double, yPower: Double, targetAngle: Angle) {
-        swerveDrive(
-            xPower, yPower, (rotationPIDOutput(targetAngle) / maxRotationalVelocity).siValue,
-            fieldRelative = true
-        )
     }
 
     /**

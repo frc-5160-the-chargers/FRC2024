@@ -23,6 +23,9 @@ class AngleAimCommand(
     private val drivetrain: EncoderHolonomicDrivetrain,
     private val getChassisPowers: () -> ChassisPowers,
 ): Command(), Loggable {
+    constructor(target: Angle, drivetrain: EncoderHolonomicDrivetrain, getChassisPowers: () -> ChassisPowers):
+        this({target}, drivetrain, getChassisPowers)
+
     constructor(
         targetPose: Pose2d,
         drivetrain: EncoderHolonomicDrivetrain,

@@ -21,7 +21,7 @@ class PS5SwerveController(
         if (input.isInfinite() || input.isNaN()) 0.0 else input
 
     private fun rotationEquation(x: Double): Double {
-        return -0.2 * x.pow(4) - 0.5 * x.pow(2)
+        return -0.2 * x.pow(3) - 0.5 * x
     }
 
     private var forward by logged(0.0)

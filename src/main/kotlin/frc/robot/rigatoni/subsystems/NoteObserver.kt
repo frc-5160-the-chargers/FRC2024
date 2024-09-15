@@ -58,7 +58,7 @@ class NoteObserver: SuperSubsystem("NoteObserver") {
 
     val hasGroundIntakeSensor: Boolean by logged(groundIntakeSensor != null && RobotBase.isReal())
 
-    val hasCamera: Boolean by logged(noteDetectorCamera != null)
+    val hasCamera: Boolean by logged(noteDetectorCamera != null && RobotBase.isReal())
 
     override fun periodic() {
         if (isSimulation()){

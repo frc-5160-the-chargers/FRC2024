@@ -26,7 +26,7 @@ private const val PIVOT_ENCODER_ID = 0
 private val PIVOT_SIM_STARTING_TRANSLATION = Translation3d(-0.32, 0.0, 0.72)
 private val FORWARD_LIMIT: Angle = 1.636.radians
 private val REVERSE_LIMIT: Angle = (-1.8).radians
-private val PID_TOLERANCE = 4.degrees
+private val PID_TOLERANCE = 5.degrees
 private val ABSOLUTE_ENCODER_OFFSET = (-0.23).radians
 
 object PivotAngle {
@@ -49,7 +49,7 @@ class Pivot: SuperSubsystem("Pivot") {
 
     init {
         if (isSimulation()){
-            motor = MotorSim(DCMotor.getNEO(1), moi = 0.004.kilo.grams * (meters * meters))
+            motor = MotorSim(DCMotor.getNEO(1), moi = 0.001.kilo.grams * (meters * meters))
             absoluteEncoder = null
         }else{
             motor = ChargerSparkMax(PIVOT_MOTOR_ID).checkForFaults("PivotMotor")

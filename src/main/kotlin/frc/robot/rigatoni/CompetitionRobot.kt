@@ -110,11 +110,14 @@ class CompetitionRobot: ChargerRobot() {
 
             var current = 0.degrees
             for (trigger in aimTriggers){
-                trigger.whileTrue(AngleAimCommand({current}, drivetrain, { driverController.swerveOutput }))
+                trigger.whileTrue(AngleAimCommand(current, drivetrain) { driverController.swerveOutput })
                 current -= 90.degrees
             }
 
-            noteIntakeTrigger.whileTrue(noteIntakeDriverAssist())
+            noteIntakeTrigger.whileTrue(
+                noteIntakeDriverAssist()
+                    .alongWith(RunCommand(groundIntake){ groundIntake.intake() })
+            )
 
             climbUpTrigger.whileTrue(
                 RunCommand(climber){
@@ -203,14 +206,16 @@ class CompetitionRobot: ChargerRobot() {
                 drivetrainPose.distanceTo(pathEndPose) > drivetrainPose.distanceTo(pathStartPose)
     }
 
+    private fun shouldStartNotePursuit(): Boolean {
+        val currentState = noteObserver.state
+        return currentState is NoteObserver.State.NoteDetected &&
+                currentState.distanceToNote <= ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
+    }
+
     /* Commands */
 
     private fun followPathOptimal(path: PathPlannerPath) = buildCommand(name = "FollowPathOptimal"){
-        runSequenceIf({shouldPathFind(path)}){
-            +AutoBuilder.pathfindThenFollowPath(path, PATHFIND_CONSTRAINTS)
-        }.orElse{
-            +AutoBuilder.followPath(path)
-        }
+        +AutoBuilder.followPath(path)
     }
 
     private fun noteIntakeDriverAssist(
@@ -223,30 +228,31 @@ class CompetitionRobot: ChargerRobot() {
             return max(abs(swerveOutput.xPower), abs(swerveOutput.yPower)) * (1.0 - txValue / 50.0) // scales based off of the vision target error
         }
 
-        fun shouldStartPursuit(): Boolean {
-            val currentState = noteObserver.state
-            return currentState is NoteObserver.State.NoteDetected &&
-                    currentState.distanceToNote <= ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
-        }
-
         // custom PID controller constructor that accepts pid constants
         val aimController by getOnceDuringRun { PIDController(AIM_TO_NOTE_PID) }
 
         // regular drive occurs until suitable target found
-        loopUntil(::shouldStartPursuit){
+        loopUntil(::shouldStartNotePursuit){
             drivetrain.swerveDrive(driverController.swerveOutput, fieldRelative = !driverTouchpad.asBoolean)
         }
 
         // drives back to grab note
         loop {
+            val forwardPower: Double
+            val rotationPower: Double
             val state = noteObserver.state
             if (state is NoteObserver.State.NoteDetected){
-                val forwardPower = getNotePursuitSpeed(state.tx)
-                val rotationPower = aimController.calculate(state.tx, 0.0)
-                drivetrain.swerveDrive(forwardPower, 0.0, rotationPower, fieldRelative = false)
+                forwardPower = getNotePursuitSpeed(state.tx)
+                rotationPower = aimController.calculate(state.tx, 0.0)
             } else {
-                drivetrain.stop()
+                forwardPower = getNotePursuitSpeed(0.0)
+                rotationPower = 0.0
             }
+            drivetrain.swerveDrive(forwardPower, 0.0, rotationPower, fieldRelative = false)
+        }
+
+        onEnd {
+            drivetrain.stop()
         }
     }
 
@@ -320,6 +326,7 @@ class CompetitionRobot: ChargerRobot() {
 
         loopUntil( { fpgaTimestamp() - spinupStartTime > shooterSpinUpTime } ){
             shooter.outtakeAtSpeakerSpeed()
+            println(spinupStartTime)
         }
 
         realRobotOnly{
@@ -330,11 +337,8 @@ class CompetitionRobot: ChargerRobot() {
 
         loopForDuration(0.4){ runShooting() }
 
-        onEnd{
-            shooter.setIdle()
-            groundIntake.setIdle()
-        }
-    }.withTimeout(4.0)
+        runOnce{ repeat(10) { println("done!") } }
+    }
 
     /* Auto Components */
 
@@ -359,7 +363,7 @@ class CompetitionRobot: ChargerRobot() {
                     noteIntakeTime = 0.5.seconds
                 )
                 +driveAndScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG2"))
-            },
+            }.also{ cmd -> repeat(10){ println("requirements: " + cmd.requirements) } },
 
             speakerAutoStartup(AutoStartingPose::getSpeakerLeft).withName("1 Piece Speaker"),
 
@@ -379,14 +383,14 @@ class CompetitionRobot: ChargerRobot() {
                 +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.1"), spinUpShooterDuringPath = true)
                 +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.2"))
 
+                +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.3"), spinUpShooterDuringPath = true)
+                +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.4"))
+
                 +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.5"), spinUpShooterDuringPath = true)
                 +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.6"))
 
-                +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.7"), spinUpShooterDuringPath = true)
+                +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.7"))
                 +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.8"))
-
-                +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.3"))
-                +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.4"))
             }
         )
 
@@ -441,10 +445,12 @@ class CompetitionRobot: ChargerRobot() {
         parallelUntilLeadEnds {
             runSequenceUntil(::noteInSerializer) {
                 +(followPathOptimal(path)
-                    .onlyWhile{ noteObserver.hasCamera && !noteObserver.noteFound })
+                    .until(::shouldStartNotePursuit))
 
                 +(noteIntakeDriverAssist{ ChassisPowers(0.3, 0.0, 0.0) }
-                    .onlyWhile{ noteObserver.noteFound })
+                    .onlyWhile{ noteObserver.hasCamera && !noteObserver.noteFound })
+
+                runOnce{ drivetrain.stop() }
 
                 wait(noteIntakeTime.inUnit(seconds))
             }
