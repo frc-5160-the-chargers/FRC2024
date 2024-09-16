@@ -3,6 +3,7 @@ package frc.chargers.hardware.motorcontrol.simulation
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.math.system.plant.DCMotor
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.encoders.Encoder
@@ -16,15 +17,18 @@ class ArmMotorSim(
     private val motorType: DCMotor,
     private val armLength: Distance,
     private val moi: MomentOfInertia,
-    private val angleRange: ClosedRange<Angle> = Angle(Double.NEGATIVE_INFINITY)..Angle(Double.POSITIVE_INFINITY)
+    private val lowestPosition: Angle = Angle(Double.NEGATIVE_INFINITY),
+    private val highestPosition: Angle = Angle(Double.POSITIVE_INFINITY)
 ): SimulatedMotorBase() {
     lateinit var base: SingleJointedArmSim
         private set
 
     init {
         initializeWPILibSim(1.0)
-        ChargerRobot.runPeriodic {
-            base.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
+        if (RobotBase.isSimulation()) {
+            ChargerRobot.runPeriodic {
+                base.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
+            }
         }
     }
 
@@ -34,8 +38,8 @@ class ArmMotorSim(
             gearRatio,
             moi.inUnit(kilo.grams * (meters * meters)),
             armLength.inUnit(meters),
-            angleRange.start.inUnit(radians),
-            angleRange.endInclusive.inUnit(radians),
+            lowestPosition.inUnit(radians),
+            highestPosition.inUnit(radians),
             true, 0.0
         )
     }

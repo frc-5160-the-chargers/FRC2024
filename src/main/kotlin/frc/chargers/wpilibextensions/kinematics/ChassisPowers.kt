@@ -17,8 +17,8 @@ data class ChassisPowers(
     var yPower: Double = 0.0,
     var rotationPower: Double = 0.0
 ): StructSerializable {
-    companion object{
-        @JvmStatic
+    companion object {
+        @JvmField
         val struct = object: Struct<ChassisPowers> {
             override fun getTypeClass(): Class<ChassisPowers> = ChassisPowers::class.java
             override fun getTypeString(): String = "struct:ChassisPowers"
@@ -33,6 +33,7 @@ data class ChassisPowers(
             }
         }
     }
+
     /**
      * Measures whether 2 [ChassisPowers] are roughly equal.
      */

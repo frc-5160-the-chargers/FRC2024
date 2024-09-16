@@ -79,7 +79,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
         base.burnFlash()
 
         if (faultLogName != null) {
-            ChargerRobot.runPeriodicAtPeriod(1.seconds) {
+            ChargerRobot.runPeriodicAtPeriod(0.1.seconds) {
                 val err = base.lastError
                 if (err != REVLibError.kOk){
                     HorseLog.logFault("$faultLogName: $err")

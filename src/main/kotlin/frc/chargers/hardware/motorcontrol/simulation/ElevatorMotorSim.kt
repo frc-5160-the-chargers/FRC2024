@@ -3,6 +3,7 @@ package frc.chargers.hardware.motorcontrol.simulation
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.math.system.plant.DCMotor
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.simulation.ElevatorSim
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.encoders.Encoder
@@ -14,16 +15,18 @@ import frc.chargers.hardware.sensors.encoders.Encoder
 class ElevatorMotorSim(
     private val motorType: DCMotor,
     private val carriageMass: Mass,
-    private val minimumEncoderMeasurement: Angle = Angle(Double.NEGATIVE_INFINITY),
-    private val maximumEncoderMeasurement: Angle = Angle(Double.POSITIVE_INFINITY)
+    private val lowestPosition: Angle = Angle(Double.NEGATIVE_INFINITY),
+    private val highestPosition: Angle = Angle(Double.POSITIVE_INFINITY)
 ): SimulatedMotorBase() {
     lateinit var base: ElevatorSim
         private set
 
     init {
         initializeWPILibSim(1.0) // initializes the sim
-        ChargerRobot.runPeriodic {
-            base.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
+        if (RobotBase.isSimulation()) {
+            ChargerRobot.runPeriodic {
+                base.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
+            }
         }
     }
 
@@ -33,8 +36,8 @@ class ElevatorMotorSim(
             gearRatio,
             carriageMass.inUnit(kilo.grams),
             /*"Drum Radius"*/ 1.0 / (2.0 * Math.PI), // This value ensures that the circumference = 1 meters
-            /*Min Height*/ (minimumEncoderMeasurement * 1.meters).inUnit(meters),
-            /*Max Height*/ (maximumEncoderMeasurement * 1.meters).inUnit(meters),
+            /*Min Height*/ (lowestPosition * 1.meters).inUnit(meters),
+            /*Max Height*/ (highestPosition * 1.meters).inUnit(meters),
             /*Simulate Gravity*/ true,
             0.0
         )

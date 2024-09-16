@@ -3,6 +3,7 @@ package frc.chargers.hardware.motorcontrol.simulation
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.math.system.plant.DCMotor
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.hardware.sensors.encoders.Encoder
@@ -20,8 +21,10 @@ class MotorSim(
 
     init {
         initializeWPILibSim(1.0) // initializes the sim
-        ChargerRobot.runPeriodic {
-            base.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
+        if (RobotBase.isSimulation()) {
+            ChargerRobot.runPeriodic {
+                base.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
+            }
         }
     }
 

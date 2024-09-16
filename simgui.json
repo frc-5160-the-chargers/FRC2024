@@ -256,6 +256,12 @@
         "ChargerNavX": {
           "open": true
         },
+        "DriverController": {
+          "ChassisPowers##v_/Robot/DriverController/chassisPowers": {
+            "open": true
+          },
+          "open": true
+        },
         "Pivot": {
           "open": true
         },

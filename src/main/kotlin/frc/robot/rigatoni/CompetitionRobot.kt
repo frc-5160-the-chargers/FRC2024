@@ -6,7 +6,6 @@ import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
-import dev.doglog.DogLogOptions
 import edu.wpi.first.math.MathUtil.applyDeadband
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.DriverStation
@@ -67,6 +66,7 @@ class CompetitionRobot: ChargerRobot() {
     override fun robotInit() {
         DriverStation.silenceJoystickConnectionWarning(true)
         gyro.simHeadingSource = { drivetrain.heading }
+
         HorseLog.setPdh(PowerDistribution(1, PowerDistribution.ModuleType.kRev))
         setNtPublish(true)
         Trigger(DriverStation::isFMSAttached).whileTrue(

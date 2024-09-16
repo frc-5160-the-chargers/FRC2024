@@ -5,6 +5,8 @@ import edu.wpi.first.math.geometry.Translation2d
 
 /**
  * A class that represents a polygon in 2d space.
+ *
+ * Credits: FRC 3173(IgKnighters)
  */
 data class Polygon2d(val vertices: List<Translation2d>) {
     constructor(vararg vertices: Translation2d) : this(vertices.toList())

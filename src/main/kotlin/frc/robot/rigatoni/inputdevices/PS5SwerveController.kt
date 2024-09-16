@@ -22,11 +22,10 @@ class PS5SwerveController(
         return -0.2 * x.pow(3) - 0.5 * x
     }
 
-    private var forward by logged(0.0, "DriverController/forward")
-    private var strafe by logged(0.0, "DriverController/strafe")
-    private var rotation by logged(0.0, "DriverController/rotation")
+    private var forward = 0.0
+    private var strafe = 0.0
+    private var rotation = 0.0
     private var scalar by logged(0.0, "DriverController/scalar")
-
     private var chassisPowers by logged(ChassisPowers(), "DriverController/chassisPowers")
 
     val swerveOutput: ChassisPowers get() {

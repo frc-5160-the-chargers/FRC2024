@@ -3,7 +3,6 @@ package frc.chargers.framework
 
 import com.batterystaple.kmeasure.dimensions.AnyDimension
 import com.batterystaple.kmeasure.quantities.Quantity
-
 import edu.wpi.first.util.struct.StructSerializable
 import frc.chargers.utils.QuantitySupplier
 import java.util.function.BooleanSupplier
@@ -29,10 +28,9 @@ private fun capitalize(text: String) = text.replaceFirstChar{ it.uppercaseChar()
  * ```
  */
 
-// individual classes are used to prevent boxing overhead2
-@OverloadResolutionByLambdaReturnType
+// individual classes are used to prevent boxing overhead
 @JvmName("a")
-fun logged(identifier: String? = null, supplier: () -> Int) = LoggedIntGetter(identifier, supplier)
+fun logged(identifier: String? = null, supplier: IntSupplier) = LoggedIntGetter(identifier, supplier)
 class LoggedIntGetter(private val key: String?, private val get: IntSupplier) {
     operator fun provideDelegate(thisRef: Any, property: KProperty<*>): LoggedIntGetter {
         val defaultKey = "${thisRef::class.simpleName}/${capitalize(property.name)}"
@@ -42,9 +40,8 @@ class LoggedIntGetter(private val key: String?, private val get: IntSupplier) {
     operator fun getValue(thisRef: Any?, property: KProperty<*>): Int = get.asInt
 }
 
-@OverloadResolutionByLambdaReturnType
 @JvmName("b")
-fun logged(identifier: String? = null, supplier: () -> Double) = LoggedDoubleGetter(identifier, supplier)
+fun logged(identifier: String? = null, supplier: DoubleSupplier) = LoggedDoubleGetter(identifier, supplier)
 class LoggedDoubleGetter(private val key: String?, private val get: DoubleSupplier) {
     operator fun provideDelegate(thisRef: Any, property: KProperty<*>): LoggedDoubleGetter {
         val defaultKey = "${thisRef::class.simpleName}/${capitalize(property.name)}"

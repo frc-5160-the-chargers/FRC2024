@@ -1,6 +1,6 @@
 package frc.robot
 
-import edu.wpi.first.wpilibj.TimedRobot
+import frc.chargers.framework.ChargerRobot
 import frc.robot.rigatoni.CompetitionRobot
 
 /**
@@ -8,4 +8,4 @@ import frc.robot.rigatoni.CompetitionRobot
  *
  * Switch this out to another class to switch the current robot program.
  */
-fun getRobot(): TimedRobot = CompetitionRobot()
+fun getRobot(): ChargerRobot = CompetitionRobot()
