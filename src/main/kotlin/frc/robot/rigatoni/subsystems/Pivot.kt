@@ -9,9 +9,10 @@ import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import frc.chargers.controls.feedforward.UnitArmFeedforward
+import frc.chargers.controls.feedforward.AngularMotorFeedforward
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
+import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.framework.HorseLog.log
 import frc.chargers.framework.logged
 import frc.chargers.hardware.motorcontrol.Motor
@@ -27,7 +28,7 @@ private const val PIVOT_ENCODER_ID = 0
 private val PIVOT_SIM_STARTING_TRANSLATION = Translation3d(-0.32, 0.0, 0.72)
 private val FORWARD_LIMIT: Angle = 1.636.radians
 private val REVERSE_LIMIT: Angle = (-1.8).radians
-private val PID_TOLERANCE = 5.degrees
+private val PID_TOLERANCE = 2.degrees
 private val ABSOLUTE_ENCODER_OFFSET = (-0.23).radians
 
 object PivotAngle {
@@ -50,7 +51,7 @@ class Pivot: SubsystemBase() {
 
     init {
         if (isSimulation()){
-            motor = MotorSim(DCMotor.getNEO(1), moi = 0.001.kilo.grams * (meters * meters))
+            motor = MotorSim(DCMotor.getNEO(1), moi = 0.008.kilo.grams * (meters * meters))
             absoluteEncoder = null
         }else{
             motor = ChargerSparkMax(PIVOT_MOTOR_ID, faultLogName = "PivotMotor")
@@ -70,9 +71,12 @@ class Pivot: SubsystemBase() {
         )
     }
 
-    private val motionProfile: AngularMotionProfile? = null
+    private val motionProfile: AngularMotionProfile? = AngularTrapezoidProfile(
+        maxVelocity = AngularVelocity(8.0),
+        maxAcceleration = AngularAcceleration(16.0)
+    )
     private var motionProfileSetpoint = AngularMotionProfileState(startingAngle)
-    private val feedforward = UnitArmFeedforward(0.0, 0.0, 0.0)
+    private val feedforward = AngularMotorFeedforward(0.0, 0.0, 0.0)
 
     val angle: Angle by logged { motor.encoder.angularPosition }
 
@@ -121,7 +125,7 @@ class Pivot: SubsystemBase() {
                 0.02.seconds
             )
             pidTarget = motionProfileSetpoint.position
-            ffVoltage = feedforward(target, motionProfileSetpoint.velocity)
+            ffVoltage = feedforward(motionProfileSetpoint.velocity)
             log("Pivot/Control/MotionProfileGoal", target)
         }else{
             pidTarget = target
@@ -131,7 +135,7 @@ class Pivot: SubsystemBase() {
 
         log("Pivot/Control/Setpoint", pidTarget)
         log("Pivot/Control/FeedForward", ffVoltage)
-        atTarget = abs(pidTarget - this.angle) < PID_TOLERANCE
+        atTarget = abs(target - this.angle) < PID_TOLERANCE
     }
 
     override fun periodic(){

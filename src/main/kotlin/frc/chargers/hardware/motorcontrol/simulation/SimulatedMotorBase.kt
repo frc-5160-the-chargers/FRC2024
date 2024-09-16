@@ -2,7 +2,6 @@ package frc.chargers.hardware.motorcontrol.simulation
 
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.degrees
-import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.math.controller.PIDController
 import frc.chargers.controls.constants
@@ -29,13 +28,13 @@ abstract class SimulatedMotorBase: Motor {
         if (positionController.isContinuousInputEnabled) encoderReading %= 360.degrees
 
         val pidOutput = positionController.calculate(encoderReading.siValue, position.siValue)
-        this.appliedVoltage = (Voltage(pidOutput) + feedforward).coerceIn(-12.volts..12.volts)
+        this.appliedVoltage = Voltage(pidOutput) + feedforward
     }
 
     override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
         require(velocityPIDConfigured){" You must specify a velocityPID value using the configure() method. "}
         val pidOutput = velocityController.calculate(encoder.angularVelocity.siValue, velocity.siValue)
-        this.appliedVoltage = (Voltage(pidOutput) + feedforward).coerceIn(-12.volts..12.volts)
+        this.appliedVoltage = Voltage(pidOutput) + feedforward
     }
 
     override fun configure(
