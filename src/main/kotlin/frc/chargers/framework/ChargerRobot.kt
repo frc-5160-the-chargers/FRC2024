@@ -8,31 +8,22 @@ import com.pathplanner.lib.pathfinding.LocalADStar
 import com.pathplanner.lib.pathfinding.Pathfinding
 import edu.wpi.first.hal.FRCNetComm
 import edu.wpi.first.hal.HAL
-import edu.wpi.first.wpilibj.DataLogManager
-import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import kcommand.LoggedCommand
-import org.littletonrobotics.urcl.URCL
 import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
 
 /**
- * A base class for a generic Robot; extending [TimedRobot] and providing useful utilities.
- *
- * These include: global periodic function registration, automatic DataLogManager setup,
- * automatic URCL(Unofficial REV-Compatible logger) startup, and more.
+ * A base class for a generic Robot which extends [TimedRobot],
+ * and adds the ability to run blocks of code periodically(at any period)
+ * from any point.
  */
-abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds, useURCL: Boolean = true): TimedRobot() {
+abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(loopPeriod.inUnit(seconds)) {
     companion object {
-        private class HighFrequencyPeriodicRunnable(
-            val period: Time,
-            val toRun: () -> Unit
-        )
-
+        private class HighFrequencyPeriodicRunnable(val period: Time, val toRun: () -> Unit)
         private val periodicRunnables = mutableListOf<() -> Unit>()
         private val highFrequencyPeriodicRunnables = mutableListOf<HighFrequencyPeriodicRunnable>()
         private val lowPriorityPeriodicRunnables = mutableListOf<() -> Unit>()
@@ -109,13 +100,7 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds, useURCL: Boolean = 
             logExecutionTime = HorseLog::log
         )
 
-        if (RobotBase.isReal()){
-            DriverStation.startDataLog(DataLogManager.getLog())
-            if (useURCL){
-                URCL.start()
-            }
-        }
-
+        LOOP_PERIOD = loopPeriod
         HorseLog.log("loopPeriodSeconds", loopPeriod.inUnit(seconds))
         Pathfinding.setPathfinder(LocalADStar())
         HAL.report(FRCNetComm.tResourceType.kResourceType_Language, FRCNetComm.tInstances.kLanguage_Kotlin)

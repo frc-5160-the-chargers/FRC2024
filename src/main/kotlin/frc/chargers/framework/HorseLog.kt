@@ -7,7 +7,6 @@ import edu.wpi.first.util.struct.StructSerializable
 import edu.wpi.first.wpilibj.PowerDistribution
 import edu.wpi.first.wpilibj.Timer
 
-
 /**
  * A small [DogLog] wrapper that adds kotlin-specific methods.
  *
@@ -37,11 +36,15 @@ object HorseLog {
     fun log(key: String, value: IntArray) = DogLog.log(key, value)
     fun log(key: String, value: DoubleArray) = DogLog.log(key, value)
     fun log(key: String, value: BooleanArray) = DogLog.log(key, value)
+    fun log(key: String, value: LongArray) = DogLog.log(key, value)
+    fun log(key: String, value: Array<String>) = DogLog.log(key, value)
+    fun log(key: String, value: Array<Enum<*>>) = DogLog.log(key, value)
+    fun <T: StructSerializable> log(key: String, value: Array<T>) = DogLog.log(key, value)
 
     fun logFault(faultName: String) = DogLog.logFault(faultName)
     fun logFault(faultName: Enum<*>) = DogLog.logFault(faultName)
 
-    fun getOptions() = DogLog.getOptions()
+    fun getOptions(): DogLogOptions = DogLog.getOptions()
     fun setOptions(options: DogLogOptions) = DogLog.setOptions(options)
     fun setEnabled(newEnabled: Boolean) = DogLog.setEnabled(newEnabled)
     fun setPdh(pdh: PowerDistribution) = DogLog.setPdh(pdh)
@@ -61,13 +64,13 @@ object HorseLog {
         return returnValue
     }
 
-    @JvmName("Log0") fun log(key: String, value: Quantity<*>) = DogLog.log("$key(SI Value)", value.siValue)
     fun log(key: String, value: Int) = DogLog.log(key, value.toLong())
+    @JvmName("Log0") fun log(key: String, value: Quantity<*>) = DogLog.log("$key(SI Value)", value.siValue)
 
     fun logNullableInt(key: String, value: Int?) = logNullableImpl(key, value, ::log)
     fun logNullableDouble(key: String, value: Double?) = logNullableImpl(key, value, ::log)
     fun logNullableQuantity(key: String, value: Quantity<*>?) = logNullableImpl(key, value, ::log)
-    fun logNullableValue(key: String, value: StructSerializable?) = logNullableImpl(key, value, ::log)
+    fun <T: StructSerializable> logNullableValue(key: String, value: T?) = logNullableImpl(key, value, ::log)
 
     @JvmName("L1") fun log(key: String, value: Collection<Int>) = DogLog.log(key, value.toIntArray())
     @JvmName("L2") fun log(key: String, value: Collection<Double>) = DogLog.log(key, value.toDoubleArray())
@@ -75,13 +78,13 @@ object HorseLog {
     @JvmName("L4") fun log(key: String, value: Collection<Enum<*>>) = DogLog.log(key, value.toTypedArray())
     @JvmName("L5") fun log(key: String, value: Collection<Quantity<*>>) = DogLog.log("$key(SI Value)", value.map{ it.siValue }.toDoubleArray())
     @JvmName("L6") inline fun <reified T: StructSerializable> log(key: String, value: Collection<T>) = DogLog.log(key, value.toTypedArray())
+}
 
-    private inline fun <T> logNullableImpl(key: String, value: T?, logRegular: (String, T & Any) -> Unit){
-        if (value == null){
-            DogLog.log("$key/isPresent", false)
-        } else {
-            DogLog.log("$key/isPresent", true)
-            logRegular("$key/$value", value)
-        }
+private inline fun <T> logNullableImpl(key: String, value: T?, logRegular: (String, T & Any) -> Unit){
+    if (value == null){
+        DogLog.log("$key/isPresent", false)
+    } else {
+        DogLog.log("$key/isPresent", true)
+        logRegular("$key/$value", value)
     }
 }
