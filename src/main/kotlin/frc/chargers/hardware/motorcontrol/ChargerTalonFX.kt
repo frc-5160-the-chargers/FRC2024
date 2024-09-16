@@ -11,14 +11,15 @@ import com.ctre.phoenix6.controls.VelocityVoltage
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
 import com.pathplanner.lib.util.PIDConstants
-import frc.chargers.framework.faultchecking.FaultChecking
-import frc.chargers.framework.faultchecking.SubsystemFault
+import frc.chargers.framework.ChargerRobot
+import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
 import frc.chargers.hardware.sensors.encoders.Encoder
 
 
 /**
- * A [TalonFX] motor controller that implements the [Motor] and [FaultChecking] interfaces.
+ * A [TalonFX] motor controller that implements the [Motor] interface,
+ * and performs periodic self-checking.
  *
  * Includes everything in the CTRE TalonFX class(accessed via the [base] property),
  * but has additional features to mesh better with the rest
@@ -33,8 +34,9 @@ class ChargerTalonFX(
     val deviceID: Int,
     canBus: String? = null,
     factoryDefault: Boolean = true,
+    faultLogName: String? = null,
     private val fusedCANCoder: ChargerCANcoder? = null
-): Motor, FaultChecking {
+): Motor {
     /**
      * The base [TalonFX] instance.
      */
@@ -228,15 +230,17 @@ class ChargerTalonFX(
         base.fault_UnstableSupplyV to "Supply voltage unstable",
     )
 
-    override fun getFaults(deviceName: String): List<SubsystemFault> {
-        val faults = mutableListOf<SubsystemFault>()
-        for ((faultSignal, faultMsg) in faultMap){
-            // != false prevents null
-            if (faultSignal.refresh().value != false) faults.add(SubsystemFault("$deviceName: $faultMsg"))
+    init {
+        if (faultLogName != null) {
+            ChargerRobot.runPeriodicAtPeriod(1.seconds){
+                for ((faultSignal, faultMsg) in faultMap){
+                    // != false prevents null
+                    if (faultSignal.refresh().value != false) HorseLog.logFault("$faultLogName: $faultMsg")
+                }
+                if (voltageSignal.refresh().status != StatusCode.OK) {
+                    HorseLog.logFault("$faultLogName: Device is unreachable")
+                }
+            }
         }
-        if (voltageSignal.refresh().status != StatusCode.OK) {
-            faults.add(SubsystemFault("$deviceName: Device is unreachable"))
-        }
-        return faults
     }
 }

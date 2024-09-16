@@ -19,7 +19,7 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.faultchecking.FaultChecking
+import frc.chargers.framework.HorseLog.log
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.HeadingProvider
@@ -48,20 +48,20 @@ import kotlin.math.pow
  * Note: TrackWidth is the horizontal length of the robot, while wheelBase is the vertical length of the robot.
  */
 open class EncoderHolonomicDrivetrain(
-    logName: String = "Drivetrain(Swerve)",
+    private val logName: String = "Drivetrain(Swerve)",
     turnMotors: SwerveData<Motor>,
     // turn encoders are optional in sim
     turnEncoders: SwerveData<PositionEncoder?> = SwerveData.create{ null },
     driveMotors: SwerveData<Motor>,
     val constants: SwerveConstants,
     private val gyro: HeadingProvider? = null
-): PoseEstimatingDrivetrain(logName), HeadingProvider {
+): PoseEstimatingDrivetrain(), HeadingProvider {
     private val moduleNames = listOf("Modules/TopLeft", "Modules/TopRight", "Modules/BottomLeft", "Modules/BottomRight")
     // A SwerveData instance that holds all the swerve modules of the drivetrain.
     private val swerveModules: SwerveData<SwerveModule> =
         SwerveData.create{ index ->
             SwerveModule(
-                namespace = logName + "/" + moduleNames[index],
+                name = logName + "/" + moduleNames[index],
                 turnMotors[index],
                 turnEncoders[index],
                 driveMotors[index],
@@ -101,7 +101,7 @@ open class EncoderHolonomicDrivetrain(
     }
     private var currentControlMode = ControlMode.NONE
 
-    private val robotWidget = ChargerRobot.FIELD.getObject(namespace)
+    private val robotWidget = ChargerRobot.FIELD.getObject(logName)
 
     private val poseEstimator = SwerveDrivePoseEstimator(
         kinematics,
@@ -142,21 +142,13 @@ open class EncoderHolonomicDrivetrain(
             ::updatePoseEstimation
         )
 
-        turnMotors.forEachIndexed { idx: Int, motor ->
-            if (motor is FaultChecking) motor.checkForFaults(moduleNames[idx] + "/" + "TurnMotor")
-        }
-
-        driveMotors.forEachIndexed { idx: Int, motor ->
-            if (motor is FaultChecking) motor.checkForFaults(moduleNames[idx] + "/" + "DriveMotor")
-        }
-
         AutoBuilder.configureHolonomic(
             { robotPose },
             { resetPose(it) },
             { currentSpeeds },
             { speeds ->
                 velocityDrive(speeds, fieldRelative = false)
-                log(ChassisSpeeds.struct, "PathPlanner/ChassisSpeeds", speeds)
+                log("$logName/PathPlanner/ChassisSpeeds", speeds)
             },
             HolonomicPathFollowerConfig(
                 constants.robotTranslationPID,
@@ -367,7 +359,7 @@ open class EncoderHolonomicDrivetrain(
             powers.yPower * maxLinearVelocity.siValue,
             powers.rotationPower * maxRotationalVelocity.siValue
         )
-        log(ChassisSpeeds.struct, "ChassisSpeeds/GoalWithoutModifiers", goal)
+        log("$logName/ChassisSpeeds/GoalWithoutModifiers", goal)
         if (fieldRelative){
             val allianceFieldRelativeOffset = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
                 180.degrees
@@ -416,7 +408,7 @@ open class EncoderHolonomicDrivetrain(
         }else{
             goal = speeds
         }
-        log(ChassisSpeeds.struct, "GoalWithoutModifiers", goal)
+        log("$logName/GoalWithoutModifiers", goal)
     }
 
     /**
@@ -485,15 +477,15 @@ open class EncoderHolonomicDrivetrain(
      * Called periodically in the subsystem.
      */
     override fun periodic() {
-        log("DistanceTraveledMeters", distanceTraveled.inUnit(meters))
-        log("OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
-        log("RequestedControlMode", currentControlMode)
-        log(SwerveModuleState.struct, "DesiredModuleStates", setpoint.moduleStates.toList())
-        log(SwerveModuleState.struct, "MeasuredModuleStates", moduleStates)
-        log(ChassisSpeeds.struct, "ChassisSpeeds/Setpoint", setpoint.chassisSpeeds)
-        log(ChassisSpeeds.struct, "ChassisSpeeds/Goal", goal)
-        log(ChassisSpeeds.struct, "ChassisSpeeds/Measured", currentSpeeds)
-        log(Pose2d.struct, "Pose2d", poseEstimator.estimatedPosition)
+        log("$logName/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
+        log("$logName/OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
+        log("$logName/RequestedControlMode", currentControlMode)
+        log("$logName/DesiredModuleStates", setpoint.moduleStates.toList())
+        log("$logName/MeasuredModuleStates", moduleStates)
+        log("$logName/ChassisSpeeds/Setpoint", setpoint.chassisSpeeds)
+        log("$logName/ChassisSpeeds/Goal", goal)
+        log("$logName/ChassisSpeeds/Measured", currentSpeeds)
+        log("$logName/Pose2d", poseEstimator.estimatedPosition)
         robotWidget.pose = poseEstimator.estimatedPosition
 
         if (DriverStation.isDisabled()) {

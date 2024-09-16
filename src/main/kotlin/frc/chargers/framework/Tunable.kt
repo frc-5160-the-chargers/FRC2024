@@ -1,231 +1,66 @@
+@file:Suppress("unused")
 package frc.chargers.framework
 
-import com.batterystaple.kmeasure.dimensions.Dimension
+import com.batterystaple.kmeasure.dimensions.AnyDimension
 import com.batterystaple.kmeasure.quantities.Quantity
-import com.pathplanner.lib.util.PIDConstants
-import edu.wpi.first.wpilibj.DriverStation
+import com.batterystaple.kmeasure.quantities.inUnit
+import com.batterystaple.kmeasure.quantities.ofUnit
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
-import frc.chargers.framework.Tunable.HasChangedObserver
-import frc.chargers.framework.Tunable.RefreshableField
-import kotlin.properties.PropertyDelegateProvider
-import kotlin.properties.ReadOnlyProperty
+import edu.wpi.first.wpilibj2.command.InstantCommand
+import edu.wpi.first.wpilibj2.command.button.Trigger
 import kotlin.reflect.KProperty
 
 /**
- * Represents a generic tunable class.
+ * A property delegate for a [Double] that can be tuned from advantagescope.
  */
-interface Tunable {
-    val namespace: String
+fun tunable(default: Double, key: String? = null, onChange: (Double) -> Unit = {}): Tunable<Double> {
+    return Tunable(key, default, SmartDashboard::getNumber, SmartDashboard::putNumber, onChange)
+}
 
-    /**
-     * Represents a tunable value/field whose value can be refreshed.
-     */
-    fun interface RefreshableField {
-        fun refresh()
-    }
+/**
+ * A property delegate for a [Boolean] that can be tuned from advantagescope.
+ */
+fun tunable(default: Boolean, key: String? = null, onChange: (Boolean) -> Unit) =
+    Tunable(key, default, SmartDashboard::getBoolean, SmartDashboard::putBoolean, onChange)
 
-    /**
-     * Represents an observer that detects if a certain group of tunables needs their value refreshed.
-     */
-    fun interface HasChangedObserver {
-        fun hasChanged(): Boolean
-    }
+/**
+ * A property delegate for a [Quantity] that can be tuned from advantagescope.
+ */
+fun <D: AnyDimension> tunable(default: Quantity<D>, key: String?, unit: Quantity<D>, onChange: (Quantity<D>) -> Unit) =
+    Tunable(key, default,
+        { k, currDefault -> SmartDashboard.getNumber(k, currDefault.inUnit(unit)).ofUnit(unit) },
+        { k, v -> SmartDashboard.putNumber(k, v.inUnit(unit)) },
+        onChange
+    )
 
-    /**
-     * Stores a group of tunable fields and "has changed" observers,
-     * all united under a single namespace.
-     *
-     * If any of the observers detect that a value from the dashboard has been changed,
-     * it will refresh all the values below.
-     */
-    class TunableValuesStore {
-        private val refreshableFields: MutableList<RefreshableField> = mutableListOf()
-        private val hasChangedObservers: MutableList<HasChangedObserver> = mutableListOf()
-
-        var hasChanged: Boolean = false
-            private set
-
-        fun add(refreshableField: RefreshableField){
-            refreshableFields.add(refreshableField)
-        }
-
-        fun add(hasChangedObserver: HasChangedObserver){
-            hasChangedObservers.add(hasChangedObserver)
-        }
-
-        fun refreshWhenNecessary(){
-            if (hasChangedObservers.any{ it.hasChanged() }){
-                hasChanged = true
-                for (field in refreshableFields){
-                    field.refresh()
-                }
-            }else{
-                hasChanged = false
-            }
-        }
-    }
-
-
-
-    companion object {
+class Tunable<T>(
+    private var key: String?,
+    default: T,
+    get: (String, T) -> T,
+    private val put: (String, T) -> Unit,
+    onChange: (T) -> Unit = {}
+) {
+    companion object{
         var tuningMode: Boolean = false
-            set(value) {
-                if (DriverStation.isFMSAttached() && value){
-                    println("Tuning mode was not set; the driver station FMS is attached(you dont want tuning mode in matches lol")
-                }else{
-                    field = value
-                }
-            }
-
-
-        private val tunableStorage: MutableMap<String, TunableValuesStore> = mutableMapOf()
-
-        fun fetchTunableValuesStore(name: String): TunableValuesStore {
-            var valuesStore = tunableStorage[name]
-            if (valuesStore == null){
-                valuesStore = TunableValuesStore()
-                tunableStorage[name] = valuesStore
-            }
-            return valuesStore
-        }
-
-        init{
-            ChargerRobot.runPeriodic {
-                for (tunableValuesStore in tunableStorage.values){
-                    tunableValuesStore.refreshWhenNecessary()
-                }
-            }
-        }
     }
 
-    /**
-     * Reads whether tunable values have been changed or not.
-     */
-    fun valuesHaveChanged(): Boolean = tunableStorage[namespace]?.hasChanged ?: false
+    private var current = default
+    private var defaultKey = ""
 
+    init {
+        Trigger{ tuningMode && get(key ?: defaultKey, current) != current }
+            .onTrue(InstantCommand({
+                current = get(key ?: defaultKey, current)
+                onChange(current)
+            }))
+    }
 
-    /**
-     * A value that simply refreshes itself when a tunableValue is changed,
-     * and tuning mode is enabled.
-     */
-    fun <T: Any?> refreshWhenTuned(getValue: () -> T) =
-        object: ReadOnlyProperty<Any?, T>{
-            private var value = getValue()
-
-            init{
-                fetchTunableValuesStore(namespace).add(
-                    RefreshableField {
-                        value = getValue()
-                    }
-                )
-            }
-
-            override fun getValue(thisRef: Any?, property: KProperty<*>): T = value
-        }
-
-    /**
-     * A property delegate that represents a tunable [Double].
-     */
-    fun tunable(default: Double, key: String? = null) =
-        // PropertyDelegateProvider returns a ReadOnlyProperty,
-        // which can be delegated to variables to override their getter/setter.
-        // We use PropertyDelegateProvider so that the property's name can be provided on startup;
-        // allowing the key to be automatically determined.
-        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Double>> { _, property ->
-            object: ReadOnlyProperty<Any?, Double>{
-                private var value = default
-                private val path = namespace + "/" + (key ?: property.name)
-
-                init{
-                    SmartDashboard.putNumber(path, value)
-                    fetchTunableValuesStore(namespace).apply{
-                        add(RefreshableField { value = SmartDashboard.getNumber(path, value) })
-                        add(HasChangedObserver { SmartDashboard.getNumber(path, value) == value })
-                    }
-                }
-
-                override fun getValue(thisRef: Any?, property: KProperty<*>): Double = value
-            }
-        }
-
-
-    /**
-     * A property delegate that represents a tunable [Quantity].
-     */
-    fun <D: Dimension<*, *, *, *>> tunable(default: Quantity<D>, key: String? = null) =
-        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Quantity<D>>> { _, property ->
-            object: ReadOnlyProperty<Any?, Quantity<D>>{
-                private var value = default
-                private val path = namespace + "/" + (key ?: property.name) + "(SI Value)"
-
-                init{
-                    SmartDashboard.putNumber(path, value.siValue)
-                    fetchTunableValuesStore(namespace).apply{
-                        add(RefreshableField { value = Quantity(SmartDashboard.getNumber(path, value.siValue)) })
-                        add(HasChangedObserver { SmartDashboard.getNumber(path, value.siValue) == value.siValue })
-                    }
-                }
-
-                override fun getValue(thisRef: Any?, property: KProperty<*>): Quantity<D> = value
-            }
-        }
-
-    /**
-     * A property delegate that represents a tunable [Boolean].
-     */
-    fun tunable(default: Boolean, key: String? = null) =
-        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Boolean>>{ _, property ->
-            object: ReadOnlyProperty<Any?, Boolean>{
-                private var value = default
-                private val path = namespace + "/" + (key ?: property.name)
-
-                init{
-                    if (tuningMode) SmartDashboard.putBoolean(path, value)
-                    fetchTunableValuesStore(namespace).apply{
-                        add(RefreshableField { value = SmartDashboard.getBoolean(path, value) })
-                        add(HasChangedObserver { SmartDashboard.getBoolean(path, value) == value })
-                    }
-                }
-
-                override fun getValue(thisRef: Any?, property: KProperty<*>): Boolean = value
-            }
-        }
-
-    /**
-     * Represents [PIDConstants] that can be tuned from the dashboard.
-     */
-    fun tunable(default: PIDConstants, key: String? = null) =
-        PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, PIDConstants>>{ _, property ->
-            object: ReadOnlyProperty<Any?, PIDConstants>{
-                private var value = default
-                private val path = namespace + "/" + (key ?: property.name)
-
-                init{
-                    SmartDashboard.putNumber("$path/kP", value.kP)
-                    SmartDashboard.putNumber("$path/kI", value.kI)
-                    SmartDashboard.putNumber("$path/kD", value.kD)
-
-                    fetchTunableValuesStore(namespace).apply{
-                        add(
-                            RefreshableField {
-                                value = PIDConstants(
-                                    SmartDashboard.getNumber("$path/kP", value.kP),
-                                    SmartDashboard.getNumber("$path/kI", value.kI),
-                                    SmartDashboard.getNumber("$path/kD", value.kD)
-                                )
-                            }
-                        )
-                        add(
-                            HasChangedObserver {
-                                SmartDashboard.getNumber("$path/kP", value.kP) == value.kP &&
-                                SmartDashboard.getNumber("$path/kI", value.kI) == value.kI &&
-                                SmartDashboard.getNumber("$path/kD", value.kD) == value.kD
-                            }
-                        )
-                    }
-                }
-
-                override fun getValue(thisRef: Any?, property: KProperty<*>): PIDConstants = value
-            }
-        }
+    // used to set the property name
+    operator fun provideDelegate(thisRef: Any, property: KProperty<*>): Tunable<T> {
+        defaultKey = "${thisRef::class.simpleName}/${property.name}"
+        put(key ?: defaultKey, current)
+        return this
+    }
+    operator fun getValue(thisRef: Any, property: KProperty<*>): T = current
+    operator fun setValue(thisRef: Any, property: KProperty<*>, value: T) { current = value }
 }

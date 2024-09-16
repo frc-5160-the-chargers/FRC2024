@@ -10,7 +10,9 @@ import frc.chargers.controls.feedforward.AngularMotorFeedforward
 import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
-import frc.chargers.framework.SuperSubsystem
+import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.chargers.framework.HorseLog.log
+import frc.chargers.framework.logged
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.ChargerSparkFlex
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
@@ -20,13 +22,12 @@ private val CLOSED_LOOP_SPEAKER_SHOOT_SPEED = AngularVelocity(0.0) // tbd; shoul
 
 // standard: + = outtake, - = intake; regardless of voltage set
 @Suppress("unused")
-class Shooter: SuperSubsystem("Shooter") {
+class Shooter: SubsystemBase() {
     private val motor: Motor = if (isSimulation()) {
         MotorSim(DCMotor.getNeoVortex(1))
     } else {
-        ChargerSparkFlex(SHOOTER_MOTOR_ID)
+        ChargerSparkFlex(SHOOTER_MOTOR_ID, faultLogName = "ShooterMotor")
             .configure(inverted = true)
-            .checkForFaults("ShooterMotor")
     }
 
     init {
@@ -78,7 +79,7 @@ class Shooter: SuperSubsystem("Shooter") {
 
     fun setVoltage(voltage: Voltage){
         motor.appliedVoltage = voltage
-        log("RequestedVoltage", voltage)
+        log("Shooter/RequestedVoltage", voltage)
     }
 
     fun setSpeed(percentOut: Double){
@@ -89,7 +90,7 @@ class Shooter: SuperSubsystem("Shooter") {
         if (DriverStation.isDisabled()){
             setIdle()
         }
-        log("MeasuredVoltage", motor.appliedVoltage)
-        log("StatorCurrent", motor.statorCurrent)
+        log("Shooter/MeasuredVoltage", motor.appliedVoltage)
+        log("Shooter/StatorCurrent", motor.statorCurrent)
     }
 }

@@ -12,8 +12,9 @@ import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.geometry.Transform3d
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
+import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.SuperSubsystem
+import frc.chargers.framework.HorseLog.log
 import frc.chargers.wpilibextensions.Rotation2d
 import frc6995.NomadAprilTagUtil
 import limelight.LimelightHelpers
@@ -28,7 +29,7 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy
  * This is usually a drivetrain.
  */
 @Suppress("unused")
-abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(namespace) {
+abstract class PoseEstimatingDrivetrain: SubsystemBase() {
     abstract val robotPose: Pose2d
 
     abstract fun resetPose(pose: Pose2d = Pose2d())
@@ -65,14 +66,14 @@ abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(names
         ChargerRobot.runPeriodic {
             val poseEstimation = poseEstimator.update()
             if (poseEstimation.isPresent){
-                log(Pose3d.struct, "PhotonPoseEstimations/$camName", poseEstimation.get().estimatedPose)
+                log("PhotonPoseEstimations/$camName", poseEstimation.get().estimatedPose)
                 addVisionMeasurement(
                     poseEstimation.get().estimatedPose.toPose2d(),
                     poseEstimation.get().timestampSeconds.ofUnit(seconds),
                     poseEstimator.robotToCameraTransform.rotation.x.ofUnit(radians)
                 )
             }else{
-                log(Pose3d.struct, "PhotonPoseEstimations/$camName", Pose3d())
+                log("PhotonPoseEstimations/$camName", Pose3d())
             }
         }
     }
@@ -115,9 +116,9 @@ abstract class PoseEstimatingDrivetrain(namespace: String): SuperSubsystem(names
                     poseEstimation.timestampSeconds.ofUnit(seconds),
                     robotToCamera.rotation.z.ofUnit(radians)
                 )
-                log(Pose2d.struct, "LimelightPoseEstimations/$camName", poseEstimation.pose)
+                log("LimelightPoseEstimations/$camName", poseEstimation.pose)
             }else{
-                log(Pose2d.struct, "LimelightPoseEstimations/$camName", Pose2d())
+                log("LimelightPoseEstimations/$camName", Pose2d())
             }
         }
     }

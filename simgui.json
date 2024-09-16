@@ -252,6 +252,15 @@
           "open": true
         }
       },
+      "Robot": {
+        "ChargerNavX": {
+          "open": true
+        },
+        "Pivot": {
+          "open": true
+        },
+        "open": true
+      },
       "RobotGeneral": {
         "ActiveCommands": {
           "open": true
@@ -270,9 +279,6 @@
           "open": true
         },
         "AutoOptions": {
-          "open": true
-        },
-        "Field": {
           "open": true
         },
         "NoteVisualizer": {

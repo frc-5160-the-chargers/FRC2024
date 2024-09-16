@@ -11,7 +11,6 @@ import frc.chargers.controls.PIDController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
-import frc.chargers.framework.Loggable
 import frc.chargers.hardware.subsystems.swervedrive.EncoderHolonomicDrivetrain
 import frc.chargers.wpilibextensions.flipWhenRedAlliance
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
@@ -22,7 +21,7 @@ class AngleAimCommand(
     private val getTarget: () -> Angle,
     private val drivetrain: EncoderHolonomicDrivetrain,
     private val getChassisPowers: () -> ChassisPowers,
-): Command(), Loggable {
+): Command() {
     constructor(target: Angle, drivetrain: EncoderHolonomicDrivetrain, getChassisPowers: () -> ChassisPowers):
         this({target}, drivetrain, getChassisPowers)
 
@@ -40,7 +39,6 @@ class AngleAimCommand(
         getChassisPowers
     )
 
-    override val namespace = "AimToAngleController"
     private val pidController = PIDController(AIM_TO_ANGLE_PID)
     private val motionProfile: AngularMotionProfile = AngularTrapezoidProfile(
         drivetrain.maxRotationalVelocity,

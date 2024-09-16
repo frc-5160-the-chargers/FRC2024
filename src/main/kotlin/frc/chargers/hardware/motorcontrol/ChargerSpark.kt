@@ -5,15 +5,14 @@ import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.util.PIDConstants
 import com.revrobotics.*
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame
-import frc.chargers.framework.faultchecking.FaultChecking
-import frc.chargers.framework.faultchecking.SubsystemFault
+import frc.chargers.framework.ChargerRobot
+import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.utils.units.frequencyToPeriod
 
 
 /**
- * Creates a [CANSparkMax] that implements the [frc.chargers.hardware.motorcontrol.Motor] and
- * [frc.chargers.framework.faultchecking.FaultChecking] interfaces.
+ * Creates a [CANSparkMax] that implements the [Motor] interface.
  *
  * @see ChargerSpark
  */
@@ -21,31 +20,32 @@ class ChargerSparkMax(
     deviceID: Int,
     motorType: CANSparkLowLevel.MotorType = CANSparkLowLevel.MotorType.kBrushless,
     useAbsoluteEncoder: Boolean = false,
-    factoryDefault: Boolean = true
+    factoryDefault: Boolean = true,
+    faultLogName: String? = null
 ): ChargerSpark<CANSparkMax>(
     CANSparkMax(deviceID, motorType),
-    useAbsoluteEncoder, factoryDefault
+    useAbsoluteEncoder, factoryDefault, faultLogName
 )
 
 
 /**
- * Creates a [CANSparkFlex] that implements the [frc.chargers.hardware.motorcontrol.Motor]
- * and [frc.chargers.framework.faultchecking.FaultChecking] interfaces.
+ * Creates a [CANSparkFlex] that implements the [Motor] interface.
  *
  * @see ChargerSpark
  */
 class ChargerSparkFlex(
     deviceID: Int,
     useAbsoluteEncoder: Boolean = false,
-    factoryDefault: Boolean = true
+    factoryDefault: Boolean = true,
+    faultLogName: String? = null
 ): ChargerSpark<CANSparkFlex>(
     CANSparkFlex(deviceID, CANSparkLowLevel.MotorType.kBrushless),
-    useAbsoluteEncoder, factoryDefault
+    useAbsoluteEncoder, factoryDefault, faultLogName
 )
 
 
 /**
- * A utility class that implements the [Motor] and [FaultChecking] interfaces
+ * A utility class that implements the [Motor] interface
  * for spark max/flex motors.
  *
  * To access the base motor, use the [base] property.
@@ -56,8 +56,9 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
      */
     val base: BaseMotorType,
     private val useAbsoluteEncoder: Boolean = false,
-    factoryDefault: Boolean = true
-): Motor, FaultChecking {
+    factoryDefault: Boolean = true,
+    faultLogName: String? = null
+): Motor {
     val deviceID: Int = base.deviceId
 
     private val nonRevFollowers = mutableListOf<Motor>()
@@ -76,6 +77,15 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
         }
         base.enableVoltageCompensation(12.0)
         base.burnFlash()
+
+        if (faultLogName != null) {
+            ChargerRobot.runPeriodicAtPeriod(1.seconds) {
+                val err = base.lastError
+                if (err != REVLibError.kOk){
+                    HorseLog.logFault("$faultLogName: $err")
+                }
+            }
+        }
     }
 
     override val encoder: Encoder = if (useAbsoluteEncoder) AbsoluteEncoderImpl() else RelativeEncoderImpl()
@@ -220,14 +230,5 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
 
         base.burnFlash()
         return this
-    }
-
-    override fun getFaults(deviceName: String): List<SubsystemFault> {
-        val err: REVLibError = base.lastError
-        return if (err != REVLibError.kOk) {
-            listOf(SubsystemFault("$deviceName: Error: ${err.name}"))
-        } else {
-            emptyList()
-        }
     }
 }

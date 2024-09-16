@@ -8,7 +8,7 @@ import com.batterystaple.kmeasure.units.standardGravities
 import com.kauailabs.navx.frc.AHRS
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.Loggable
+import frc.chargers.framework.logged
 import limelight.LimelightHelpers
 
 
@@ -16,8 +16,7 @@ class ChargerNavX(
     val base: AHRS = AHRS(),
     private val useFusedHeading: Boolean = false,
     var simHeadingSource: () -> Angle = { Angle(0.0) }
-): ZeroableHeadingProvider, Loggable {
-    override val namespace = "NavX"
+): ZeroableHeadingProvider {
     private var headingOffset by logged(0.degrees)
 
     /**

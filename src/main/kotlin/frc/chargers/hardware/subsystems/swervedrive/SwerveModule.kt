@@ -9,7 +9,7 @@ import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotController
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.Loggable
+import frc.chargers.framework.HorseLog.log
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.utils.units.periodToFrequency
@@ -18,22 +18,22 @@ import frc.chargers.wpilibextensions.angle
 import kotlin.math.abs
 
 class SwerveModule(
-    override val namespace: String,
+    val name: String,
     private val turnMotor: Motor,
     // turn encoders are optional in sim
     private val turnEncoder: PositionEncoder? = null,
     private val driveMotor: Motor,
     private val moduleConstants: SwerveConstants
-): Loggable {
+) {
     private val startingDirection: Angle? = if (turnEncoder != null) turnEncoder.angularPosition % 360.degrees else null
     private val wheelRadius = moduleConstants.moduleType.wheelDiameter / 2
     private var couplingOffset: Angle = 0.degrees
     private var azimuthProfileState = AngularMotionProfileState(startingDirection ?: turnMotor.encoder.angularPosition)
 
-    val direction: Angle by logged { turnMotor.encoder.angularPosition % 360.degrees }
-    val driveAngularVelocity: AngularVelocity by logged { driveMotor.encoder.angularVelocity }
-    val driveLinearVelocity: Velocity by logged { driveAngularVelocity * wheelRadius }
-    val wheelTravel: Distance by logged { driveMotor.encoder.angularPosition * wheelRadius }
+    val direction: Angle get() = turnMotor.encoder.angularPosition % 360.degrees
+    val driveAngularVelocity: AngularVelocity get() = driveMotor.encoder.angularVelocity
+    val driveLinearVelocity: Velocity get() = driveAngularVelocity * wheelRadius
+    val wheelTravel: Distance get() = driveMotor.encoder.angularPosition * wheelRadius
 
     init {
         turnMotor.configure(
@@ -59,10 +59,12 @@ class SwerveModule(
                 couplingOffset -= moduleConstants.couplingRatio * (direction % 360.degrees - 180.degrees)
                 log("CouplingOffset", couplingOffset)
             }
-
-            log("TurnMotorCurrent", turnMotor.statorCurrent)
-            log("DriveMotorCurrent", driveMotor.statorCurrent)
-            log("TurnAngularVelocity", turnMotor.encoder.angularVelocity)
+            log("$name/Direction", direction)
+            log("$name/DriveLinearVelocity", driveLinearVelocity)
+            log("$name/WheelTravel", wheelTravel)
+            log("$name/TurnMotorCurrent", turnMotor.statorCurrent)
+            log("$name/DriveMotorCurrent", driveMotor.statorCurrent)
+            log("$name/TurnAngularVelocity", turnMotor.encoder.angularVelocity)
         }
     }
 
@@ -80,7 +82,7 @@ class SwerveModule(
 
     fun setDriveVoltage(target: Voltage) {
         driveMotor.appliedVoltage = target
-        log("DriveVoltage", target)
+        log("$name/DriveVoltage", target)
     }
 
     fun setTurnVoltage(target: Voltage) {
@@ -90,7 +92,7 @@ class SwerveModule(
             target
         }
         turnMotor.appliedVoltage = trueVoltage
-        log("TurnVoltage", trueVoltage)
+        log("$name/TurnVoltage", trueVoltage)
     }
 
     fun setDirection(target: Angle) {
@@ -147,7 +149,7 @@ class SwerveModule(
         setDriveVoltage(
             (optimizedState.speedMetersPerSecond /
                     moduleConstants.driveMotorMaxSpeed.inUnit(meters / seconds) *
-                    12.volts).coerceIn(getVoltageRange())
+                    12.0).coerceIn(getVoltageRange()).ofUnit(volts)
         )
     }
 
@@ -160,11 +162,12 @@ class SwerveModule(
         driveMotor.setVelocitySetpoint(velocitySetpoint, feedforwardV)
     }
 
-    private fun getVoltageRange(): ClosedRange<Voltage>{
-        val upperLimit = RobotController.getBatteryVoltage().ofUnit(volts)
-        return if (upperLimit < 1.volts){
+    private val defaultVRange = -12.0..12.0
+    private fun getVoltageRange(): ClosedRange<Double>{
+        val upperLimit = RobotController.getBatteryVoltage()
+        return if (upperLimit < 1.0){
             DriverStation.reportWarning("The battery voltage of the RobotController seems to be extremely low.", true)
-            (-12).volts..12.volts
+            defaultVRange
         }else{
             -upperLimit..upperLimit
         }

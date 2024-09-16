@@ -8,11 +8,12 @@ import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
+import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.controls.feedforward.UnitArmFeedforward
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
-import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
-import frc.chargers.framework.SuperSubsystem
+import frc.chargers.framework.HorseLog.log
+import frc.chargers.framework.logged
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
@@ -43,7 +44,7 @@ object PivotAngle {
     val STARTING: Angle = -1.15.radians
 }
 
-class Pivot: SuperSubsystem("Pivot") {
+class Pivot: SubsystemBase() {
     private val motor: Motor
     private val absoluteEncoder: PositionEncoder?
 
@@ -52,7 +53,7 @@ class Pivot: SuperSubsystem("Pivot") {
             motor = MotorSim(DCMotor.getNEO(1), moi = 0.001.kilo.grams * (meters * meters))
             absoluteEncoder = null
         }else{
-            motor = ChargerSparkMax(PIVOT_MOTOR_ID).checkForFaults("PivotMotor")
+            motor = ChargerSparkMax(PIVOT_MOTOR_ID, faultLogName = "PivotMotor")
             absoluteEncoder = ChargerDutyCycleEncoder(PIVOT_ENCODER_ID) + ABSOLUTE_ENCODER_OFFSET
         }
     }
@@ -69,10 +70,7 @@ class Pivot: SuperSubsystem("Pivot") {
         )
     }
 
-    private val motionProfile: AngularMotionProfile? = AngularTrapezoidProfile(
-        maxVelocity = AngularVelocity(8.0),
-        maxAcceleration = AngularAcceleration(10.0)
-    )
+    private val motionProfile: AngularMotionProfile? = null
     private var motionProfileSetpoint = AngularMotionProfileState(startingAngle)
     private val feedforward = UnitArmFeedforward(0.0, 0.0, 0.0)
 
@@ -124,15 +122,15 @@ class Pivot: SuperSubsystem("Pivot") {
             )
             pidTarget = motionProfileSetpoint.position
             ffVoltage = feedforward(target, motionProfileSetpoint.velocity)
-            log("Control/MotionProfileGoal", target)
+            log("Pivot/Control/MotionProfileGoal", target)
         }else{
             pidTarget = target
             ffVoltage = 0.volts
         }
         motor.setPositionSetpoint(pidTarget, ffVoltage)
 
-        log("Control/Setpoint", pidTarget)
-        log("Control/FeedForward", ffVoltage)
+        log("Pivot/Control/Setpoint", pidTarget)
+        log("Pivot/Control/FeedForward", ffVoltage)
         atTarget = abs(pidTarget - this.angle) < PID_TOLERANCE
     }
 
@@ -143,11 +141,11 @@ class Pivot: SuperSubsystem("Pivot") {
         }else{
             motor.configure(brakeWhenIdle = true)
         }
-        log("StatorCurrent", motor.statorCurrent)
-        log("VoltageReading", motor.appliedVoltage)
+        log("Pivot/StatorCurrent", motor.statorCurrent)
+        log("Pivot/VoltageReading", motor.appliedVoltage)
         // logs Mechanism 3d pose for simulation.
         log(
-            Pose3d.struct, "Mechanism3dPose",
+            "Pivot/Mechanism3dPose",
             Pose3d(
                 PIVOT_SIM_STARTING_TRANSLATION,
                 Rotation3d(0.degrees, -angle, 0.degrees) // custom overload function that accepts kmeasure quantities

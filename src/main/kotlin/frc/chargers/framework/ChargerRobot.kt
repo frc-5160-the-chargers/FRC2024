@@ -6,10 +6,8 @@ import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.pathfinding.LocalADStar
 import com.pathplanner.lib.pathfinding.Pathfinding
-import com.pathplanner.lib.util.PathPlannerLogging
 import edu.wpi.first.hal.FRCNetComm
 import edu.wpi.first.hal.HAL
-import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.DataLogManager
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
@@ -19,7 +17,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import kcommand.LoggedCommand
 import org.littletonrobotics.urcl.URCL
-import java.io.File
 import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
 
@@ -29,18 +26,8 @@ import java.lang.management.ManagementFactory
  * These include: global periodic function registration, automatic DataLogManager setup,
  * automatic URCL(Unofficial REV-Compatible logger) startup, and more.
  */
-abstract class ChargerRobot(
-    loopPeriod: Time = 0.02.seconds,
-    tuningMode: Boolean = false,
-    logFileFolder: String = if (isReal()) "/U/logs" else "logs",
-    logFileName: String? = null,
-    useURCL: Boolean = true
-): TimedRobot(), Loggable, Tunable {
-    override val namespace = "RobotGeneral"
-
-    companion object: Loggable {
-        override val namespace = "RobotGeneral"
-
+abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds, useURCL: Boolean = true): TimedRobot() {
+    companion object {
         private class HighFrequencyPeriodicRunnable(
             val period: Time,
             val toRun: () -> Unit
@@ -110,25 +97,17 @@ abstract class ChargerRobot(
             lastCounts[i] = gcCount
         }
 
-        log("GCTimeMS", accumTime.toDouble())
-        log("GCCounts", accumCounts.toDouble())
+        HorseLog.log("GCTimeMS", accumTime.toDouble())
+        HorseLog.log("GCCounts", accumCounts.toDouble())
     }
 
     private val commandScheduler = CommandScheduler.getInstance()
 
     init{
         LoggedCommand.configure(
-            logCommandRunning = this::log,
-            logExecutionTime = this::log
+            logCommandRunning = HorseLog::log,
+            logExecutionTime = HorseLog::log
         )
-
-        if (logFileName == null) {
-            DataLogManager.start(logFileFolder)
-        } else {
-            val actualFileName = if (logFileName.endsWith(".wpilog")) logFileName else "$logFileName.wpilog"
-            File("$logFileFolder/$actualFileName").createNewFile()
-            DataLogManager.start(logFileFolder, actualFileName)
-        }
 
         if (RobotBase.isReal()){
             DriverStation.startDataLog(DataLogManager.getLog())
@@ -137,30 +116,13 @@ abstract class ChargerRobot(
             }
         }
 
-        log("loopPeriodSeconds", loopPeriod.inUnit(seconds))
-        Tunable.tuningMode = tuningMode
-
+        HorseLog.log("loopPeriodSeconds", loopPeriod.inUnit(seconds))
         Pathfinding.setPathfinder(LocalADStar())
-
-        var currPose = Pose2d()
-
-        log("Pathplanner/deviationFromTargetPose/xMeters", 0.0)
-        log("Pathplanner/deviationFromTargetPose/yMeters", 0.0)
-        log("Pathplanner/deviationFromTargetPose/rotationRad", 0.0)
-
-        PathPlannerLogging.setLogCurrentPoseCallback { currPose = it }
-
-        PathPlannerLogging.setLogTargetPoseCallback {
-            log("Pathplanner/deviationFromTargetPose/xMeters", it.x - currPose.x)
-            log("Pathplanner/deviationFromTargetPose/yMeters", it.y - currPose.y)
-            log("Pathplanner/deviationFromTargetPose/rotationRad", (it.rotation - currPose.rotation).radians)
-        }
-
         HAL.report(FRCNetComm.tResourceType.kResourceType_Language, FRCNetComm.tInstances.kLanguage_Kotlin)
     }
 
     override fun robotPeriodic() {
-        logLatency("ChargerRobotLoopTime"){
+        HorseLog.logLatency("ChargerRobotLoopTime"){
             if (highFrequencyPeriodicRunnables.size > 0){
                 for (runnable in highFrequencyPeriodicRunnables){
                     addPeriodic(

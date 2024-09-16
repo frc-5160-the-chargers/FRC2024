@@ -6,7 +6,9 @@ import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.hertz
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.volts
-import frc.chargers.framework.SuperSubsystem
+import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.chargers.framework.HorseLog.log
+import frc.chargers.framework.logged
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 
@@ -18,22 +20,24 @@ private val HIGH_LIMIT: Angle? = -100.radians
 private val LOW_LIMIT: Angle? = null
 private val MAX_VOLTAGE: Voltage = 8.volts
 
-class Climber: SuperSubsystem("Climber") {
-    private val leftMotor: Motor = ChargerSparkMax(CLIMBER_ID_LEFT).configure(
-        optimizeUpdateRate = true,
-        velocityUpdateRate = 0.hertz,
-        inverted = false,
-        brakeWhenIdle = true,
-        gearRatio = GEAR_RATIO
-    ).checkForFaults("LeftClimberMotor")
+class Climber: SubsystemBase() {
+    private val leftMotor: Motor = ChargerSparkMax(CLIMBER_ID_LEFT, faultLogName = "LeftClimberMotor")
+        .configure(
+            optimizeUpdateRate = true,
+            velocityUpdateRate = 0.hertz,
+            inverted = false,
+            brakeWhenIdle = true,
+            gearRatio = GEAR_RATIO
+        )
 
-    private val rightMotor: Motor = ChargerSparkMax(CLIMBER_ID_RIGHT).configure(
-        optimizeUpdateRate = true,
-        velocityUpdateRate = 0.hertz,
-        inverted = true,
-        brakeWhenIdle = true,
-        gearRatio = GEAR_RATIO
-    ).checkForFaults("RightClimberMotor")
+    private val rightMotor: Motor = ChargerSparkMax(CLIMBER_ID_RIGHT, faultLogName = "RightClimberMotor")
+        .configure(
+            optimizeUpdateRate = true,
+            velocityUpdateRate = 0.hertz,
+            inverted = true,
+            brakeWhenIdle = true,
+            gearRatio = GEAR_RATIO
+        )
 
     private val leftPosition by logged{ leftMotor.encoder.angularPosition }
     private val rightPosition by logged{ rightMotor.encoder.angularPosition }
@@ -42,26 +46,26 @@ class Climber: SuperSubsystem("Climber") {
         val surpassedUpperLimit: Boolean = HIGH_LIMIT != null && hookSpeed > 0.0 && position >= HIGH_LIMIT
         val surpassedLowerLimit: Boolean = LOW_LIMIT != null && hookSpeed < 0.0 && position <= LOW_LIMIT
 
-        return surpassedUpperLimit || surpassedLowerLimit.also{ log("HasSurpassedLimit", it) }
+        return (surpassedUpperLimit || surpassedLowerLimit).also{ log("Climber/HasSurpassedLimit", it) }
     }
 
     fun moveLeftHook(speed: Double){
         if (willSurpassLimit(speed, leftPosition)){
             leftMotor.appliedVoltage = 0.volts
-            log("LeftRequestedPercentOut", 0.0)
+            log("Climber/LeftRequest", 0.0)
         }else{
             leftMotor.appliedVoltage = speed * MAX_VOLTAGE
-            log("LeftRequestedPercentOut", speed)
+            log("Climber/LeftRequest", speed)
         }
     }
 
     fun moveRightHook(speed: Double){
         if (willSurpassLimit(speed, rightPosition)){
             rightMotor.appliedVoltage = 0.volts
-            log("RightRequestedPercentOut", 0.0)
+            log("Climber/RightRequest", 0.0)
         }else{
             rightMotor.appliedVoltage = speed * MAX_VOLTAGE
-            log("RightRequestedPercentOut", speed)
+            log("Climber/RightRequest", speed)
         }
     }
 
@@ -71,7 +75,7 @@ class Climber: SuperSubsystem("Climber") {
     }
 
     override fun periodic() {
-        log("LeftVoltageReading", leftMotor.appliedVoltage)
-        log("RightVoltageReading", rightMotor.appliedVoltage)
+        log("Climber/LeftV", leftMotor.appliedVoltage)
+        log("Climber/RightV", rightMotor.appliedVoltage)
     }
 }

@@ -12,7 +12,7 @@ import com.ctre.phoenix6.hardware.Pigeon2
 import edu.wpi.first.wpilibj.RobotBase.isReal
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.Loggable
+import frc.chargers.framework.logged
 import limelight.LimelightHelpers
 
 
@@ -26,9 +26,7 @@ class ChargerPigeon2(
     factoryDefault: Boolean = true,
     headingUpdateFrequency: Frequency? = null,
     var simHeadingSource: () -> Angle = { Angle(0.0) }
-): ZeroableHeadingProvider, Loggable {
-    override val namespace = "Pigeon2"
-
+): ZeroableHeadingProvider {
     val base: Pigeon2 = if (canBus == null) Pigeon2(deviceID) else Pigeon2(deviceID, canBus)
 
     private val yawSignal = base.yaw

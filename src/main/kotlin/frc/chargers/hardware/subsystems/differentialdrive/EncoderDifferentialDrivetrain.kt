@@ -20,6 +20,7 @@ import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.drive.DifferentialDrive
 import frc.chargers.framework.ChargerRobot
+import frc.chargers.framework.HorseLog.log
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 import frc.chargers.hardware.sensors.imu.HeadingProvider
@@ -35,12 +36,12 @@ import kotlin.jvm.optionals.getOrNull
  * A standard differential drive, with encoders.
  */
 open class EncoderDifferentialDrivetrain(
-    logName: String = "Drivetrain(Differential)",
+    private val logName: String = "Drivetrain(Differential)",
     private val leftMotors: List<Motor>,
     private val rightMotors: List<Motor>,
     private val constants: DifferentialDriveConstants,
     private val gyro: HeadingProvider? = null
-): PoseEstimatingDrivetrain(logName), HeadingProvider {
+): PoseEstimatingDrivetrain(), HeadingProvider {
     companion object {
         /**
          * Creates a [EncoderDifferentialDrivetrain] with simulated motors.
@@ -121,19 +122,15 @@ open class EncoderDifferentialDrivetrain(
     /**
      * The total linear distance traveled since the start of the match.
      */
-    val distanceTraveled: Distance by logged{
-        listOf(leftWheelTravel, rightWheelTravel).average()
-    }
+    val distanceTraveled: Distance
+        get() = listOf(leftWheelTravel, rightWheelTravel).average()
 
     /**
      * The current linear velocity of the robot.
      */
-    val velocity: Velocity by logged{
-        listOf(
-            leftEncoder.angularVelocity,
-            rightEncoder.angularVelocity
-        ).average() * wheelRadius
-    }
+    val velocity: Velocity
+        get() = listOf(leftEncoder.angularVelocity, rightEncoder.angularVelocity)
+            .average() * wheelRadius
 
     /**
      * The current heading (the direction the robot is facing).
@@ -153,9 +150,8 @@ open class EncoderDifferentialDrivetrain(
      *
      * @see HeadingProvider
      */
-    override val heading: Angle by logged{
-        (leftWheelTravel - rightWheelTravel) / constants.width
-    }
+    override val heading: Angle
+        get() = (leftWheelTravel - rightWheelTravel) / constants.width
 
     /**
      * The current pose of the robot.
@@ -200,14 +196,13 @@ open class EncoderDifferentialDrivetrain(
     /**
      * Gets the current [ChassisSpeeds] of the robot.
      */
-    val currentSpeeds: ChassisSpeeds by logged(ChassisSpeeds.struct){
-        kinematics.toChassisSpeeds(
+    val currentSpeeds: ChassisSpeeds
+        get() = kinematics.toChassisSpeeds(
             DifferentialDriveWheelSpeeds(
                 (leftEncoder.angularVelocity * wheelRadius).inUnit(meters / seconds),
                 (rightEncoder.angularVelocity * wheelRadius).inUnit(meters / seconds),
             )
         )
-    }
 
     /**
      * Drives using "tank controls", a system by which each side of the drivetrain is controlled independently.
@@ -291,9 +286,12 @@ open class EncoderDifferentialDrivetrain(
 
 
     override fun periodic(){
-        if (DriverStation.isDisabled()){
-            stop()
-        }
+        log("$logName/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
+        log("$logName/HeadingDeg", heading.inUnit(degrees))
+        log("$logName/Pose2d", robotPose)
+        log("$logName/ChassisSpeeds", currentSpeeds)
+
+        if (DriverStation.isDisabled()) stop()
         poseEstimator.update(
             Rotation2d(gyro?.heading ?: this.heading),
             leftWheelTravel.siValue,

@@ -12,7 +12,7 @@ import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.InstantCommand
 import edu.wpi.first.wpilibj2.command.ScheduleCommand
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.Loggable
+import frc.chargers.framework.HorseLog.log
 
 // http://github.com/Mechanical-Advantage
 //
@@ -28,9 +28,7 @@ import frc.chargers.framework.Loggable
 // Note: This code is mostly identical to mechanical advantage's code,
 // aside from being converted to kotlin.
 
-object NoteVisualizer: Loggable {
-    override val namespace = "Shooter"
-
+object NoteVisualizer {
     private val blueSpeaker = Translation3d(0.225, 5.55, 2.1)
     private val redSpeaker = Translation3d(16.317, 5.55, 2.1)
     private val zeroedNoteOffset = Transform3d(
@@ -52,7 +50,6 @@ object NoteVisualizer: Loggable {
         ChargerRobot.runPeriodicWithLowPriority {
             if (hasNoteInShooter){
                 log(
-                    Pose3d.struct,
                     "Shooter/notePose",
                     listOf(
                         Pose3d(robotPoseSupplier())
@@ -61,7 +58,7 @@ object NoteVisualizer: Loggable {
                     )
                 )
             }else if (!isShootingInSpeaker){
-                log(Pose3d.struct, "Shooter/notePose", listOf())
+                log("Shooter/notePose", listOf<Pose3d>())
             }
         }
     }
@@ -95,7 +92,6 @@ object NoteVisualizer: Loggable {
                         {
                             isShootingInSpeaker = true
                             log(
-                                Pose3d.struct,
                                 "Shooter/notePose",
                                 listOf(
                                     startPose
@@ -106,7 +102,7 @@ object NoteVisualizer: Loggable {
                         })
                         .until { timer.hasElapsed(duration) }
                         .finallyDo { _: Boolean ->
-                            log(Pose3d.struct, "Shooter/notePose", listOf())
+                            log("Shooter/notePose", listOf<Pose3d>())
                             isShootingInSpeaker = false
                         }
                 },

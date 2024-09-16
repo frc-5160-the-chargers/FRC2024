@@ -6,7 +6,9 @@ import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.TimedRobot.isSimulation
-import frc.chargers.framework.SuperSubsystem
+import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.chargers.framework.HorseLog.log
+import frc.chargers.framework.logged
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.ChargerSparkMax
@@ -17,7 +19,7 @@ private const val GROUND_INTAKE_ID = 7
 
 // standard: + = outtake, - = intake for both conveyor and ground intake components
 // first list value is ground intake motor; second is serializer motor.
-class GroundIntakeSerializer: SuperSubsystem("GroundIntakeSerializer"){
+class GroundIntakeSerializer: SubsystemBase() {
     private val groundIntakeMotor: Motor
     private val serializerMotor: Motor?
 
@@ -26,18 +28,16 @@ class GroundIntakeSerializer: SuperSubsystem("GroundIntakeSerializer"){
             groundIntakeMotor = MotorSim(DCMotor.getFalcon500(1))
             serializerMotor = MotorSim(DCMotor.getNEO(1))
         } else {
-            groundIntakeMotor = ChargerTalonFX(GROUND_INTAKE_ID)
-                .checkForFaults("GroundIntakeMotor")
-            serializerMotor = ChargerSparkMax(SERIALIZER_ID)
+            groundIntakeMotor = ChargerTalonFX(GROUND_INTAKE_ID, faultLogName = "GroundIntakeMotor")
+            serializerMotor = ChargerSparkMax(SERIALIZER_ID, faultLogName = "SerializerMotor")
                 .configure(inverted = true)
-                .checkForFaults("SerializerMotor")
         }
 
         groundIntakeMotor.configure(
             optimizeUpdateRate = true,
             gearRatio = 15.0 / 12.0
         )
-        serializerMotor?.configure(
+        serializerMotor.configure(
             optimizeUpdateRate = true,
             statorCurrentLimit = 45.amps,
             gearRatio = 7.5 / 1.0
@@ -85,8 +85,8 @@ class GroundIntakeSerializer: SuperSubsystem("GroundIntakeSerializer"){
         if (DriverStation.isDisabled()){
             setIdle()
         }
-        log("StatorCurrentReadings", listOfNotNull(groundIntakeMotor.statorCurrent, serializerMotor?.statorCurrent))
-        log("VoltageReadings", listOfNotNull(groundIntakeMotor.appliedVoltage, serializerMotor?.appliedVoltage))
-        log("AngularVelocityReadings", listOfNotNull(groundIntakeMotor.encoder.angularVelocity, serializerMotor?.encoder?.angularVelocity))
+        log("GroundIntakeSerializer/StatorCurrentReadings", listOfNotNull(groundIntakeMotor.statorCurrent, serializerMotor?.statorCurrent))
+        log("GroundIntakeSerializer/VoltageReadings", listOfNotNull(groundIntakeMotor.appliedVoltage, serializerMotor?.appliedVoltage))
+        log("GroundIntakeSerializer/AngularVelocityReadings", listOfNotNull(groundIntakeMotor.encoder.angularVelocity, serializerMotor?.encoder?.angularVelocity))
     }
 }

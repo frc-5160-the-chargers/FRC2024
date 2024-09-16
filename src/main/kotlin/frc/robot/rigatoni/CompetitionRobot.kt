@@ -6,6 +6,7 @@ import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
+import dev.doglog.DogLogOptions
 import edu.wpi.first.math.MathUtil.applyDeadband
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.DriverStation
@@ -21,6 +22,7 @@ import kcommand.RunCommand
 import kcommand.commandbuilder.buildCommand
 import kcommand.setDefaultRunCommand
 import frc.chargers.framework.ChargerRobot
+import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.utils.squareMagnitude
 import frc.chargers.wpilibextensions.distanceTo
@@ -58,13 +60,19 @@ class CompetitionRobot: ChargerRobot() {
 
     private val autoChooser = SendableChooser<Command>()
 
+    private fun setNtPublish(shouldPublish: Boolean) {
+        HorseLog.setOptions(HorseLog.getOptions().withNtPublish(shouldPublish))
+    }
+
     override fun robotInit() {
         DriverStation.silenceJoystickConnectionWarning(true)
         gyro.simHeadingSource = { drivetrain.heading }
-        SmartDashboard.putData(
-            "Power Distribution",
-            PowerDistribution(1, PowerDistribution.ModuleType.kRev)
+        HorseLog.setPdh(PowerDistribution(1, PowerDistribution.ModuleType.kRev))
+        setNtPublish(true)
+        Trigger(DriverStation::isFMSAttached).whileTrue(
+            InstantCommand { setNtPublish(false) }
         )
+
         setDefaultCommands()
         setButtonBindings()
         autoChooser.setDefaultOption(
@@ -177,7 +185,7 @@ class CompetitionRobot: ChargerRobot() {
         shooter.setDefaultRunCommand{
             var speed = applyDeadband(operatorController.leftY, SHOOTER_DEADBAND)
             speed *= SHOOTER_SPEED_MULTIPLIER
-            log("OperatorController/ShooterSpeed", speed)
+            HorseLog.log("OperatorController/ShooterSpeed", speed)
             if (speed > 0.0 && noteObserver.noteInRobot){
                 shooter.setIdle()
             }else{
@@ -188,7 +196,7 @@ class CompetitionRobot: ChargerRobot() {
         pivot.defaultCommand = RunCommand(pivot){
             var speed = applyDeadband(operatorController.rightY, PIVOT_DEADBAND).squareMagnitude()
             speed *= PIVOT_SPEED_MULTIPLIER
-            log("OperatorController/PivotSpeed", speed)
+            HorseLog.log("OperatorController/PivotSpeed", speed)
             pivot.setSpeed(speed)
         }.finallyDo(pivot::setIdle)
 

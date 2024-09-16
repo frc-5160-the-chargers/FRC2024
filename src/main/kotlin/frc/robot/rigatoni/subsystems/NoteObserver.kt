@@ -10,7 +10,9 @@ import com.batterystaple.kmeasure.units.radians
 import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
-import frc.chargers.framework.SuperSubsystem
+import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.chargers.framework.HorseLog.log
+import frc.chargers.framework.logged
 import org.photonvision.PhotonCamera
 import org.photonvision.PhotonUtils
 
@@ -20,7 +22,7 @@ private const val GROUND_INTAKE_SENSOR_ID = 1
 private val CAM_HEIGHT = 10.inches
 private val CAM_PITCH = 37.degrees
 
-class NoteObserver: SuperSubsystem("NoteObserver") {
+class NoteObserver: SubsystemBase() {
     sealed class State {
         data object NoNote: State()
 
@@ -40,13 +42,13 @@ class NoteObserver: SuperSubsystem("NoteObserver") {
             field = value
 
             if (value is State.NoteDetected) {
-                log("NoteDetection/IsPresent", true)
-                log("NoteDetection/TX", value.tx)
-                log("NoteDetection/DistanceToNoteMeters", value.distanceToNote.inUnit(meters))
+                log("NoteObserver/Detection/IsPresent", true)
+                log("NoteObserver/Detection/TX", value.tx)
+                log("NoteObserver/Detection/DistanceToNoteMeters", value.distanceToNote.inUnit(meters))
             }else{
-                log("NoteDetection/IsPresent", false)
-                log("NoteDetection/TX", 0.0)
-                log("NoteDetection/DistanceToNoteMeters", 0.0)
+                log("NoteObserver/Detection/IsPresent", false)
+                log("NoteObserver/Detection/TX", 0.0)
+                log("NoteObserver/Detection/DistanceToNoteMeters", 0.0)
             }
 
             log("CurrentState", state.toString())

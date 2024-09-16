@@ -2,9 +2,9 @@ package frc.robot.rigatoni.subsystems
 
 import edu.wpi.first.wpilibj.SerialPort
 import edu.wpi.first.wpilibj.Timer
-import frc.chargers.framework.SuperSubsystem
+import edu.wpi.first.wpilibj2.command.SubsystemBase
 
-class LEDController: SuperSubsystem("LEDController"){
+class LEDController: SubsystemBase() {
     val serialPort = SerialPort(9600, SerialPort.Port.kUSB)
     val timer = Timer()
 
