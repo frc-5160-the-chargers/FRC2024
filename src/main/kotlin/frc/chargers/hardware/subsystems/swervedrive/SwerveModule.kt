@@ -7,6 +7,7 @@ import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotController
+import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog.log
@@ -95,6 +96,14 @@ class SwerveModule(
         log("$name/TurnVoltage", trueVoltage)
     }
 
+    private fun calculateSetpoint(motionProfile: AngularMotionProfile, goalState: AngularMotionProfileState) =
+        motionProfile.calculate(
+            setpoint = azimuthProfileState,
+            goal = goalState,
+            measurement = direction,
+            continuousInputRange = 0.degrees..360.degrees
+        )
+
     fun setDirection(target: Angle) {
         // utilizes custom absolute value overload for kmeasure quantities
         if (moduleConstants.azimuthPIDTolerance != null &&
@@ -109,21 +118,12 @@ class SwerveModule(
 
         if (moduleConstants.azimuthMotionProfile != null) {
             val goalState = AngularMotionProfileState(target)
-
-            fun calculateSetpoint(): AngularMotionProfileState =
-                moduleConstants.azimuthMotionProfile.calculate(
-                    setpoint = azimuthProfileState,
-                    goal = goalState,
-                    measurement = direction,
-                    continuousInputRange = 0.degrees..360.degrees
-                )
-
             // increments the setpoint by calculating a new one
-            azimuthProfileState = calculateSetpoint()
+            azimuthProfileState = calculateSetpoint(moduleConstants.azimuthMotionProfile, goalState)
 
             // Calculates the setpoint 1 loop period in the future,
             // in order to do plant inversion feedforward.
-            val futureSetpoint = calculateSetpoint()
+            val futureSetpoint = calculateSetpoint(moduleConstants.azimuthMotionProfile, goalState)
 
             feedforwardV = moduleConstants.azimuthFF(
                 azimuthProfileState.velocity,

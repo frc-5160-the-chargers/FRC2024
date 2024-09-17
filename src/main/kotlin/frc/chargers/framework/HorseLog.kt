@@ -3,23 +3,21 @@ package frc.chargers.framework
 import com.batterystaple.kmeasure.quantities.Quantity
 import dev.doglog.DogLog
 import dev.doglog.DogLogOptions
+import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.util.struct.StructSerializable
+import edu.wpi.first.wpilibj.DataLogManager
 import edu.wpi.first.wpilibj.PowerDistribution
 import edu.wpi.first.wpilibj.Timer
 
 /**
- * A small [DogLog] wrapper that adds kotlin-specific methods.
- *
- * This is used the same as [DogLog]; however, it supports kotlin nullables,
- * adds support for [Collection]s(aka Lists, MutableLists, etc.),
- * and supports logging kmeasure [Quantity]s.
+ * A small [DogLog] wrapper that adds kotlin-specific methods
+ * for logging nullables, [List]s and KMeasure [Quantity]s.
  * ```
  * import frc.chargers.framework.HorseLog.log // this singleton is designed to be statically imported in subsystems
  *
  * log("Angle", 30.degrees) // will log as "Angle(SI Value)", 0.68(value in radians)
- * log("values", listOf(1.0, 2.0, 3.0))
+ * log("values", mutableListOf(1.0, 2.0, 3.0))
  * logNullableDouble("Hello", 2.0)
- * logNullableInt("Bye", 5)
  * HorseLog.log("Angle", 30.degrees) // also valid
  * ```
  */
@@ -64,6 +62,16 @@ object HorseLog {
         return returnValue
     }
 
+    /**
+     * Logs only certain NT entries(any that start with one of the [entryPrefixes] listed below)
+     * Instead of all of them.
+     */
+    fun logNTEntriesToFile(vararg entryPrefixes: String) {
+        for (entryPrefix in entryPrefixes) {
+            NetworkTableInstance.getDefault().startEntryDataLog(DataLogManager.getLog(), entryPrefix, "NT:")
+        }
+    }
+
     fun log(key: String, value: Int) = DogLog.log(key, value.toLong())
     @JvmName("Log0") fun log(key: String, value: Quantity<*>) = DogLog.log("$key(SI Value)", value.siValue)
 
@@ -72,12 +80,12 @@ object HorseLog {
     fun logNullableQuantity(key: String, value: Quantity<*>?) = logNullableImpl(key, value, ::log)
     fun <T: StructSerializable> logNullableValue(key: String, value: T?) = logNullableImpl(key, value, ::log)
 
-    @JvmName("L1") fun log(key: String, value: Collection<Int>) = DogLog.log(key, value.toIntArray())
-    @JvmName("L2") fun log(key: String, value: Collection<Double>) = DogLog.log(key, value.toDoubleArray())
-    @JvmName("L3") fun log(key: String, value: Collection<String>) = DogLog.log(key, value.toTypedArray())
-    @JvmName("L4") fun log(key: String, value: Collection<Enum<*>>) = DogLog.log(key, value.toTypedArray())
-    @JvmName("L5") fun log(key: String, value: Collection<Quantity<*>>) = DogLog.log("$key(SI Value)", value.map{ it.siValue }.toDoubleArray())
-    @JvmName("L6") inline fun <reified T: StructSerializable> log(key: String, value: Collection<T>) = DogLog.log(key, value.toTypedArray())
+    @JvmName("L1") fun log(key: String, value: List<Int>) = DogLog.log(key, value.toIntArray())
+    @JvmName("L2") fun log(key: String, value: List<Double>) = logDoubleListImpl(key, value) { it }
+    @JvmName("L3") fun log(key: String, value: List<String>) = DogLog.log(key, value.toTypedArray())
+    @JvmName("L4") fun log(key: String, value: List<Enum<*>>) = DogLog.log(key, value.toTypedArray())
+    @JvmName("L5") fun log(key: String, value: List<Quantity<*>>) = logDoubleListImpl(key, value){ it.siValue }
+    @JvmName("L6") inline fun <reified T: StructSerializable> log(key: String, value: List<T>) = DogLog.log(key, value.toTypedArray())
 }
 
 private inline fun <T> logNullableImpl(key: String, value: T?, logRegular: (String, T & Any) -> Unit){
@@ -88,3 +96,13 @@ private inline fun <T> logNullableImpl(key: String, value: T?, logRegular: (Stri
         logRegular("$key/$value", value)
     }
 }
+private inline fun <T> logDoubleListImpl(key: String, value: List<T>, mapper: (T) -> Double) {
+    val prevValue = doubleArrayStore[key]
+    if (prevValue == null || prevValue.size != value.size) {
+        DogLog.log(key, value.map(mapper).toDoubleArray().also{ doubleArrayStore[key] = it })
+    } else {
+        for (i in prevValue.indices) { prevValue[i] = mapper(value[i]) }
+        DogLog.log(key, prevValue)
+    }
+}
+private val doubleArrayStore = mutableMapOf<String, DoubleArray>()

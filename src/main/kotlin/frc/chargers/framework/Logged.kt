@@ -22,8 +22,8 @@ private fun capitalize(text: String) = text.replaceFirstChar{ it.uppercaseChar()
  * class Arm {
  *    val angle by logged{ motor.encoder.angularPosition } // a logged getter(get()) property; logged under Arm/Angle
  *    var somethingElse by logged(2.0) // a logged var
- *    var somethingElse2 by logged(2, "Arm/abcd")
- *    val getter by logged("Arm/defg"){ motor.encoder.angularVelocity }
+ *    var somethingElse2 by logged(2, "Arm/someInt")
+ *    val getter by logged("Arm/someAngVelocity"){ motor.encoder.angularVelocity }
  * }
  * ```
  */
@@ -88,17 +88,17 @@ fun logged(identifier: String? = null, supplier: () -> String) = LoggedGetter(id
 @JvmName("h") @OverloadResolutionByLambdaReturnType
 fun <E: Enum<E>> logged(identifier: String? = null, supplier: () -> E) = LoggedGetter(identifier, supplier, HorseLog::log)
 @JvmName("i") @OverloadResolutionByLambdaReturnType
-fun <C: Collection<Int>> logged(identifier: String? = null, supplier: () -> C) = LoggedGetter(identifier, supplier, HorseLog::log)
+fun <C: List<Int>> logged(identifier: String? = null, supplier: () -> C) = LoggedGetter(identifier, supplier, HorseLog::log)
 @JvmName("j") @OverloadResolutionByLambdaReturnType
-fun <C: Collection<Double>> logged(identifier: String? = null, supplier: () -> C) = LoggedGetter(identifier, supplier, HorseLog::log)
+fun <C: List<Double>> logged(identifier: String? = null, supplier: () -> C) = LoggedGetter(identifier, supplier, HorseLog::log)
 @JvmName("k") @OverloadResolutionByLambdaReturnType
-fun <D: AnyDimension, C: Collection<Quantity<D>>> logged(identifier: String? = null, supplier: () -> C) = LoggedGetter(identifier, supplier, HorseLog::log)
+fun <D: AnyDimension, C: List<Quantity<D>>> logged(identifier: String? = null, supplier: () -> C) = LoggedGetter(identifier, supplier, HorseLog::log)
 @JvmName("l") @OverloadResolutionByLambdaReturnType
 fun <T: StructSerializable> logged(identifier: String?, supplier: () -> T) = LoggedGetter(identifier, supplier, HorseLog::log)
 @JvmName("m") @OverloadResolutionByLambdaReturnType
-fun <C: Collection<StructSerializable>> logged(identifier: String?, supplier: () -> C) = LoggedGetter(identifier, supplier, HorseLog::log)
+fun <C: List<StructSerializable>> logged(identifier: String?, supplier: () -> C) = LoggedGetter(identifier, supplier, HorseLog::log)
 @JvmName("n") @OverloadResolutionByLambdaReturnType
-fun <E: Enum<E>, C: Collection<E>> logged(identifier: String? = null, supplier: () -> C) = LoggedGetter(identifier, supplier, HorseLog::log)
+fun <E: Enum<E>, C: List<E>> logged(identifier: String? = null, supplier: () -> C) = LoggedGetter(identifier, supplier, HorseLog::log)
 @JvmName("o") @OverloadResolutionByLambdaReturnType
 fun logged(identifier: String? = null, supplier: () -> Int?) = LoggedGetter(identifier, supplier, HorseLog::logNullableInt)
 
@@ -129,11 +129,11 @@ fun logged(value: Int?, identifier: String? = null) = LoggedVar(value, identifie
 @JvmName("logNullable") fun <D: AnyDimension> logged(value: Quantity<D>?, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::logNullableQuantity)
 @JvmName("logNullable") fun <T: StructSerializable> logged(value: T?, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::logNullableValue)
 
-@JvmName("logListA") fun <C: Collection<Int>> logged(value: C, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::log)
-@JvmName("logListB") fun <C: Collection<Double>> logged(value: C, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::log)
-@JvmName("logListC") fun <D: AnyDimension, C: Collection<Quantity<D>>> logged(value: C, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::log)
-@JvmName("logListD") fun <C: Collection<StructSerializable>> logged(value: C, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::log)
-@JvmName("logListE") fun <E: Enum<E>, C: Collection<E>> logged(value: C, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::log)
+@JvmName("logListA") fun <C: List<Int>> logged(value: C, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::log)
+@JvmName("logListB") fun <C: List<Double>> logged(value: C, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::log)
+@JvmName("logListC") fun <D: AnyDimension, C: List<Quantity<D>>> logged(value: C, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::log)
+@JvmName("logListD") fun <C: List<StructSerializable>> logged(value: C, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::log)
+@JvmName("logListE") fun <E: Enum<E>, C: List<E>> logged(value: C, identifier: String? = null) = LoggedVar(value, identifier, HorseLog::log)
 
 class LoggedVar<T>(
     private var value: T,

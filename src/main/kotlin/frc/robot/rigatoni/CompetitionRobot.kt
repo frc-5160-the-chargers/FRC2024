@@ -69,7 +69,7 @@ class CompetitionRobot: ChargerRobot() {
 
         HorseLog.setPdh(PowerDistribution(1, PowerDistribution.ModuleType.kRev))
         setNtPublish(true)
-        Trigger(DriverStation::isFMSAttached).whileTrue(
+        Trigger{ DriverStation.isEnabled() && DriverStation.isFMSAttached() }.whileTrue(
             InstantCommand { setNtPublish(false) }
         )
 
@@ -326,7 +326,7 @@ class CompetitionRobot: ChargerRobot() {
         val spinupStartTime by getOnceDuringRun{ fpgaTimestamp() }
 
         runSequenceIf({movePivot}) {
-            parallelUntilLeadEnds {
+            parallelUntilChiefEnds {
                 +setPivotAngle(PivotAngle.SPEAKER)
                 loop{ shooter.outtakeAtSpeakerSpeed() }
             }
@@ -450,7 +450,7 @@ class CompetitionRobot: ChargerRobot() {
             groundIntake.intake()
         }
 
-        parallelUntilLeadEnds {
+        parallelUntilChiefEnds {
             runSequenceUntil(::noteInSerializer) {
                 +(followPathOptimal(path)
                     .until(::shouldStartNotePursuit))
@@ -497,7 +497,7 @@ class CompetitionRobot: ChargerRobot() {
     ) = buildCommand {
         require(drivetrain, pivot, shooter, groundIntake)
 
-        parallelUntilLeadEnds {
+        parallelUntilChiefEnds {
             +followPathOptimal(path)
 
             loop{
