@@ -19,6 +19,7 @@ import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.drive.DifferentialDrive
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog.log
 import frc.chargers.hardware.motorcontrol.Motor
@@ -26,6 +27,9 @@ import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 import frc.chargers.hardware.sensors.imu.HeadingProvider
 import frc.chargers.hardware.sensors.imu.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.PoseEstimatingDrivetrain
+import frc.chargers.utils.units.VoltageRate
+import frc.chargers.utils.units.toKmeasure
+import frc.chargers.utils.units.toWPI
 import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.angle
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
@@ -283,6 +287,24 @@ open class EncoderDifferentialDrivetrain(
             )
         }
     }
+
+    fun getDriveSysIdRoutine(
+        quasistaticRampRate: VoltageRate? = null,
+        dynamicStepVoltage: Voltage? = null,
+        timeout: Time? = null
+    ): SysIdRoutine = SysIdRoutine(
+        SysIdRoutine.Config(
+            quasistaticRampRate?.toWPI(), dynamicStepVoltage?.toWPI(), timeout?.toWPI(),
+        ) { log("DriveSysIDState", it.toString()) },
+        SysIdRoutine.Mechanism(
+            { voltage ->
+                leftMotors.forEach{ it.appliedVoltage = voltage.toKmeasure() }
+                rightMotors.forEach{ it.appliedVoltage = voltage.toKmeasure() }
+            },
+            null, // no need for log consumer since data is recorded by logging
+            this
+        )
+    )
 
 
     override fun periodic(){

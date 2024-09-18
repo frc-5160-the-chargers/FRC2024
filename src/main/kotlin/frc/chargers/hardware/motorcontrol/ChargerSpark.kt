@@ -105,7 +105,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     override var appliedVoltage: Voltage
         get() = Voltage(base.appliedOutput * base.busVoltage)
         set(voltage){
-            base.setVoltage(voltage.siValue)
+            base.setVoltage(voltage.inUnit(volts))
         }
 
     override val statorCurrent: Current get() = Current(base.outputCurrent)

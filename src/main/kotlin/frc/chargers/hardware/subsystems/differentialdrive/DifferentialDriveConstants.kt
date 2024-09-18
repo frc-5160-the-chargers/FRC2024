@@ -7,16 +7,13 @@ import com.pathplanner.lib.util.PIDConstants
 import com.pathplanner.lib.util.ReplanningConfig
 import frc.chargers.controls.feedforward.AngularMotorFeedforward
 
-@PublishedApi
-internal const val DEFAULT_GEAR_RATIO: Double = 1.0
-
 enum class PathAlgorithm {
     LTV, RAMSETE
 }
 
 class DifferentialDriveConstants(
     val invertMotors: Boolean = false,
-    val gearRatio: Double = DEFAULT_GEAR_RATIO,
+    val gearRatio: Double,
     val wheelDiameter: Length,
     val width: Length,
     val velocityPID: PIDConstants = PIDConstants(0.0, 0.0, 0.0),

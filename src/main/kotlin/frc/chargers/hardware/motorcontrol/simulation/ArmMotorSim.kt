@@ -16,7 +16,7 @@ import frc.chargers.hardware.sensors.encoders.Encoder
 class ArmMotorSim(
     private val motorType: DCMotor,
     private val armLength: Distance,
-    private val moi: MomentOfInertia,
+    private val moi: MomentOfInertia = 0.004.kilo.grams * (meters * meters), // good estimate if you don't care about accuracy,
     private val lowestPosition: Angle = Angle(Double.NEGATIVE_INFINITY),
     private val highestPosition: Angle = Angle(Double.POSITIVE_INFINITY)
 ): SimulatedMotorBase() {

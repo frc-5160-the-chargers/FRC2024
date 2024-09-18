@@ -14,7 +14,7 @@ import frc.chargers.hardware.sensors.encoders.Encoder
  */
 class MotorSim(
     private val motorType: DCMotor,
-    private val moi: MomentOfInertia = 0.004.kilo.grams * (meters * meters),
+    private val moi: MomentOfInertia = 0.004.kilo.grams * (meters * meters), // good estimate if you don't care about accuracy
 ): SimulatedMotorBase() {
     lateinit var base: DCMotorSim
         private set

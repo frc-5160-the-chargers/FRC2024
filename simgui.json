@@ -262,10 +262,18 @@
           },
           "open": true
         },
-        "Pivot": {
+        "Drivetrain(Differential)": {
           "open": true
         },
-        "open": true
+        "Faults": {
+          "open": true,
+          "string[]##v_/Robot/Faults/Seen": {
+            "open": true
+          }
+        },
+        "Pivot": {
+          "open": true
+        }
       },
       "RobotGeneral": {
         "ActiveCommands": {

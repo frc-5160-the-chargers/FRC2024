@@ -7,8 +7,8 @@ plugins {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_20
-    targetCompatibility = JavaVersion.VERSION_20
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 def ROBOT_MAIN_CLASS = "frc.robot.Main"
@@ -66,7 +66,7 @@ dependencies {
     implementation wpi.java.vendor.java()
     api('io.github.battery-staple:KMeasure:1.4.1')
     implementation "gov.nist.math:jama:1.0.3"
-    implementation 'com.github.frc-5160-the-chargers:KCommand:v1.0.0-Beta2'
+    implementation 'com.github.frc-5160-the-chargers:KCommand:v1.0.0-Beta1'
 
     roborioDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.roborio)
     roborioDebug wpi.java.vendor.jniDebug(wpi.platforms.roborio)
@@ -95,6 +95,7 @@ kotlin {
             freeCompilerArgs += "-Xskip-prerelease-check"
         }
     }
+    jvmToolchain(17)
 }
 
 subprojects {
