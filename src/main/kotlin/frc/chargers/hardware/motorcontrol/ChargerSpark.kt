@@ -9,6 +9,7 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.utils.units.frequencyToPeriod
+import kotlin.math.PI
 
 
 /**
@@ -113,7 +114,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     override val inverted: Boolean get() = base.inverted
 
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
-        require(positionPIDConfigured){" You must specify a positionPID value using the configure() method. "}
+        require(positionPIDConfigured){" You must specify a positionPID value using the configure(positionPID = PIDConstants(p,i,d)) method. "}
         base.pidController.setReference(
             position.inUnit(rotations),
             CANSparkBase.ControlType.kPosition,
@@ -123,7 +124,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     }
 
     override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
-        require(velocityPIDConfigured){" You must specify a velocityPID value using the configure() method. "}
+        require(velocityPIDConfigured){" You must specify a velocityPID value using the configure(velocityPID = PIDConstants(p,i,d)) method. "}
         val velocityAsDouble = if (useAbsoluteEncoder) {
             velocity.inUnit(rotations / minutes)
         } else {
@@ -180,20 +181,23 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
             relativeEncoder.velocityConversionFactor = 1 / gearRatio
         }
         if (startingPosition != null) relativeEncoder.setPosition(startingPosition.inUnit(rotations))
+        // 2 * PI makes it so that the PID gains are optimized off of radians and not rotations
         if (positionPID != null) {
             positionPIDConfigured = true
             base.pidController.apply {
-                setP(positionPID.kP, 0)
-                setI(positionPID.kI, 0)
-                setD(positionPID.kD, 0)
+                setP(positionPID.kP * (2 * PI), 0)
+                setI(positionPID.kI * (2 * PI), 0)
+                setD(positionPID.kD * (2 * PI), 0)
             }
         }
         if (velocityPID != null) {
             velocityPIDConfigured = true
+            // ensures that PID units are rotations / second
+            val multiplier = 2 * PI * if (useAbsoluteEncoder) 60.0 else 1.0
             base.pidController.apply {
-                setP(velocityPID.kP, 1)
-                setI(velocityPID.kI, 1)
-                setD(velocityPID.kD, 1)
+                setP(velocityPID.kP * multiplier, 1)
+                setI(velocityPID.kI * multiplier, 1)
+                setD(velocityPID.kD * multiplier, 1)
             }
         }
         if (continuousInput == true) {

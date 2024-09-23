@@ -12,6 +12,7 @@ import frc.chargers.hardware.sensors.encoders.Encoder
  * Represents 1 or a group of motors powering an elevator.
  * Acts as wrapper around WPILib's [ElevatorSim] that extends the [frc.chargers.hardware.motorcontrol.Motor] interface.
  */
+@Suppress("unused")
 class ElevatorMotorSim(
     private val motorType: DCMotor,
     private val carriageMass: Mass,

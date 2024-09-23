@@ -15,6 +15,7 @@ import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
 import frc.chargers.hardware.sensors.encoders.Encoder
+import kotlin.math.PI
 
 
 /**
@@ -149,20 +150,21 @@ class ChargerTalonFX(
             }
         }
         if (continuousInput != null) config.ClosedLoopGeneral.ContinuousWrap = continuousInput
+        // 2 * PI makes it so that the PID gains are optimized off of radians and not rotations
         if (positionPID != null) {
             positionPIDConfigured = true
             config.Slot0.apply {
-                kP = positionPID.kP
-                kI = positionPID.kI
-                kD = positionPID.kD
+                kP = positionPID.kP * (2 * PI)
+                kI = positionPID.kI * (2 * PI)
+                kD = positionPID.kD * (2 * PI)
             }
         }
         if (velocityPID != null) {
             velocityPIDConfigured = true
             config.Slot1.apply {
-                kP = velocityPID.kP
-                kI = velocityPID.kI
-                kD = velocityPID.kD
+                kP = velocityPID.kP * (2 * PI)
+                kI = velocityPID.kI * (2 * PI)
+                kD = velocityPID.kD * (2 * PI)
             }
         }
         for (follower in followerMotors){
@@ -194,8 +196,7 @@ class ChargerTalonFX(
             if (rate != null) {
                 statusSignal.setUpdateFrequency(rate.inUnit(hertz))
             } else if (optimizeBusUtilization) {
-                // if status frames have been optimized, setRate sets the default update rate
-                // so that the frames don't get disabled
+                // optimizeBusUtilization will turn the position and velocity signals off by default, so we have to re-enable them
                 statusSignal.setUpdateFrequency(50.0)
             }
         }
@@ -204,7 +205,7 @@ class ChargerTalonFX(
     }
 
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
-        require(positionPIDConfigured){" You must specify a positionPID value using the configure() method. "}
+        require(positionPIDConfigured){" You must specify a positionPID value using the configure(positionPID = PIDConstants(p,i,d)) method. "}
         setPosRequest.Position = position.inUnit(rotations)
         setPosRequest.FeedForward = feedforward.inUnit(volts)
         base.setControl(setPosRequest)
@@ -212,7 +213,7 @@ class ChargerTalonFX(
     }
 
     override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
-        require(velocityPIDConfigured){" You must specify a velocityPID value using the configure() method. "}
+        require(velocityPIDConfigured){" You must specify a velocityPID value using the configure(velocityPID = PIDConstants(p,i,d)) method. "}
         setVelRequest.Velocity = velocity.inUnit(rotations / seconds)
         setVelRequest.FeedForward = feedforward.inUnit(volts)
         base.setControl(setVelRequest)
