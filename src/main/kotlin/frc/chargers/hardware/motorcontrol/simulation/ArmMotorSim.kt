@@ -17,8 +17,7 @@ class ArmMotorSim(
     private val motorType: DCMotor,
     private val armLength: Distance,
     private val moi: MomentOfInertia = 0.004.kilo.grams * (meters * meters), // good estimate if you don't care about accuracy,
-    private val lowestPosition: Angle = Angle(Double.NEGATIVE_INFINITY),
-    private val highestPosition: Angle = Angle(Double.POSITIVE_INFINITY)
+    private val positionRange: ClosedRange<Angle> = Angle(Double.NEGATIVE_INFINITY)..Angle(Double.POSITIVE_INFINITY)
 ): SimulatedMotorBase() {
     lateinit var base: SingleJointedArmSim
         private set
@@ -26,9 +25,7 @@ class ArmMotorSim(
     init {
         initializeWPILibSim(1.0)
         if (RobotBase.isSimulation()) {
-            ChargerRobot.runPeriodic {
-                base.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
-            }
+            ChargerRobot.runPeriodic { base.update(0.02) }
         }
     }
 
@@ -38,9 +35,10 @@ class ArmMotorSim(
             gearRatio,
             moi.inUnit(kilo.grams * (meters * meters)),
             armLength.inUnit(meters),
-            lowestPosition.inUnit(radians),
-            highestPosition.inUnit(radians),
-            true, 0.0
+            /* min angle */ positionRange.start.inUnit(radians),
+            /* max angle */ positionRange.endInclusive.inUnit(radians),
+            /* simulate gravity */ true,
+            /* starting position */0.0
         )
     }
 

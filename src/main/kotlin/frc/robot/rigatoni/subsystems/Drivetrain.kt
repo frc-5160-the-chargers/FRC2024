@@ -17,13 +17,13 @@ import frc.chargers.hardware.subsystems.swervedrive.*
 fun getDrivetrain(gyro: HeadingProvider): EncoderHolonomicDrivetrain =
     if (isSimulation()) {
         EncoderHolonomicDrivetrain(
-            turnMotors = SwerveData.create{ MotorSim(DCMotor.getNEO(1), moi = TURN_MOTOR_MOI) },
-            turnEncoders = SwerveData.create { null },
-            driveMotors = SwerveData.create{ MotorSim(DCMotor.getKrakenX60(1), moi = DRIVE_MOTOR_MOI) },
+            name = "SwerveDrive",
+            turnMotors = List(4){ MotorSim(DCMotor.getNEO(1), moi = TURN_MOTOR_MOI) },
+            driveMotors = List(4){ MotorSim(DCMotor.getKrakenX60(1), moi = DRIVE_MOTOR_MOI) },
             constants = SWERVE_CONSTANTS
         )
     } else {
-        EncoderHolonomicDrivetrain(turnMotors = TURN_MOTORS, turnEncoders = TURN_ENCODERS, driveMotors = DRIVE_MOTORS, constants = SWERVE_CONSTANTS, gyro = gyro)
+        EncoderHolonomicDrivetrain(name = "SwerveDrive", turnMotors = TURN_MOTORS, turnEncoders = TURN_ENCODERS, driveMotors = DRIVE_MOTORS, constants = SWERVE_CONSTANTS, gyro = gyro)
     }
 
 private object DrivetrainID {
@@ -51,11 +51,11 @@ private val SWERVE_CONSTANTS = SwerveConstants(
     velocityPID = PIDConstants(0.05,0.0,0.0),
     velocityFF = AngularMotorFeedforward(0.0,0.13),
 )
-private val TURN_MOTORS = SwerveData(
-    topLeft = ChargerSparkMax(DrivetrainID.TL_TURN),
-    topRight = ChargerSparkMax(DrivetrainID.TR_TURN).configure(inverted = true),
-    bottomLeft = ChargerSparkMax(DrivetrainID.BL_TURN),
-    bottomRight = ChargerSparkMax(DrivetrainID.BR_TURN)
+private val TURN_MOTORS = listOf(
+    ChargerSparkMax(DrivetrainID.TL_TURN),
+    ChargerSparkMax(DrivetrainID.TR_TURN).configure(inverted = true),
+    ChargerSparkMax(DrivetrainID.BL_TURN),
+    ChargerSparkMax(DrivetrainID.BR_TURN)
 ).map {
     it.configure(
         statorCurrentLimit = 30.amps,
@@ -63,18 +63,18 @@ private val TURN_MOTORS = SwerveData(
         optimizeUpdateRate = true
     )
 }
-private val TURN_ENCODERS = SwerveData(
+private val TURN_ENCODERS = listOf(
     // encoder - angleOffset = encoder with angle offset
-    topLeft = ChargerCANcoder(DrivetrainID.TL_ENCODER) - 0.621.radians,
-    topRight = ChargerCANcoder(DrivetrainID.TR_ENCODER) - 1.37.radians,
-    bottomLeft = ChargerCANcoder(DrivetrainID.BL_ENCODER) - 4.971.radians,
-    bottomRight = ChargerCANcoder(DrivetrainID.BR_ENCODER) - 6.243.radians
+    ChargerCANcoder(DrivetrainID.TL_ENCODER) - 0.621.radians,
+    ChargerCANcoder(DrivetrainID.TR_ENCODER) - 1.37.radians,
+    ChargerCANcoder(DrivetrainID.BL_ENCODER) - 4.971.radians,
+    ChargerCANcoder(DrivetrainID.BR_ENCODER) - 6.243.radians
 )
-private val DRIVE_MOTORS = SwerveData(
-    topLeft = ChargerTalonFX(DrivetrainID.TL_DRIVE),
-    topRight = ChargerTalonFX(DrivetrainID.TR_DRIVE).configure(inverted = true),
-    bottomLeft = ChargerTalonFX(DrivetrainID.BL_DRIVE),
-    bottomRight = ChargerTalonFX(DrivetrainID.BR_DRIVE).configure(inverted = true),
+private val DRIVE_MOTORS = listOf(
+    ChargerTalonFX(DrivetrainID.TL_DRIVE),
+    ChargerTalonFX(DrivetrainID.TR_DRIVE).configure(inverted = true),
+    ChargerTalonFX(DrivetrainID.BL_DRIVE),
+    ChargerTalonFX(DrivetrainID.BR_DRIVE).configure(inverted = true),
 ).map {
     it.base.configurator.apply(
         CurrentLimitsConfigs()

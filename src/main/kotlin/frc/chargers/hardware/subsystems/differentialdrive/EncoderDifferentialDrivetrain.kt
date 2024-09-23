@@ -40,7 +40,7 @@ import kotlin.jvm.optionals.getOrNull
  * A standard differential drive, with encoders.
  */
 open class EncoderDifferentialDrivetrain(
-    private val logName: String = "Drivetrain(Differential)",
+    private val name: String,
     private val leftMotors: List<Motor>,
     private val rightMotors: List<Motor>,
     private val constants: DifferentialDriveConstants,
@@ -51,12 +51,12 @@ open class EncoderDifferentialDrivetrain(
          * Creates a [EncoderDifferentialDrivetrain] with simulated motors.
          */
         fun simulated(
-            logName: String = "Drivetrain(Differential)",
+            name: String,
             motorType: DCMotor,
             constants: DifferentialDriveConstants
         ): EncoderDifferentialDrivetrain =
             EncoderDifferentialDrivetrain(
-                logName, listOf(MotorSim(motorType)), listOf(MotorSim(motorType)), constants
+                name, listOf(MotorSim(motorType)), listOf(MotorSim(motorType)), constants
             )
     }
     /* Private implementation */
@@ -73,7 +73,7 @@ open class EncoderDifferentialDrivetrain(
         Pose2d()
     )
 
-    private val robotObject = ChargerRobot.FIELD.getObject(logName)
+    private val robotObject = ChargerRobot.FIELD.getObject(name)
 
     /* Public API */
     init {
@@ -96,7 +96,7 @@ open class EncoderDifferentialDrivetrain(
                     { resetPose(it) },
                     { currentSpeeds },
                     { speeds: ChassisSpeeds -> velocityDrive(speeds) },
-                    ChargerRobot.LOOP_PERIOD.inUnit(seconds),
+                    0.02,
                     constants.pathReplanningConfig,
                     { DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red }, // function used to determine if alliance flip is necessary
                     this
@@ -308,10 +308,10 @@ open class EncoderDifferentialDrivetrain(
 
 
     override fun periodic(){
-        log("$logName/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
-        log("$logName/HeadingDeg", heading.inUnit(degrees))
-        log("$logName/Pose2d", robotPose)
-        log("$logName/ChassisSpeeds", currentSpeeds)
+        log("$name/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
+        log("$name/HeadingDeg", heading.inUnit(degrees))
+        log("$name/Pose2d", robotPose)
+        log("$name/ChassisSpeeds", currentSpeeds)
 
         if (DriverStation.isDisabled()) stop()
         poseEstimator.update(

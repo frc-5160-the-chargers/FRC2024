@@ -6,7 +6,6 @@ import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.controller.SimpleMotorFeedforward
-import frc.chargers.framework.ChargerRobot
 
 /**
  * Represents a feedforward equation that characterizes a
@@ -34,7 +33,7 @@ class LinearMotorFeedforward(
     operator fun invoke(
         currentTarget: Velocity,
         nextTarget: Velocity,
-        dt: Time = ChargerRobot.LOOP_PERIOD
+        dt: Time = 0.02.seconds
     ): Voltage =
         Voltage(
             if (kV == 0.0 || kS == 0.0){

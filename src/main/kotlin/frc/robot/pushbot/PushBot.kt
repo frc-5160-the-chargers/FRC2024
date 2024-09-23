@@ -8,13 +8,10 @@ import edu.wpi.first.wpilibj2.command.InstantCommand
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
 import edu.wpi.first.wpilibj2.command.button.Trigger
+import frc.chargers.framework.*
 import kcommand.commandbuilder.buildCommand
 import kcommand.setDefaultRunCommand
-import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.HorseLog
 import frc.chargers.framework.HorseLog.log
-import frc.chargers.framework.Tunable
-import frc.chargers.framework.tunable
 import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 import frc.chargers.hardware.subsystems.differentialdrive.DifferentialDriveConstants
 import frc.chargers.hardware.subsystems.differentialdrive.EncoderDifferentialDrivetrain
@@ -39,11 +36,13 @@ class PushBot: ChargerRobot() {
 
     private val drivetrain = if (isSimulation()){
         EncoderDifferentialDrivetrain.simulated(
+            name = "Drivetrain",
             motorType = DCMotor.getNEO(2),
             constants = DifferentialDriveConstants.andymarkKitbot(invertMotors = true)
         )
     }else{
         EncoderDifferentialDrivetrain(
+            name = "Drivetrain",
             leftMotors = leftMotors,
             rightMotors = rightMotors,
             constants = DifferentialDriveConstants.andymarkKitbot(invertMotors = true)

@@ -5,9 +5,9 @@ import com.batterystaple.kmeasure.quantities.Quantity
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.div
 import com.batterystaple.kmeasure.quantities.times
+import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.trajectory.ExponentialProfile
 import edu.wpi.first.math.trajectory.TrapezoidProfile
-import frc.chargers.framework.ChargerRobot
 
 typealias AngularMotionProfile = MotionProfile<AngleDimension, AngularVelocityDimension>
 typealias AngularMotionProfileState = MotionProfileState<AngleDimension, AngularVelocityDimension>
@@ -28,7 +28,7 @@ interface MotionProfile<Pos: Dimension<*,*,*,*>, Vel: Dimension<*,*,*,*>> {
     fun calculate(
         setpoint: MotionProfileState<Pos, Vel>,
         goal: MotionProfileState<Pos, Vel>,
-        dt: Time = ChargerRobot.LOOP_PERIOD
+        dt: Time = 0.02.seconds
     ): MotionProfileState<Pos,Vel>
 
     fun calculate(
@@ -36,7 +36,7 @@ interface MotionProfile<Pos: Dimension<*,*,*,*>, Vel: Dimension<*,*,*,*>> {
         goal: MotionProfileState<Pos, Vel>,
         measurement: Quantity<Pos>,
         continuousInputRange: ClosedRange<Quantity<Pos>>,
-        dt: Time = ChargerRobot.LOOP_PERIOD
+        dt: Time = 0.02.seconds
     ): MotionProfileState<Pos,Vel> {
         val errorBound = (continuousInputRange.endInclusive - continuousInputRange.start) / 2.0
 

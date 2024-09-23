@@ -15,8 +15,7 @@ import frc.chargers.hardware.sensors.encoders.Encoder
 class ElevatorMotorSim(
     private val motorType: DCMotor,
     private val carriageMass: Mass,
-    private val lowestPosition: Angle = Angle(Double.NEGATIVE_INFINITY),
-    private val highestPosition: Angle = Angle(Double.POSITIVE_INFINITY)
+    private val positionRange: ClosedRange<Distance> = Distance(Double.NEGATIVE_INFINITY)..Distance(Double.POSITIVE_INFINITY)
 ): SimulatedMotorBase() {
     lateinit var base: ElevatorSim
         private set
@@ -24,9 +23,7 @@ class ElevatorMotorSim(
     init {
         initializeWPILibSim(1.0) // initializes the sim
         if (RobotBase.isSimulation()) {
-            ChargerRobot.runPeriodic {
-                base.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
-            }
+            ChargerRobot.runPeriodic { base.update(0.02) }
         }
     }
 
@@ -36,8 +33,8 @@ class ElevatorMotorSim(
             gearRatio,
             carriageMass.inUnit(kilo.grams),
             /*"Drum Radius"*/ 1.0 / (2.0 * Math.PI), // This value ensures that the circumference = 1 meters
-            /*Min Height*/ (lowestPosition * 1.meters).inUnit(meters),
-            /*Max Height*/ (highestPosition * 1.meters).inUnit(meters),
+            /*Min Height*/ positionRange.start.inUnit(meters),
+            /*Max Height*/ positionRange.endInclusive.inUnit(meters),
             /*Simulate Gravity*/ true,
             0.0
         )

@@ -62,6 +62,7 @@ abstract class PoseEstimatingDrivetrain: SubsystemBase() {
             robotToCamera
         )
         val camName = photonCam.name
+        val camYaw = robotToCamera.rotation.x.ofUnit(radians)
 
         ChargerRobot.runPeriodic {
             val poseEstimation = poseEstimator.update()
@@ -70,7 +71,7 @@ abstract class PoseEstimatingDrivetrain: SubsystemBase() {
                 addVisionMeasurement(
                     poseEstimation.get().estimatedPose.toPose2d(),
                     poseEstimation.get().timestampSeconds.ofUnit(seconds),
-                    poseEstimator.robotToCameraTransform.rotation.x.ofUnit(radians)
+                    camYaw
                 )
             }else{
                 log("PhotonPoseEstimations/$camName", Pose3d())
@@ -109,12 +110,13 @@ abstract class PoseEstimatingDrivetrain: SubsystemBase() {
 
             val tagEstimateAmbiguous = poseEstimation.rawFiducials.size == 1 &&
                 poseEstimation.rawFiducials[0].ambiguity >= 0.9
+            val camYaw = robotToCamera.rotation.z.ofUnit(radians)
 
             if (poseEstimation.tagCount > 0 && !tagEstimateAmbiguous){
                 addVisionMeasurement(
                     poseEstimation.pose,
                     poseEstimation.timestampSeconds.ofUnit(seconds),
-                    robotToCamera.rotation.z.ofUnit(radians)
+                    camYaw
                 )
                 log("LimelightPoseEstimations/$camName", poseEstimation.pose)
             }else{

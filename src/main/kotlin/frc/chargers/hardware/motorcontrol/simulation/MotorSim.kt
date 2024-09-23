@@ -22,9 +22,7 @@ class MotorSim(
     init {
         initializeWPILibSim(1.0) // initializes the sim
         if (RobotBase.isSimulation()) {
-            ChargerRobot.runPeriodic {
-                base.update(ChargerRobot.LOOP_PERIOD.inUnit(seconds))
-            }
+            ChargerRobot.runPeriodic { base.update(0.02) }
         }
     }
 

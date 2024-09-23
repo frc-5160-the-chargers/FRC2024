@@ -6,7 +6,6 @@ import com.batterystaple.kmeasure.units.meters
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.math.controller.SimpleMotorFeedforward
-import frc.chargers.framework.ChargerRobot
 
 
 /**
@@ -35,7 +34,7 @@ class AngularMotorFeedforward(
     operator fun invoke(
         currentTarget: AngularVelocity,
         nextTarget: AngularVelocity,
-        dt: Time = ChargerRobot.LOOP_PERIOD
+        dt: Time = 0.02.seconds
     ): Voltage =
         Voltage(
             if (kV == 0.0 || kS == 0.0){

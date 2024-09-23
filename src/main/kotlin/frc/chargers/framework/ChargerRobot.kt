@@ -19,9 +19,11 @@ import java.lang.management.ManagementFactory
 /**
  * A base class for a generic Robot which extends [TimedRobot],
  * and adds the ability to run blocks of code periodically(at any period)
- * from any point.
+ * from any point in the code.
+ *
+ * This is used by the rest of ChargerLib; making it the only required class.
  */
-abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(loopPeriod.inUnit(seconds)) {
+abstract class ChargerRobot: TimedRobot(0.02) {
     companion object {
         private class HighFrequencyPeriodicRunnable(val period: Time, val toRun: () -> Unit)
         private val periodicRunnables = mutableListOf<() -> Unit>()
@@ -57,12 +59,6 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(loopPer
         }
 
         /**
-         * The loop period of the current robot.
-         */
-        var LOOP_PERIOD: Time = 0.02.seconds
-            private set
-
-        /**
          * The [Field2d] that belongs to the robot.
          */
         val FIELD: Field2d = Field2d().also{
@@ -88,43 +84,40 @@ abstract class ChargerRobot(loopPeriod: Time = 0.02.seconds): TimedRobot(loopPer
             lastCounts[i] = gcCount
         }
 
-        HorseLog.log("GCTimeMS", accumTime.toDouble())
-        HorseLog.log("GCCounts", accumCounts.toDouble())
+        HorseLog.log("General/GCTimeMS", accumTime.toDouble())
+        HorseLog.log("General/GCCounts", accumCounts.toDouble())
     }
-
+    
     private val commandScheduler = CommandScheduler.getInstance()
 
-    init{
+    private fun periodicCallback() {
+        for (runnable in highFrequencyPeriodicRunnables){
+            addPeriodic(
+                runnable.toRun,
+                runnable.period.inUnit(seconds),
+                0.005
+            )
+        }
+        highFrequencyPeriodicRunnables.clear()
+        HorseLog.logLatency("General/CommandScheduler + periodic callbacks loop time(MS)") {
+            periodicRunnables.forEach{ it() }
+            // Runs the Command Scheduler; polling buttons and scheduling commands.
+            commandScheduler.run()
+            lowPriorityPeriodicRunnables.forEach { it() }
+        }
+        logGcData()
+    }
+
+    init {
         LoggedCommand.configure(
             logCommandRunning = HorseLog::log,
             logExecutionTime = HorseLog::log
         )
-
-        LOOP_PERIOD = loopPeriod
-        HorseLog.log("loopPeriodSeconds", loopPeriod.inUnit(seconds))
         Pathfinding.setPathfinder(LocalADStar())
         HAL.report(FRCNetComm.tResourceType.kResourceType_Language, FRCNetComm.tInstances.kLanguage_Kotlin)
     }
 
     override fun robotPeriodic() {
-        HorseLog.logLatency("ChargerRobotLoopTime"){
-            if (highFrequencyPeriodicRunnables.size > 0){
-                for (runnable in highFrequencyPeriodicRunnables){
-                    addPeriodic(
-                        runnable.toRun,
-                        runnable.period.inUnit(seconds),
-                        0.005
-                    )
-                }
-                highFrequencyPeriodicRunnables.clear()
-            }
-
-            periodicRunnables.forEach{ it() }
-            // Runs the Command Scheduler; polling buttons and scheduling commands.
-            commandScheduler.run()
-            lowPriorityPeriodicRunnables.forEach { it() }
-
-            logGcData()
-        }
+        periodicCallback()
     }
 }

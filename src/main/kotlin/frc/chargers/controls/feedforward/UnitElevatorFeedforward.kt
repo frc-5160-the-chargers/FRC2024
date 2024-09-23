@@ -32,7 +32,7 @@ class UnitElevatorFeedforward(
     operator fun invoke(
         currentTarget: Velocity,
         nextTarget: Velocity,
-        dt: Time = ChargerRobot.LOOP_PERIOD
+        dt: Time = 0.02.seconds
     ): Voltage =
         Voltage(
             if (kV == 0.0 || kS == 0.0){

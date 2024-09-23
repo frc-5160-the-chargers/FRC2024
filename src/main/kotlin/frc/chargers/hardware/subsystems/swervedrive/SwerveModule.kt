@@ -17,6 +17,7 @@ import frc.chargers.utils.units.periodToFrequency
 import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.angle
 import kotlin.math.abs
+import kotlin.math.cos
 
 class SwerveModule(
     val name: String,
@@ -24,10 +25,10 @@ class SwerveModule(
     // turn encoders are optional in sim
     private val turnEncoder: PositionEncoder? = null,
     private val driveMotor: Motor,
-    private val moduleConstants: SwerveConstants
+    private val constants: SwerveConstants
 ) {
     private val startingDirection: Angle? = if (turnEncoder != null) turnEncoder.angularPosition % 360.degrees else null
-    private val wheelRadius = moduleConstants.moduleType.wheelDiameter / 2
+    private val wheelRadius = constants.moduleType.wheelDiameter / 2
     private var couplingOffset: Angle = 0.degrees
     private var azimuthProfileState = AngularMotionProfileState(startingDirection ?: turnMotor.encoder.angularPosition)
 
@@ -38,26 +39,26 @@ class SwerveModule(
 
     init {
         turnMotor.configure(
-            inverted = if (moduleConstants.moduleType.turnMotorInverted && RobotBase.isReal()) !turnMotor.inverted else null,
-            gearRatio = moduleConstants.moduleType.turnGearRatio,
+            inverted = if (constants.moduleType.turnMotorInverted && RobotBase.isReal()) !turnMotor.inverted else null,
+            gearRatio = constants.moduleType.turnGearRatio,
             startingPosition = startingDirection,
-            positionPID = moduleConstants.azimuthPID,
+            positionPID = constants.azimuthPID,
             continuousInput = true,
-            positionUpdateRate = periodToFrequency(moduleConstants.odometryUpdateRate)
+            positionUpdateRate = periodToFrequency(constants.odometryUpdateRate)
         )
 
         driveMotor.configure(
-            gearRatio = moduleConstants.moduleType.driveGearRatio,
+            gearRatio = constants.moduleType.driveGearRatio,
             startingPosition = 0.degrees,
-            velocityPID = moduleConstants.velocityPID,
-            positionUpdateRate = periodToFrequency(moduleConstants.odometryUpdateRate)
+            velocityPID = constants.velocityPID,
+            positionUpdateRate = periodToFrequency(constants.odometryUpdateRate)
         )
 
-        log("Data/UsingCouplingRatio", moduleConstants.couplingRatio != null)
+        log("Data/UsingCouplingRatio", constants.couplingRatio != null)
 
         ChargerRobot.runPeriodic {
-            if (moduleConstants.couplingRatio != null){
-                couplingOffset -= moduleConstants.couplingRatio * (direction % 360.degrees - 180.degrees)
+            if (constants.couplingRatio != null){
+                couplingOffset -= constants.couplingRatio * (direction % 360.degrees - 180.degrees)
                 log("CouplingOffset", couplingOffset)
             }
             log("$name/Direction", direction)
@@ -87,11 +88,7 @@ class SwerveModule(
     }
 
     fun setTurnVoltage(target: Voltage) {
-        val trueVoltage = if (abs(target) < 0.01.volts){
-            0.volts
-        }else{
-            target
-        }
+        val trueVoltage = if (abs(target) < 0.01.volts) 0.volts else target
         turnMotor.appliedVoltage = trueVoltage
         log("$name/TurnVoltage", trueVoltage)
     }
@@ -106,8 +103,8 @@ class SwerveModule(
 
     fun setDirection(target: Angle) {
         // utilizes custom absolute value overload for kmeasure quantities
-        if (moduleConstants.azimuthPIDTolerance != null &&
-            abs(direction - target) < moduleConstants.azimuthPIDTolerance){
+        if (constants.azimuthPIDTolerance != null &&
+            abs(direction - target) < constants.azimuthPIDTolerance){
             setTurnVoltage(0.volts)
             azimuthProfileState = AngularMotionProfileState(direction)
             return
@@ -116,16 +113,16 @@ class SwerveModule(
         val pidTarget: Angle
         val feedforwardV: Voltage
 
-        if (moduleConstants.azimuthMotionProfile != null) {
+        if (constants.azimuthMotionProfile != null) {
             val goalState = AngularMotionProfileState(target)
             // increments the setpoint by calculating a new one
-            azimuthProfileState = calculateSetpoint(moduleConstants.azimuthMotionProfile, goalState)
+            azimuthProfileState = calculateSetpoint(constants.azimuthMotionProfile, goalState)
 
             // Calculates the setpoint 1 loop period in the future,
             // in order to do plant inversion feedforward.
-            val futureSetpoint = calculateSetpoint(moduleConstants.azimuthMotionProfile, goalState)
+            val futureSetpoint = calculateSetpoint(constants.azimuthMotionProfile, goalState)
 
-            feedforwardV = moduleConstants.azimuthFF(
+            feedforwardV = constants.azimuthFF(
                 azimuthProfileState.velocity,
                 futureSetpoint.velocity
             )
@@ -140,25 +137,23 @@ class SwerveModule(
     }
 
     fun setDesiredStateOpenLoop(state: SwerveModuleState) {
-        val directionAsRotation2d = Rotation2d(direction)
-        val optimizedState = SwerveModuleState.optimize(state, directionAsRotation2d)
+        val optimizedState = SwerveModuleState.optimize(state, Rotation2d(direction))
         optimizedState.speedMetersPerSecond *= abs(
-            (optimizedState.angle - directionAsRotation2d).cos
+            cos(optimizedState.angle.getRadians() - direction.inUnit(radians))
         )
         setDirection(optimizedState.angle.angle)
         setDriveVoltage(
-            (optimizedState.speedMetersPerSecond /
-                    moduleConstants.driveMotorMaxSpeed.inUnit(meters / seconds) *
-                    12.0).coerceIn(getVoltageRange()).ofUnit(volts)
+            (optimizedState.speedMetersPerSecond / constants.driveMotorMaxSpeed.inUnit(meters / seconds) * 12.0)
+                .coerceIn(getVoltageRange())
+                .ofUnit(volts)
         )
     }
 
     fun setDesiredStateClosedLoop(state: SwerveModuleState) {
-        val directionAsRotation2d = Rotation2d(direction)
-        val optimizedState = SwerveModuleState.optimize(state, directionAsRotation2d)
+        val optimizedState = SwerveModuleState.optimize(state, Rotation2d(direction))
         setDirection(optimizedState.angle.angle)
         val velocitySetpoint = optimizedState.speedMetersPerSecond.ofUnit(meters / seconds) / wheelRadius
-        val feedforwardV = moduleConstants.velocityFF(velocitySetpoint)
+        val feedforwardV = constants.velocityFF(velocitySetpoint)
         driveMotor.setVelocitySetpoint(velocitySetpoint, feedforwardV)
     }
 

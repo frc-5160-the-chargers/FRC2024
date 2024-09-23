@@ -30,12 +30,7 @@ import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.chargers.wpilibextensions.onDoubleClick
 import frc.robot.rigatoni.inputdevices.PS5SwerveController
-import frc.robot.rigatoni.subsystems.Climber
-import frc.robot.rigatoni.subsystems.GroundIntakeSerializer
-import frc.robot.rigatoni.subsystems.NoteObserver
-import frc.robot.rigatoni.subsystems.getDrivetrain
-import frc.robot.rigatoni.subsystems.Pivot
-import frc.robot.rigatoni.subsystems.PivotAngle
+import frc.robot.rigatoni.subsystems.*
 import frc.robot.rigatoni.subsystems.shooter.Shooter
 import kotlin.math.abs
 import kotlin.math.max
@@ -59,28 +54,29 @@ class CompetitionRobot: ChargerRobot() {
 
     private val autoChooser = SendableChooser<Command>()
 
-    private fun setNtPublish(shouldPublish: Boolean) {
-        HorseLog.setOptions(HorseLog.getOptions().withNtPublish(shouldPublish))
-    }
-
-    override fun robotInit() {
+    init {
         DriverStation.silenceJoystickConnectionWarning(true)
         gyro.simHeadingSource = { drivetrain.heading }
-
+        HorseLog.setOptions(
+            HorseLog.getOptions()
+                .withNtPublish(true)
+                .withCaptureDs(true)
+                .withLogExtras(true)
+                .withLogEntryQueueCapacity(1000)
+        )
         HorseLog.setPdh(PowerDistribution(1, PowerDistribution.ModuleType.kRev))
-        setNtPublish(true)
-        Trigger{ DriverStation.isEnabled() && DriverStation.isFMSAttached() }.whileTrue(
-            InstantCommand { setNtPublish(false) }
+        Trigger(DriverStation::isFMSAttached).whileTrue(
+            InstantCommand { HorseLog.setOptions(HorseLog.getOptions().withNtPublish(false)) }
         )
 
         setDefaultCommands()
         setButtonBindings()
+
         autoChooser.setDefaultOption(
             "Taxi",
             RunCommand(drivetrain){ drivetrain.swerveDrive(0.2, 0.0, 0.0, fieldRelative = false) }
                 .withTimeout(5.0)
         )
-
         // getAutoCommands is implemented below
         for (autoCommand in getAutoCommands()){
             autoChooser.addOption(autoCommand.name, autoCommand)
@@ -371,7 +367,7 @@ class CompetitionRobot: ChargerRobot() {
                     noteIntakeTime = 0.5.seconds
                 )
                 +driveAndScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG2"))
-            }.also{ cmd -> repeat(10){ println("requirements: " + cmd.requirements) } },
+            },
 
             speakerAutoStartup(AutoStartingPose::getSpeakerLeft).withName("1 Piece Speaker"),
 

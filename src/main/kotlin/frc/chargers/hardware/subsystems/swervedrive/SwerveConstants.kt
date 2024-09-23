@@ -10,8 +10,6 @@ import com.pathplanner.lib.util.PIDConstants
 import com.pathplanner.lib.util.ReplanningConfig
 import frc.chargers.controls.feedforward.AngularMotorFeedforward
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
-import frc.chargers.framework.ChargerRobot
-
 
 private val DEFAULT_MAX_MODULE_SPEED = 4.5.ofUnit(meters / seconds)
 private val DEFAULT_MAX_MODULE_ROTATION_SPEED = 1080.ofUnit(degrees / seconds)
@@ -38,7 +36,7 @@ data class SwerveConstants(
     val pathReplanningConfig: ReplanningConfig = ReplanningConfig(),
     val openLoopDiscretizationRate: Double = 2.0,
     val closedLoopDiscretizationRate: Double = 1.0,
-    val odometryUpdateRate: Time = ChargerRobot.LOOP_PERIOD,
+    val odometryUpdateRate: Time = 0.02.seconds,
     val couplingRatio: Double? = null,
 
     val turnMotorMaxSpeed: AngularVelocity = DEFAULT_MAX_MODULE_ROTATION_SPEED,

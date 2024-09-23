@@ -56,7 +56,7 @@ class LoggedDoubleGetter(private val key: String?, private val get: DoubleSuppli
 fun logged(identifier: String? = null, supplier: () -> Boolean) = LoggedBoolGetter(identifier, supplier)
 class LoggedBoolGetter(private val key: String?, private val get: BooleanSupplier) {
     operator fun provideDelegate(thisRef: Any, property: KProperty<*>): LoggedBoolGetter {
-        val defaultKey = "${thisRef::class.simpleName}/${property.name}"
+        val defaultKey = "${thisRef::class.simpleName}/${capitalize(property.name)}"
         ChargerRobot.runPeriodic { HorseLog.log(key ?: defaultKey, get.asBoolean) }
         return this
     }
@@ -108,7 +108,7 @@ class LoggedGetter<T>(
     private val log: (String, T) -> Unit,
 ) {
     operator fun provideDelegate(thisRef: Any, property: KProperty<*>): LoggedGetter<T> {
-        val defaultKey = "${thisRef::class.simpleName}/${property.name}"
+        val defaultKey = "${thisRef::class.simpleName}/${capitalize(property.name)}"
         ChargerRobot.runPeriodic { log(key ?: defaultKey, get()) }
         return this
     }
@@ -141,7 +141,7 @@ class LoggedVar<T>(
     private val log: (String, T) -> Unit
 ) {
     operator fun provideDelegate(thisRef: Any, property: KProperty<*>): LoggedVar<T> {
-        val defaultKey = "${thisRef::class.simpleName}/${property.name}"
+        val defaultKey = "${thisRef::class.simpleName}/${capitalize(property.name)}"
         ChargerRobot.runPeriodic { log(key ?: defaultKey, value) }
         return this
     }

@@ -82,7 +82,7 @@ class ChargerPigeon2(
             yawRateSignal.refresh().value.ofUnit(degrees / seconds)
         } else {
             val currH = simHeadingSource()
-            ((currH - simPreviousYaw) / ChargerRobot.LOOP_PERIOD).also {
+            ((currH - simPreviousYaw) / 0.02.seconds).also {
                 simPreviousYaw = currH
             }
         }

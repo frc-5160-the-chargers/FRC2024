@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog.log
+import frc.chargers.framework.tunable
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.HeadingProvider
@@ -42,57 +43,45 @@ import kotlin.math.pow
  * An implementation of Swerve drive, with encoders, to be used in future robot code.
  * Swerve drive is called four-wheel holonomic drive outside of FRC, hence the name.
  *
- * This class implements the DifferentialDrivetrain interface for basic utility use
- * and interop with existing DifferentialDrive extension functions.
- *
  * Note: TrackWidth is the horizontal length of the robot, while wheelBase is the vertical length of the robot.
+ * Data from lists comes in Top Left, Top Right, bottom left, bottom right order.
  */
 open class EncoderHolonomicDrivetrain(
-    private val logName: String = "Drivetrain(Swerve)",
-    turnMotors: SwerveData<Motor>,
+    private val name: String,
+    turnMotors: List<Motor>,
     // turn encoders are optional in sim
-    turnEncoders: SwerveData<PositionEncoder?> = SwerveData.create{ null },
-    driveMotors: SwerveData<Motor>,
+    turnEncoders: List<PositionEncoder?> = List(4){ null },
+    driveMotors: List<Motor>,
     val constants: SwerveConstants,
     private val gyro: HeadingProvider? = null
 ): PoseEstimatingDrivetrain(), HeadingProvider {
     private val moduleNames = listOf("Modules/TopLeft", "Modules/TopRight", "Modules/BottomLeft", "Modules/BottomRight")
-    // A SwerveData instance that holds all the swerve modules of the drivetrain.
-    private val swerveModules: SwerveData<SwerveModule> =
-        SwerveData.create{ index ->
-            SwerveModule(
-                name = logName + "/" + moduleNames[index],
-                turnMotors[index],
-                turnEncoders[index],
-                driveMotors[index],
-                constants
-            )
-        }
-
+    private val swerveModules = List(4){ index ->
+        SwerveModule(
+            name = name + "/" + moduleNames[index],
+            turnMotors[index],
+            turnEncoders[index],
+            driveMotors[index],
+            constants
+        )
+    }
     private val moduleTranslationsFromRobotCenter = arrayOf(
         Translation2d(constants.trackWidth/2, constants.wheelBase/2),
         Translation2d(constants.trackWidth/2, -constants.wheelBase/2),
         Translation2d(-constants.trackWidth/2, constants.wheelBase/2),
         Translation2d(-constants.trackWidth/2, -constants.wheelBase/2)
     )
-    // A helper class that stores the characteristics of the drivetrain.
-    private val kinematics = SwerveDriveKinematics(*moduleTranslationsFromRobotCenter)
-
+    private val kinematics = SwerveDriveKinematics(*moduleTranslationsFromRobotCenter) // A helper class that stores the characteristics of the drivetrain.
     private val constraints = SwerveSetpointGenerator.ModuleLimits(
         constants.driveMotorMaxSpeed.siValue,
         constants.driveMotorMaxAcceleration.siValue,
         constants.turnMotorMaxSpeed.siValue
     )
-    // Converts ChassisSpeeds to module states
-    // That respect velocity and acceleration constraints.
-    private val setpointGenerator =
-        SwerveSetpointGenerator(kinematics, moduleTranslationsFromRobotCenter)
-    // The ultimate goal state of the drivetrain; with x, y and rotational velocities.
-    private var goal = ChassisSpeeds()
+    private val setpointGenerator = SwerveSetpointGenerator(kinematics, moduleTranslationsFromRobotCenter) // Converts ChassisSpeeds to module states that respect velocity and acceleration constraints.
+    private var goal = ChassisSpeeds() // The ultimate goal state of the drivetrain; with x, y and rotational velocities.
     // The current setpoint of the drivetrain;
     // which stores the target speeds and module states of the drivetrain.
     private var setpoint = SwerveSetpointGenerator.Setpoint(ChassisSpeeds(), Array(4){ SwerveModuleState() })
-
     // An enum class that stores the current control mode of the drivetrain.
     private enum class ControlMode{
         OPEN_LOOP,  // Represents open-loop control with no feedforward / PID
@@ -100,9 +89,7 @@ open class EncoderHolonomicDrivetrain(
         NONE // Represents no control at all; this mode should be set when the drivetrain is not calling one of the drive functions.
     }
     private var currentControlMode = ControlMode.NONE
-
-    private val robotWidget = ChargerRobot.FIELD.getObject(logName)
-
+    private val robotWidget = ChargerRobot.FIELD.getObject(name)
     private val poseEstimator = SwerveDrivePoseEstimator(
         kinematics,
         Rotation2d(0.0),
@@ -135,6 +122,11 @@ open class EncoderHolonomicDrivetrain(
         }
     }
 
+    private val azimuthPID by tunable(constants.azimuthPID, "$name/azimuthPID")
+        .onChange{ pid -> turnMotors.forEach{ it.configure(positionPID = pid) }  }
+    private val velocityPID by tunable(constants.velocityPID, "$name/velocityPID")
+        .onChange{ pid -> driveMotors.forEach{ it.configure(velocityPID = pid) } }
+
     init{
         log("RealGyroUsedInPoseEstimation", gyro != null)
         ChargerRobot.runPeriodicAtPeriod(
@@ -148,7 +140,7 @@ open class EncoderHolonomicDrivetrain(
             { currentSpeeds },
             { speeds ->
                 velocityDrive(speeds, fieldRelative = false)
-                log("$logName/PathPlanner/ChassisSpeeds", speeds)
+                log("$name/PathPlanner/ChassisSpeeds", speeds)
             },
             HolonomicPathFollowerConfig(
                 constants.robotTranslationPID,
@@ -257,30 +249,26 @@ open class EncoderHolonomicDrivetrain(
         get() = setpoint.chassisSpeeds
 
     /**
-     * Fetches a [SwerveData] instance containing [SwerveModulePosition]s,
+     * Fetches a List containing [SwerveModulePosition]s,
      * which store the distance traveled and the angle of each swerve module.
      */
-    val modulePositions: SwerveData<SwerveModulePosition>
-        get() = swerveModules.map{ it.getModulePosition() }
+    val modulePositions get() = swerveModules.map{ it.getModulePosition() }
 
     /**
-     * Fetches a [SwerveData] instance containing [SwerveModulePosition]s,
+     * Fetches a List containing [SwerveModulePosition]s,
      * which store the velocity and the angle of each swerve module.
      */
-    val moduleStates: SwerveData<SwerveModuleState>
-        get() = swerveModules.map{ it.getModuleState() }
+    val moduleStates get() = swerveModules.map{ it.getModuleState() }
 
     /**
-     * Fetches a [SwerveData] instance containing each module's drive angular velocity.
+     * Fetches a List containing each module's drive angular velocity.
      */
-    val moduleAngularVelocities: SwerveData<AngularVelocity>
-        get() = swerveModules.map{ it.driveAngularVelocity }
+    val moduleAngularVelocities get() = swerveModules.map{ it.driveAngularVelocity }
 
     /**
-     * Fetches a [SwerveData] instance containing each module's drive linear velocity.
+     * Fetches a List containing each module's drive linear velocity.
      */
-    val moduleLinearVelocities: SwerveData<Velocity>
-        get() = swerveModules.map{ it.driveLinearVelocity }
+    val moduleLinearVelocities get() = swerveModules.map{ it.driveLinearVelocity }
 
     /**
      * The max linear velocity of the drivetrain, calculated by simulating
@@ -316,8 +304,8 @@ open class EncoderHolonomicDrivetrain(
         ) { log("DriveSysIDState", it.toString()) },
         SysIdRoutine.Mechanism(
             { voltage ->
-                setDriveVoltages(SwerveData.create{ voltage.toKmeasure() })
-                setTurnDirections(SwerveData.create{ Angle(0.0) })
+                setDriveVoltages(List(4){ voltage.toKmeasure() })
+                setTurnDirections(List(4){ Angle(0.0) })
             },
             null, // no need for log consumer since data is recorded by logging
             this
@@ -359,7 +347,7 @@ open class EncoderHolonomicDrivetrain(
             powers.yPower * maxLinearVelocity.siValue,
             powers.rotationPower * maxRotationalVelocity.siValue
         )
-        log("$logName/ChassisSpeeds/GoalWithoutModifiers", goal)
+        log("$name/ChassisSpeeds/GoalWithoutModifiers", goal)
         if (fieldRelative){
             val allianceFieldRelativeOffset = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
                 180.degrees
@@ -408,13 +396,13 @@ open class EncoderHolonomicDrivetrain(
         }else{
             goal = speeds
         }
-        log("$logName/GoalWithoutModifiers", goal)
+        log("$name/GoalWithoutModifiers", goal)
     }
 
     /**
      * Sets driving voltages for each module.
      */
-    fun setDriveVoltages(voltages: SwerveData<Voltage>){
+    fun setDriveVoltages(voltages: List<Voltage>){
         currentControlMode = ControlMode.NONE
         swerveModules.zip(voltages).forEach{ (module, voltage) ->
             module.setDriveVoltage(voltage)
@@ -425,7 +413,7 @@ open class EncoderHolonomicDrivetrain(
      * Sets turn voltages for each module.
      * The standard order is top left, top right, bottom left, bottom right.
      */
-    fun setTurnVoltages(voltages: SwerveData<Voltage>){
+    fun setTurnVoltages(voltages: List<Voltage>){
         currentControlMode = ControlMode.NONE
         swerveModules.zip(voltages).forEach{ (module, voltage) ->
             module.setTurnVoltage(voltage)
@@ -436,7 +424,7 @@ open class EncoderHolonomicDrivetrain(
      * Sets azimuth directions for each module.
      * The standard order is top left, top right, bottom left, bottom right.
      */
-    fun setTurnDirections(directions: SwerveData<Angle>){
+    fun setTurnDirections(directions: List<Angle>){
         currentControlMode = ControlMode.NONE
         swerveModules.zip(directions).forEach{ (module, direction) ->
             module.setDirection(direction)
@@ -465,27 +453,23 @@ open class EncoderHolonomicDrivetrain(
         currentControlMode = ControlMode.NONE
         goal = ChassisSpeeds()
         setpoint = SwerveSetpointGenerator.Setpoint(ChassisSpeeds(), setpoint.moduleStates)
-        setTurnDirections(
-            SwerveData(topLeft = 45.degrees, topRight = (-45).degrees, bottomLeft = (-45).degrees, bottomRight = 45.degrees)
-        )
-        swerveModules.forEach{
-            it.setDriveVoltage(0.volts)
-        }
+        setTurnDirections(listOf(45.degrees, -45.degrees, -45.degrees, 45.degrees))
+        swerveModules.forEach{ it.setDriveVoltage(0.volts) }
     }
 
     /**
      * Called periodically in the subsystem.
      */
     override fun periodic() {
-        log("$logName/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
-        log("$logName/OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
-        log("$logName/RequestedControlMode", currentControlMode)
-        log("$logName/DesiredModuleStates", setpoint.moduleStates.toList())
-        log("$logName/MeasuredModuleStates", moduleStates)
-        log("$logName/ChassisSpeeds/Setpoint", setpoint.chassisSpeeds)
-        log("$logName/ChassisSpeeds/Goal", goal)
-        log("$logName/ChassisSpeeds/Measured", currentSpeeds)
-        log("$logName/Pose2d", poseEstimator.estimatedPosition)
+        log("$name/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
+        log("$name/OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
+        log("$name/RequestedControlMode", currentControlMode)
+        log("$name/DesiredModuleStates", setpoint.moduleStates.toList())
+        log("$name/MeasuredModuleStates", moduleStates)
+        log("$name/ChassisSpeeds/Setpoint", setpoint.chassisSpeeds)
+        log("$name/ChassisSpeeds/Goal", goal)
+        log("$name/ChassisSpeeds/Measured", currentSpeeds)
+        log("$name/Pose2d", poseEstimator.estimatedPosition)
         robotWidget.pose = poseEstimator.estimatedPosition
 
         if (DriverStation.isDisabled()) {
@@ -495,12 +479,12 @@ open class EncoderHolonomicDrivetrain(
             return
         }
 
-        goal = ChassisSpeeds.discretize(goal, ChargerRobot.LOOP_PERIOD.inUnit(seconds))
+        goal = ChassisSpeeds.discretize(goal, 0.02)
         setpoint = setpointGenerator.generateSetpoint(
             constraints,
             setpoint,
             goal,
-            ChargerRobot.LOOP_PERIOD.inUnit(seconds)
+            0.02
         )
         swerveModules.forEachIndexed { index, module ->
             when (currentControlMode){
