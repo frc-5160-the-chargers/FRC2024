@@ -458,6 +458,14 @@ open class EncoderHolonomicDrivetrain(
     }
 
     /**
+     * Re-syncs the turn relative encoders in case there is a discrepancy
+     * between the turn relative encoders and the turn absolute encoders.
+     */
+    fun reSyncRelativeEncoders() {
+        swerveModules.forEach{ it.syncTurnEncoder() }
+    }
+
+    /**
      * Called periodically in the subsystem.
      */
     override fun periodic() {

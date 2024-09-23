@@ -70,6 +70,10 @@ class SwerveModule(
         }
     }
 
+    fun syncTurnEncoder() {
+        if (turnEncoder != null) turnMotor.configure(startingPosition = turnEncoder.angularPosition)
+    }
+
     fun getModuleState(): SwerveModuleState =
         SwerveModuleState(
             driveLinearVelocity.inUnit(meters / seconds),

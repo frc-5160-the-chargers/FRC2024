@@ -229,6 +229,9 @@
         },
         "open": true
       },
+      "FMSInfo": {
+        "open": true
+      },
       "LiveWindow": {
         "open": true
       },
@@ -273,7 +276,8 @@
         },
         "Pivot": {
           "open": true
-        }
+        },
+        "open": true
       },
       "RobotGeneral": {
         "ActiveCommands": {
@@ -302,6 +306,9 @@
           "open": true
         },
         "SimVisionTuning": {
+          "open": true
+        },
+        "SwerveDrive": {
           "open": true
         },
         "TunableValues": {

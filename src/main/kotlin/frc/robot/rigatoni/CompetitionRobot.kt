@@ -62,7 +62,7 @@ class CompetitionRobot: ChargerRobot() {
                 .withNtPublish(true)
                 .withCaptureDs(true)
                 .withLogExtras(true)
-                .withLogEntryQueueCapacity(1000)
+                .withLogEntryQueueCapacity(3000)
         )
         HorseLog.setPdh(PowerDistribution(1, PowerDistribution.ModuleType.kRev))
         Trigger(DriverStation::isFMSAttached).whileTrue(
