@@ -45,7 +45,7 @@ open class EncoderDifferentialDrivetrain(
     private val rightMotors: List<Motor>,
     private val constants: DifferentialDriveConstants,
     private val gyro: HeadingProvider? = null
-): PoseEstimatingDrivetrain(), HeadingProvider {
+): PoseEstimatingDrivetrain() {
     companion object {
         /**
          * Creates a [EncoderDifferentialDrivetrain] with simulated motors.
@@ -74,6 +74,10 @@ open class EncoderDifferentialDrivetrain(
     )
 
     private val robotObject = ChargerRobot.FIELD.getObject(name)
+
+    private val leftWheelTravel: Distance get() = leftEncoder.angularPosition * wheelRadius
+    private val rightWheelTravel: Distance get() = rightEncoder.angularPosition * wheelRadius
+    private val calculatedHeading: Angle get() = (leftWheelTravel - rightWheelTravel) / constants.width
 
     /* Public API */
     init {
@@ -117,12 +121,6 @@ open class EncoderDifferentialDrivetrain(
         }
     }
 
-    val leftWheelTravel: Distance get() =
-        leftEncoder.angularPosition * wheelRadius
-
-    val rightWheelTravel: Distance get() =
-        rightEncoder.angularPosition * wheelRadius
-
     /**
      * The total linear distance traveled since the start of the match.
      */
@@ -135,27 +133,6 @@ open class EncoderDifferentialDrivetrain(
     val velocity: Velocity
         get() = listOf(leftEncoder.angularVelocity, rightEncoder.angularVelocity)
             .average() * wheelRadius
-
-    /**
-     * The current heading (the direction the robot is facing).
-     *
-     * This value is calculated using the encoders, not a gyroscope or accelerometer,
-     * so note that it may become inaccurate if the wheels slip. If available, consider
-     * using a [frc.chargers.hardware.sensors.imu.ChargerNavX] or similar device to calculate heading instead.
-     *
-     * This value by itself is not particularly meaningful as it may be fairly large,
-     * positive or negative, based on previous rotations of the motors, including
-     * from previous times the robot has been enabled.
-     *
-     * Thus, it's more common to use this property to determine *change* in heading.
-     * If the initial value of this property is stored, the amount of rotation since
-     * that initial point can easily be determined by subtracting the initial heading
-     * from the current heading.
-     *
-     * @see HeadingProvider
-     */
-    override val heading: Angle
-        get() = (leftWheelTravel - rightWheelTravel) / constants.width
 
     /**
      * The current pose of the robot.
@@ -178,7 +155,7 @@ open class EncoderDifferentialDrivetrain(
             )
         }else{
             poseEstimator.resetPosition(
-                Rotation2d(gyro?.heading ?: this.heading),
+                Rotation2d(gyro?.heading ?: calculatedHeading),
                 leftWheelTravel.siValue,
                 rightWheelTravel.siValue,
                 pose
@@ -309,15 +286,14 @@ open class EncoderDifferentialDrivetrain(
 
     override fun periodic(){
         log("$name/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
-        log("$name/HeadingDeg", heading.inUnit(degrees))
         log("$name/Pose2d", robotPose)
         log("$name/ChassisSpeeds", currentSpeeds)
 
         if (DriverStation.isDisabled()) stop()
         poseEstimator.update(
-            Rotation2d(gyro?.heading ?: this.heading),
-            leftWheelTravel.siValue,
-            rightWheelTravel.siValue,
+            Rotation2d(gyro?.heading ?: calculatedHeading),
+            leftWheelTravel.inUnit(meters),
+            rightWheelTravel.inUnit(meters),
         )
         robotObject.pose = poseEstimator.estimatedPosition
     }

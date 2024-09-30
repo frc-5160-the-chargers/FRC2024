@@ -25,7 +25,7 @@ val ChassisSpeeds.xVelocity: Velocity
 val ChassisSpeeds.yVelocity: Velocity
     get() = vyMetersPerSecond.ofUnit(meters/seconds)
 
-val ChassisSpeeds.rotationSpeed: AngularVelocity
+val ChassisSpeeds.rotationalVelocity: AngularVelocity
     get() = omegaRadiansPerSecond.ofUnit(radians/seconds)
 
 

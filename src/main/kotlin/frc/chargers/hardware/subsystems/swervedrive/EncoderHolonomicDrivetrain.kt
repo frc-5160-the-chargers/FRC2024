@@ -38,6 +38,9 @@ import kotlin.jvm.optionals.getOrNull
 import kotlin.math.abs
 import kotlin.math.pow
 
+private fun ensureFour(type: String, list: List<*>) {
+    require(list.size == 4){ "You must have four ${type}s." }
+}
 
 /**
  * An implementation of Swerve drive, with encoders, to be used in future robot code.
@@ -54,7 +57,12 @@ open class EncoderHolonomicDrivetrain(
     driveMotors: List<Motor>,
     val constants: SwerveConstants,
     private val gyro: HeadingProvider? = null
-): PoseEstimatingDrivetrain(), HeadingProvider {
+): PoseEstimatingDrivetrain() {
+    init {
+        ensureFour("turn motors", turnMotors)
+        ensureFour("turn encoders", turnEncoders)
+        ensureFour("drive motors", driveMotors)
+    }
     private val moduleNames = listOf("Modules/TopLeft", "Modules/TopRight", "Modules/BottomLeft", "Modules/BottomRight")
     private val swerveModules = List(4){ index ->
         SwerveModule(
@@ -93,47 +101,49 @@ open class EncoderHolonomicDrivetrain(
     private val poseEstimator = SwerveDrivePoseEstimator(
         kinematics,
         Rotation2d(0.0),
-        modulePositions.toTypedArray(),
+        this.modulePositions.toTypedArray(),
         Pose2d()
     )
-    private var calculatedHeading = Angle(0.0)
     private var previousWheelTravelDistances = MutableList(4){ Distance(0.0) }
+    var calculatedHeading = Angle(0.0)
+        private set
 
-    private fun updatePoseEstimation(){
-        if (gyro != null){
-            poseEstimator.update(
-                Rotation2d(gyro.heading),
-                modulePositions.toTypedArray()
-            )
-        }else{
-            // wheelDeltas represent the difference in position moved during the loop,
-            // as well as the current angle(not the change in angle).
-            val wheelDeltas = modulePositions.mapIndexed{ i, originalPosition ->
-                val delta = originalPosition.distanceMeters - previousWheelTravelDistances[i].inUnit(meters)
-                previousWheelTravelDistances[i] = originalPosition.distanceMeters.ofUnit(meters)
-                SwerveModulePosition(delta, originalPosition.angle)
-            }
-            calculatedHeading += kinematics.toTwist2d(*wheelDeltas.toTypedArray()).dtheta.ofUnit(radians)
-
-            poseEstimator.update(
-                Rotation2d(calculatedHeading),
-                modulePositions.toTypedArray()
-            )
-        }
-    }
-
+    // allows for PID tuning.
     private val azimuthPID by tunable(constants.azimuthPID, "$name/azimuthPID")
         .onChange{ pid -> turnMotors.forEach{ it.configure(positionPID = pid) }  }
     private val velocityPID by tunable(constants.velocityPID, "$name/velocityPID")
         .onChange{ pid -> driveMotors.forEach{ it.configure(velocityPID = pid) } }
 
+    private val allianceFieldRelativeOffset by lazy {
+        when (DriverStation.getAlliance().getOrNull()){
+            DriverStation.Alliance.Red -> 180.degrees
+            else -> 0.degrees
+        }
+    }
+    private val defaultFieldRelative = RobotBase.isSimulation() || gyro != null
+
+    private fun updatePoseEstimation() {
+        val currentPositions = this.modulePositions.toTypedArray()
+        if (gyro != null){
+            poseEstimator.update(Rotation2d(gyro.heading), currentPositions)
+        }else{
+            // wheelDeltas represent the difference in position moved during the loop,
+            // as well as the current angle(not the change in angle).
+            val wheelDeltas = currentPositions.mapIndexed{ i, originalPosition ->
+                val delta = originalPosition.distanceMeters - previousWheelTravelDistances[i].inUnit(meters)
+                previousWheelTravelDistances[i] = originalPosition.distanceMeters.ofUnit(meters)
+                SwerveModulePosition(delta, originalPosition.angle)
+            }
+            calculatedHeading += kinematics.toTwist2d(*wheelDeltas.toTypedArray()).dtheta.ofUnit(radians)
+            poseEstimator.update(Rotation2d(calculatedHeading), currentPositions)
+        }
+    }
+
     init{
-        log("RealGyroUsedInPoseEstimation", gyro != null)
         ChargerRobot.runPeriodicAtPeriod(
             constants.odometryUpdateRate,
             ::updatePoseEstimation
         )
-
         AutoBuilder.configureHolonomic(
             { robotPose },
             { resetPose(it) },
@@ -150,7 +160,7 @@ open class EncoderHolonomicDrivetrain(
                 constants.pathReplanningConfig
             ),
             { DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red }, // determines if alliance flip for paths is necessary
-            this
+            this // subsystem requirement
         )
     }
 
@@ -192,7 +202,7 @@ open class EncoderHolonomicDrivetrain(
     override fun addVisionMeasurement(pose: Pose2d, timestamp: Time, stdDevs: Matrix<N3, N1>?) {
         // rotationSpeed is an extension property that converts
         // omegaRadiansPerSecond to a kmeasure AngularVelocity.
-        if (currentSpeeds.rotationSpeed > 720.radians / 1.seconds){
+        if (currentSpeeds.rotationalVelocity > 720.radians / 1.seconds){
             println("Gyro rotating too fast; vision measurements ignored.")
         }else{
             if (stdDevs != null){
@@ -202,27 +212,6 @@ open class EncoderHolonomicDrivetrain(
             }
         }
     }
-
-    /**
-     * The current heading (the direction the robot is facing).
-     * This is equivalent to the gyro heading if a gyro is specified; otherwise, the pose estimator
-     * will calculate the robot's heading using encoders and odometry.
-     *
-     * If possible, specify a gyro, like a [frc.chargers.hardware.sensors.imu.ChargerNavX],
-     * in order to get the best possible results.
-     *
-     * This value is automatically standardized to a 0 to 360 degree range; however,
-     * the calculated heading
-     *
-     * Thus, it's more common to use this property to determine *change* in heading.
-     * If the initial value of this property is stored, the amount of rotation since
-     * that initial point can easily be determined by subtracting the initial heading
-     * from the current heading.
-     *
-     * @see HeadingProvider
-     */
-    override val heading: Angle get() =
-        (gyro?.heading ?: calculatedHeading) % 360.degrees
 
     /**
      * The distance the robot has traveled in total.
@@ -245,8 +234,7 @@ open class EncoderHolonomicDrivetrain(
     /**
      * The current [ChassisSpeeds] of the robot.
      */
-    val currentSpeeds: ChassisSpeeds
-        get() = setpoint.chassisSpeeds
+    val currentSpeeds: ChassisSpeeds get() = setpoint.chassisSpeeds
 
     /**
      * Fetches a List containing [SwerveModulePosition]s,
@@ -294,7 +282,7 @@ open class EncoderHolonomicDrivetrain(
     /**
      * Creates a [SysIdRoutine] for characterizing a drivetrain's drive motors.
      */
-    fun getDriveSysIdRoutine(
+    fun getSysIdRoutine(
         quasistaticRampRate: VoltageRate? = null,
         dynamicStepVoltage: Voltage? = null,
         timeout: Time? = null
@@ -304,8 +292,9 @@ open class EncoderHolonomicDrivetrain(
         ) { log("DriveSysIDState", it.toString()) },
         SysIdRoutine.Mechanism(
             { voltage ->
-                setDriveVoltages(List(4){ voltage.toKmeasure() })
-                setTurnDirections(List(4){ Angle(0.0) })
+                val out = voltage.toKmeasure()
+                setDriveVoltages(out, out, out, out)
+                setTurnDirections(Angle(0.0), Angle(0.0), Angle(0.0), Angle(0.0))
             },
             null, // no need for log consumer since data is recorded by logging
             this
@@ -313,50 +302,57 @@ open class EncoderHolonomicDrivetrain(
     )
 
     /* Drive Functions */
-
-    /**
-     * A generic drive function; mainly used if driving at a specific velocity is not required, or during teleop.
-     *
-     * By default, will drive field-oriented in simulation(using calculated heading),
-     * and in the real robot IF a gyro is provided.
-     *
-     * This value can be changed with the [fieldRelative] parameter.
-     */
-    fun swerveDrive(
-        xPower: Double,
-        yPower: Double,
-        rotationPower: Double,
-        fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
-    ): Unit = swerveDrive(ChassisPowers(xPower,yPower,rotationPower), fieldRelative)
-
-    /**
-     * A generic drive function; mainly used if driving at a specific velocity is not required, or during teleop.
-     *
-     * By default, will drive field-oriented in simulation(using calculated heading),
-     * and in the real robot IF a gyro is provided.
-     *
-     * This value can be changed with the [fieldRelative] parameter.
-     */
-    fun swerveDrive(
-        powers: ChassisPowers,
-        fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
-    ){
-        currentControlMode = ControlMode.OPEN_LOOP
-        goal = ChassisSpeeds(
-            powers.xPower * maxLinearVelocity.siValue,
-            powers.yPower * maxLinearVelocity.siValue,
-            powers.rotationPower * maxRotationalVelocity.siValue
-        )
-        log("$name/ChassisSpeeds/GoalWithoutModifiers", goal)
-        if (fieldRelative){
-            val allianceFieldRelativeOffset = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
-                180.degrees
-            }else{
-                0.degrees
-            }
-            goal = ChassisSpeeds.fromFieldRelativeSpeeds(goal, Rotation2d(heading + allianceFieldRelativeOffset))
+    private fun setSpeeds(xVel: Double, yVel: Double, rotVel: Double, fieldRelative: Boolean) {
+        if (fieldRelative) {
+            goal = ChassisSpeeds.fromFieldRelativeSpeeds(
+                xVel, yVel, rotVel,
+                Rotation2d((gyro?.heading ?: calculatedHeading) + allianceFieldRelativeOffset)
+            )
+        }else{
+            goal = ChassisSpeeds(xVel, yVel, rotVel)
         }
+        log("$name/ChassisSpeeds/GoalWithoutModifiers", goal)
     }
+
+    /**
+     * A generic drive function; mainly used if driving at a specific velocity is not required, or during teleop.
+     *
+     * By default, will drive field-oriented in simulation(using calculated heading),
+     * and in the real robot IF a gyro is provided.
+     *
+     * This value can be changed with the [fieldRelative] parameter.
+     */
+    fun swerveDrive(powers: ChassisPowers, fieldRelative: Boolean = defaultFieldRelative) =
+        swerveDrive(powers.xPower, powers.yPower, powers.rotationPower, fieldRelative)
+
+    /**
+     * A generic drive function; mainly used if driving at a specific velocity is not required, or during teleop.
+     *
+     * By default, will drive field-oriented in simulation(using calculated heading),
+     * and in the real robot IF a gyro is provided.
+     *
+     * This value can be changed with the [fieldRelative] parameter.
+     */
+    fun swerveDrive(xPower: Double, yPower: Double, rotationPower: Double, fieldRelative: Boolean = defaultFieldRelative){
+        currentControlMode = ControlMode.OPEN_LOOP
+        setSpeeds(
+            xPower * maxLinearVelocity.siValue,
+            yPower * maxLinearVelocity.siValue,
+            rotationPower * maxRotationalVelocity.siValue,
+            fieldRelative
+        )
+    }
+
+    /**
+     * Drives the robot with specific speeds; uses closed loop control.
+     *
+     * By default, will drive field-oriented in simulation(using calculated heading),
+     * and in the real robot IF a gyro is provided.
+     *
+     * This value can be changed with the [fieldRelative] parameter.
+     */
+    fun velocityDrive(speeds: ChassisSpeeds, fieldRelative: Boolean = defaultFieldRelative) =
+        velocityDrive(speeds.xVelocity, speeds.yVelocity, speeds.rotationalVelocity, fieldRelative)
 
     /**
      * Drives the robot with specific speeds; uses closed loop control.
@@ -370,65 +366,45 @@ open class EncoderHolonomicDrivetrain(
         xVelocity: Velocity,
         yVelocity: Velocity,
         rotationVelocity: AngularVelocity,
-        fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
-    ): Unit = velocityDrive(ChassisSpeeds(xVelocity, yVelocity, rotationVelocity), fieldRelative)
-
-    /**
-     * Drives the robot with specific speeds; uses closed loop control.
-     *
-     * By default, will drive field-oriented in simulation(using calculated heading),
-     * and in the real robot IF a gyro is provided.
-     *
-     * This value can be changed with the [fieldRelative] parameter.
-     */
-    fun velocityDrive(
-        speeds: ChassisSpeeds,
-        fieldRelative: Boolean = RobotBase.isSimulation() || gyro != null
+        fieldRelative: Boolean = defaultFieldRelative
     ){
         currentControlMode = ControlMode.CLOSED_LOOP
-        if (fieldRelative){
-            val allianceFieldRelativeOffset = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red){
-                180.degrees
-            }else{
-                0.degrees
-            }
-            goal = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, Rotation2d(heading + allianceFieldRelativeOffset))
-        }else{
-            goal = speeds
-        }
-        log("$name/GoalWithoutModifiers", goal)
+        setSpeeds(xVelocity.siValue, yVelocity.siValue, rotationVelocity.siValue, fieldRelative)
     }
 
     /**
      * Sets driving voltages for each module.
      */
-    fun setDriveVoltages(voltages: List<Voltage>){
+    fun setDriveVoltages(topLeft: Voltage, topRight: Voltage, bottomLeft: Voltage, bottomRight: Voltage){
         currentControlMode = ControlMode.NONE
-        swerveModules.zip(voltages).forEach{ (module, voltage) ->
-            module.setDriveVoltage(voltage)
-        }
+        swerveModules[0].setDriveVoltage(topLeft)
+        swerveModules[1].setDriveVoltage(topRight)
+        swerveModules[2].setDriveVoltage(bottomLeft)
+        swerveModules[3].setDriveVoltage(bottomRight)
     }
 
     /**
      * Sets turn voltages for each module.
      * The standard order is top left, top right, bottom left, bottom right.
      */
-    fun setTurnVoltages(voltages: List<Voltage>){
+    fun setTurnVoltages(topLeft: Voltage, topRight: Voltage, bottomLeft: Voltage, bottomRight: Voltage){
         currentControlMode = ControlMode.NONE
-        swerveModules.zip(voltages).forEach{ (module, voltage) ->
-            module.setTurnVoltage(voltage)
-        }
+        swerveModules[0].setTurnVoltage(topLeft)
+        swerveModules[1].setTurnVoltage(topRight)
+        swerveModules[2].setTurnVoltage(bottomLeft)
+        swerveModules[3].setTurnVoltage(bottomRight)
     }
 
     /**
      * Sets azimuth directions for each module.
      * The standard order is top left, top right, bottom left, bottom right.
      */
-    fun setTurnDirections(directions: List<Angle>){
+    fun setTurnDirections(topLeft: Angle, topRight: Angle, bottomLeft: Angle, bottomRight: Angle){
         currentControlMode = ControlMode.NONE
-        swerveModules.zip(directions).forEach{ (module, direction) ->
-            module.setDirection(direction)
-        }
+        swerveModules[0].setDirection(topLeft)
+        swerveModules[1].setDirection(topRight)
+        swerveModules[2].setDirection(bottomLeft)
+        swerveModules[3].setDirection(bottomRight)
     }
 
     /**
@@ -453,7 +429,7 @@ open class EncoderHolonomicDrivetrain(
         currentControlMode = ControlMode.NONE
         goal = ChassisSpeeds()
         setpoint = SwerveSetpointGenerator.Setpoint(ChassisSpeeds(), setpoint.moduleStates)
-        setTurnDirections(listOf(45.degrees, -45.degrees, -45.degrees, 45.degrees))
+        setTurnDirections(45.degrees, -45.degrees, -45.degrees, 45.degrees)
         swerveModules.forEach{ it.setDriveVoltage(0.volts) }
     }
 
@@ -488,18 +464,11 @@ open class EncoderHolonomicDrivetrain(
         }
 
         goal = ChassisSpeeds.discretize(goal, 0.02)
-        setpoint = setpointGenerator.generateSetpoint(
-            constraints,
-            setpoint,
-            goal,
-            0.02
-        )
+        setpoint = setpointGenerator.generateSetpoint(constraints, setpoint, goal, 0.02)
         swerveModules.forEachIndexed { index, module ->
             when (currentControlMode){
                 ControlMode.OPEN_LOOP -> module.setDesiredStateOpenLoop(setpoint.moduleStates[index])
-
                 ControlMode.CLOSED_LOOP -> module.setDesiredStateClosedLoop(setpoint.moduleStates[index])
-
                 ControlMode.NONE -> {}
             }
         }

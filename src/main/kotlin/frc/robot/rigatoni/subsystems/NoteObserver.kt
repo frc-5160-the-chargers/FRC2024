@@ -22,26 +22,22 @@ private const val GROUND_INTAKE_SENSOR_ID = 1
 private val CAM_HEIGHT = 10.inches
 private val CAM_PITCH = 37.degrees
 
+sealed interface NoteState {
+    data object None: NoteState
+    data class Detected(val tx: Double, val distanceToNote: Distance): NoteState
+    data object InSerializer: NoteState
+    data object InShooter: NoteState
+}
+
 class NoteObserver: SubsystemBase() {
-    sealed class State {
-        data object NoNote: State()
-
-        data class NoteDetected(val tx: Double, val distanceToNote: Distance): State()
-
-        data object NoteInSerializer: State()
-
-        data object NoteInShooter: State()
-    }
-
     private val groundIntakeSensor: DigitalInput? = DigitalInput(GROUND_INTAKE_SENSOR_ID)
     private val shooterSensor = DigitalInput(SHOOTER_SENSOR_ID)
     private val noteDetectorCamera: PhotonCamera? = if (isSimulation()) null else PhotonCamera("MLWebcam")
 
-    var state: State = State.NoNote
+    var state: NoteState = NoteState.None
         private set(value) {
             field = value
-
-            if (value is State.NoteDetected) {
+            if (value is NoteState.Detected) {
                 log("NoteObserver/Detection/IsPresent", true)
                 log("NoteObserver/Detection/TX", value.tx)
                 log("NoteObserver/Detection/DistanceToNoteMeters", value.distanceToNote.inUnit(meters))
@@ -50,13 +46,12 @@ class NoteObserver: SubsystemBase() {
                 log("NoteObserver/Detection/TX", 0.0)
                 log("NoteObserver/Detection/DistanceToNoteMeters", 0.0)
             }
-
             log("CurrentState", state.toString())
         }
 
-    val noteInRobot: Boolean by logged{ state == State.NoteInSerializer || state == State.NoteInShooter }
+    val noteInRobot: Boolean by logged{ state == NoteState.InSerializer || state == NoteState.InShooter }
 
-    val noteFound: Boolean by logged{ state is State.NoteDetected }
+    val noteFound: Boolean by logged{ state is NoteState.Detected }
 
     val hasGroundIntakeSensor: Boolean by logged(groundIntakeSensor != null && RobotBase.isReal())
 
@@ -64,22 +59,17 @@ class NoteObserver: SubsystemBase() {
 
     override fun periodic() {
         if (isSimulation()){
-            state = State.NoNote
-            return
-        }
-
-        if (groundIntakeSensor != null && groundIntakeSensor.get() && !noteInRobot){
-            state = State.NoteInSerializer
-        }else if (shooterSensor.get() && state != State.NoteInShooter){
-            state = State.NoteInShooter
+            state = NoteState.None
+        }else if (groundIntakeSensor != null && groundIntakeSensor.get() && !noteInRobot){
+            state = NoteState.InSerializer
+        }else if (shooterSensor.get() && state != NoteState.InShooter){
+            state = NoteState.InShooter
         }else{
             if (noteDetectorCamera == null){
-                state = State.NoNote
+                state = NoteState.None
                 return
             }
-
             val camResult = noteDetectorCamera.latestResult
-
             if (camResult.hasTargets() && !noteInRobot){
                 val estimatedDistance = PhotonUtils.calculateDistanceToTargetMeters(
                     CAM_HEIGHT.inUnit(meters),
@@ -87,13 +77,12 @@ class NoteObserver: SubsystemBase() {
                     CAM_PITCH.inUnit(radians),
                     camResult.bestTarget.pitch
                 )
-
-                state = State.NoteDetected(
+                state = NoteState.Detected(
                     tx = camResult.bestTarget.yaw,
                     distanceToNote = estimatedDistance.ofUnit(meters)
                 )
             }else{
-                state = State.NoNote
+                state = NoteState.None
             }
         }
     }

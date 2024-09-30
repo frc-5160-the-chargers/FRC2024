@@ -109,15 +109,12 @@ abstract class ChargerRobot: TimedRobot(0.02) {
     }
 
     init {
+        addPeriodic(::periodicCallback, 0.02)
         LoggedCommand.configure(
             logCommandRunning = HorseLog::log,
             logExecutionTime = HorseLog::log
         )
         Pathfinding.setPathfinder(LocalADStar())
         HAL.report(FRCNetComm.tResourceType.kResourceType_Language, FRCNetComm.tInstances.kLanguage_Kotlin)
-    }
-
-    override fun robotPeriodic() {
-        periodicCallback()
     }
 }

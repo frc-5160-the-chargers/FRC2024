@@ -29,7 +29,7 @@ class SwerveModule(
 ) {
     private val startingDirection: Angle? = if (turnEncoder != null) turnEncoder.angularPosition % 360.degrees else null
     private val wheelRadius = constants.moduleType.wheelDiameter / 2
-    private var couplingOffset: Angle = 0.degrees
+    private var couplingOffset = 0.degrees
     private var azimuthProfileState = AngularMotionProfileState(startingDirection ?: turnMotor.encoder.angularPosition)
 
     val direction: Angle get() = turnMotor.encoder.angularPosition % 360.degrees
@@ -110,7 +110,8 @@ class SwerveModule(
         if (constants.azimuthPIDTolerance != null &&
             abs(direction - target) < constants.azimuthPIDTolerance){
             setTurnVoltage(0.volts)
-            azimuthProfileState = AngularMotionProfileState(direction)
+            azimuthProfileState.position = direction
+            azimuthProfileState.velocity = AngularVelocity(0.0)
             return
         }
 
@@ -121,11 +122,9 @@ class SwerveModule(
             val goalState = AngularMotionProfileState(target)
             // increments the setpoint by calculating a new one
             azimuthProfileState = calculateSetpoint(constants.azimuthMotionProfile, goalState)
-
             // Calculates the setpoint 1 loop period in the future,
             // in order to do plant inversion feedforward.
             val futureSetpoint = calculateSetpoint(constants.azimuthMotionProfile, goalState)
-
             feedforwardV = constants.azimuthFF(
                 azimuthProfileState.velocity,
                 futureSetpoint.velocity

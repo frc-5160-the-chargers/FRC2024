@@ -56,10 +56,9 @@ class CompetitionRobot: ChargerRobot() {
 
     init {
         DriverStation.silenceJoystickConnectionWarning(true)
-        gyro.simHeadingSource = { drivetrain.heading }
+        gyro.simHeadingSource = { drivetrain.calculatedHeading }
         HorseLog.setOptions(
             HorseLog.getOptions()
-                .withNtPublish(true)
                 .withCaptureDs(true)
                 .withLogExtras(true)
                 .withLogEntryQueueCapacity(3000)
@@ -212,19 +211,15 @@ class CompetitionRobot: ChargerRobot() {
 
     private fun shouldStartNotePursuit(): Boolean {
         val currentState = noteObserver.state
-        return currentState is NoteObserver.State.NoteDetected &&
+        return currentState is NoteState.Detected &&
                 currentState.distanceToNote <= ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
     }
 
     /* Commands */
 
-    private fun followPathOptimal(path: PathPlannerPath) = buildCommand(name = "FollowPathOptimal"){
-        +AutoBuilder.followPath(path)
-    }
-
     private fun noteIntakeDriverAssist(
         getChassisPowers: () -> ChassisPowers = { driverController.swerveOutput }
-    ) = buildCommand {
+    ) = buildCommand("NoteIntakeDriverAssist") {
         require(drivetrain)
 
         fun getNotePursuitSpeed(txValue: Double): Double {
@@ -245,7 +240,7 @@ class CompetitionRobot: ChargerRobot() {
             val forwardPower: Double
             val rotationPower: Double
             val state = noteObserver.state
-            if (state is NoteObserver.State.NoteDetected){
+            if (state is NoteState.Detected){
                 forwardPower = getNotePursuitSpeed(state.tx)
                 rotationPower = aimController.calculate(state.tx, 0.0)
             } else {
@@ -271,7 +266,7 @@ class CompetitionRobot: ChargerRobot() {
         require(groundIntake, shooter)
 
         realRobotOnly {
-            loopUntil({noteObserver.state == NoteObserver.State.NoteInShooter}){
+            loopUntil({noteObserver.state == NoteState.InShooter}){
                 shooter.receiveFromGroundIntake()
                 groundIntake.passToShooterSlow()
             }
@@ -288,17 +283,17 @@ class CompetitionRobot: ChargerRobot() {
         }
     }
 
-    private fun shootInAmp() = buildCommand {
+    private fun shootInAmp() = buildCommand("ShootInAmp") {
         require(noteObserver, shooter, pivot)
 
         +setPivotAngle(PivotAngle.AMP)
 
         realRobotOnly {
-            loopUntil({noteObserver.state == NoteObserver.State.NoteInShooter}){
+            loopUntil({noteObserver.state == NoteState.InShooter}){
                 shooter.outtakeAtAmpSpeed()
             }
 
-            loopUntil({noteObserver.state == NoteObserver.State.NoNote}){
+            loopUntil({noteObserver.state == NoteState.None}){
                 shooter.outtakeAtAmpSpeed()
             }
         }
@@ -311,7 +306,7 @@ class CompetitionRobot: ChargerRobot() {
     private fun shootInSpeaker(
         shooterSpinUpTime: Time = 1.seconds,
         movePivot: Boolean = true
-    ) = buildCommand("Shoot In Speaker"){
+    ) = buildCommand("ShootInSpeaker"){
         require(shooter, groundIntake, pivot)
 
         fun runShooting(){
@@ -328,20 +323,17 @@ class CompetitionRobot: ChargerRobot() {
             }
         }
 
-        loopUntil( { fpgaTimestamp() - spinupStartTime > shooterSpinUpTime } ){
+        loopUntil({ fpgaTimestamp() - spinupStartTime > shooterSpinUpTime }){
             shooter.outtakeAtSpeakerSpeed()
-            println(spinupStartTime)
         }
 
         realRobotOnly{
-            loopUntil({noteObserver.state == NoteObserver.State.NoteInShooter}){ runShooting() }
+            loopUntil({noteObserver.state == NoteState.InShooter}){ runShooting() }
 
-            loopUntil({noteObserver.state == NoteObserver.State.NoNote}){ runShooting() }
+            loopUntil({noteObserver.state == NoteState.None}){ runShooting() }
         }
 
         loopForDuration(0.4){ runShooting() }
-
-        runOnce{ repeat(10) { println("done!") } }
     }
 
     /* Auto Components */
@@ -351,7 +343,7 @@ class CompetitionRobot: ChargerRobot() {
             buildCommand("1 Piece Amp + Taxi"){
                 +ampAutoStartup()
                 +setPivotAngle(PivotAngle.STOWED)
-                +followPathOptimal(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
+                +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
             },
 
             buildCommand("2-3 Piece Amp", log = true){
@@ -398,14 +390,14 @@ class CompetitionRobot: ChargerRobot() {
             }
         )
 
-    private fun ampAutoStartup() = buildCommand {
+    private fun ampAutoStartup() = buildCommand("AmpAutoStartup") {
         require(drivetrain, pivot, shooter, groundIntake)
 
         parallelUntilAllEnd {
             runSequence {
                 runOnce { drivetrain.resetPose(AutoStartingPose.getAmp()) }
                 wait(0.3)
-                +followPathOptimal(PathPlannerPath.fromPathFile("DriveToAmp"))
+                +AutoBuilder.followPath(PathPlannerPath.fromPathFile("DriveToAmp"))
             }
 
             +setPivotAngle(PivotAngle.AMP)
@@ -414,7 +406,7 @@ class CompetitionRobot: ChargerRobot() {
         +shootInAmp()
     }
 
-    private fun speakerAutoStartup(getStartingPose: () -> Pose2d) = buildCommand {
+    private fun speakerAutoStartup(getStartingPose: () -> Pose2d) = buildCommand("SpeakerAutoStartup") {
         require(drivetrain, pivot, shooter, groundIntake)
 
         runOnce{ drivetrain.resetPose(getStartingPose()) }
@@ -428,18 +420,18 @@ class CompetitionRobot: ChargerRobot() {
         spinUpShooterDuringPath: Boolean = false,
         intakeSpinupTime: Time = 0.seconds,
         noteIntakeTime: Time = 0.seconds,
-    ) = buildCommand("Drive and Intake", log = true){
+    ) = buildCommand("DriveAndIntake", log = true){
         require(drivetrain, pivot, shooter, groundIntake)
 
         fun noteInSerializer(): Boolean {
             return useGroundIntakeSensor &&
                     noteObserver.hasGroundIntakeSensor &&
-                    noteObserver.state != NoteObserver.State.NoteInSerializer
+                    noteObserver.state != NoteState.InSerializer
         }
 
         fun getCrosshairOffset(): Double? {
             val currentState = noteObserver.state
-            return if (currentState is NoteObserver.State.NoteDetected) currentState.tx else null
+            return if (currentState is NoteState.Detected) currentState.tx else null
         }
 
         loopForDuration(intakeSpinupTime.inUnit(seconds)){
@@ -448,7 +440,7 @@ class CompetitionRobot: ChargerRobot() {
 
         parallelUntilChiefEnds {
             runSequenceUntil(::noteInSerializer) {
-                +(followPathOptimal(path)
+                +(AutoBuilder.followPath(path)
                     .until(::shouldStartNotePursuit))
 
                 +(noteIntakeDriverAssist{ ChassisPowers(0.3, 0.0, 0.0) }
@@ -472,11 +464,11 @@ class CompetitionRobot: ChargerRobot() {
         }
     }
 
-    private fun driveAndScoreAmp(path: PathPlannerPath) = buildCommand("Drive And Score Amp", log = true) {
+    private fun driveAndScoreAmp(path: PathPlannerPath) = buildCommand("DriveAndScoreAmp") {
         require(drivetrain, pivot, shooter, groundIntake)
 
         parallelUntilAllEnd {
-            +followPathOptimal(path)
+            +AutoBuilder.followPath(path)
 
             runSequence {
                 +setPivotAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
@@ -490,11 +482,11 @@ class CompetitionRobot: ChargerRobot() {
     private fun driveAndScoreSpeaker(
         path: PathPlannerPath,
         shooterSpinUpTime: Time = 0.seconds
-    ) = buildCommand {
+    ) = buildCommand("DriveAndScoreSpeaker") {
         require(drivetrain, pivot, shooter, groundIntake)
 
         parallelUntilChiefEnds {
-            +followPathOptimal(path)
+            +AutoBuilder.followPath(path)
 
             loop{
                 shooter.outtakeAtSpeakerSpeed()
