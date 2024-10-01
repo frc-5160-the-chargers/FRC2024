@@ -48,7 +48,7 @@ class CompetitionRobot: ChargerRobot() {
     private val climber = Climber()
     private val noteObserver = NoteObserver()
     
-    private val driverController = PS5SwerveController(DRIVER_CONTROLLER_PORT, DEFAULT_DEADBAND, DRIVER_RIGHT_HANDED)
+    private val driverController = PS5SwerveController(DRIVER_CONTROLLER_PORT)
     private val driverTouchpad = driverController.touchpad()
     private val operatorController = CommandXboxController(OPERATOR_CONTROLLER_PORT)
 
@@ -334,6 +334,11 @@ class CompetitionRobot: ChargerRobot() {
         }
 
         loopForDuration(0.4){ runShooting() }
+
+        onEnd{
+            shooter.setIdle()
+            groundIntake.setIdle()
+        }
     }
 
     /* Auto Components */

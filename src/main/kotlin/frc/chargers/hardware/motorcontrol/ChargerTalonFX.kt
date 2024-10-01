@@ -11,6 +11,7 @@ import com.ctre.phoenix6.controls.VelocityVoltage
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
 import com.pathplanner.lib.util.PIDConstants
+import edu.wpi.first.wpilibj.DriverStation
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
@@ -35,7 +36,7 @@ class ChargerTalonFX(
     val deviceID: Int,
     canBus: String? = null,
     factoryDefault: Boolean = true,
-    faultLogName: String? = null,
+    private val faultLogName: String? = null,
     private val fusedCANCoder: ChargerCANcoder? = null
 ): Motor {
     /**
@@ -44,9 +45,6 @@ class ChargerTalonFX(
     val base: TalonFX = if (canBus == null) TalonFX(deviceID) else TalonFX(deviceID, canBus)
 
     private val config = TalonFXConfiguration()
-
-    private val talonFXFollowers = mutableListOf<TalonFX>()
-    private val invertedTalonFXFollowers = mutableListOf<TalonFX>()
     private val nonTalonFXFollowers = mutableListOf<Motor>()
 
     private val positionSignal = base.position
@@ -54,16 +52,8 @@ class ChargerTalonFX(
     private val voltageSignal = base.motorVoltage
     private val currentSignal = base.statorCurrent
 
-    private val followRequest = Follower(deviceID, false)
-    private val invertFollowRequest = Follower(deviceID, true)
     private val setPosRequest = PositionVoltage(0.0).withSlot(0)
     private val setVelRequest = VelocityVoltage(0.0).withSlot(1)
-
-    private inline fun runFollowing(run: (Motor) -> Unit){
-        talonFXFollowers.forEach{ it.setControl(followRequest) }
-        invertedTalonFXFollowers.forEach { it.setControl(invertFollowRequest) }
-        nonTalonFXFollowers.forEach(run)
-    }
 
     private var positionPIDConfigured = false
     private var velocityPIDConfigured = false
@@ -95,13 +85,29 @@ class ChargerTalonFX(
         get() = voltageSignal.refresh(true).value.ofUnit(volts)
         set(value){
             base.setVoltage(value.siValue)
-            runFollowing{ it.appliedVoltage = value }
+            nonTalonFXFollowers.forEach{ it.appliedVoltage = value }
         }
 
     override val statorCurrent: Current
         get() = currentSignal.refresh(true).value.ofUnit(amps)
 
     override val inverted: Boolean get() = base.inverted
+
+    override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
+        require(positionPIDConfigured){" You must specify a positionPID value using the configure(positionPID = PIDConstants(p,i,d)) method. "}
+        setPosRequest.Position = position.inUnit(rotations)
+        setPosRequest.FeedForward = feedforward.inUnit(volts)
+        base.setControl(setPosRequest)
+        nonTalonFXFollowers.forEach{ it.setPositionSetpoint(position, feedforward) }
+    }
+
+    override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
+        require(velocityPIDConfigured){" You must specify a velocityPID value using the configure(velocityPID = PIDConstants(p,i,d)) method. "}
+        setVelRequest.Velocity = velocity.inUnit(rotations / seconds)
+        setVelRequest.FeedForward = feedforward.inUnit(volts)
+        base.setControl(setVelRequest)
+        nonTalonFXFollowers.forEach{ it.setVelocitySetpoint(velocity, feedforward) }
+    }
 
     override fun configure(
         inverted: Boolean?,
@@ -118,109 +124,94 @@ class ChargerTalonFX(
         velocityPID: PIDConstants?,
         continuousInput: Boolean?
     ): ChargerTalonFX {
-        if (inverted != null) {
-            config.MotorOutput.Inverted = if (inverted) {
-                InvertedValue.Clockwise_Positive
-            } else {
-                InvertedValue.CounterClockwise_Positive
-            }
-        }
-        if (rampRate != null){
-            config.OpenLoopRamps.apply {
-                TorqueOpenLoopRampPeriod = rampRate.inUnit(seconds)
-                VoltageOpenLoopRampPeriod = rampRate.inUnit(seconds)
-                DutyCycleOpenLoopRampPeriod = rampRate.inUnit(seconds)
-            }
-            config.ClosedLoopRamps.apply {
-                TorqueClosedLoopRampPeriod = rampRate.inUnit(seconds)
-                VoltageClosedLoopRampPeriod = rampRate.inUnit(seconds)
-                DutyCycleClosedLoopRampPeriod = rampRate.inUnit(seconds)
-            }
-        }
-        if (statorCurrentLimit != null) {
-            config.CurrentLimits.StatorCurrentLimitEnable = true
-            config.CurrentLimits.StatorCurrentLimit = statorCurrentLimit.inUnit(amps)
-        }
-        if (startingPosition != null) base.setPosition(startingPosition.inUnit(rotations))
-        if (gearRatio != null) {
-            if (fusedCANCoder != null) {
-                config.Feedback.RotorToSensorRatio = gearRatio
-            } else {
-                config.Feedback.SensorToMechanismRatio = gearRatio
-            }
-        }
-        if (continuousInput != null) config.ClosedLoopGeneral.ContinuousWrap = continuousInput
-        // 2 * PI makes it so that the PID gains are optimized off of radians and not rotations
-        if (positionPID != null) {
-            positionPIDConfigured = true
-            config.Slot0.apply {
-                kP = positionPID.kP * (2 * PI)
-                kI = positionPID.kI * (2 * PI)
-                kD = positionPID.kD * (2 * PI)
-            }
-        }
-        if (velocityPID != null) {
-            velocityPIDConfigured = true
-            config.Slot1.apply {
-                kP = velocityPID.kP * (2 * PI)
-                kI = velocityPID.kI * (2 * PI)
-                kD = velocityPID.kD * (2 * PI)
-            }
-        }
-        for (follower in followerMotors){
-            follower.configure(
-                positionPID = positionPID,
-                velocityPID = velocityPID,
-                gearRatio = gearRatio,
-                startingPosition = startingPosition
-            )
-            if (follower is TalonFX){
-                if (follower.inverted){
-                    invertedTalonFXFollowers.add(follower)
+        val errors = mutableListOf<StatusCode>()
+        fun StatusCode.bind(){ if (this != StatusCode.OK) errors.add(this) }
+        for (i in 1..4) {
+            if (inverted != null) {
+                config.MotorOutput.Inverted = if (inverted) {
+                    InvertedValue.Clockwise_Positive
                 } else {
-                    talonFXFollowers.add(follower)
+                    InvertedValue.CounterClockwise_Positive
                 }
-            }else{
-                nonTalonFXFollowers.add(follower)
             }
-        }
-        base.configurator.apply(config, 0.050)
-
-        val optimizeBusUtilization = optimizeUpdateRate == true
-        if (optimizeBusUtilization) {
-            base.optimizeBusUtilization()
-            base.statorCurrent.setUpdateFrequency(50.0)
-            base.motorVoltage.setUpdateFrequency(50.0)
-        }
-        for ((statusSignal, rate) in listOf(base.position to positionUpdateRate, base.velocity to velocityUpdateRate)){
-            if (rate != null) {
-                statusSignal.setUpdateFrequency(rate.inUnit(hertz))
-            } else if (optimizeBusUtilization) {
-                // optimizeBusUtilization will turn the position and velocity signals off by default, so we have to re-enable them
-                statusSignal.setUpdateFrequency(50.0)
+            if (rampRate != null){
+                config.OpenLoopRamps.apply {
+                    TorqueOpenLoopRampPeriod = rampRate.inUnit(seconds)
+                    VoltageOpenLoopRampPeriod = rampRate.inUnit(seconds)
+                    DutyCycleOpenLoopRampPeriod = rampRate.inUnit(seconds)
+                }
+                config.ClosedLoopRamps.apply {
+                    TorqueClosedLoopRampPeriod = rampRate.inUnit(seconds)
+                    VoltageClosedLoopRampPeriod = rampRate.inUnit(seconds)
+                    DutyCycleClosedLoopRampPeriod = rampRate.inUnit(seconds)
+                }
             }
-        }
+            if (statorCurrentLimit != null) {
+                config.CurrentLimits.StatorCurrentLimitEnable = true
+                config.CurrentLimits.StatorCurrentLimit = statorCurrentLimit.inUnit(amps)
+            }
+            if (startingPosition != null) base.setPosition(startingPosition.inUnit(rotations)).bind()
+            if (gearRatio != null) {
+                if (fusedCANCoder != null) {
+                    config.Feedback.RotorToSensorRatio = gearRatio
+                } else {
+                    config.Feedback.SensorToMechanismRatio = gearRatio
+                }
+            }
+            if (continuousInput != null) config.ClosedLoopGeneral.ContinuousWrap = continuousInput
+            // 2 * PI makes it so that the PID gains are optimized off of radians and not rotations
+            if (positionPID != null) {
+                positionPIDConfigured = true
+                config.Slot0.apply {
+                    kP = positionPID.kP * (2 * PI)
+                    kI = positionPID.kI * (2 * PI)
+                    kD = positionPID.kD * (2 * PI)
+                }
+            }
+            if (velocityPID != null) {
+                velocityPIDConfigured = true
+                config.Slot1.apply {
+                    kP = velocityPID.kP * (2 * PI)
+                    kI = velocityPID.kI * (2 * PI)
+                    kD = velocityPID.kD * (2 * PI)
+                }
+            }
+            for (follower in followerMotors){
+                follower.configure(
+                    positionPID = positionPID,
+                    velocityPID = velocityPID,
+                    gearRatio = gearRatio,
+                    startingPosition = startingPosition
+                )
+                when (follower) {
+                    is ChargerTalonFX -> follower.base.setControl(Follower(this.deviceID, follower.inverted)).bind()
+                    else -> nonTalonFXFollowers.add(follower)
+                }
+            }
+            base.configurator.apply(config, 0.050).bind()
 
+            val optimizeBusUtilization = optimizeUpdateRate == true
+            if (optimizeBusUtilization) {
+                base.optimizeBusUtilization()
+                base.statorCurrent.setUpdateFrequency(50.0).bind()
+                base.motorVoltage.setUpdateFrequency(50.0).bind()
+            }
+            for ((statusSignal, rate) in mapOf(base.position to positionUpdateRate, base.velocity to velocityUpdateRate)){
+                if (rate != null) {
+                    statusSignal.setUpdateFrequency(rate.inUnit(hertz)).bind()
+                } else if (optimizeBusUtilization) {
+                    // optimizeBusUtilization will turn the position and velocity signals off by default, so we have to re-enable them
+                    statusSignal.setUpdateFrequency(50.0).bind()
+                }
+            }
+            if (errors.isEmpty()) return this
+            errors.clear()
+        }
+        DriverStation.reportError("ERROR: ${faultLogName ?: "ChargerTalonFX($deviceID)"} failed to configure. Errors: $errors", false)
         return this
     }
 
-    override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
-        require(positionPIDConfigured){" You must specify a positionPID value using the configure(positionPID = PIDConstants(p,i,d)) method. "}
-        setPosRequest.Position = position.inUnit(rotations)
-        setPosRequest.FeedForward = feedforward.inUnit(volts)
-        base.setControl(setPosRequest)
-        runFollowing{ it.setPositionSetpoint(position, feedforward) }
-    }
-
-    override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
-        require(velocityPIDConfigured){" You must specify a velocityPID value using the configure(velocityPID = PIDConstants(p,i,d)) method. "}
-        setVelRequest.Velocity = velocity.inUnit(rotations / seconds)
-        setVelRequest.FeedForward = feedforward.inUnit(volts)
-        base.setControl(setVelRequest)
-        runFollowing{ it.setVelocitySetpoint(velocity, feedforward) }
-    }
-
-    private val faultMap = mutableMapOf(
+    private val faultSignalToMsg = mapOf(
         base.fault_Hardware to "Hardware failure detected",
         base.fault_DeviceTemp to "Device temp exceeded limit",
         base.fault_BootDuringEnable to "Device booted when enabled",
@@ -234,7 +225,7 @@ class ChargerTalonFX(
     init {
         if (faultLogName != null) {
             ChargerRobot.runPeriodicAtPeriod(1.seconds){
-                for ((faultSignal, faultMsg) in faultMap){
+                for ((faultSignal, faultMsg) in faultSignalToMsg){
                     // != false prevents null
                     if (faultSignal.refresh().value != false) HorseLog.logFault("$faultLogName: $faultMsg")
                 }

@@ -5,6 +5,7 @@ import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.util.PIDConstants
 import com.revrobotics.*
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame
+import edu.wpi.first.wpilibj.DriverStation
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.Encoder
@@ -58,7 +59,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     val base: BaseMotorType,
     private val useAbsoluteEncoder: Boolean = false,
     factoryDefault: Boolean = true,
-    faultLogName: String? = null
+    private val faultLogName: String? = null
 ): Motor {
     val deviceID: Int = base.deviceId
 
@@ -153,86 +154,92 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
         velocityPID: PIDConstants?,
         continuousInput: Boolean?
     ): ChargerSpark<BaseMotorType> {
-        if (inverted != null) base.inverted = inverted
-        if (brakeWhenIdle == true) {
-            base.idleMode = CANSparkBase.IdleMode.kBrake
-        } else if (brakeWhenIdle == false) {
-            base.idleMode = CANSparkBase.IdleMode.kCoast
-        }
-        if (rampRate != null) {
-            base.openLoopRampRate = rampRate.inUnit(seconds)
-            base.closedLoopRampRate = rampRate.inUnit(seconds)
-        }
-        if (statorCurrentLimit != null) base.setSmartCurrentLimit(statorCurrent.inUnit(amps).toInt())
-        for (follower in followerMotors) {
-            follower.configure(
-                positionPID = positionPID,
-                velocityPID = velocityPID,
-                gearRatio = gearRatio,
-                startingPosition = startingPosition
-            )
-            when (follower) {
-                is ChargerSpark<*> -> follower.base.follow(base, follower.inverted)
-                else -> nonRevFollowers.add(follower)
+        val errors = mutableListOf<REVLibError>()
+        fun REVLibError.bind() { if (this != REVLibError.kOk) errors.add(this) }
+        for (i in 1..4) {
+            if (inverted != null) base.inverted = inverted
+            when (brakeWhenIdle) {
+                true -> base.setIdleMode(CANSparkBase.IdleMode.kBrake).bind()
+                false -> base.setIdleMode(CANSparkBase.IdleMode.kCoast).bind()
+                null -> {}
             }
-        }
-        if (gearRatio != null && !useAbsoluteEncoder) {
-            relativeEncoder.positionConversionFactor = 1 / gearRatio
-            relativeEncoder.velocityConversionFactor = 1 / gearRatio
-        }
-        if (startingPosition != null) relativeEncoder.setPosition(startingPosition.inUnit(rotations))
-        // 2 * PI makes it so that the PID gains are optimized off of radians and not rotations
-        if (positionPID != null) {
-            positionPIDConfigured = true
-            base.pidController.apply {
-                setP(positionPID.kP * (2 * PI), 0)
-                setI(positionPID.kI * (2 * PI), 0)
-                setD(positionPID.kD * (2 * PI), 0)
+            if (rampRate != null) {
+                base.setOpenLoopRampRate(rampRate.inUnit(seconds)).bind()
+                base.setClosedLoopRampRate(rampRate.inUnit(seconds)).bind()
             }
-        }
-        if (velocityPID != null) {
-            velocityPIDConfigured = true
-            // ensures that PID units are rotations / second
-            val multiplier = 2 * PI * if (useAbsoluteEncoder) 60.0 else 1.0
-            base.pidController.apply {
-                setP(velocityPID.kP * multiplier, 1)
-                setI(velocityPID.kI * multiplier, 1)
-                setD(velocityPID.kD * multiplier, 1)
+            if (statorCurrentLimit != null) base.setSmartCurrentLimit(statorCurrent.inUnit(amps).toInt()).bind()
+            for (follower in followerMotors) {
+                follower.configure(
+                    positionPID = positionPID,
+                    velocityPID = velocityPID,
+                    gearRatio = gearRatio,
+                    startingPosition = startingPosition
+                )
+                when (follower) {
+                    is ChargerSpark<*> -> follower.base.follow(base, follower.inverted).bind()
+                    else -> nonRevFollowers.add(follower)
+                }
             }
-        }
-        if (continuousInput == true) {
-            base.pidController.apply {
-                positionPIDWrappingEnabled = true
-                positionPIDWrappingMinInput = -180.degrees.inUnit(rotations)
-                positionPIDWrappingMaxInput = 180.degrees.inUnit(rotations)
+            if (gearRatio != null && !useAbsoluteEncoder) {
+                relativeEncoder.setPositionConversionFactor(1 / gearRatio).bind()
+                relativeEncoder.setVelocityConversionFactor(1 / gearRatio).bind()
             }
-        } else if (continuousInput == false) {
-            base.pidController.positionPIDWrappingEnabled = false
-        }
-        if (optimizeUpdateRate == true) {
-            val disabledFrames = if (useAbsoluteEncoder) {
-                listOf(PeriodicFrame.kStatus2, PeriodicFrame.kStatus3, PeriodicFrame.kStatus4)
-            } else {
-                listOf(PeriodicFrame.kStatus3, PeriodicFrame.kStatus4, PeriodicFrame.kStatus5, PeriodicFrame.kStatus6)
+            if (startingPosition != null) relativeEncoder.setPosition(startingPosition.inUnit(rotations)).bind()
+            // 2 * PI makes it so that the PID gains are optimized off of radians and not rotations
+            if (positionPID != null) {
+                positionPIDConfigured = true
+                base.pidController.apply {
+                    setP(positionPID.kP * (2 * PI), 0).bind()
+                    setI(positionPID.kI * (2 * PI), 0).bind()
+                    setD(positionPID.kD * (2 * PI), 0).bind()
+                }
             }
-            for (frame in disabledFrames) {
-                base.setPeriodicFramePeriod(frame, 65535)
+            if (velocityPID != null) {
+                velocityPIDConfigured = true
+                // ensures that PID units are rotations / second
+                val multiplier = 2 * PI * if (useAbsoluteEncoder) 60.0 else 1.0
+                base.pidController.apply {
+                    setP(velocityPID.kP * multiplier, 1).bind()
+                    setI(velocityPID.kI * multiplier, 1).bind()
+                    setD(velocityPID.kD * multiplier, 1).bind()
+                }
             }
+            if (continuousInput == true) {
+                base.pidController.apply {
+                    setPositionPIDWrappingEnabled(true).bind()
+                    setPositionPIDWrappingMinInput(-180.degrees.inUnit(rotations)).bind()
+                    setPositionPIDWrappingMaxInput(180.degrees.inUnit(rotations)).bind()
+                }
+            } else if (continuousInput == false) {
+                base.pidController.setPositionPIDWrappingEnabled(false).bind()
+            }
+            if (optimizeUpdateRate == true) {
+                val disabledFrames = if (useAbsoluteEncoder) {
+                    listOf(PeriodicFrame.kStatus2, PeriodicFrame.kStatus3, PeriodicFrame.kStatus4)
+                } else {
+                    listOf(PeriodicFrame.kStatus3, PeriodicFrame.kStatus4, PeriodicFrame.kStatus5, PeriodicFrame.kStatus6)
+                }
+                for (frame in disabledFrames) {
+                    base.setPeriodicFramePeriod(frame, 65535)
+                }
+            }
+            if (positionUpdateRate != null) {
+                base.setPeriodicFramePeriod(
+                    if (useAbsoluteEncoder) PeriodicFrame.kStatus5 else PeriodicFrame.kStatus2,
+                    frequencyToPeriod(positionUpdateRate).inUnit(milli.seconds).toInt()
+                ).bind()
+            }
+            if (velocityUpdateRate != null) {
+                base.setPeriodicFramePeriod(
+                    if (useAbsoluteEncoder) PeriodicFrame.kStatus6 else PeriodicFrame.kStatus1,
+                    frequencyToPeriod(velocityUpdateRate).inUnit(milli.seconds).toInt()
+                ).bind()
+            }
+            base.burnFlash().bind()
+            if (errors.isEmpty()) return this
+            errors.clear()
         }
-        if (positionUpdateRate != null) {
-            base.setPeriodicFramePeriod(
-                if (useAbsoluteEncoder) PeriodicFrame.kStatus5 else PeriodicFrame.kStatus2,
-                frequencyToPeriod(positionUpdateRate).inUnit(milli.seconds).toInt()
-            )
-        }
-        if (velocityUpdateRate != null) {
-            base.setPeriodicFramePeriod(
-                if (useAbsoluteEncoder) PeriodicFrame.kStatus6 else PeriodicFrame.kStatus1,
-                frequencyToPeriod(velocityUpdateRate).inUnit(milli.seconds).toInt()
-            )
-        }
-
-        base.burnFlash()
+        DriverStation.reportError("ERROR: ${faultLogName ?: "ChargerSpark($deviceID)"} could not configure. Errors: $errors", false)
         return this
     }
 }

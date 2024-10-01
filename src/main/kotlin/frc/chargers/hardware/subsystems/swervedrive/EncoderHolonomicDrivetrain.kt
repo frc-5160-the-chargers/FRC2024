@@ -41,6 +41,7 @@ import kotlin.math.pow
 private fun ensureFour(type: String, list: List<*>) {
     require(list.size == 4){ "You must have four ${type}s." }
 }
+private var autoBuilderConfigured = false
 
 /**
  * An implementation of Swerve drive, with encoders, to be used in future robot code.
@@ -59,9 +60,9 @@ open class EncoderHolonomicDrivetrain(
     private val gyro: HeadingProvider? = null
 ): PoseEstimatingDrivetrain() {
     init {
-        ensureFour("turn motors", turnMotors)
-        ensureFour("turn encoders", turnEncoders)
-        ensureFour("drive motors", driveMotors)
+        ensureFour("turn motor", turnMotors)
+        ensureFour("turn encoder", turnEncoders)
+        ensureFour("drive motor", driveMotors)
     }
     private val moduleNames = listOf("Modules/TopLeft", "Modules/TopRight", "Modules/BottomLeft", "Modules/BottomRight")
     private val swerveModules = List(4){ index ->
@@ -144,24 +145,27 @@ open class EncoderHolonomicDrivetrain(
             constants.odometryUpdateRate,
             ::updatePoseEstimation
         )
-        AutoBuilder.configureHolonomic(
-            { robotPose },
-            { resetPose(it) },
-            { currentSpeeds },
-            { speeds ->
-                velocityDrive(speeds, fieldRelative = false)
-                log("$name/PathPlanner/ChassisSpeeds", speeds)
-            },
-            HolonomicPathFollowerConfig(
-                constants.robotTranslationPID,
-                constants.robotRotationPID,
-                constants.driveMotorMaxSpeed.siValue,
-                kotlin.math.sqrt(constants.trackWidth.inUnit(meters).pow(2) + constants.wheelBase.inUnit(meters).pow(2)),
-                constants.pathReplanningConfig
-            ),
-            { DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red }, // determines if alliance flip for paths is necessary
-            this // subsystem requirement
-        )
+        if (!autoBuilderConfigured) {
+            AutoBuilder.configureHolonomic(
+                { robotPose },
+                { resetPose(it) },
+                { currentSpeeds },
+                { speeds ->
+                    velocityDrive(speeds, fieldRelative = false)
+                    log("$name/PathPlanner/ChassisSpeeds", speeds)
+                },
+                HolonomicPathFollowerConfig(
+                    constants.robotTranslationPID,
+                    constants.robotRotationPID,
+                    constants.driveMotorMaxSpeed.siValue,
+                    kotlin.math.sqrt(constants.trackWidth.inUnit(meters).pow(2) + constants.wheelBase.inUnit(meters).pow(2)),
+                    constants.pathReplanningConfig
+                ),
+                { DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red }, // determines if alliance flip for paths is necessary
+                this // subsystem requirement
+            )
+            autoBuilderConfigured = true
+        }
     }
 
     /* PUBLIC API */
