@@ -8,6 +8,7 @@ import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.math.MathUtil.applyDeadband
 import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.net.PortForwarder
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.PowerDistribution
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser
@@ -59,6 +60,7 @@ class CompetitionRobot: ChargerRobot() {
 
     init {
         DriverStation.silenceJoystickConnectionWarning(true)
+        PortForwarder.add(5800, "photonvision.local", 5800)
         gyro.simHeadingSource = { drivetrain.calculatedHeading }
         HorseLog.setOptions(
             HorseLog.getOptions()
@@ -67,7 +69,7 @@ class CompetitionRobot: ChargerRobot() {
                 .withLogEntryQueueCapacity(3000)
         )
         HorseLog.setPdh(PowerDistribution(1, PowerDistribution.ModuleType.kRev))
-        Trigger(DriverStation::isFMSAttached).whileTrue(
+        Trigger(DriverStation::isFMSAttached).onTrue(
             InstantCommand { HorseLog.setOptions(HorseLog.getOptions().withNtPublish(false)) }
         )
 

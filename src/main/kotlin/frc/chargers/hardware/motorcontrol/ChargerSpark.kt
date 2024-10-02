@@ -93,13 +93,13 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     override val encoder: Encoder = if (useAbsoluteEncoder) AbsoluteEncoderImpl() else RelativeEncoderImpl()
     private inner class RelativeEncoderImpl: Encoder {
         override val angularVelocity: AngularVelocity
-            get() = relativeEncoder.velocity.ofUnit(rotations / seconds)
+            get() = relativeEncoder.velocity.ofUnit(rotations / minutes)
         override val angularPosition: Angle
             get() = relativeEncoder.position.ofUnit(rotations)
     }
     private inner class AbsoluteEncoderImpl: Encoder {
         override val angularVelocity: AngularVelocity
-            get() = absoluteEncoder.velocity.ofUnit(rotations / minutes)
+            get() = absoluteEncoder.velocity.ofUnit(rotations / seconds)
         override val angularPosition: Angle
             get() = absoluteEncoder.position.ofUnit(rotations)
     }
@@ -196,8 +196,8 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
             }
             if (velocityPID != null) {
                 velocityPIDConfigured = true
-                // ensures that PID units are rotations / second
-                val multiplier = 2 * PI * if (useAbsoluteEncoder) 60.0 else 1.0
+                // relative encoder pid is based off of rotations/min so we have to compensate here
+                val multiplier = 2 * PI * if (useAbsoluteEncoder) 1.0 else 60.0
                 base.pidController.apply {
                     setP(velocityPID.kP * multiplier, 1).bind()
                     setI(velocityPID.kI * multiplier, 1).bind()
