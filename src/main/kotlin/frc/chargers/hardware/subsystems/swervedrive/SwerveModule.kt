@@ -32,10 +32,17 @@ class SwerveModule(
     private var couplingOffset = 0.degrees
     private var azimuthProfileState = AngularMotionProfileState(startingDirection ?: turnMotor.encoder.angularPosition)
 
-    val direction: Angle get() = turnMotor.encoder.angularPosition % 360.degrees
-    val driveAngularVelocity: AngularVelocity get() = driveMotor.encoder.angularVelocity
-    val driveLinearVelocity: Velocity get() = driveAngularVelocity * wheelRadius
-    val wheelTravel: Distance get() = driveMotor.encoder.angularPosition * wheelRadius
+    val direction
+        get() = (turnMotor.encoder.angularPosition + couplingOffset) % 360.degrees
+
+    val driveAngularVelocity
+        get() = driveMotor.encoder.angularVelocity
+
+    val driveLinearVelocity
+        get() = driveAngularVelocity * wheelRadius
+
+    val wheelTravel
+        get() = driveMotor.encoder.angularPosition * wheelRadius
 
     init {
         turnMotor.configure(
@@ -61,6 +68,7 @@ class SwerveModule(
                 couplingOffset -= constants.couplingRatio * (direction % 360.degrees - 180.degrees)
                 log("CouplingOffset", couplingOffset)
             }
+            if (turnEncoder != null) log("$name/absolutePosition", turnEncoder.angularPosition)
             log("$name/Direction", direction)
             log("$name/DriveLinearVelocity", driveLinearVelocity)
             log("$name/WheelTravel", wheelTravel)
@@ -87,13 +95,13 @@ class SwerveModule(
         )
 
     fun setDriveVoltage(target: Voltage) {
-        driveMotor.appliedVoltage = target
+        driveMotor.voltageOut = target
         log("$name/DriveVoltage", target)
     }
 
     fun setTurnVoltage(target: Voltage) {
         val trueVoltage = if (abs(target) < 0.01.volts) 0.volts else target
-        turnMotor.appliedVoltage = trueVoltage
+        turnMotor.voltageOut = trueVoltage
         log("$name/TurnVoltage", trueVoltage)
     }
 

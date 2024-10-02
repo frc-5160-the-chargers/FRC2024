@@ -40,7 +40,7 @@ class MotorSim(
             get() = base.angularVelocityRadPerSec.ofUnit(radians / seconds)
     }
 
-    override var appliedVoltage: Voltage = 0.volts
+    override var voltageOut: Voltage = 0.volts
         set(value) {
             field = value
             base.setInputVoltage(value.siValue * if (super.inverted) -1.0 else 1.0)

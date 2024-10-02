@@ -39,12 +39,14 @@ class AngleAimCommand(
         getChassisPowers
     )
 
+    fun getHeading() = drivetrain.gyro?.heading ?: drivetrain.calculatedHeading
+
     private val pidController = PIDController(AIM_TO_ANGLE_PID)
     private val motionProfile: AngularMotionProfile = AngularTrapezoidProfile(
         drivetrain.maxRotationalVelocity,
         drivetrain.maxRotationalVelocity / 1.5.seconds
     )
-    private var setpoint = AngularMotionProfileState(drivetrain.heading)
+    private var setpoint = AngularMotionProfileState(getHeading())
     private var goal = AngularMotionProfileState()
 
     init {
@@ -56,7 +58,7 @@ class AngleAimCommand(
         goal.position = getTarget().flipWhenRedAlliance()
         setpoint = motionProfile.calculate(setpoint, goal)
         val swerveOutput = getChassisPowers()
-        swerveOutput.rotationPower = pidController.calculate(drivetrain.heading.siValue, setpoint.position.siValue)
+        swerveOutput.rotationPower = pidController.calculate(getHeading().siValue, setpoint.position.siValue)
         drivetrain.swerveDrive(swerveOutput, fieldRelative = true)
     }
 }

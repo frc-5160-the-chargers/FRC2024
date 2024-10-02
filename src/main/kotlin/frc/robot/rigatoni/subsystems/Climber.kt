@@ -51,20 +51,20 @@ class Climber: SubsystemBase() {
 
     fun moveLeftHook(speed: Double){
         if (willSurpassLimit(speed, leftPosition)){
-            leftMotor.appliedVoltage = 0.volts
+            leftMotor.voltageOut = 0.volts
             log("Climber/LeftRequest", 0.0)
         }else{
-            leftMotor.appliedVoltage = speed * MAX_VOLTAGE
+            leftMotor.voltageOut = speed * MAX_VOLTAGE
             log("Climber/LeftRequest", speed)
         }
     }
 
     fun moveRightHook(speed: Double){
         if (willSurpassLimit(speed, rightPosition)){
-            rightMotor.appliedVoltage = 0.volts
+            rightMotor.voltageOut = 0.volts
             log("Climber/RightRequest", 0.0)
         }else{
-            rightMotor.appliedVoltage = speed * MAX_VOLTAGE
+            rightMotor.voltageOut = speed * MAX_VOLTAGE
             log("Climber/RightRequest", speed)
         }
     }
@@ -75,7 +75,7 @@ class Climber: SubsystemBase() {
     }
 
     override fun periodic() {
-        log("Climber/LeftV", leftMotor.appliedVoltage)
-        log("Climber/RightV", rightMotor.appliedVoltage)
+        log("Climber/LeftV", leftMotor.voltageOut)
+        log("Climber/RightV", rightMotor.voltageOut)
     }
 }

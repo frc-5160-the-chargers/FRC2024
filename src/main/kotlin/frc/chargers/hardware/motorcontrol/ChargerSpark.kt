@@ -104,7 +104,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
             get() = absoluteEncoder.position.ofUnit(rotations)
     }
 
-    override var appliedVoltage: Voltage
+    override var voltageOut: Voltage
         get() = Voltage(base.appliedOutput * base.busVoltage)
         set(voltage){
             base.setVoltage(voltage.inUnit(volts))

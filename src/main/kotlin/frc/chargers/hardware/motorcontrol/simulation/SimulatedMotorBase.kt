@@ -28,13 +28,13 @@ abstract class SimulatedMotorBase: Motor {
         var encoderReading = this.encoder.angularPosition
         if (positionController.isContinuousInputEnabled) encoderReading %= 360.degrees
         val pidOutput = positionController.calculate(encoderReading.inUnit(radians), position.inUnit(radians))
-        this.appliedVoltage = Voltage(pidOutput) + feedforward
+        this.voltageOut = Voltage(pidOutput) + feedforward
     }
 
     override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
         require(velocityPIDConfigured){" You must specify a velocityPID value using the configure(velocityPID = PIDConstants(p,i,d)) method. "}
         val pidOutput = velocityController.calculate(encoder.angularVelocity.siValue, velocity.siValue)
-        this.appliedVoltage = Voltage(pidOutput) + feedforward
+        this.voltageOut = Voltage(pidOutput) + feedforward
     }
 
     override fun configure(

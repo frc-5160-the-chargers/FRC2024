@@ -24,7 +24,7 @@ interface Motor {
      * A property that either fetches the current applied voltage,
      * or sets its value.
      */
-    var appliedVoltage: Voltage
+    var voltageOut: Voltage
 
     /**
      * The motor's stator current.
@@ -78,13 +78,13 @@ interface Motor {
 
 
     var speed: Double
-        get() = (appliedVoltage / 12.volts).siValue
+        get() = (voltageOut / 12.volts).siValue
         set(value) {
-            appliedVoltage = value * 12.volts
+            voltageOut = value * 12.volts
         }
 
     /**
      * Stops the motor.
      */
-    fun stop() { appliedVoltage = 0.volts }
+    fun stop() { voltageOut = 0.volts }
 }

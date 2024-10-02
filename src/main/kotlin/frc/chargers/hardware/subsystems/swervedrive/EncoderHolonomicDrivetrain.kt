@@ -57,7 +57,7 @@ open class EncoderHolonomicDrivetrain(
     turnEncoders: List<PositionEncoder?> = List(4){ null },
     driveMotors: List<Motor>,
     val constants: SwerveConstants,
-    private val gyro: HeadingProvider? = null
+    val gyro: HeadingProvider? = null
 ): PoseEstimatingDrivetrain() {
     init {
         ensureFour("turn motor", turnMotors)
@@ -115,12 +115,11 @@ open class EncoderHolonomicDrivetrain(
     private val velocityPID by tunable(constants.velocityPID, "$name/velocityPID")
         .onChange{ pid -> driveMotors.forEach{ it.configure(velocityPID = pid) } }
 
-    private val allianceFieldRelativeOffset by lazy {
-        when (DriverStation.getAlliance().getOrNull()){
+    private val allianceFieldRelativeOffset get() =
+        when (DriverStation.getAlliance().get()){
             DriverStation.Alliance.Red -> 180.degrees
             else -> 0.degrees
         }
-    }
     private val defaultFieldRelative = RobotBase.isSimulation() || gyro != null
 
     private fun updatePoseEstimation() {
@@ -307,13 +306,13 @@ open class EncoderHolonomicDrivetrain(
 
     /* Drive Functions */
     private fun setSpeeds(xVel: Double, yVel: Double, rotVel: Double, fieldRelative: Boolean) {
-        if (fieldRelative) {
-            goal = ChassisSpeeds.fromFieldRelativeSpeeds(
+        goal = if (fieldRelative) {
+            ChassisSpeeds.fromFieldRelativeSpeeds(
                 xVel, yVel, rotVel,
                 Rotation2d((gyro?.heading ?: calculatedHeading) + allianceFieldRelativeOffset)
             )
         }else{
-            goal = ChassisSpeeds(xVel, yVel, rotVel)
+            ChassisSpeeds(xVel, yVel, rotVel)
         }
         log("$name/ChassisSpeeds/GoalWithoutModifiers", goal)
     }

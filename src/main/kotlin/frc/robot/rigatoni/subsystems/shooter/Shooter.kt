@@ -78,7 +78,7 @@ class Shooter: SubsystemBase() {
     }
 
     fun setVoltage(voltage: Voltage){
-        motor.appliedVoltage = voltage
+        motor.voltageOut = voltage
         log("Shooter/RequestedVoltage", voltage)
     }
 
@@ -90,7 +90,7 @@ class Shooter: SubsystemBase() {
         if (DriverStation.isDisabled()){
             setIdle()
         }
-        log("Shooter/MeasuredVoltage", motor.appliedVoltage)
+        log("Shooter/MeasuredVoltage", motor.voltageOut)
         log("Shooter/StatorCurrent", motor.statorCurrent)
     }
 }

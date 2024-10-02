@@ -47,12 +47,12 @@ class GroundIntakeSerializer: SubsystemBase() {
     private var requestedVoltages by logged(mutableListOf(0.volts, 0.volts))
 
     fun setIntakeVoltage(voltage: Voltage){
-        groundIntakeMotor.appliedVoltage = voltage
+        groundIntakeMotor.voltageOut = voltage
         requestedVoltages[0] = voltage
     }
 
     fun setConveyorVoltage(voltage: Voltage){
-        serializerMotor?.appliedVoltage = voltage
+        serializerMotor?.voltageOut = voltage
         requestedVoltages[1] = voltage
     }
 
@@ -86,7 +86,7 @@ class GroundIntakeSerializer: SubsystemBase() {
             setIdle()
         }
         log("GroundIntakeSerializer/StatorCurrentReadings", listOfNotNull(groundIntakeMotor.statorCurrent, serializerMotor?.statorCurrent))
-        log("GroundIntakeSerializer/VoltageReadings", listOfNotNull(groundIntakeMotor.appliedVoltage, serializerMotor?.appliedVoltage))
+        log("GroundIntakeSerializer/VoltageReadings", listOfNotNull(groundIntakeMotor.voltageOut, serializerMotor?.voltageOut))
         log("GroundIntakeSerializer/AngularVelocityReadings", listOfNotNull(groundIntakeMotor.encoder.angularVelocity, serializerMotor?.encoder?.angularVelocity))
     }
 }

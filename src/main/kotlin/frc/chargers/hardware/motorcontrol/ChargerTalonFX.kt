@@ -81,11 +81,11 @@ class ChargerTalonFX(
             get() = velocitySignal.refresh(true).value.ofUnit(rotations/seconds)
     }
 
-    override var appliedVoltage: Voltage
+    override var voltageOut: Voltage
         get() = voltageSignal.refresh(true).value.ofUnit(volts)
         set(value){
             base.setVoltage(value.siValue)
-            nonTalonFXFollowers.forEach{ it.appliedVoltage = value }
+            nonTalonFXFollowers.forEach{ it.voltageOut = value }
         }
 
     override val statorCurrent: Current

@@ -94,7 +94,7 @@ class Pivot: SubsystemBase() {
 
     fun setIdle(){
         resetMotionProfile()
-        motor.appliedVoltage = 0.volts
+        motor.voltageOut = 0.volts
     }
 
     fun setVoltage(voltage: Voltage){
@@ -104,7 +104,7 @@ class Pivot: SubsystemBase() {
             atTarget = true
             return
         }
-        motor.appliedVoltage = voltage
+        motor.voltageOut = voltage
     }
 
     fun setSpeed(speed: Double) = setVoltage(speed * 12.volts)
@@ -146,7 +146,7 @@ class Pivot: SubsystemBase() {
             motor.configure(brakeWhenIdle = true)
         }
         log("Pivot/StatorCurrent", motor.statorCurrent)
-        log("Pivot/VoltageReading", motor.appliedVoltage)
+        log("Pivot/VoltageReading", motor.voltageOut)
         // logs Mechanism 3d pose for simulation.
         log(
             "Pivot/Mechanism3dPose",

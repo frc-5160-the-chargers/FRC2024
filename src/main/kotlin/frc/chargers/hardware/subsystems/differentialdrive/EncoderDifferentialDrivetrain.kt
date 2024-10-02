@@ -275,8 +275,8 @@ open class EncoderDifferentialDrivetrain(
         ) { log("DriveSysIDState", it.toString()) },
         SysIdRoutine.Mechanism(
             { voltage ->
-                leftMotors.forEach{ it.appliedVoltage = voltage.toKmeasure() }
-                rightMotors.forEach{ it.appliedVoltage = voltage.toKmeasure() }
+                leftMotors.forEach{ it.voltageOut = voltage.toKmeasure() }
+                rightMotors.forEach{ it.voltageOut = voltage.toKmeasure() }
             },
             null, // no need for log consumer since data is recorded by logging
             this
