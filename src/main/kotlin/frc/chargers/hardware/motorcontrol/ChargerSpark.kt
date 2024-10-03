@@ -115,7 +115,11 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     override val inverted: Boolean get() = base.inverted
 
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
-        require(positionPIDConfigured){" You must specify a positionPID value using the configure(positionPID = PIDConstants(p,i,d)) method. "}
+        if (!positionPIDConfigured) {
+            DriverStation.reportError("You must specify a positionPID value using the " +
+                    "motor.configure(positionPID = PIDConstants(p,i,d)) method.", true)
+            return
+        }
         base.pidController.setReference(
             position.inUnit(rotations),
             CANSparkBase.ControlType.kPosition,
@@ -125,14 +129,17 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     }
 
     override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
-        require(velocityPIDConfigured){" You must specify a velocityPID value using the configure(velocityPID = PIDConstants(p,i,d)) method. "}
-        val velocityAsDouble = if (useAbsoluteEncoder) {
-            velocity.inUnit(rotations / minutes)
-        } else {
-            velocity.inUnit(rotations / seconds)
+        if (!velocityPIDConfigured) {
+            DriverStation.reportError("You must specify a positionPID value using the " +
+                    "motor.configure(velocityPID = PIDConstants(p,i,d)) method.", true)
+            return
         }
         base.pidController.setReference(
-            velocityAsDouble,
+            if (useAbsoluteEncoder) {
+                velocity.inUnit(rotations / seconds)
+            } else {
+                velocity.inUnit(rotations / minutes)
+            },
             CANSparkBase.ControlType.kVelocity,
             1,
             feedforward.inUnit(volts)
