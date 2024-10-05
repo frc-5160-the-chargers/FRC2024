@@ -43,7 +43,7 @@ private object DrivetrainID {
     const val BR_ENCODER = 43
 }
 private val SWERVE_CONSTANTS = SwerveConstants(
-    moduleType = ModuleType.MK4iL2,
+    moduleType = ModuleType.Mk4iL2,
     trackWidth = 27.inches,
     wheelBase = 27.inches,
     azimuthPID = PIDConstants(7.0,0.0,0.0),

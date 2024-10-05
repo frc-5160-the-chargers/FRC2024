@@ -33,7 +33,6 @@ import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.Translation2d
 import frc.chargers.wpilibextensions.angle
 import frc.chargers.wpilibextensions.kinematics.*
-import frc6328.SwerveSetpointGenerator
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.abs
 import kotlin.math.pow
@@ -74,23 +73,14 @@ open class EncoderHolonomicDrivetrain(
             constants
         )
     }
-    private val moduleTranslationsFromRobotCenter = arrayOf(
+    private val kinematics = SwerveDriveKinematics(
         Translation2d(constants.trackWidth/2, constants.wheelBase/2),
         Translation2d(constants.trackWidth/2, -constants.wheelBase/2),
         Translation2d(-constants.trackWidth/2, constants.wheelBase/2),
         Translation2d(-constants.trackWidth/2, -constants.wheelBase/2)
-    )
-    private val kinematics = SwerveDriveKinematics(*moduleTranslationsFromRobotCenter) // A helper class that stores the characteristics of the drivetrain.
-    private val constraints = SwerveSetpointGenerator.ModuleLimits(
-        constants.driveMotorMaxSpeed.siValue,
-        constants.driveMotorMaxAcceleration.siValue,
-        constants.turnMotorMaxSpeed.siValue
-    )
-    private val setpointGenerator = SwerveSetpointGenerator(kinematics, moduleTranslationsFromRobotCenter) // Converts ChassisSpeeds to module states that respect velocity and acceleration constraints.
+    )// A helper class that stores the characteristics of the drivetrain.
     private var goal = ChassisSpeeds() // The ultimate goal state of the drivetrain; with x, y and rotational velocities.
-    // The current setpoint of the drivetrain;
-    // which stores the target speeds and module states of the drivetrain.
-    private var setpoint = SwerveSetpointGenerator.Setpoint(ChassisSpeeds(), Array(4){ SwerveModuleState() })
+    private var desiredStates = Array(4){ SwerveModuleState() } // the current desired module states(velocity + direction)
     // An enum class that stores the current control mode of the drivetrain.
     private enum class ControlMode{
         OPEN_LOOP,  // Represents open-loop control with no feedforward / PID
@@ -207,12 +197,10 @@ open class EncoderHolonomicDrivetrain(
         // omegaRadiansPerSecond to a kmeasure AngularVelocity.
         if (currentSpeeds.rotationalVelocity > 720.radians / 1.seconds){
             println("Gyro rotating too fast; vision measurements ignored.")
+        }else if (stdDevs != null){
+            poseEstimator.addVisionMeasurement(pose, timestamp.inUnit(seconds), stdDevs)
         }else{
-            if (stdDevs != null){
-                poseEstimator.addVisionMeasurement(pose, timestamp.inUnit(seconds), stdDevs)
-            }else{
-                poseEstimator.addVisionMeasurement(pose, timestamp.inUnit(seconds))
-            }
+            poseEstimator.addVisionMeasurement(pose, timestamp.inUnit(seconds))
         }
     }
 
@@ -237,7 +225,7 @@ open class EncoderHolonomicDrivetrain(
     /**
      * The current [ChassisSpeeds] of the robot.
      */
-    val currentSpeeds: ChassisSpeeds get() = setpoint.chassisSpeeds
+    val currentSpeeds: ChassisSpeeds get() = kinematics.toChassisSpeeds(*moduleStates.toTypedArray())
 
     /**
      * Fetches a List containing [SwerveModulePosition]s,
@@ -314,7 +302,6 @@ open class EncoderHolonomicDrivetrain(
         }else{
             ChassisSpeeds(xVel, yVel, rotVel)
         }
-        log("$name/ChassisSpeeds/GoalWithoutModifiers", goal)
     }
 
     /**
@@ -417,7 +404,6 @@ open class EncoderHolonomicDrivetrain(
         // prevents driving anywhere else
         currentControlMode = ControlMode.NONE
         goal = ChassisSpeeds()
-        setpoint = SwerveSetpointGenerator.Setpoint(ChassisSpeeds(), setpoint.moduleStates)
         swerveModules.forEach{
             it.setDriveVoltage(0.volts)
             it.setTurnVoltage(0.volts)
@@ -431,7 +417,6 @@ open class EncoderHolonomicDrivetrain(
         // prevents driving anywhere else
         currentControlMode = ControlMode.NONE
         goal = ChassisSpeeds()
-        setpoint = SwerveSetpointGenerator.Setpoint(ChassisSpeeds(), setpoint.moduleStates)
         setTurnDirections(45.degrees, -45.degrees, -45.degrees, 45.degrees)
         swerveModules.forEach{ it.setDriveVoltage(0.volts) }
     }
@@ -451,10 +436,9 @@ open class EncoderHolonomicDrivetrain(
         log("$name/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
         log("$name/OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
         log("$name/RequestedControlMode", currentControlMode)
-        log("$name/DesiredModuleStates", setpoint.moduleStates.toList())
-        log("$name/MeasuredModuleStates", moduleStates)
-        log("$name/ChassisSpeeds/Setpoint", setpoint.chassisSpeeds)
-        log("$name/ChassisSpeeds/Goal", goal)
+        log("$name/ModuleStates/Desired", desiredStates)
+        log("$name/ModuleStates/Measured", moduleStates)
+        log("$name/ChassisSpeeds/Desired", goal)
         log("$name/ChassisSpeeds/Measured", currentSpeeds)
         log("$name/Pose2d", poseEstimator.estimatedPosition)
         robotWidget.pose = poseEstimator.estimatedPosition
@@ -467,11 +451,21 @@ open class EncoderHolonomicDrivetrain(
         }
 
         goal = ChassisSpeeds.discretize(goal, 0.02)
-        setpoint = setpointGenerator.generateSetpoint(constraints, setpoint, goal, 0.02)
+        desiredStates = kinematics.toSwerveModuleStates(goal)
+        SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, constants.driveMotorMaxSpeed.inUnit(meters / seconds))
+        for (i in 0..<4) {
+            val module = swerveModules[i]
+            val desiredState = desiredStates[i]
+            when (currentControlMode){
+                ControlMode.OPEN_LOOP -> module.setDesiredStateOpenLoop(desiredState)
+                ControlMode.CLOSED_LOOP -> module.setDesiredStateClosedLoop(desiredState)
+                ControlMode.NONE -> {}
+            }
+        }
         swerveModules.forEachIndexed { index, module ->
             when (currentControlMode){
-                ControlMode.OPEN_LOOP -> module.setDesiredStateOpenLoop(setpoint.moduleStates[index])
-                ControlMode.CLOSED_LOOP -> module.setDesiredStateClosedLoop(setpoint.moduleStates[index])
+                ControlMode.OPEN_LOOP -> module.setDesiredStateOpenLoop(desiredStates[index])
+                ControlMode.CLOSED_LOOP -> module.setDesiredStateClosedLoop(desiredStates[index])
                 ControlMode.NONE -> {}
             }
         }

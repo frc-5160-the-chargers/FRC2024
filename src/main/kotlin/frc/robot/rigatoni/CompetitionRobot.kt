@@ -64,6 +64,7 @@ class CompetitionRobot: ChargerRobot() {
         gyro.simHeadingSource = { drivetrain.calculatedHeading }
         HorseLog.setOptions(
             HorseLog.getOptions()
+                .withNtPublish(true)
                 .withCaptureDs(true)
                 .withLogExtras(true)
                 .withLogEntryQueueCapacity(3000)
@@ -322,8 +323,8 @@ class CompetitionRobot: ChargerRobot() {
         val spinupStartTime by getOnceDuringRun{ fpgaTimestamp() }
 
         runSequenceIf({movePivot}) {
-            parallelUntilChiefEnds {
-                +setPivotAngle(PivotAngle.SPEAKER)
+            parallel {
+                +setPivotAngle(PivotAngle.SPEAKER).asDeadline()
                 loop{ shooter.outtakeAtSpeakerSpeed() }
             }
         }
@@ -403,7 +404,7 @@ class CompetitionRobot: ChargerRobot() {
     private fun ampAutoStartup() = buildCommand("AmpAutoStartup") {
         require(drivetrain, pivot, shooter, groundIntake)
 
-        parallelUntilAllEnd {
+        parallel {
             runSequence {
                 runOnce { drivetrain.resetPose(AutoStartingPose.getAmp()) }
                 wait(0.3)
@@ -448,7 +449,7 @@ class CompetitionRobot: ChargerRobot() {
             groundIntake.intake()
         }
 
-        parallelUntilChiefEnds {
+        parallel {
             runSequenceUntil(::noteInSerializer) {
                 +(AutoBuilder.followPath(path)
                     .until(::shouldStartNotePursuit))
@@ -459,7 +460,7 @@ class CompetitionRobot: ChargerRobot() {
                 runOnce{ drivetrain.stop() }
 
                 wait(noteIntakeTime.inUnit(seconds))
-            }
+            }.asDeadline()
 
             +setPivotAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
 
@@ -477,7 +478,7 @@ class CompetitionRobot: ChargerRobot() {
     private fun driveAndScoreAmp(path: PathPlannerPath) = buildCommand("DriveAndScoreAmp") {
         require(drivetrain, pivot, shooter, groundIntake)
 
-        parallelUntilAllEnd {
+        parallel {
             +AutoBuilder.followPath(path)
 
             runSequence {
@@ -495,8 +496,8 @@ class CompetitionRobot: ChargerRobot() {
     ) = buildCommand("DriveAndScoreSpeaker") {
         require(drivetrain, pivot, shooter, groundIntake)
 
-        parallelUntilChiefEnds {
-            +AutoBuilder.followPath(path)
+        parallel {
+            +AutoBuilder.followPath(path).asDeadline()
 
             loop{
                 shooter.outtakeAtSpeakerSpeed()

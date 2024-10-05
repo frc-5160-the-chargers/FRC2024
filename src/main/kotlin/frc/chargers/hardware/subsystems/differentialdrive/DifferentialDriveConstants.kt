@@ -23,7 +23,7 @@ class DifferentialDriveConstants(
 ){
     companion object{
         fun andymarkKitbot(
-            invertMotors: Boolean,
+            invertMotors: Boolean = true,
             velocityPID: PIDConstants = PIDConstants(0.0,0.0,0.0),
             velocityFF: AngularMotorFeedforward = AngularMotorFeedforward(0.0,0.0,0.0),
             pathAlgorithm: PathAlgorithm = PathAlgorithm.LTV,

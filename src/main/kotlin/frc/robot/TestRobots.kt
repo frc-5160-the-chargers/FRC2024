@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package frc.robot
 
 import com.batterystaple.kmeasure.units.degrees
@@ -44,7 +45,7 @@ class MotorTestingBot(private val motor: Motor): ChargerRobot() {
 
 class SwerveModuleTestingBot: ChargerRobot() {
     private val constants = SwerveConstants(
-        moduleType = ModuleType.MK4iL2,
+        moduleType = ModuleType.Mk4iL2,
         trackWidth = 27.inches,
         wheelBase = 27.inches,
         azimuthPID = PIDConstants(7.0,0.0,0.0),
