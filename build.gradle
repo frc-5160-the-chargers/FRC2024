@@ -66,7 +66,7 @@ dependencies {
     implementation wpi.java.vendor.java()
     api('io.github.battery-staple:KMeasure:1.4.1')
     implementation "gov.nist.math:jama:1.0.3"
-    implementation 'com.github.frc-5160-the-chargers:KCommand:v1.0.0-Beta1'
+    implementation 'com.github.frc-5160-the-chargers:KCommand:v1.0.0-Beta3'
     implementation 'org.dyn4j:dyn4j:5.0.2'
     implementation 'io.arrow-kt:arrow-core:1.2.4'
     implementation 'io.arrow-kt:arrow-fx-coroutines:1.2.4'
@@ -106,7 +106,7 @@ subprojects {
 }
 
 repositories {
-    mavenLocal()
+    //mavenLocal()
     mavenCentral()
     maven { url 'https://jitpack.io' }
     maven {
