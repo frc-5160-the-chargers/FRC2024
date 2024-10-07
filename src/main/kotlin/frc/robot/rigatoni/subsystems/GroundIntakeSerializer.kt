@@ -32,7 +32,6 @@ class GroundIntakeSerializer: SubsystemBase() {
             serializerMotor = ChargerSparkMax(SERIALIZER_ID, faultLogName = "SerializerMotor")
                 .configure(inverted = true)
         }
-
         groundIntakeMotor.configure(
             optimizeUpdateRate = true,
             gearRatio = 15.0 / 12.0
@@ -82,9 +81,7 @@ class GroundIntakeSerializer: SubsystemBase() {
     }
 
     override fun periodic(){
-        if (DriverStation.isDisabled()){
-            setIdle()
-        }
+        if (DriverStation.isDisabled()) setIdle()
         log("GroundIntakeSerializer/StatorCurrentReadings", listOfNotNull(groundIntakeMotor.statorCurrent, serializerMotor?.statorCurrent))
         log("GroundIntakeSerializer/VoltageReadings", listOfNotNull(groundIntakeMotor.voltageOut, serializerMotor?.voltageOut))
         log("GroundIntakeSerializer/AngularVelocityReadings", listOfNotNull(groundIntakeMotor.encoder.angularVelocity, serializerMotor?.encoder?.angularVelocity))

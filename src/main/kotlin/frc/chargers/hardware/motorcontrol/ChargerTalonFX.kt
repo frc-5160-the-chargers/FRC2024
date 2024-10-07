@@ -5,9 +5,7 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.TalonFXConfiguration
-import com.ctre.phoenix6.controls.Follower
-import com.ctre.phoenix6.controls.PositionVoltage
-import com.ctre.phoenix6.controls.VelocityVoltage
+import com.ctre.phoenix6.controls.*
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
 import com.pathplanner.lib.util.PIDConstants
@@ -37,6 +35,9 @@ class ChargerTalonFX(
     canBus: String? = null,
     factoryDefault: Boolean = true,
     private val faultLogName: String? = null,
+    /**
+     * Note: this requires the phoenix pro subscription; ask daniel for more details
+     */
     private val fusedCANCoder: ChargerCANcoder? = null
 ): Motor {
     /**
@@ -52,8 +53,15 @@ class ChargerTalonFX(
     private val voltageSignal = base.motorVoltage
     private val currentSignal = base.statorCurrent
 
-    private val setPosRequest = PositionVoltage(0.0).withSlot(0)
-    private val setVelRequest = VelocityVoltage(0.0).withSlot(1)
+    private val voltOutRequest = VoltageOut(0.0).withEnableFOC(true)
+    private val setPosRequest = PositionVoltage(0.0).apply {
+        Slot = 0
+        EnableFOC = true
+    }
+    private val setVelRequest = VelocityVoltage(0.0).apply {
+        Slot = 1
+        EnableFOC = true
+    }
 
     private var positionPIDConfigured = false
     private var velocityPIDConfigured = false
@@ -84,7 +92,8 @@ class ChargerTalonFX(
     override var voltageOut: Voltage
         get() = voltageSignal.refresh(true).value.ofUnit(volts)
         set(value){
-            base.setVoltage(value.siValue)
+            voltOutRequest.Output = value.siValue
+            base.setControl(voltOutRequest)
             nonTalonFXFollowers.forEach{ it.voltageOut = value }
         }
 

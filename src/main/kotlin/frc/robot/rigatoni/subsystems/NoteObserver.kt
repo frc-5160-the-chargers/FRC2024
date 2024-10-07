@@ -46,7 +46,7 @@ class NoteObserver: SubsystemBase() {
                 log("NoteObserver/Detection/TX", 0.0)
                 log("NoteObserver/Detection/DistanceToNoteMeters", 0.0)
             }
-            log("CurrentState", state.toString())
+            log("NoteObserver/State", value.toString())
         }
 
     val noteInRobot: Boolean by logged{ state == NoteState.InSerializer || state == NoteState.InShooter }

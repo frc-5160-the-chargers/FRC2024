@@ -23,7 +23,10 @@ fun getDrivetrain(gyro: HeadingProvider): EncoderHolonomicDrivetrain =
             constants = SWERVE_CONSTANTS
         )
     } else {
-        EncoderHolonomicDrivetrain(name = "SwerveDrive", turnMotors = TURN_MOTORS, turnEncoders = TURN_ENCODERS, driveMotors = DRIVE_MOTORS, constants = SWERVE_CONSTANTS, gyro = gyro)
+        EncoderHolonomicDrivetrain(
+            name = "SwerveDrive", turnMotors = TURN_MOTORS, turnEncoders = TURN_ENCODERS,
+            driveMotors = DRIVE_MOTORS, constants = SWERVE_CONSTANTS, gyro = gyro
+        )
     }
 
 private object DrivetrainID {

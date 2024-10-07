@@ -10,10 +10,7 @@ import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.Pigeon2Configuration
 import com.ctre.phoenix6.hardware.Pigeon2
 import edu.wpi.first.wpilibj.RobotBase.isReal
-import edu.wpi.first.wpilibj.RobotBase.isSimulation
-import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.logged
-import limelight.LimelightHelpers
 
 
 /**
@@ -113,26 +110,5 @@ class ChargerPigeon2(
      */
     val isConnected: Boolean by logged {
         allSignals.all { it.status == StatusCode.OK }
-    }
-
-    /**
-     * Broadcasts robot orientation for the MegaTag2 system.
-     * Should be run periodically; either in a periodic() method or using [ChargerRobot.runPeriodic].
-     */
-    fun broadcastOrientationForMegaTag2(
-        vararg limelightNames: String
-    ) {
-        if (isSimulation()) return
-        for (llName in limelightNames) {
-            LimelightHelpers.setRobotOrientation(
-                llName,
-                heading.inUnit(degrees),
-                yawRate.inUnit(degrees / seconds),
-                pitch.inUnit(degrees),
-                pitchRate.inUnit(degrees / seconds),
-                roll.inUnit(degrees),
-                rollRate.inUnit(degrees / seconds),
-            )
-        }
     }
 }

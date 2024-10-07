@@ -21,12 +21,11 @@ import limelight.LimelightHelpers
 import org.photonvision.PhotonCamera
 import org.photonvision.PhotonPoseEstimator
 import org.photonvision.PhotonPoseEstimator.PoseStrategy
+import kotlin.jvm.optionals.getOrNull
 
 /**
- * A base class for a subsystem that can estimate its own pose,
- * and fuse vision pose measurements.
- *
- * This is usually a drivetrain.
+ * A base class for a drivetrain that can estimate its own pose,
+ * and fuse pose measurements from one or more vision cameras.
  */
 @Suppress("unused")
 abstract class PoseEstimatingDrivetrain: SubsystemBase() {
@@ -61,20 +60,19 @@ abstract class PoseEstimatingDrivetrain: SubsystemBase() {
             photonCam,
             robotToCamera
         )
-        val camName = photonCam.name
         val camYaw = robotToCamera.rotation.x.ofUnit(radians)
 
         ChargerRobot.runPeriodic {
-            val poseEstimation = poseEstimator.update()
-            if (poseEstimation.isPresent){
-                log("PhotonPoseEstimations/$camName", poseEstimation.get().estimatedPose)
+            val poseEstimation = poseEstimator.update().getOrNull()
+            if (poseEstimation == null) {
+                log("PhotonPoseEstimations/${photonCam.name}", Pose3d())
+            } else {
+                log("PhotonPoseEstimations/${photonCam.name}", poseEstimation.estimatedPose)
                 addVisionMeasurement(
-                    poseEstimation.get().estimatedPose.toPose2d(),
-                    poseEstimation.get().timestampSeconds.ofUnit(seconds),
+                    poseEstimation.estimatedPose.toPose2d(),
+                    poseEstimation.timestampSeconds.ofUnit(seconds),
                     camYaw
                 )
-            }else{
-                log("PhotonPoseEstimations/$camName", Pose3d())
             }
         }
     }
@@ -100,17 +98,22 @@ abstract class PoseEstimatingDrivetrain: SubsystemBase() {
             robotToCamera.rotation.y,
             robotToCamera.rotation.z
         )
+        val camYaw = robotToCamera.rotation.z.ofUnit(radians)
 
         ChargerRobot.runPeriodic {
-            val poseEstimation = if (useMegaTag2){
-                LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(camName)
+            val poseEstimation: LimelightHelpers.PoseEstimate
+            if (useMegaTag2){
+                LimelightHelpers.setRobotOrientation(
+                    camName, this.robotPose.rotation.degrees,
+                    0.0, 0.0, 0.0, 0.0, 0.0
+                )
+                poseEstimation = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(camName)
             }else{
-                LimelightHelpers.getBotPoseEstimate_wpiBlue(camName)
+                poseEstimation = LimelightHelpers.getBotPoseEstimate_wpiBlue(camName)
             }
 
             val tagEstimateAmbiguous = poseEstimation.rawFiducials.size == 1 &&
                 poseEstimation.rawFiducials[0].ambiguity >= 0.9
-            val camYaw = robotToCamera.rotation.z.ofUnit(radians)
 
             if (poseEstimation.tagCount > 0 && !tagEstimateAmbiguous){
                 addVisionMeasurement(

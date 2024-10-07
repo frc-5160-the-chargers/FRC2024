@@ -7,9 +7,7 @@ import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.standardGravities
 import com.kauailabs.navx.frc.AHRS
 import edu.wpi.first.wpilibj.RobotBase.isReal
-import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.logged
-import limelight.LimelightHelpers
 
 
 class ChargerNavX(
@@ -45,28 +43,6 @@ class ChargerNavX(
         }else{
             headingOffset = -simHeadingSource()
             println("AHRS heading has been offset in sim.")
-        }
-    }
-
-    /**
-     * Broadcasts robot orientation for the MegaTag2 system.
-     * Should be run periodically; either in a periodic() method or using [ChargerRobot.runPeriodic].
-     */
-    fun broadcastOrientationForMegaTag2(
-        vararg limelightNames: String
-    ){
-        if (isReal()){
-            for (llName in limelightNames){
-                LimelightHelpers.setRobotOrientation(
-                    llName,
-                    heading.inUnit(degrees),
-                    yawRate.inUnit(degrees/seconds),
-                    pitch.inUnit(degrees),
-                    0.0,
-                    roll.inUnit(degrees),
-                    0.0
-                )
-            }
         }
     }
 

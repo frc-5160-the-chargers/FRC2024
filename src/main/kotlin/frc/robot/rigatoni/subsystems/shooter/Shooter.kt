@@ -87,9 +87,7 @@ class Shooter: SubsystemBase() {
     }
 
     override fun periodic(){
-        if (DriverStation.isDisabled()){
-            setIdle()
-        }
+        if (DriverStation.isDisabled()) setIdle()
         log("Shooter/MeasuredVoltage", motor.voltageOut)
         log("Shooter/StatorCurrent", motor.statorCurrent)
     }

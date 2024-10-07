@@ -31,7 +31,6 @@ import frc.chargers.wpilibextensions.flipWhenRedAlliance
 import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.chargers.wpilibextensions.onDoubleClick
-import frc.robot.rigatoni.inputdevices.PS5SwerveController
 import frc.robot.rigatoni.subsystems.*
 import frc.robot.rigatoni.subsystems.shooter.Shooter
 import kotlin.math.abs
@@ -50,7 +49,7 @@ class CompetitionRobot: ChargerRobot() {
     private val climber = Climber()
     private val noteObserver = NoteObserver()
     
-    private val driverController = PS5SwerveController(DRIVER_CONTROLLER_PORT)
+    private val driverController = PS5SwerveController(DRIVER_CONTROLLER_PORT, "DriverController")
     private val driverTouchpad = driverController.touchpad()
     private val operatorController = CommandXboxController(OPERATOR_CONTROLLER_PORT)
 
