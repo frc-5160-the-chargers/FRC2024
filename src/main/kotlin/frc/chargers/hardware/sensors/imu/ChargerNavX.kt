@@ -17,6 +17,8 @@ class ChargerNavX(
 ): ZeroableHeadingProvider {
     private var headingOffset by logged(0.degrees)
 
+    init { zeroHeading() }
+
     /**
      * Equivalent to the NavX [yaw].
      */

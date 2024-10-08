@@ -48,6 +48,7 @@ class ChargerPigeon2(
     init {
         if (factoryDefault) base.configurator.apply(Pigeon2Configuration())
         if (headingUpdateFrequency != null) yawSignal.setUpdateFrequency(headingUpdateFrequency.inUnit(hertz))
+        zeroHeading()
     }
 
     /**
