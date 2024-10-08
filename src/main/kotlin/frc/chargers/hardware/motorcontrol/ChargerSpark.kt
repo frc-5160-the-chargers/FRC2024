@@ -64,7 +64,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     val deviceID: Int = base.deviceId
 
     private val nonRevFollowers = mutableListOf<Motor>()
-    private val relativeEncoder = base.encoder
+    private val relativeEncoder = base.getEncoder()
     private val absoluteEncoder = base.getAbsoluteEncoder(SparkAbsoluteEncoder.Type.kDutyCycle)
 
     private var positionPIDConfigured = false
@@ -118,6 +118,9 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
         if (!positionPIDConfigured) {
             DriverStation.reportError("You must specify a positionPID value using the " +
                     "motor.configure(positionPID = PIDConstants(p,i,d)) method.", true)
+            return
+        } else if (abs(position - this.encoder.angularPosition) < 1.degrees) {
+            base.setVoltage(0.0)
             return
         }
         base.pidController.setReference(

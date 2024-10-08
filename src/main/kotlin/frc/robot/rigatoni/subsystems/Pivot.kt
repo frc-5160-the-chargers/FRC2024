@@ -45,12 +45,12 @@ object PivotAngle {
     val STARTING: Angle = -1.15.radians
 }
 
-class Pivot: SubsystemBase() {
+class Pivot(disable: Boolean = false): SubsystemBase() {
     private val motor: Motor
     private val absoluteEncoder: PositionEncoder?
 
     init {
-        if (isSimulation()){
+        if (isSimulation() || disable){
             motor = MotorSim(DCMotor.getNEO(1), moi = 0.008.kilo.grams * (meters * meters))
             absoluteEncoder = null
         }else{

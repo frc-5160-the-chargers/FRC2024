@@ -6,28 +6,34 @@ import com.batterystaple.kmeasure.units.inches
 import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.util.PIDConstants
+import dev.doglog.DogLogOptions
 import frc.chargers.controls.feedforward.AngularMotorFeedforward
 import frc.chargers.framework.ChargerRobot
+import frc.chargers.framework.HorseLog
 import frc.chargers.framework.HorseLog.log
 import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX
-import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
 import frc.chargers.hardware.subsystems.swervedrive.ModuleType
 import frc.chargers.hardware.subsystems.swervedrive.SwerveConstants
 import frc.chargers.hardware.subsystems.swervedrive.SwerveModule
 
-class MotorTestingBot(private val motor: Motor): ChargerRobot() {
+class MotorTestingBot(private val motor: ChargerTalonFX): ChargerRobot() {
     init {
         motor.configure(
-            gearRatio = 1.0, // Change this
-            positionPID = PIDConstants(0.3, 0.0, 0.001),
+            gearRatio = ModuleType.Mk4iL2.driveGearRatio, // Change this
+            positionPID = PIDConstants(2.0, 0.0, 0.001),
             startingPosition = 0.degrees
         )
+        HorseLog.setOptions(
+            DogLogOptions().withNtPublish(true)
+        )
+        //motor.base.setPeriodicFramePeriod(CANSparkLowLevel.PeriodicFrame.kStatus2, 20)
     }
 
     override fun robotPeriodic() {
         log("MotorPosition", motor.encoder.angularPosition)
+        log("MotorPositionRaw", motor.base.position.value)
     }
 
     override fun testPeriodic() {

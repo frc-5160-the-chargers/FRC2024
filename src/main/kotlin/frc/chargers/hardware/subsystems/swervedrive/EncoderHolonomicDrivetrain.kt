@@ -26,6 +26,7 @@ import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.hardware.sensors.imu.HeadingProvider
 import frc.chargers.hardware.sensors.imu.ZeroableHeadingProvider
 import frc.chargers.hardware.subsystems.PoseEstimatingDrivetrain
+import frc.chargers.utils.epsilonEquals
 import frc.chargers.utils.units.VoltageRate
 import frc.chargers.utils.units.toKmeasure
 import frc.chargers.utils.units.toWPI
@@ -324,6 +325,10 @@ open class EncoderHolonomicDrivetrain(
      * This value can be changed with the [fieldRelative] parameter.
      */
     fun swerveDrive(xPower: Double, yPower: Double, rotationPower: Double, fieldRelative: Boolean = defaultFieldRelative){
+        if (xPower epsilonEquals 0.0 && yPower epsilonEquals 0.0 && rotationPower epsilonEquals 0.0) {
+            this.stop()
+            return
+        }
         currentControlMode = ControlMode.OPEN_LOOP
         setSpeeds(
             xPower * maxLinearVelocity.siValue,
@@ -404,7 +409,7 @@ open class EncoderHolonomicDrivetrain(
         // prevents driving anywhere else
         currentControlMode = ControlMode.NONE
         goal = ChassisSpeeds()
-        swerveModules.forEach{
+        swerveModules.forEach {
             it.setDriveVoltage(0.volts)
             it.setTurnVoltage(0.volts)
         }

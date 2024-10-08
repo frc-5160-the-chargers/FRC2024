@@ -49,7 +49,7 @@ private val SWERVE_CONSTANTS = SwerveConstants(
     moduleType = ModuleType.Mk4iL2,
     trackWidth = 27.inches,
     wheelBase = 27.inches,
-    azimuthPID = PIDConstants(7.0,0.0,0.0),
+    azimuthPID = PIDConstants(2.0,0.0,0.0),
     azimuthPIDTolerance = 1.degrees,
     velocityPID = PIDConstants(0.05,0.0,0.0),
     velocityFF = AngularMotorFeedforward(0.0,0.13),
@@ -63,7 +63,7 @@ private val TURN_MOTORS = listOf(
     it.configure(
         statorCurrentLimit = 30.amps,
         rampRate = 48.seconds,
-        optimizeUpdateRate = true
+        //optimizeUpdateRate = true
     )
 }
 private val TURN_ENCODERS = listOf(
@@ -82,12 +82,12 @@ private val DRIVE_MOTORS = listOf(
     it.base.configurator.apply(
         CurrentLimitsConfigs()
             .withSupplyCurrentLimitEnable(true)
-            .withSupplyCurrentLimit(120.0)
+            .withSupplyCurrentLimit(90.0)
     )
     it.configure(
-        statorCurrentLimit = 60.amps,
+        statorCurrentLimit = 55.amps,
         brakeWhenIdle = true,
-        optimizeUpdateRate = true
+        //optimizeUpdateRate = true
     )
 }
 private val TURN_MOTOR_MOI = 0.004.kilo.grams * (meters * meters)

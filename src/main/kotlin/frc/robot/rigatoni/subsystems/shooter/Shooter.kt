@@ -22,8 +22,8 @@ private val CLOSED_LOOP_SPEAKER_SHOOT_SPEED = AngularVelocity(0.0) // tbd; shoul
 
 // standard: + = outtake, - = intake; regardless of voltage set
 @Suppress("unused")
-class Shooter: SubsystemBase() {
-    private val motor: Motor = if (isSimulation()) {
+class Shooter(disable: Boolean = false): SubsystemBase() {
+    private val motor: Motor = if (isSimulation() || disable) {
         MotorSim(DCMotor.getNeoVortex(1))
     } else {
         ChargerSparkFlex(SHOOTER_MOTOR_ID, faultLogName = "ShooterMotor")

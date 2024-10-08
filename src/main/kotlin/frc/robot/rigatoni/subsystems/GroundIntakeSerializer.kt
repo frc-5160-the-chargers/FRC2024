@@ -19,12 +19,12 @@ private const val GROUND_INTAKE_ID = 7
 
 // standard: + = outtake, - = intake for both conveyor and ground intake components
 // first list value is ground intake motor; second is serializer motor.
-class GroundIntakeSerializer: SubsystemBase() {
+class GroundIntakeSerializer(disable: Boolean = false): SubsystemBase() {
     private val groundIntakeMotor: Motor
     private val serializerMotor: Motor?
 
     init {
-        if (isSimulation()){
+        if (isSimulation() || disable){
             groundIntakeMotor = MotorSim(DCMotor.getFalcon500(1))
             serializerMotor = MotorSim(DCMotor.getNEO(1))
         } else {

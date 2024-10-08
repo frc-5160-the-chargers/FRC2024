@@ -75,6 +75,7 @@ class ChargerTalonFX(
             }
             base.configurator.apply(config)
         }
+        base.stopMotor()
     }
 
     /**
@@ -106,6 +107,9 @@ class ChargerTalonFX(
         if (!positionPIDConfigured) {
             DriverStation.reportError("You must specify a positionPID value using the " +
                     "motor.configure(positionPID = PIDConstants(p,i,d)) method.", true)
+            return
+        } else if (abs(position - this.encoder.angularPosition) < 0.5.degrees) {
+            base.setVoltage(0.0)
             return
         }
         setPosRequest.Position = position.inUnit(rotations)
@@ -144,11 +148,16 @@ class ChargerTalonFX(
         val errors = mutableListOf<StatusCode>()
         fun StatusCode.bind(){ if (this != StatusCode.OK) errors.add(this) }
         for (i in 1..4) {
-            if (inverted != null) {
-                config.MotorOutput.Inverted = if (inverted) {
-                    InvertedValue.Clockwise_Positive
-                } else {
-                    InvertedValue.CounterClockwise_Positive
+            config.MotorOutput.apply {
+                when (brakeWhenIdle) {
+                    true -> NeutralMode = NeutralModeValue.Brake
+                    false -> NeutralMode = NeutralModeValue.Coast
+                    null -> {}
+                }
+                when (inverted) {
+                    true -> Inverted = InvertedValue.Clockwise_Positive
+                    false -> Inverted = InvertedValue.CounterClockwise_Positive
+                    null -> {}
                 }
             }
             if (rampRate != null){

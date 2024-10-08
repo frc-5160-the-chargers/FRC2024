@@ -70,6 +70,7 @@ class SwerveModule(
             }
             if (turnEncoder != null) log("$name/absolutePosition", turnEncoder.angularPosition)
             log("$name/Direction", direction)
+            log("$name/AbsoluteEncoderReading", turnEncoder?.angularPosition ?: 0.degrees)
             log("$name/DriveLinearVelocity", driveLinearVelocity)
             log("$name/WheelTravel", wheelTravel)
             log("$name/TurnMotorCurrent", turnMotor.statorCurrent)

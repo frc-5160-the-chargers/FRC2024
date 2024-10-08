@@ -23,6 +23,7 @@ import kcommand.commandbuilder.buildCommand
 import kcommand.setDefaultRunCommand
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog
+import frc.chargers.framework.Tunable
 import frc.chargers.framework.tunable
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.utils.squareMagnitude
@@ -43,9 +44,9 @@ import kotlin.math.max
 class CompetitionRobot: ChargerRobot() {
     private val gyro = ChargerNavX()
     private val drivetrain = getDrivetrain(gyro)
-    private val pivot = Pivot()
-    private val groundIntake = GroundIntakeSerializer()
-    private val shooter = Shooter()
+    private val pivot = Pivot(disable = true)
+    private val groundIntake = GroundIntakeSerializer(disable = true)
+    private val shooter = Shooter(disable = true)
     private val climber = Climber()
     private val noteObserver = NoteObserver()
     
@@ -86,6 +87,7 @@ class CompetitionRobot: ChargerRobot() {
             autoChooser.addOption(autoCommand.name, autoCommand)
         }
         SmartDashboard.putData("AutoChoices", autoChooser)
+        Tunable.tuningMode = true
     }
 
     override fun autonomousInit() {
