@@ -2,7 +2,6 @@ package frc.robot.rigatoni.subsystems
 
 import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.*
-import com.ctre.phoenix6.configs.CurrentLimitsConfigs
 import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.TimedRobot.isSimulation
@@ -62,8 +61,7 @@ private val TURN_MOTORS = listOf(
 ).map {
     it.configure(
         statorCurrentLimit = 30.amps,
-        rampRate = 48.seconds,
-        //optimizeUpdateRate = true
+        rampRate = 48.seconds
     )
 }
 private val TURN_ENCODERS = listOf(
@@ -79,16 +77,10 @@ private val DRIVE_MOTORS = listOf(
     ChargerTalonFX(DrivetrainID.BL_DRIVE),
     ChargerTalonFX(DrivetrainID.BR_DRIVE).configure(inverted = true),
 ).map {
-    it.base.configurator.apply(
-        CurrentLimitsConfigs()
-            .withSupplyCurrentLimitEnable(true)
-            .withSupplyCurrentLimit(90.0)
-    )
     it.configure(
-        statorCurrentLimit = 55.amps,
-        brakeWhenIdle = true,
-        //optimizeUpdateRate = true
-    )
+        statorCurrentLimit = 90.amps,
+        brakeWhenIdle = true
+    ).limitSupplyCurrent(60.amps)
 }
 private val TURN_MOTOR_MOI = 0.004.kilo.grams * (meters * meters)
 private val DRIVE_MOTOR_MOI = 0.025.kilo.grams * (meters * meters)

@@ -4,6 +4,7 @@ package frc.chargers.hardware.motorcontrol
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix6.StatusCode
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs
 import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.controls.*
 import com.ctre.phoenix6.hardware.TalonFX
@@ -214,7 +215,7 @@ class ChargerTalonFX(
                     else -> nonTalonFXFollowers.add(follower)
                 }
             }
-            base.configurator.apply(config, 0.050).bind()
+            base.configurator.apply(config, 0.1).bind()
 
             val optimizeBusUtilization = optimizeUpdateRate == true
             if (optimizeBusUtilization) {
@@ -237,6 +238,27 @@ class ChargerTalonFX(
         return this
     }
 
+    fun limitSupplyCurrent(limit: Current): ChargerTalonFX = currentConfigImpl(limit)
+
+    /**
+     * Sets a limit of [allowUpTo] until [forTime] passes, then reverts to the [limit].
+     */
+    fun limitSupplyCurrent(limit: Current, allowUpTo: Current, forTime: Time): ChargerTalonFX =
+        currentConfigImpl(limit, allowUpTo, forTime)
+
+    private fun currentConfigImpl(limit: Current, allowUpTo: Current? = null, forTime: Time? = null): ChargerTalonFX {
+        val configs = CurrentLimitsConfigs()
+        base.configurator.refresh(configs, 0.05)
+        configs.apply {
+            SupplyCurrentLimitEnable = true
+            SupplyCurrentLimit = limit.inUnit(amps)
+            if (allowUpTo != null) SupplyCurrentThreshold = allowUpTo.inUnit(amps)
+            if (forTime != null) SupplyTimeThreshold = forTime.inUnit(seconds)
+        }
+        base.configurator.apply(configs, 0.1)
+        return this
+    }
+
     private val faultSignalToMsg = mapOf(
         base.fault_Hardware to "Hardware failure detected",
         base.fault_DeviceTemp to "Device temp exceeded limit",
@@ -255,9 +277,7 @@ class ChargerTalonFX(
                     // != false prevents null
                     if (faultSignal.refresh().value != false) HorseLog.logFault("$faultLogName: $faultMsg")
                 }
-                if (voltageSignal.refresh().status != StatusCode.OK) {
-                    HorseLog.logFault("$faultLogName: Device is unreachable")
-                }
+                if (voltageSignal.refresh().status != StatusCode.OK) HorseLog.logFault("$faultLogName: Device is unreachable")
             }
         }
     }
