@@ -70,7 +70,7 @@ interface Motor {
         optimizeUpdateRate: Boolean? = null,
 
         gearRatio: Double? = null,
-        startingPosition: Angle? = null,
+        currentPosition: Angle? = null,
         positionPID: PIDConstants? = null,
         velocityPID: PIDConstants? = null,
         continuousInput: Boolean? = null

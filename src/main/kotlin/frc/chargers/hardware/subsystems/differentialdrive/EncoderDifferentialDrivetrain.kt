@@ -89,7 +89,7 @@ open class EncoderDifferentialDrivetrain(
         for (motor in leftMotors + rightMotors){
             motor.configure(
                 velocityPID = constants.velocityPID,
-                startingPosition = 0.degrees,
+                currentPosition = 0.degrees,
                 gearRatio = constants.gearRatio
             )
         }

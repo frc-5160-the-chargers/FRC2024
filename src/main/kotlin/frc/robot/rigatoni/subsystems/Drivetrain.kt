@@ -61,7 +61,8 @@ private val TURN_MOTORS = listOf(
 ).map {
     it.configure(
         statorCurrentLimit = 30.amps,
-        rampRate = 48.seconds
+        rampRate = 48.seconds,
+        optimizeUpdateRate = true
     )
 }
 private val TURN_ENCODERS = listOf(
@@ -79,8 +80,13 @@ private val DRIVE_MOTORS = listOf(
 ).map {
     it.configure(
         statorCurrentLimit = 90.amps,
-        brakeWhenIdle = true
-    ).limitSupplyCurrent(60.amps)
+        brakeWhenIdle = true,
+        optimizeUpdateRate = true
+    ).limitSupplyCurrent(
+        50.amps,
+        highLimit = 70.amps,
+        highLimitAllowedFor = 0.1.seconds
+    )
 }
 private val TURN_MOTOR_MOI = 0.004.kilo.grams * (meters * meters)
 private val DRIVE_MOTOR_MOI = 0.025.kilo.grams * (meters * meters)

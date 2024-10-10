@@ -19,17 +19,10 @@ import kotlin.math.PI
 
 
 /**
- * A [TalonFX] motor controller that implements the [Motor] interface,
+ * A [TalonFX] motor controller that implements the [Motor] interface
  * and performs periodic self-checking.
  *
- * Includes everything in the CTRE TalonFX class(accessed via the [base] property),
- * but has additional features to mesh better with the rest
- * of this library.
- *
- * Creating an instance of this class factory will factory default the motor;
- * set factoryDefault = false to turn this off.
- *
- * @see com.ctre.phoenix6.hardware.TalonFX
+ * The [base] property allows for the access of the base [TalonFX] instance.
  */
 class ChargerTalonFX(
     val deviceID: Int,
@@ -76,7 +69,6 @@ class ChargerTalonFX(
             }
             base.configurator.apply(config)
         }
-        base.stopMotor()
     }
 
     /**
@@ -99,10 +91,9 @@ class ChargerTalonFX(
             nonTalonFXFollowers.forEach{ it.voltageOut = value }
         }
 
-    override val statorCurrent: Current
-        get() = currentSignal.refresh(true).value.ofUnit(amps)
+    override val statorCurrent get() = currentSignal.refresh(true).value.ofUnit(amps)
 
-    override val inverted: Boolean get() = base.inverted
+    override val inverted get() = base.inverted
 
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
         if (!positionPIDConfigured) {
@@ -141,7 +132,7 @@ class ChargerTalonFX(
         velocityUpdateRate: Frequency?,
         optimizeUpdateRate: Boolean?,
         gearRatio: Double?,
-        startingPosition: Angle?,
+        currentPosition: Angle?,
         positionPID: PIDConstants?,
         velocityPID: PIDConstants?,
         continuousInput: Boolean?
@@ -177,7 +168,7 @@ class ChargerTalonFX(
                 config.CurrentLimits.StatorCurrentLimitEnable = true
                 config.CurrentLimits.StatorCurrentLimit = statorCurrentLimit.inUnit(amps)
             }
-            if (startingPosition != null) base.setPosition(startingPosition.inUnit(rotations)).bind()
+            if (currentPosition != null) base.setPosition(currentPosition.inUnit(rotations)).bind()
             if (gearRatio != null) {
                 if (fusedCANCoder != null) {
                     config.Feedback.RotorToSensorRatio = gearRatio
@@ -208,7 +199,7 @@ class ChargerTalonFX(
                     positionPID = positionPID,
                     velocityPID = velocityPID,
                     gearRatio = gearRatio,
-                    startingPosition = startingPosition
+                    currentPosition = currentPosition
                 )
                 when (follower) {
                     is ChargerTalonFX -> follower.base.setControl(Follower(this.deviceID, follower.inverted)).bind()
@@ -220,10 +211,10 @@ class ChargerTalonFX(
             val optimizeBusUtilization = optimizeUpdateRate == true
             if (optimizeBusUtilization) {
                 base.optimizeBusUtilization()
-                base.statorCurrent.setUpdateFrequency(50.0).bind()
-                base.motorVoltage.setUpdateFrequency(50.0).bind()
+                currentSignal.setUpdateFrequency(50.0).bind()
+                voltageSignal.setUpdateFrequency(50.0).bind()
             }
-            for ((statusSignal, rate) in mapOf(base.position to positionUpdateRate, base.velocity to velocityUpdateRate)){
+            for ((statusSignal, rate) in mapOf(positionSignal to positionUpdateRate, velocitySignal to velocityUpdateRate)){
                 if (rate != null) {
                     statusSignal.setUpdateFrequency(rate.inUnit(hertz)).bind()
                 } else if (optimizeBusUtilization) {
@@ -234,26 +225,25 @@ class ChargerTalonFX(
             if (errors.isEmpty()) return this
             errors.clear()
         }
-        DriverStation.reportError("ERROR: ${faultLogName ?: "ChargerTalonFX($deviceID)"} failed to configure. Errors: $errors", false)
+        DriverStation.reportError(
+        "ERROR: ${faultLogName ?: "ChargerTalonFX($deviceID)"} failed to configure. " +
+              "Errors: $errors", false
+        )
         return this
     }
 
-    fun limitSupplyCurrent(limit: Current): ChargerTalonFX = currentConfigImpl(limit)
-
-    /**
-     * Sets a limit of [allowUpTo] until [forTime] passes, then reverts to the [limit].
-     */
-    fun limitSupplyCurrent(limit: Current, allowUpTo: Current, forTime: Time): ChargerTalonFX =
-        currentConfigImpl(limit, allowUpTo, forTime)
-
-    private fun currentConfigImpl(limit: Current, allowUpTo: Current? = null, forTime: Time? = null): ChargerTalonFX {
+    fun limitSupplyCurrent(
+        limit: Current,
+        highLimit: Current? = null,
+        highLimitAllowedFor: Time? = null
+    ): ChargerTalonFX {
         val configs = CurrentLimitsConfigs()
         base.configurator.refresh(configs, 0.05)
         configs.apply {
             SupplyCurrentLimitEnable = true
             SupplyCurrentLimit = limit.inUnit(amps)
-            if (allowUpTo != null) SupplyCurrentThreshold = allowUpTo.inUnit(amps)
-            if (forTime != null) SupplyTimeThreshold = forTime.inUnit(seconds)
+            if (highLimit != null) SupplyCurrentThreshold = highLimit.inUnit(amps)
+            if (highLimitAllowedFor != null) SupplyTimeThreshold = highLimitAllowedFor.inUnit(seconds)
         }
         base.configurator.apply(configs, 0.1)
         return this

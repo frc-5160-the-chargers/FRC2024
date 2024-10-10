@@ -20,7 +20,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 
 class SwerveModule(
-    val name: String,
+    private val name: String,
     private val turnMotor: Motor,
     // turn encoders are optional in sim
     private val turnEncoder: PositionEncoder? = null,
@@ -32,23 +32,21 @@ class SwerveModule(
     private var couplingOffset = 0.degrees
     private var azimuthProfileState = AngularMotionProfileState(startingDirection ?: turnMotor.encoder.angularPosition)
 
-    val direction
-        get() = (turnMotor.encoder.angularPosition + couplingOffset) % 360.degrees
+    // instead of using the abs encoder reading directly,
+    // we configure the motor's gear ratio and starting position off the abs encoder
+    val direction get() = (turnMotor.encoder.angularPosition) % 360.degrees
 
-    val driveAngularVelocity
-        get() = driveMotor.encoder.angularVelocity
+    val driveAngularVelocity get() = driveMotor.encoder.angularVelocity
 
-    val driveLinearVelocity
-        get() = driveAngularVelocity * wheelRadius
+    val driveLinearVelocity get() = driveAngularVelocity * wheelRadius
 
-    val wheelTravel
-        get() = driveMotor.encoder.angularPosition * wheelRadius
+    val wheelTravel get() = (driveMotor.encoder.angularPosition - couplingOffset) * wheelRadius
 
     init {
         turnMotor.configure(
             inverted = if (constants.moduleType.turnMotorInverted && RobotBase.isReal()) !turnMotor.inverted else null,
             gearRatio = constants.moduleType.turnGearRatio,
-            startingPosition = startingDirection,
+            currentPosition = startingDirection,
             positionPID = constants.azimuthPID,
             continuousInput = true,
             positionUpdateRate = periodToFrequency(constants.odometryUpdateRate)
@@ -56,16 +54,16 @@ class SwerveModule(
 
         driveMotor.configure(
             gearRatio = constants.moduleType.driveGearRatio,
-            startingPosition = 0.degrees,
+            currentPosition = 0.degrees,
             velocityPID = constants.velocityPID,
             positionUpdateRate = periodToFrequency(constants.odometryUpdateRate)
         )
 
-        log("Data/UsingCouplingRatio", constants.couplingRatio != null)
+        log("$name/UsingCouplingRatio", constants.couplingRatio != null)
 
         ChargerRobot.runPeriodic {
             if (constants.couplingRatio != null){
-                couplingOffset -= constants.couplingRatio * (direction % 360.degrees - 180.degrees)
+                couplingOffset -= constants.couplingRatio * (direction - 180.degrees)
                 log("CouplingOffset", couplingOffset)
             }
             if (turnEncoder != null) log("$name/absolutePosition", turnEncoder.angularPosition)
@@ -80,20 +78,18 @@ class SwerveModule(
     }
 
     fun syncTurnEncoder() {
-        if (turnEncoder != null) turnMotor.configure(startingPosition = turnEncoder.angularPosition)
+        if (turnEncoder != null) turnMotor.configure(currentPosition = turnEncoder.angularPosition)
     }
 
-    fun getModuleState(): SwerveModuleState =
-        SwerveModuleState(
-            driveLinearVelocity.inUnit(meters / seconds),
-            Rotation2d(direction)
-        )
+    fun getModuleState() = SwerveModuleState(
+        driveLinearVelocity.inUnit(meters / seconds),
+        Rotation2d(direction)
+    )
 
-    fun getModulePosition(): SwerveModulePosition =
-        SwerveModulePosition(
-            wheelTravel.inUnit(meters),
-            Rotation2d(direction)
-        )
+    fun getModulePosition() = SwerveModulePosition(
+        wheelTravel.inUnit(meters),
+        Rotation2d(direction)
+    )
 
     fun setDriveVoltage(target: Voltage) {
         driveMotor.voltageOut = target

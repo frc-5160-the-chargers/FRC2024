@@ -107,7 +107,7 @@ open class EncoderHolonomicDrivetrain(
         .onChange{ pid -> driveMotors.forEach{ it.configure(velocityPID = pid) } }
 
     private val allianceFieldRelativeOffset get() =
-        when (DriverStation.getAlliance().get()){
+        when (DriverStation.getAlliance().getOrNull()){
             DriverStation.Alliance.Red -> 180.degrees
             else -> 0.degrees
         }
@@ -204,15 +204,6 @@ open class EncoderHolonomicDrivetrain(
             poseEstimator.addVisionMeasurement(pose, timestamp.inUnit(seconds))
         }
     }
-
-    /**
-     * The distance the robot has traveled in total.
-     */
-    val distanceTraveled: Distance
-        get(){
-            val currentPose = robotPose
-            return hypot(currentPose.x.ofUnit(meters), currentPose.y.ofUnit(meters))
-        }
 
     /**
      * The current overall velocity of the robot.
@@ -438,7 +429,6 @@ open class EncoderHolonomicDrivetrain(
      * Called periodically in the subsystem.
      */
     override fun periodic() {
-        log("$name/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
         log("$name/OverallVelocityMetersPerSec", velocity.inUnit(meters / seconds))
         log("$name/RequestedControlMode", currentControlMode)
         log("$name/ModuleStates/Desired", desiredStates)

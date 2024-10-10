@@ -14,9 +14,10 @@ import kotlin.math.PI
 
 
 /**
- * Creates a [CANSparkMax] that implements the [Motor] interface.
+ * A [CANSparkMax] motor controller that implements the [Motor] interface
+ * and performs periodic self-checking.
  *
- * @see ChargerSpark
+ * The [base] property allows for the access of the base [CANSparkMax] instance.
  */
 class ChargerSparkMax(
     deviceID: Int,
@@ -31,9 +32,10 @@ class ChargerSparkMax(
 
 
 /**
- * Creates a [CANSparkFlex] that implements the [Motor] interface.
+ * A [CANSparkFlex] motor controller that implements the [Motor] interface
+ * and performs periodic self-checking.
  *
- * @see ChargerSpark
+ * The [base] property allows for the access of the base [CANSparkFlex] instance.
  */
 class ChargerSparkFlex(
     deviceID: Int,
@@ -46,15 +48,9 @@ class ChargerSparkFlex(
 )
 
 
-/**
- * A utility class that implements the [Motor] interface
- * for spark max/flex motors.
- *
- * To access the base motor, use the [base] property.
- */
 open class ChargerSpark<BaseMotorType: CANSparkBase>(
     /**
-     * The base Spark max/flex instance.
+     * The base [CANSparkFlex]/[CANSparkMax] instance.
      */
     val base: BaseMotorType,
     private val useAbsoluteEncoder: Boolean = false,
@@ -94,25 +90,27 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     private inner class RelativeEncoderImpl: Encoder {
         override val angularVelocity: AngularVelocity
             get() = relativeEncoder.velocity.ofUnit(rotations / minutes)
+
         override val angularPosition: Angle
             get() = relativeEncoder.position.ofUnit(rotations)
     }
     private inner class AbsoluteEncoderImpl: Encoder {
         override val angularVelocity: AngularVelocity
             get() = absoluteEncoder.velocity.ofUnit(rotations / seconds)
+
         override val angularPosition: Angle
             get() = absoluteEncoder.position.ofUnit(rotations)
     }
 
     override var voltageOut: Voltage
-        get() = Voltage(base.appliedOutput * base.busVoltage)
+        get() = (base.appliedOutput * base.busVoltage).ofUnit(volts)
         set(voltage){
             base.setVoltage(voltage.inUnit(volts))
         }
 
-    override val statorCurrent: Current get() = Current(base.outputCurrent)
+    override val statorCurrent get() = base.outputCurrent.ofUnit(amps)
 
-    override val inverted: Boolean get() = base.inverted
+    override val inverted get() = base.inverted
 
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
         if (!positionPIDConfigured) {
@@ -159,7 +157,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
         velocityUpdateRate: Frequency?,
         optimizeUpdateRate: Boolean?,
         gearRatio: Double?,
-        startingPosition: Angle?,
+        currentPosition: Angle?,
         positionPID: PIDConstants?,
         velocityPID: PIDConstants?,
         continuousInput: Boolean?
@@ -183,7 +181,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
                     positionPID = positionPID,
                     velocityPID = velocityPID,
                     gearRatio = gearRatio,
-                    startingPosition = startingPosition
+                    currentPosition = currentPosition
                 )
                 when (follower) {
                     is ChargerSpark<*> -> follower.base.follow(base, follower.inverted).bind()
@@ -194,7 +192,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
                 relativeEncoder.setPositionConversionFactor(1 / gearRatio).bind()
                 relativeEncoder.setVelocityConversionFactor(1 / gearRatio).bind()
             }
-            if (startingPosition != null) relativeEncoder.setPosition(startingPosition.inUnit(rotations)).bind()
+            if (currentPosition != null) relativeEncoder.setPosition(currentPosition.inUnit(rotations)).bind()
             // 2 * PI makes it so that the PID gains are optimized off of radians and not rotations
             if (positionPID != null) {
                 positionPIDConfigured = true

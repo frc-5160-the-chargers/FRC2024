@@ -29,7 +29,6 @@ import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.utils.squareMagnitude
 import frc.chargers.wpilibextensions.distanceTo
 import frc.chargers.wpilibextensions.flipWhenRedAlliance
-import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.chargers.wpilibextensions.onDoubleClick
 import frc.robot.rigatoni.subsystems.*
@@ -166,7 +165,7 @@ class CompetitionRobot: ChargerRobot() {
                 }
             )
 
-            rightBumper().and(leftBumper().negate()).whileTrue(passSerializedNote())
+            rightBumper().and(leftBumper().negate()).whileTrue(passNoteToShooter())
             leftBumper().and(rightBumper().negate()).whileTrue(
                 RunCommand(shooter, pivot){ // spinup shooter command
                     shooter.outtakeAtSpeakerSpeed()
@@ -175,6 +174,10 @@ class CompetitionRobot: ChargerRobot() {
             )
             leftBumper().and(rightBumper()).whileTrue(
                 shootInSpeaker(shooterSpinUpTime = 0.3.seconds)
+            )
+
+            start().onDoubleClick(
+                InstantCommand { drivetrain.reSyncRelativeEncoders() }
             )
         }
     }
@@ -269,7 +272,7 @@ class CompetitionRobot: ChargerRobot() {
         onEnd{ pivot.setIdle() }
     }
 
-    private fun passSerializedNote() = buildCommand("Pass Serialized Note") {
+    private fun passNoteToShooter() = buildCommand("PassNoteToShooter") {
         require(groundIntake, shooter)
 
         realRobotOnly {
@@ -310,43 +313,47 @@ class CompetitionRobot: ChargerRobot() {
         }
     }.withTimeout(4.0)
 
-    private fun shootInSpeaker(
-        shooterSpinUpTime: Time = 1.seconds,
-        movePivot: Boolean = true
-    ) = buildCommand("ShootInSpeaker"){
-        require(shooter, groundIntake, pivot)
+    /**
+     * Accelerates a note out of the serializer and through the shooter.
+     * Presumes that the shooter is already spinning.
+     */
+    private fun runNoteThroughShooter() = buildCommand {
+        require(groundIntake)
 
-        fun runShooting(){
-            shooter.outtakeAtSpeakerSpeed()
-            groundIntake.passToShooterFast()
+        realRobotOnly {
+            loopUntil({noteObserver.state == NoteState.InShooter}) { groundIntake.passToShooterFast() }
+
+            loopUntil({noteObserver.state == NoteState.None}) { groundIntake.passToShooterFast() }
         }
 
-        val spinupStartTime by getOnceDuringRun{ fpgaTimestamp() }
+        loopForDuration(0.4){ groundIntake.passToShooterFast() }
 
-        runSequenceIf({movePivot}) {
-            parallel {
-                +setPivotAngle(PivotAngle.SPEAKER).asDeadline()
-                loop{ shooter.outtakeAtSpeakerSpeed() }
-            }
-        }
-
-        loopUntil({ fpgaTimestamp() - spinupStartTime > shooterSpinUpTime }){
-            shooter.outtakeAtSpeakerSpeed()
-        }
-
-        realRobotOnly{
-            loopUntil({noteObserver.state == NoteState.InShooter}){ runShooting() }
-
-            loopUntil({noteObserver.state == NoteState.None}){ runShooting() }
-        }
-
-        loopForDuration(0.4){ runShooting() }
-
-        onEnd{
-            shooter.setIdle()
-            groundIntake.setIdle()
-        }
+        onEnd { groundIntake.setIdle() }
     }
+
+    /**
+     * Runs the full shooting sequence.
+     */
+    private fun shootInSpeaker(shooterSpinUpTime: Time = 1.seconds, movePivot: Boolean = true) =
+        buildCommand("ShootInSpeaker") {
+            require(shooter, groundIntake, pivot)
+
+            parallel {
+                runSequence {
+                    parallel {
+                        waitUntil { !movePivot || pivot.atTarget }
+                        wait(shooterSpinUpTime.inUnit(seconds))
+                    }
+                    +runNoteThroughShooter()
+                }.asDeadline() // shooter stops when this ends
+
+                loop { shooter.outtakeAtSpeakerSpeed() }
+
+                runSequenceIf({movePivot}) { +setPivotAngle(PivotAngle.SPEAKER) }
+            }
+
+            onEnd { shooter.setIdle() }
+        }
 
     /* Auto Components */
 
@@ -358,19 +365,19 @@ class CompetitionRobot: ChargerRobot() {
                 +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
             },
 
-            buildCommand("2-3 Piece Amp", log = true){
+            buildCommand("2-3 Piece Amp"){
                 +ampAutoStartup()
                 +driveAndIntake(
                     PathPlannerPath.fromPathFile("AmpGrabG1"),
                     intakeSpinupTime = 0.5.seconds,
                     noteIntakeTime = 0.5.seconds
                 )
-                +driveAndScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG1"))
+                +driveThenScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG1"))
                 +driveAndIntake(
                     PathPlannerPath.fromPathFile("AmpGrabG2"),
                     noteIntakeTime = 0.5.seconds
                 )
-                +driveAndScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG2"))
+                +driveThenScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG2"))
             },
 
             speakerAutoStartup(AutoStartingPose::getSpeakerLeft).withName("1 Piece Speaker"),
@@ -385,20 +392,33 @@ class CompetitionRobot: ChargerRobot() {
                 onEnd{ drivetrain.stop() }
             },
 
-            buildCommand("4-5 Piece Speaker"){
+            buildCommand("4.5 Piece Speaker"){
                 +speakerAutoStartup(AutoStartingPose::getSpeakerCenter)
-
-                +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.1"), spinUpShooterDuringPath = true)
-                +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.2"))
-
-                +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.3"), spinUpShooterDuringPath = true)
-                +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.4"))
-
-                +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.5"), spinUpShooterDuringPath = true)
-                +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.6"))
-
+                repeat(3) { i ->
+                    +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.${2 * i + 1}"))
+                    +driveThenShoot(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.${2 * i + 2}"))
+                }
                 +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.7"))
-                +driveAndScoreSpeaker(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.8"))
+            },
+
+            buildCommand("4.5 Piece Speaker(Continuous Shooter Running)") {
+                +speakerAutoStartup(AutoStartingPose::getSpeakerCenter)
+                parallelRace {
+                    runSequence {
+                        repeat(3) { i ->
+                            +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.${2 * i + 1}"))
+                            +AutoBuilder.followPath(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.${2 * i + 2}"))
+                            +runNoteThroughShooter()
+                        }
+                    }
+
+                    loop { // will never finish; simply runs in background
+                        shooter.outtakeAtSpeakerSpeed()
+                        pivot.setAngle(PivotAngle.SPEAKER)
+                    }
+                }
+                runOnce { shooter.setIdle() }
+                +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.7"))
             }
         )
 
@@ -428,55 +448,42 @@ class CompetitionRobot: ChargerRobot() {
 
     private fun driveAndIntake(
         path: PathPlannerPath,
-        useGroundIntakeSensor: Boolean = true,
-        spinUpShooterDuringPath: Boolean = false,
+        useGroundIntakeSensor: Boolean = false,
         intakeSpinupTime: Time = 0.seconds,
         noteIntakeTime: Time = 0.seconds,
     ) = buildCommand("DriveAndIntake", log = true){
         require(drivetrain, pivot, shooter, groundIntake)
 
-        fun noteInSerializer(): Boolean {
-            return useGroundIntakeSensor &&
-                    noteObserver.hasGroundIntakeSensor &&
-                    noteObserver.state != NoteState.InSerializer
-        }
-
-        fun getCrosshairOffset(): Double? {
-            val currentState = noteObserver.state
-            return if (currentState is NoteState.Detected) currentState.tx else null
-        }
-
         loopForDuration(intakeSpinupTime.inUnit(seconds)){
             groundIntake.intake()
         }
 
-        parallel {
-            runSequenceUntil(::noteInSerializer) {
-                +(AutoBuilder.followPath(path)
-                    .until(::shouldStartNotePursuit))
+        parallelRace {
+            runSequence {
+                +(AutoBuilder.followPath(path).until(::shouldStartNotePursuit))
 
                 +(noteIntakeDriverAssist{ ChassisPowers(0.3, 0.0, 0.0) }
                     .onlyWhile{ noteObserver.hasCamera && !noteObserver.noteFound })
 
-                runOnce{ drivetrain.stop() }
+                runOnce { drivetrain.stop() }
 
                 wait(noteIntakeTime.inUnit(seconds))
-            }.asDeadline()
+            }
 
-            +setPivotAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
+            waitUntil { // if using ground intake sensor, stop sequence when note detected
+                useGroundIntakeSensor &&
+                noteObserver.hasGroundIntakeSensor &&
+                noteObserver.state != NoteState.InSerializer
+            }
 
             loop{
                 groundIntake.intake()
-                if (spinUpShooterDuringPath){
-                    shooter.outtakeAtSpeakerSpeed()
-                }else{
-                    shooter.setIdle()
-                }
+                shooter.setIdle()
             }
         }
     }
 
-    private fun driveAndScoreAmp(path: PathPlannerPath) = buildCommand("DriveAndScoreAmp") {
+    private fun driveThenScoreAmp(path: PathPlannerPath) = buildCommand("DriveThenScoreAmp") {
         require(drivetrain, pivot, shooter, groundIntake)
 
         parallel {
@@ -484,17 +491,17 @@ class CompetitionRobot: ChargerRobot() {
 
             runSequence {
                 +setPivotAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
-                +passSerializedNote()
+                +passNoteToShooter()
             }
         }
 
         +shootInAmp()
     }
 
-    private fun driveAndScoreSpeaker(
+    private fun driveThenShoot(
         path: PathPlannerPath,
         shooterSpinUpTime: Time = 0.seconds
-    ) = buildCommand("DriveAndScoreSpeaker") {
+    ) = buildCommand("DriveThenShoot(Speaker)") {
         require(drivetrain, pivot, shooter, groundIntake)
 
         parallel {

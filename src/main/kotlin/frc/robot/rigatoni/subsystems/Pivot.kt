@@ -65,7 +65,7 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
         motor.configure(
             optimizeUpdateRate = true,
             statorCurrentLimit = 35.amps,
-            startingPosition = startingAngle,
+            currentPosition = startingAngle,
             gearRatio = 96.0,
             positionPID = PIDConstants(7.0,0.0,0.001)
         )

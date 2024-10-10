@@ -47,7 +47,7 @@ abstract class SimulatedMotorBase: Motor {
         velocityUpdateRate: Frequency?,
         optimizeUpdateRate: Boolean?,
         gearRatio: Double?,
-        startingPosition: Angle?,
+        currentPosition: Angle?,
         positionPID: PIDConstants?,
         velocityPID: PIDConstants?,
         continuousInput: Boolean?

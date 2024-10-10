@@ -23,7 +23,7 @@ class MotorTestingBot(private val motor: ChargerTalonFX): ChargerRobot() {
         motor.configure(
             gearRatio = ModuleType.Mk4iL2.driveGearRatio, // Change this
             positionPID = PIDConstants(2.0, 0.0, 0.001),
-            startingPosition = 0.degrees
+            currentPosition = 0.degrees
         )
         HorseLog.setOptions(
             DogLogOptions().withNtPublish(true)

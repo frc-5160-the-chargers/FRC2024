@@ -8,7 +8,6 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.TimedRobot.isSimulation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.framework.HorseLog.log
-import frc.chargers.framework.logged
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.ChargerTalonFX
 import frc.chargers.hardware.motorcontrol.ChargerSparkMax
@@ -21,7 +20,7 @@ private const val GROUND_INTAKE_ID = 7
 // first list value is ground intake motor; second is serializer motor.
 class GroundIntakeSerializer(disable: Boolean = false): SubsystemBase() {
     private val groundIntakeMotor: Motor
-    private val serializerMotor: Motor?
+    private val serializerMotor: Motor
 
     init {
         if (isSimulation() || disable){
@@ -43,16 +42,14 @@ class GroundIntakeSerializer(disable: Boolean = false): SubsystemBase() {
         )
     }
 
-    private var requestedVoltages by logged(mutableListOf(0.volts, 0.volts))
-
     fun setIntakeVoltage(voltage: Voltage){
         groundIntakeMotor.voltageOut = voltage
-        requestedVoltages[0] = voltage
+        log("GroundIntakeSerializer/Voltage/Intake", voltage)
     }
 
     fun setConveyorVoltage(voltage: Voltage){
-        serializerMotor?.voltageOut = voltage
-        requestedVoltages[1] = voltage
+        serializerMotor.voltageOut = voltage
+        log("GroundIntakeSerializer/Voltage/Serializer", voltage)
     }
 
     fun setIdle(){
@@ -82,8 +79,9 @@ class GroundIntakeSerializer(disable: Boolean = false): SubsystemBase() {
 
     override fun periodic(){
         if (DriverStation.isDisabled()) setIdle()
-        log("GroundIntakeSerializer/StatorCurrentReadings", listOfNotNull(groundIntakeMotor.statorCurrent, serializerMotor?.statorCurrent))
-        log("GroundIntakeSerializer/VoltageReadings", listOfNotNull(groundIntakeMotor.voltageOut, serializerMotor?.voltageOut))
-        log("GroundIntakeSerializer/AngularVelocityReadings", listOfNotNull(groundIntakeMotor.encoder.angularVelocity, serializerMotor?.encoder?.angularVelocity))
+        log("GroundIntakeSerializer/StatorCurrent/Intake", groundIntakeMotor.statorCurrent)
+        log("GroundIntakeSerializer/StatorCurrent/Serializer", serializerMotor.statorCurrent)
+        log("GroundIntakeSerializer/AngularVelocity/Intake", groundIntakeMotor.encoder.angularVelocity)
+        log("GroundIntakeSerializer/AngularVelocity/Serializer", serializerMotor.encoder.angularVelocity)
     }
 }
