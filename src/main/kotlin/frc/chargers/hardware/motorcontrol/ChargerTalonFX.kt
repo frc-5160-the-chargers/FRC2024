@@ -10,7 +10,6 @@ import com.ctre.phoenix6.controls.*
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
 import com.pathplanner.lib.util.PIDConstants
-import edu.wpi.first.wpilibj.DriverStation
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
@@ -97,8 +96,7 @@ class ChargerTalonFX(
 
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
         if (!positionPIDConfigured) {
-            DriverStation.reportError("You must specify a positionPID value using the " +
-                    "motor.configure(positionPID = PIDConstants(p,i,d)) method.", true)
+            alertPositionPIDErr()
             return
         } else if (abs(position - this.encoder.angularPosition) < 0.5.degrees) {
             base.setVoltage(0.0)
@@ -112,8 +110,7 @@ class ChargerTalonFX(
 
     override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
         if (!velocityPIDConfigured) {
-            DriverStation.reportError("You must specify a positionPID value using the " +
-                    "motor.configure(velocityPID = PIDConstants(p,i,d)) method.", true)
+            alertVelocityPIDErr()
             return
         }
         setVelRequest.Velocity = velocity.inUnit(rotations / seconds)
@@ -225,9 +222,9 @@ class ChargerTalonFX(
             if (errors.isEmpty()) return this
             errors.clear()
         }
-        DriverStation.reportError(
-        "ERROR: ${faultLogName ?: "ChargerTalonFX($deviceID)"} failed to configure. " +
-              "Errors: $errors", false
+        HorseLog.logError(
+            "${faultLogName ?: "ChargerTalonFX($deviceID)"} failed to configure.",
+            "Errors: $errors"
         )
         return this
     }
@@ -265,9 +262,11 @@ class ChargerTalonFX(
             ChargerRobot.runPeriodicAtPeriod(1.seconds){
                 for ((faultSignal, faultMsg) in faultSignalToMsg){
                     // != false prevents null
-                    if (faultSignal.refresh().value != false) HorseLog.logFault("$faultLogName: $faultMsg")
+                    if (faultSignal.refresh().value != false) HorseLog.logError("(Motor Fault) $faultLogName", faultMsg)
                 }
-                if (voltageSignal.refresh().status != StatusCode.OK) HorseLog.logFault("$faultLogName: Device is unreachable")
+                if (voltageSignal.refresh().status != StatusCode.OK) {
+                    HorseLog.logError("(Motor Fault) $faultLogName", "Device is Unreachable")
+                }
             }
         }
     }

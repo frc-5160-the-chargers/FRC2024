@@ -68,7 +68,7 @@ class LoggedBoolGetter(private val key: String?, private val get: BooleanSupplie
 fun <D: AnyDimension> logged(identifier: String? = null, supplier: () -> Quantity<D>) = LoggedQuantityGetter(identifier, supplier)
 class LoggedQuantityGetter<D: AnyDimension>(private val key: String?, private val get: QuantitySupplier<D>) {
     operator fun provideDelegate(thisRef: Any, property: KProperty<*>): LoggedQuantityGetter<D> {
-        val defaultKey = "${thisRef::class.simpleName}/${property.name}"
+        val defaultKey = "${thisRef::class.simpleName}/${capitalize(property.name)}"
         ChargerRobot.runPeriodic {
             HorseLog.log((key ?: defaultKey) + "(SI Value)", get.get().siValue)
         }

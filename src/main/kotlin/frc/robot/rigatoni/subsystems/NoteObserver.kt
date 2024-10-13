@@ -30,7 +30,7 @@ sealed interface NoteState {
 }
 
 class NoteObserver: SubsystemBase() {
-    private val groundIntakeSensor: DigitalInput? = DigitalInput(GROUND_INTAKE_SENSOR_ID)
+    private val groundIntakeSensor: DigitalInput? = null
     private val shooterSensor = DigitalInput(SHOOTER_SENSOR_ID)
     private val noteDetectorCamera: PhotonCamera? = if (isSimulation()) null else PhotonCamera("MLWebcam")
 

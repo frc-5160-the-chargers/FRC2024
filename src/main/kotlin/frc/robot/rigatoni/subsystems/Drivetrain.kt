@@ -48,7 +48,7 @@ private val SWERVE_CONSTANTS = SwerveConstants(
     moduleType = ModuleType.Mk4iL2,
     trackWidth = 27.inches,
     wheelBase = 27.inches,
-    azimuthPID = PIDConstants(2.0,0.0,0.0),
+    azimuthPID = PIDConstants(7.0,0.0,0.0),
     azimuthPIDTolerance = 1.degrees,
     velocityPID = PIDConstants(0.05,0.0,0.0),
     velocityFF = AngularMotorFeedforward(0.0,0.13),
@@ -79,7 +79,7 @@ private val DRIVE_MOTORS = listOf(
     ChargerTalonFX(DrivetrainID.BR_DRIVE).configure(inverted = true),
 ).map {
     it.configure(
-        statorCurrentLimit = 90.amps,
+        statorCurrentLimit = 80.amps,
         brakeWhenIdle = true,
         optimizeUpdateRate = true
     ).limitSupplyCurrent(

@@ -60,7 +60,6 @@ class PushBot: ChargerRobot() {
         Trigger{ cond }.onTrue(InstantCommand({println("hi!!!!")}))
 
         HorseLog.setOptions(DogLogOptions().withNtPublish(true))
-        HorseLog.logFault("TestingTesting!")
         Tunable.tuningMode = true
         drivetrain.setDefaultRunCommand {
             val precisionModePower = abs(xboxController.leftTriggerAxis).mapControllerInput(1.0..6.0)

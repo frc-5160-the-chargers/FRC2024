@@ -3,10 +3,12 @@ package frc.chargers.hardware.sensors.encoders
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.seconds
+import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.CANcoderConfiguration
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue
 import com.ctre.phoenix6.signals.SensorDirectionValue
+import frc.chargers.framework.HorseLog
 
 /**
  * A wrapper around the [CANcoder] class that implements the [Encoder] interface.
@@ -30,7 +32,11 @@ class ChargerCANcoder(
         if (sensorDirection != null) config.MagnetSensor.SensorDirection = sensorDirection
         if (absoluteSensorRange != null) config.MagnetSensor.AbsoluteSensorRange = absoluteSensorRange
         if (magnetOffset != null) config.MagnetSensor.MagnetOffset = magnetOffset.inUnit(rotations)
-        base.configurator.apply(config)
+        for (i in 1..4) {
+            val status = base.configurator.apply(config)
+            if (status == StatusCode.OK) break
+            if (i == 4) HorseLog.logError("CANcoder($deviceID) failed to configure", status)
+        }
     }
 
     private val posSignal = if (useAbsolutePosition) base.absolutePosition else base.position

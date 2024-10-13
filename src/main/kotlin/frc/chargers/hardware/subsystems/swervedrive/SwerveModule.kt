@@ -4,13 +4,13 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
-import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog.log
+import frc.chargers.framework.HorseLog.logError
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.utils.units.periodToFrequency
@@ -169,7 +169,7 @@ class SwerveModule(
     private fun getVoltageRange(): ClosedRange<Double>{
         val upperLimit = RobotController.getBatteryVoltage()
         return if (upperLimit < 1.0){
-            DriverStation.reportWarning("The battery voltage of the RobotController seems to be extremely low.", true)
+            logError("Battery Voltage Issue", "RobotController battery voltage is extremely low(<1volts).")
             defaultVRange
         }else{
             -upperLimit..upperLimit

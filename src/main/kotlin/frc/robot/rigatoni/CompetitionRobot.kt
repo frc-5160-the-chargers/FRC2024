@@ -49,7 +49,7 @@ class CompetitionRobot: ChargerRobot() {
     private val climber = Climber()
     private val noteObserver = NoteObserver()
     
-    private val driverController = PS5SwerveController(DRIVER_CONTROLLER_PORT, "DriverController")
+    private val driverController = DriverController(DRIVER_CONTROLLER_PORT, "DriverController")
     private val driverTouchpad = driverController.touchpad()
     private val operatorController = CommandXboxController(OPERATOR_CONTROLLER_PORT)
 
@@ -146,12 +146,12 @@ class CompetitionRobot: ChargerRobot() {
         operatorController.apply {
             // interrupt behavior set as to prevent command scheduling conflicts
             a().whileTrue(
-                setPivotAngle(PivotAngle.AMP)
+                pivotAngleCommand(PivotAngle.AMP)
                     .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
             )
-            b().whileTrue(setPivotAngle(PivotAngle.STOWED))
+            b().whileTrue(pivotAngleCommand(PivotAngle.STOWED))
             x().whileTrue(
-                setPivotAngle(PivotAngle.SOURCE)
+                pivotAngleCommand(PivotAngle.SOURCE)
                     .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
             )
 
@@ -265,12 +265,18 @@ class CompetitionRobot: ChargerRobot() {
         }
     }
 
-    private fun setPivotAngle(target: Angle) = buildCommand("SetAngleCommand") {
-        require(pivot)
-        runOnce{ pivot.setAngle(target) }
-        loopUntil({ pivot.atTarget }){ pivot.setAngle(target) }
-        onEnd{ pivot.setIdle() }
-    }
+    // Note: pivot.setAngle() is the method call,
+    // while pivotAngleCommand() is a command that ends by itself.
+    private fun pivotAngleCommand(target: Angle) =
+        buildCommand("PivotAngleCommand") {
+            require(pivot)
+
+            runOnce{ pivot.setAngle(target) }
+
+            loopUntil({ pivot.atTarget }){ pivot.setAngle(target) }
+
+            onEnd{ pivot.setIdle() }
+        }
 
     private fun passNoteToShooter() = buildCommand("PassNoteToShooter") {
         require(groundIntake, shooter)
@@ -296,7 +302,7 @@ class CompetitionRobot: ChargerRobot() {
     private fun shootInAmp() = buildCommand("ShootInAmp") {
         require(noteObserver, shooter, pivot)
 
-        +setPivotAngle(PivotAngle.AMP)
+        +pivotAngleCommand(PivotAngle.AMP)
 
         realRobotOnly {
             loopUntil({noteObserver.state == NoteState.InShooter}){
@@ -338,21 +344,22 @@ class CompetitionRobot: ChargerRobot() {
         buildCommand("ShootInSpeaker") {
             require(shooter, groundIntake, pivot)
 
-            parallel {
-                runSequence {
-                    parallel {
-                        waitUntil { !movePivot || pivot.atTarget }
-                        wait(shooterSpinUpTime.inUnit(seconds))
-                    }
-                    +runNoteThroughShooter()
-                }.asDeadline() // shooter stops when this ends
-
-                loop { shooter.outtakeAtSpeakerSpeed() }
-
-                runSequenceIf({movePivot}) { +setPivotAngle(PivotAngle.SPEAKER) }
+            parallel { // since there are 2 deadlines, the loop {} block will stop when both deadlines end
+                wait(shooterSpinUpTime.inUnit(seconds)).asDeadline()
+                waitUntil { !movePivot || pivot.atTarget }.asDeadline()
+                loop{
+                    shooter.outtakeAtSpeakerSpeed()
+                    if (movePivot) pivot.setAngle(PivotAngle.SPEAKER)
+                }
             }
 
-            onEnd { shooter.setIdle() }
+            +runNoteThroughShooter() // shooter is still running at this point
+
+            onEnd {
+                shooter.setIdle()
+                groundIntake.setIdle()
+                pivot.setIdle()
+            }
         }
 
     /* Auto Components */
@@ -361,7 +368,7 @@ class CompetitionRobot: ChargerRobot() {
         listOf(
             buildCommand("1 Piece Amp + Taxi"){
                 +ampAutoStartup()
-                +setPivotAngle(PivotAngle.STOWED)
+                +pivotAngleCommand(PivotAngle.STOWED)
                 +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
             },
 
@@ -369,12 +376,14 @@ class CompetitionRobot: ChargerRobot() {
                 +ampAutoStartup()
                 +driveAndIntake(
                     PathPlannerPath.fromPathFile("AmpGrabG1"),
+                    movePivot = true,
                     intakeSpinupTime = 0.5.seconds,
                     noteIntakeTime = 0.5.seconds
                 )
                 +driveThenScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG1"))
                 +driveAndIntake(
                     PathPlannerPath.fromPathFile("AmpGrabG2"),
+                    movePivot = true,
                     noteIntakeTime = 0.5.seconds
                 )
                 +driveThenScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG2"))
@@ -432,7 +441,7 @@ class CompetitionRobot: ChargerRobot() {
                 +AutoBuilder.followPath(PathPlannerPath.fromPathFile("DriveToAmp"))
             }
 
-            +setPivotAngle(PivotAngle.AMP)
+            +pivotAngleCommand(PivotAngle.AMP)
         }
 
         +shootInAmp()
@@ -448,11 +457,12 @@ class CompetitionRobot: ChargerRobot() {
 
     private fun driveAndIntake(
         path: PathPlannerPath,
-        useGroundIntakeSensor: Boolean = false,
+        movePivot: Boolean = false,
+        useGroundIntakeSensor: Boolean = true,
         intakeSpinupTime: Time = 0.seconds,
         noteIntakeTime: Time = 0.seconds,
     ) = buildCommand("DriveAndIntake", log = true){
-        require(drivetrain, pivot, shooter, groundIntake)
+        require(drivetrain, pivot, groundIntake)
 
         loopForDuration(intakeSpinupTime.inUnit(seconds)){
             groundIntake.intake()
@@ -470,16 +480,22 @@ class CompetitionRobot: ChargerRobot() {
                 wait(noteIntakeTime.inUnit(seconds))
             }
 
-            waitUntil { // if using ground intake sensor, stop sequence when note detected
+            waitUntil { // if using ground intake sensor, stop intaking + path when note detected
                 useGroundIntakeSensor &&
                 noteObserver.hasGroundIntakeSensor &&
                 noteObserver.state != NoteState.InSerializer
             }
 
-            loop{
+            loop {
                 groundIntake.intake()
-                shooter.setIdle()
+                if (movePivot) pivot.setAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
             }
+        }
+
+        onEnd {
+            drivetrain.stop()
+            groundIntake.setIdle()
+            pivot.setIdle()
         }
     }
 
@@ -490,7 +506,7 @@ class CompetitionRobot: ChargerRobot() {
             +AutoBuilder.followPath(path)
 
             runSequence {
-                +setPivotAngle(PivotAngle.GROUND_INTAKE_HANDOFF)
+                +pivotAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF) // insurance in case the pivot isn't already in the right position
                 +passNoteToShooter()
             }
         }

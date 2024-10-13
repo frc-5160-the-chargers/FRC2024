@@ -8,7 +8,7 @@ import frc.chargers.utils.squareMagnitude
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import kotlin.math.pow
 
-class PS5SwerveController(port: Int, name: String): CommandPS5Controller(port) {
+class DriverController(port: Int, name: String): CommandPS5Controller(port) {
     private fun filterNan(input: Double): Double =
         if (input.isInfinite() || input.isNaN()) 0.0 else input
 
@@ -42,7 +42,7 @@ class PS5SwerveController(port: Int, name: String): CommandPS5Controller(port) {
         rotation = rotationEquation(rotation) * if (invertRotation) -1 else 1
 
         scalar = if (DRIVER_RIGHT_HANDED) r2Axis else l2Axis
-        scalar = 1 / (2 * (scalar + 1) + 1)
+        scalar = 1 / (2 * scalar + 1)
 
         chassisPowers.xPower = forward * scalar
         chassisPowers.yPower = strafe * scalar

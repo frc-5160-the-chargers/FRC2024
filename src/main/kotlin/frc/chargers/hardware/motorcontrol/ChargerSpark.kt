@@ -5,7 +5,6 @@ import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.util.PIDConstants
 import com.revrobotics.*
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame
-import edu.wpi.first.wpilibj.DriverStation
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.Encoder
@@ -77,11 +76,9 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
         base.burnFlash()
 
         if (faultLogName != null) {
-            ChargerRobot.runPeriodicAtPeriod(0.1.seconds) {
+            ChargerRobot.runPeriodicAtPeriod(0.5.seconds) {
                 val err = base.lastError
-                if (err != REVLibError.kOk){
-                    HorseLog.logFault("$faultLogName: $err")
-                }
+                if (err != REVLibError.kOk) HorseLog.logError(faultLogName, err)
             }
         }
     }
@@ -114,8 +111,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
 
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
         if (!positionPIDConfigured) {
-            DriverStation.reportError("You must specify a positionPID value using the " +
-                    "motor.configure(positionPID = PIDConstants(p,i,d)) method.", true)
+            alertVelocityPIDErr()
             return
         } else if (abs(position - this.encoder.angularPosition) < 1.degrees) {
             base.setVoltage(0.0)
@@ -131,8 +127,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
 
     override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
         if (!velocityPIDConfigured) {
-            DriverStation.reportError("You must specify a positionPID value using the " +
-                    "motor.configure(velocityPID = PIDConstants(p,i,d)) method.", true)
+            alertPositionPIDErr()
             return
         }
         base.pidController.setReference(
@@ -247,7 +242,10 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
             if (errors.isEmpty()) return this
             errors.clear()
         }
-        DriverStation.reportError("ERROR: ${faultLogName ?: "ChargerSpark($deviceID)"} could not configure. Errors: $errors", false)
+        HorseLog.logError(
+            "${faultLogName ?: "ChargerSpark($deviceID)"} could not configure.",
+            "Errors: $errors"
+        )
         return this
     }
 }
