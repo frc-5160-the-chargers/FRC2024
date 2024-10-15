@@ -274,7 +274,19 @@
             "open": true
           }
         },
+        "GroundIntakeSerializer": {
+          "AngularVelocity": {
+            "open": true
+          },
+          "Voltage": {
+            "open": true
+          },
+          "open": true
+        },
         "Pivot": {
+          "open": true
+        },
+        "Shooter": {
           "open": true
         },
         "open": true

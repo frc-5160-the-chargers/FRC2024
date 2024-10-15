@@ -135,8 +135,9 @@ class ChargerTalonFX(
         continuousInput: Boolean?
     ): ChargerTalonFX {
         val errors = mutableListOf<StatusCode>()
-        fun StatusCode.bind(){ if (this != StatusCode.OK) errors.add(this) }
+        fun StatusCode.bind() { if (this != StatusCode.OK) errors.add(this) }
         for (i in 1..4) {
+            errors.clear()
             config.MotorOutput.apply {
                 when (brakeWhenIdle) {
                     true -> NeutralMode = NeutralModeValue.Brake
@@ -220,7 +221,6 @@ class ChargerTalonFX(
                 }
             }
             if (errors.isEmpty()) return this
-            errors.clear()
         }
         HorseLog.logError(
             "${faultLogName ?: "ChargerTalonFX($deviceID)"} failed to configure.",

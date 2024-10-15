@@ -33,7 +33,7 @@ class ChargerCANcoder(
         if (absoluteSensorRange != null) config.MagnetSensor.AbsoluteSensorRange = absoluteSensorRange
         if (magnetOffset != null) config.MagnetSensor.MagnetOffset = magnetOffset.inUnit(rotations)
         for (i in 1..4) {
-            val status = base.configurator.apply(config)
+            val status = base.configurator.apply(config, 0.1)
             if (status == StatusCode.OK) break
             if (i == 4) HorseLog.logError("CANcoder($deviceID) failed to configure", status)
         }

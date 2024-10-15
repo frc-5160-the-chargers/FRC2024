@@ -1,6 +1,7 @@
 package frc.robot.rigatoni
 
 import edu.wpi.first.math.MathUtil.applyDeadband
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller
 import frc.chargers.framework.logged
 import frc.chargers.framework.tunable
@@ -42,6 +43,7 @@ class DriverController(port: Int, name: String): CommandPS5Controller(port) {
         rotation = rotationEquation(rotation) * if (invertRotation) -1 else 1
 
         scalar = if (DRIVER_RIGHT_HANDED) r2Axis else l2Axis
+        if (RobotBase.isReal()) scalar = (scalar + 1) / 2 // corrects for weird readings from ps5 controller
         scalar = 1 / (2 * scalar + 1)
 
         chassisPowers.xPower = forward * scalar

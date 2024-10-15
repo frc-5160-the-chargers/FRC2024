@@ -9,6 +9,7 @@ import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.controls.feedforward.AngularMotorFeedforward
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
@@ -21,28 +22,26 @@ import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 import frc.chargers.hardware.sensors.encoders.ChargerDutyCycleEncoder
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.wpilibextensions.Rotation3d
+import kcommand.InstantCommand
 
+// Angle values: - is outward, + is inward
 private const val PIVOT_MOTOR_ID = 9
 private const val PIVOT_ENCODER_ID = 0
 
 private val PIVOT_SIM_STARTING_TRANSLATION = Translation3d(-0.32, 0.0, 0.72)
-private val FORWARD_LIMIT: Angle = 1.636.radians
-private val REVERSE_LIMIT: Angle = (-1.8).radians
+private val FORWARD_LIMIT: Angle = -1.636.radians
+private val REVERSE_LIMIT: Angle = 1.8.radians
 private val PID_TOLERANCE = 2.degrees
-private val ABSOLUTE_ENCODER_OFFSET = (-0.23).radians
+private val ABSOLUTE_ENCODER_OFFSET = -1.404.radians
 
+// upright = 0 rad
 object PivotAngle {
-    val AMP: Angle = 0.72.radians
-
-    val SOURCE: Angle = 0.degrees
-
-    val GROUND_INTAKE_HANDOFF: Angle = -0.9.radians
-
-    val STOWED: Angle = GROUND_INTAKE_HANDOFF // same as of now
-
-    val SPEAKER: Angle = -0.77.radians
-
-    val STARTING: Angle = -1.15.radians
+    val AMP = -0.72.radians
+    val SOURCE = 0.radians
+    val GROUND_INTAKE_HANDOFF = 0.9.radians
+    val STOWED = GROUND_INTAKE_HANDOFF // same as of now
+    val SPEAKER = 0.77.radians
+    val STARTING = 1.15.radians // used to zero the encoder if there is no absolute encoder(we have one)
 }
 
 class Pivot(disable: Boolean = false): SubsystemBase() {
@@ -55,6 +54,7 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
             absoluteEncoder = null
         }else{
             motor = ChargerSparkMax(PIVOT_MOTOR_ID, faultLogName = "PivotMotor")
+                .configure(inverted = true)
             absoluteEncoder = ChargerDutyCycleEncoder(PIVOT_ENCODER_ID) + ABSOLUTE_ENCODER_OFFSET
         }
     }
@@ -69,6 +69,9 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
             gearRatio = 96.0,
             positionPID = PIDConstants(7.0,0.0,0.001)
         )
+        Trigger(DriverStation::isDisabled)
+            .onTrue(InstantCommand { setIdle(); motor.configure(brakeWhenIdle = false) })
+            .onFalse(InstantCommand { motor.configure(brakeWhenIdle = true) })
     }
 
     private val motionProfile: AngularMotionProfile? = AngularTrapezoidProfile(
@@ -83,8 +86,9 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
     var atTarget: Boolean by logged(true)
         private set
 
+    // note: forward is negative, so we do <= forward limit
     private fun willExceedSoftStop(movingForward: Boolean): Boolean =
-        (angle >= FORWARD_LIMIT && movingForward) || (angle <= REVERSE_LIMIT && !movingForward)
+        (angle <= FORWARD_LIMIT && movingForward) || (angle >= REVERSE_LIMIT && !movingForward)
 
     private fun resetMotionProfile(){
         if (motionProfile != null){
@@ -139,12 +143,6 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
     }
 
     override fun periodic(){
-        if (DriverStation.isDisabled()){
-            setIdle()
-            motor.configure(brakeWhenIdle = false)
-        }else{
-            motor.configure(brakeWhenIdle = true)
-        }
         log("Pivot/StatorCurrent", motor.statorCurrent)
         log("Pivot/VoltageReading", motor.voltageOut)
         // logs Mechanism 3d pose for simulation.

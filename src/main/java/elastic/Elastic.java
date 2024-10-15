@@ -8,6 +8,9 @@ import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.networktables.StringTopic;
 
+/**
+ * Interface for showing notifications on the elastic dashboard.
+ */
 @SuppressWarnings({"unused", "CallToPrintStackTrace"})
 public final class Elastic {
     private static final StringTopic topic =

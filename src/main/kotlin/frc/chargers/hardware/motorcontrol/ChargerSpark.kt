@@ -160,6 +160,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
         val errors = mutableListOf<REVLibError>()
         fun REVLibError.bind() { if (this != REVLibError.kOk) errors.add(this) }
         for (i in 1..4) {
+            errors.clear()
             if (inverted != null) base.inverted = inverted
             when (brakeWhenIdle) {
                 true -> base.setIdleMode(CANSparkBase.IdleMode.kBrake).bind()
@@ -240,7 +241,6 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
             }
             base.burnFlash().bind()
             if (errors.isEmpty()) return this
-            errors.clear()
         }
         HorseLog.logError(
             "${faultLogName ?: "ChargerSpark($deviceID)"} could not configure.",

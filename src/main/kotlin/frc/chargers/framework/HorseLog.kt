@@ -3,11 +3,10 @@ package frc.chargers.framework
 import com.batterystaple.kmeasure.quantities.Quantity
 import dev.doglog.DogLog
 import dev.doglog.DogLogOptions
+import edu.wpi.first.networktables.NetworkTableInstance
+import edu.wpi.first.util.datalog.StringLogEntry
 import edu.wpi.first.util.struct.StructSerializable
-import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.PowerDistribution
-import edu.wpi.first.wpilibj.RobotBase
-import edu.wpi.first.wpilibj.Timer
+import edu.wpi.first.wpilibj.*
 import elastic.Elastic
 import elastic.Elastic.ElasticNotification.NotificationLevel
 
@@ -26,7 +25,7 @@ import elastic.Elastic.ElasticNotification.NotificationLevel
  * HorseLog.log("Angle", 30.degrees) // also valid
  */
 @Suppress("unused")
-object HorseLog {
+object HorseLog { // inheritance doesnt do anything other than allowing for logQueuer access, as static inheritance doesnt exist in kotlin
     /* Ported from DogLog */
     fun log(key: String, value: Long) = DogLog.log(key, value)
     fun log(key: String, value: Double) = DogLog.log(key, value)
@@ -44,7 +43,6 @@ object HorseLog {
     fun <T: StructSerializable> log(key: String, value: Array<T>) = DogLog.log(key, value)
 
     fun faultsLogged() = DogLog.faultsLogged()
-    fun timestamp(key: String) = DogLog.timestamp(key)
     fun getOptions(): DogLogOptions = DogLog.getOptions()
     fun setOptions(options: DogLogOptions) = DogLog.setOptions(options)
     fun setEnabled(newEnabled: Boolean) = DogLog.setEnabled(newEnabled)
@@ -71,6 +69,16 @@ object HorseLog {
     fun logInfo(title: String, description: Any) {
         if (logToConsole) println("$title: $description")
         elasticAlert(NotificationLevel.INFO, title, description.toString())
+    }
+
+    /** Logs to the metadata tab of advantagescope. */
+    fun logMetadata(title: String, description: Any) {
+        NetworkTableInstance.getDefault()
+            .getStringTopic("/Metadata/$title")
+            .publish()
+            .set(description.toString())
+        StringLogEntry(DataLogManager.getLog(), "/Metadata/$title")
+            .append(description.toString())
     }
 
     private val cache = mutableMapOf<String, String>() // ensures that no spamming occurs
@@ -118,7 +126,7 @@ object HorseLog {
             DogLog.log("$key/isPresent", false)
         } else {
             DogLog.log("$key/isPresent", true)
-            logRegular("$key/$value", value)
+            logRegular("$key/value", value)
         }
     }
     private val doubleArrayStore = mutableMapOf<String, DoubleArray>()
@@ -131,7 +139,6 @@ object HorseLog {
             DogLog.log(key, prevValue)
         }
     }
-
     @Deprecated("Use logError and logWarning instead.") fun logFault(faultName: String) = DogLog.logFault(faultName)
     @Deprecated("Use logError and logWarning instead.") fun logFault(faultName: Enum<*>) = DogLog.logFault(faultName)
 }

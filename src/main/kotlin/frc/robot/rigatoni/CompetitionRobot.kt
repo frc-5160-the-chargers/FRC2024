@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.net.PortForwarder
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.PowerDistribution
+import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.Command
@@ -43,9 +44,9 @@ import kotlin.math.max
 class CompetitionRobot: ChargerRobot() {
     private val gyro = ChargerNavX()
     private val drivetrain = getDrivetrain(gyro)
-    private val pivot = Pivot(disable = true)
-    private val groundIntake = GroundIntakeSerializer(disable = true)
-    private val shooter = Shooter(disable = true)
+    private val pivot = Pivot()
+    private val groundIntake = GroundIntakeSerializer()
+    private val shooter = Shooter()
     private val climber = Climber()
     private val noteObserver = NoteObserver()
     
@@ -199,7 +200,8 @@ class CompetitionRobot: ChargerRobot() {
         }
 
         pivot.defaultCommand = RunCommand(pivot){
-            var speed = applyDeadband(operatorController.rightY, PIVOT_DEADBAND).squareMagnitude()
+            val invert = if (RobotBase.isReal()) -1.0 else 1.0
+            var speed = applyDeadband(operatorController.rightY * invert, PIVOT_DEADBAND).squareMagnitude()
             speed *= PIVOT_SPEED_MULTIPLIER
             HorseLog.log("OperatorController/PivotSpeed", speed)
             pivot.setSpeed(speed)
@@ -344,7 +346,7 @@ class CompetitionRobot: ChargerRobot() {
         buildCommand("ShootInSpeaker") {
             require(shooter, groundIntake, pivot)
 
-            parallel { // since there are 2 deadlines, the loop {} block will stop when both deadlines end
+            parallel { // since there are 2 deadlines, the parallel block will stop when both deadlines end
                 wait(shooterSpinUpTime.inUnit(seconds)).asDeadline()
                 waitUntil { !movePivot || pivot.atTarget }.asDeadline()
                 loop{
@@ -366,13 +368,13 @@ class CompetitionRobot: ChargerRobot() {
 
     private fun getAutoCommands() =
         listOf(
-            buildCommand("1 Piece Amp + Taxi"){
+            buildCommand("1 Piece Amp + Taxi", log = true){
                 +ampAutoStartup()
                 +pivotAngleCommand(PivotAngle.STOWED)
                 +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
             },
 
-            buildCommand("2-3 Piece Amp"){
+            buildCommand("2-3 Piece Amp", log = true){
                 +ampAutoStartup()
                 +driveAndIntake(
                     PathPlannerPath.fromPathFile("AmpGrabG1"),
@@ -391,7 +393,7 @@ class CompetitionRobot: ChargerRobot() {
 
             speakerAutoStartup(AutoStartingPose::getSpeakerLeft).withName("1 Piece Speaker"),
 
-            buildCommand("1 Piece Speaker + Taxi"){
+            buildCommand("1 Piece Speaker + Taxi", log = true){
                 +speakerAutoStartup(AutoStartingPose::getSpeakerLeft)
 
                 loopForDuration(5){
@@ -401,7 +403,7 @@ class CompetitionRobot: ChargerRobot() {
                 onEnd{ drivetrain.stop() }
             },
 
-            buildCommand("4.5 Piece Speaker"){
+            buildCommand("4.5 Piece Speaker", log = true){
                 +speakerAutoStartup(AutoStartingPose::getSpeakerCenter)
                 repeat(3) { i ->
                     +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.${2 * i + 1}"))
@@ -410,16 +412,16 @@ class CompetitionRobot: ChargerRobot() {
                 +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.7"))
             },
 
-            buildCommand("4.5 Piece Speaker(Continuous Shooter Running)") {
+            buildCommand("4.5 Piece Speaker(Continuous Shooter Running)", log = true) {
                 +speakerAutoStartup(AutoStartingPose::getSpeakerCenter)
-                parallelRace {
+                parallel {
                     runSequence {
                         repeat(3) { i ->
                             +driveAndIntake(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.${2 * i + 1}"))
                             +AutoBuilder.followPath(PathPlannerPath.fromChoreoTrajectory("5pAutoCenter.${2 * i + 2}"))
                             +runNoteThroughShooter()
                         }
-                    }
+                    }.asDeadline()
 
                     loop { // will never finish; simply runs in background
                         shooter.outtakeAtSpeakerSpeed()

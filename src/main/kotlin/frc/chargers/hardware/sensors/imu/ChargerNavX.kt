@@ -7,6 +7,7 @@ import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.standardGravities
 import com.kauailabs.navx.frc.AHRS
 import edu.wpi.first.wpilibj.RobotBase.isReal
+import edu.wpi.first.wpilibj2.command.WaitCommand
 import frc.chargers.framework.logged
 
 
@@ -15,9 +16,14 @@ class ChargerNavX(
     private val useFusedHeading: Boolean = false,
     var simHeadingSource: () -> Angle = { Angle(0.0) }
 ): ZeroableHeadingProvider {
-    private var headingOffset by logged(0.degrees)
+    private var headingOffset = 0.degrees
 
-    init { zeroHeading() }
+    init {
+        WaitCommand(0.1)
+            .finallyDo(::zeroHeading)
+            .ignoringDisable(true)
+            .schedule()
+    }
 
     /**
      * Equivalent to the NavX [yaw].
