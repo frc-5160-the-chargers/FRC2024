@@ -25,7 +25,6 @@ import kcommand.setDefaultRunCommand
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.HorseLog
 import frc.chargers.framework.Tunable
-import frc.chargers.framework.tunable
 import frc.chargers.hardware.sensors.imu.ChargerNavX
 import frc.chargers.utils.squareMagnitude
 import frc.chargers.wpilibextensions.distanceTo
@@ -55,8 +54,6 @@ class CompetitionRobot: ChargerRobot() {
     private val operatorController = CommandXboxController(OPERATOR_CONTROLLER_PORT)
 
     private val autoChooser = SendableChooser<Command>()
-
-    val testTunable by tunable(2.0, "SomeValue").onChange { println("Hi!") }
 
     init {
         DriverStation.silenceJoystickConnectionWarning(true)

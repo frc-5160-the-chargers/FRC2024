@@ -70,8 +70,13 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
             positionPID = PIDConstants(7.0,0.0,0.001)
         )
         Trigger(DriverStation::isDisabled)
-            .onTrue(InstantCommand { setIdle(); motor.configure(brakeWhenIdle = false) })
-            .onFalse(InstantCommand { motor.configure(brakeWhenIdle = true) })
+            .onTrue(InstantCommand {
+                setIdle()
+                motor.configure(brakeWhenIdle = false)
+            }.ignoringDisable(true))
+            .onFalse(InstantCommand {
+                motor.configure(brakeWhenIdle = true)
+            }.ignoringDisable(true))
     }
 
     private val motionProfile: AngularMotionProfile? = AngularTrapezoidProfile(

@@ -7,7 +7,7 @@ import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.quantities.ofUnit
 import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
-import edu.wpi.first.wpilibj2.command.InstantCommand
+import kcommand.InstantCommand
 import edu.wpi.first.wpilibj2.command.WaitCommand
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import kotlin.reflect.KProperty
@@ -71,14 +71,14 @@ class Tunable<T>(
         }
         // waits to put the value to the dashboard so that SmartDashboard can initialize
         WaitCommand(0.1)
-            .andThen(InstantCommand({ put(path, current) }))
+            .andThen(InstantCommand { put(path, current) })
             .ignoringDisable(true)
             .schedule()
         Trigger { tuningMode && get(path, current) != current }
-            .whileTrue(InstantCommand({
+            .onTrue(InstantCommand {
                 current = get(path, current)
                 onChangeRunnables.forEach{ it(current) }
-            }))
+            }.ignoringDisable(true))
         return this
     }
     operator fun getValue(thisRef: Any?, property: KProperty<*>): T = current

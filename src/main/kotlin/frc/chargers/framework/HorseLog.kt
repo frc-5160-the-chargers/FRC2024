@@ -19,13 +19,13 @@ import elastic.Elastic.ElasticNotification.NotificationLevel
  * import frc.chargers.framework.HorseLog.logError
  * import frc.chargers.framework.HorseLog // alternative
  *
- * log("Angle", 30.degrees) // will log as "Angle(SI Value)", 0.68(value in radians)
+ * log("AngleValue", 30.degrees) // will log as "AngleValue, 0.68"(value in radians)
  * logError("Title", "Description")
  * logNullableDouble("Hello", null)
  * HorseLog.log("Angle", 30.degrees) // also valid
  */
 @Suppress("unused")
-object HorseLog { // inheritance doesnt do anything other than allowing for logQueuer access, as static inheritance doesnt exist in kotlin
+object HorseLog {
     /* Ported from DogLog */
     fun log(key: String, value: Long) = DogLog.log(key, value)
     fun log(key: String, value: Double) = DogLog.log(key, value)
@@ -107,7 +107,7 @@ object HorseLog { // inheritance doesnt do anything other than allowing for logQ
     }
 
     fun log(key: String, value: Int) = DogLog.log(key, value.toLong())
-    @JvmName("Log0") fun log(key: String, value: Quantity<*>) = DogLog.log("$key(SI Value)", value.siValue)
+    @JvmName("Log0") fun log(key: String, value: Quantity<*>) = DogLog.log(key, value.siValue)
 
     fun logNullableInt(key: String, value: Int?) = logNullableImpl(key, value, ::log)
     fun logNullableDouble(key: String, value: Double?) = logNullableImpl(key, value, ::log)

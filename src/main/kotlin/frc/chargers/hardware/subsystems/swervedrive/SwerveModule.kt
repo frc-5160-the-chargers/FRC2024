@@ -66,9 +66,8 @@ class SwerveModule(
                 couplingOffset -= constants.couplingRatio * (direction - 180.degrees)
                 log("CouplingOffset", couplingOffset)
             }
-            if (turnEncoder != null) log("$name/absolutePosition", turnEncoder.angularPosition)
+            if (turnEncoder != null) log("$name/AbsoluteEncoderReading", turnEncoder.angularPosition)
             log("$name/Direction", direction)
-            log("$name/AbsoluteEncoderReading", turnEncoder?.angularPosition ?: 0.degrees)
             log("$name/DriveLinearVelocity", driveLinearVelocity)
             log("$name/WheelTravel", wheelTravel)
             log("$name/TurnMotorCurrent", turnMotor.statorCurrent)
