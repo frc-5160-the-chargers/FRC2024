@@ -10,6 +10,7 @@ import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.utils.units.frequencyToPeriod
 import kotlin.math.PI
+import kotlin.math.roundToInt
 
 
 /**
@@ -59,19 +60,17 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     val deviceID: Int = base.deviceId
 
     private val nonRevFollowers = mutableListOf<Motor>()
-    private val relativeEncoder = base.getEncoder()
+    private val relativeEncoder = base.encoder
     private val absoluteEncoder = base.getAbsoluteEncoder(SparkAbsoluteEncoder.Type.kDutyCycle)
 
     private var positionPIDConfigured = false
     private var velocityPIDConfigured = false
 
     init {
-        if (useAbsoluteEncoder) {
-            base.pidController.setFeedbackDevice(base.getAbsoluteEncoder(SparkAbsoluteEncoder.Type.kDutyCycle))
-        }
-        if (factoryDefault) {
-            base.restoreFactoryDefaults()
-        }
+        base.pidController.setFeedbackDevice(
+            if (useAbsoluteEncoder) absoluteEncoder else relativeEncoder
+        )
+        if (factoryDefault) base.restoreFactoryDefaults()
         base.enableVoltageCompensation(12.0)
         base.burnFlash()
 
@@ -171,7 +170,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
                 base.setOpenLoopRampRate(rampRate.inUnit(seconds)).bind()
                 base.setClosedLoopRampRate(rampRate.inUnit(seconds)).bind()
             }
-            if (statorCurrentLimit != null) base.setSmartCurrentLimit(statorCurrent.inUnit(amps).toInt()).bind()
+            if (statorCurrentLimit != null) base.setSmartCurrentLimit(statorCurrent.inUnit(amps).roundToInt()).bind()
             for (follower in followerMotors) {
                 follower.configure(
                     positionPID = positionPID,
@@ -230,13 +229,13 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
             if (positionUpdateRate != null) {
                 base.setPeriodicFramePeriod(
                     if (useAbsoluteEncoder) PeriodicFrame.kStatus5 else PeriodicFrame.kStatus2,
-                    frequencyToPeriod(positionUpdateRate).inUnit(milli.seconds).toInt()
+                    frequencyToPeriod(positionUpdateRate).inUnit(milli.seconds).roundToInt()
                 ).bind()
             }
             if (velocityUpdateRate != null) {
                 base.setPeriodicFramePeriod(
                     if (useAbsoluteEncoder) PeriodicFrame.kStatus6 else PeriodicFrame.kStatus1,
-                    frequencyToPeriod(velocityUpdateRate).inUnit(milli.seconds).toInt()
+                    frequencyToPeriod(velocityUpdateRate).inUnit(milli.seconds).roundToInt()
                 ).bind()
             }
             base.burnFlash().bind()
