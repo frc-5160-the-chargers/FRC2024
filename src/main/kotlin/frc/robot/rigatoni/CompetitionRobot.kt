@@ -186,14 +186,11 @@ class CompetitionRobot: ChargerRobot() {
         }
 
         shooter.setDefaultRunCommand{
-            var speed = applyDeadband(operatorController.leftY, SHOOTER_DEADBAND)
+            var speed = operatorController.leftY// applyDeadband(operatorController.leftY, SHOOTER_DEADBAND)
             speed *= SHOOTER_SPEED_MULTIPLIER
             HorseLog.log("OperatorController/ShooterSpeed", speed)
-            if (speed > 0.0 && noteObserver.noteInRobot){
-                shooter.setIdle()
-            }else{
-                shooter.setSpeed(speed)
-            }
+            shooter.setSpeed(speed)
+
         }
 
         pivot.defaultCommand = RunCommand(pivot){
