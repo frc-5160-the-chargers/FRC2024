@@ -62,7 +62,7 @@ class NoteObserver: SubsystemBase() {
             state = NoteState.None
         }else if (groundIntakeSensor != null && groundIntakeSensor.get() && !noteInRobot){
             state = NoteState.InSerializer
-        }else if (shooterSensor.get() && state != NoteState.InShooter){
+        }else if (!shooterSensor.get()){
             state = NoteState.InShooter
         }else{
             if (noteDetectorCamera == null){
