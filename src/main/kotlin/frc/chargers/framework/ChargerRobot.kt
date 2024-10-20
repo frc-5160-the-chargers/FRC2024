@@ -118,7 +118,7 @@ abstract class ChargerRobot: TimedRobot(0.02) {
         if (getRuntimeType() == RuntimeType.kRoboRIO && DataLogManager.getLogDir() == "/home/lvuser/logs") {
             HorseLog.logError(
                 "Logging to disk on RoboRIO 1",
-                "This is going to cause us to run out of storage. pls don't."
+                "pls don't. (If we have a USB stick, make sure its working lmao)"
             )
         }
     }

@@ -48,6 +48,8 @@ object PivotAngle {
 class Pivot(disable: Boolean = false): SubsystemBase() {
     private val forwardLimit by tunable(-1.636.radians)
     private val reverseLimit by tunable(1.15.radians)
+    private val pivotPIDConstants by tunable(PIDConstants(0.7, 0.0, 0.001))
+        .onChange { motor.configure(positionPID = it) }
 
     private val motor: Motor
     private val absoluteEncoder: PositionEncoder?
@@ -71,7 +73,7 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
             statorCurrentLimit = 35.amps,
             currentPosition = startingAngle,
             gearRatio = 96.0,
-            positionPID = PIDConstants(7.0, 0.0, 0.001)
+            positionPID = pivotPIDConstants
         )
         Trigger(DriverStation::isDisabled)
             .onTrue(InstantCommand { setIdle(); motor.configure(brakeWhenIdle = false) }.ignoringDisable(true))

@@ -55,6 +55,7 @@ class Tunable<T>(
     }
 
     private var onChangeRunnables = mutableListOf<(T) -> Unit>()
+    private var path = ""
 
     /** Runs the following function when the value changes. */
     fun onChange(run: (T) -> Unit): Tunable<T> {
@@ -62,10 +63,14 @@ class Tunable<T>(
         return this
     }
 
+    /** Detects if the tunable value has changed or not. */
+    fun hasChanged(): Boolean =
+        path != "" && tuningMode && get(path, current) != current
+
     // called once on init
     operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): Tunable<T> {
         val propertyName = property.name.replaceFirstChar { it.titlecase() }
-        val path = when {
+        this.path = when {
             key != null -> key!!
             thisRef != null -> "${thisRef::class.simpleName}/$propertyName"
             else -> "OtherTunables/$propertyName"
@@ -75,7 +80,7 @@ class Tunable<T>(
             .andThen(InstantCommand { put(path, current) })
             .ignoringDisable(true)
             .schedule()
-        Trigger { tuningMode && get(path, current) != current }
+        Trigger(::hasChanged)
             .onTrue(InstantCommand {
                 current = get(path, current)
                 onChangeRunnables.forEach{ it(current) }

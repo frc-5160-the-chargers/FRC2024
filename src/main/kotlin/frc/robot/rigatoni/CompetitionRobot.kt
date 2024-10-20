@@ -349,7 +349,7 @@ class CompetitionRobot: ChargerRobot() {
         loopForDuration(0.4){ groundIntake.passToShooterFast() }
 
         onEnd { groundIntake.setIdle() }
-    }
+    }.withTimeout(1.5)
 
     /**
      * Runs the full shooting sequence.
