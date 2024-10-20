@@ -1,26 +1,26 @@
 package frc.robot.rigatoni.subsystems
 
 import com.batterystaple.kmeasure.quantities.Angle
-import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.quantities.times
 import com.batterystaple.kmeasure.units.hertz
-import com.batterystaple.kmeasure.units.radians
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.framework.HorseLog.log
 import frc.chargers.framework.logged
+import frc.chargers.framework.tunable
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 
 private const val CLIMBER_ID_LEFT = 6
 private const val CLIMBER_ID_RIGHT = 8
 
-private const val GEAR_RATIO: Double = 10.0
-private val HIGH_LIMIT: Angle? = -100.radians
-private val LOW_LIMIT: Angle? = null
-private val MAX_VOLTAGE: Voltage = 8.volts
+private const val GEAR_RATIO = 10.0
+private val MAX_VOLTAGE = 8.volts
 
 class Climber: SubsystemBase() {
+    private val highLimit by tunable(Angle(Double.POSITIVE_INFINITY))
+    private val lowLimit by tunable(Angle(Double.NEGATIVE_INFINITY))
+
     private val leftMotor: Motor = ChargerSparkMax(CLIMBER_ID_LEFT, faultLogName = "LeftClimberMotor")
         .configure(
             optimizeUpdateRate = true,
@@ -43,10 +43,9 @@ class Climber: SubsystemBase() {
     private val rightPosition by logged{ rightMotor.encoder.angularPosition }
 
     private fun willSurpassLimit(hookSpeed: Double, position: Angle): Boolean{
-        val surpassedUpperLimit: Boolean = HIGH_LIMIT != null && hookSpeed > 0.0 && position >= HIGH_LIMIT
-        val surpassedLowerLimit: Boolean = LOW_LIMIT != null && hookSpeed < 0.0 && position <= LOW_LIMIT
-
-        return (surpassedUpperLimit || surpassedLowerLimit).also{ log("Climber/HasSurpassedLimit", it) }
+        val surpassedUpperLimit = hookSpeed > 0.0 && position >= highLimit
+        val surpassedLowerLimit = hookSpeed < 0.0 && position <= lowLimit
+        return (surpassedUpperLimit || surpassedLowerLimit).also { log("Climber/HasSurpassedLimit", it) }
     }
 
     fun moveLeftHook(speed: Double){

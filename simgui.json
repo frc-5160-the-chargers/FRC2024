@@ -280,10 +280,12 @@
           },
           "Voltage": {
             "open": true
-          },
-          "open": true
+          }
         },
         "Pivot": {
+          "Control": {
+            "open": true
+          },
           "open": true
         },
         "Shooter": {
@@ -311,6 +313,12 @@
         "AutoOptions": {
           "open": true
         },
+        "Climber": {
+          "open": true
+        },
+        "DriverController": {
+          "open": true
+        },
         "NoteVisualizer": {
           "open": true
         },
@@ -318,9 +326,6 @@
           "open": true
         },
         "SimVisionTuning": {
-          "open": true
-        },
-        "SwerveDrive": {
           "open": true
         },
         "TunableValues": {

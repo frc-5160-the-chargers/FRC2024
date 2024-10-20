@@ -1,7 +1,7 @@
 @file:Suppress("unused")
 package frc.chargers.utils
 
-import com.batterystaple.kmeasure.dimensions.Dimension
+import com.batterystaple.kmeasure.dimensions.AnyDimension
 import com.batterystaple.kmeasure.quantities.Quantity
 import kotlin.math.abs
 
@@ -14,5 +14,5 @@ fun configureEpsilon(value: Double){
 infix fun Double.epsilonEquals(other: Double): Boolean =
     abs(this - other) < kEpsilon
 
-infix fun <D: Dimension<*,*,*,*>> Quantity<D>.epsilonEquals(other: Quantity<D>): Boolean =
+infix fun <D: AnyDimension> Quantity<D>.epsilonEquals(other: Quantity<D>): Boolean =
     siValue epsilonEquals other.siValue

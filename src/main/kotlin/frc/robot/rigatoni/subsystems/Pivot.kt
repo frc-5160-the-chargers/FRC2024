@@ -16,6 +16,7 @@ import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.controls.motionprofiling.trapezoidal.AngularTrapezoidProfile
 import frc.chargers.framework.HorseLog.log
 import frc.chargers.framework.logged
+import frc.chargers.framework.tunable
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
@@ -25,14 +26,14 @@ import frc.chargers.wpilibextensions.Rotation3d
 import kcommand.InstantCommand
 
 // Angle values: - is outward, + is inward
+// voltage: + is outward, - is inward
 private const val PIVOT_MOTOR_ID = 9
 private const val PIVOT_ENCODER_ID = 0
 
-private val PIVOT_SIM_STARTING_TRANSLATION = Translation3d(-0.32, 0.0, 0.72)
-private val FORWARD_LIMIT: Angle = -1.636.radians
-private val REVERSE_LIMIT: Angle = 1.8.radians
 private val PID_TOLERANCE = 2.degrees
 private val ABSOLUTE_ENCODER_OFFSET = -1.404.radians
+private val PIVOT_SIM_STARTING_TRANSLATION = Translation3d(-0.32, 0.0, 0.72)
+private val PIVOT_MOI = 0.008.kilo.grams * (meters * meters)
 
 // upright = 0 rad
 object PivotAngle {
@@ -45,12 +46,15 @@ object PivotAngle {
 }
 
 class Pivot(disable: Boolean = false): SubsystemBase() {
+    private val forwardLimit by tunable(-1.636.radians)
+    private val reverseLimit by tunable(1.15.radians)
+
     private val motor: Motor
     private val absoluteEncoder: PositionEncoder?
 
     init {
         if (isSimulation() || disable){
-            motor = MotorSim(DCMotor.getNEO(1), moi = 0.008.kilo.grams * (meters * meters))
+            motor = MotorSim(DCMotor.getNEO(1), PIVOT_MOI)
             absoluteEncoder = null
         }else{
             motor = ChargerSparkMax(PIVOT_MOTOR_ID, faultLogName = "PivotMotor")
@@ -67,21 +71,16 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
             statorCurrentLimit = 35.amps,
             currentPosition = startingAngle,
             gearRatio = 96.0,
-            positionPID = PIDConstants(7.0,0.0,0.001)
+            positionPID = PIDConstants(7.0, 0.0, 0.001)
         )
         Trigger(DriverStation::isDisabled)
-            .onTrue(InstantCommand {
-                setIdle()
-                motor.configure(brakeWhenIdle = false)
-            }.ignoringDisable(true))
-            .onFalse(InstantCommand {
-                motor.configure(brakeWhenIdle = true)
-            }.ignoringDisable(true))
+            .onTrue(InstantCommand { setIdle(); motor.configure(brakeWhenIdle = false) }.ignoringDisable(true))
+            .onFalse(InstantCommand { motor.configure(brakeWhenIdle = true) })
     }
 
     private val motionProfile: AngularMotionProfile? = AngularTrapezoidProfile(
         maxVelocity = AngularVelocity(8.0),
-        maxAcceleration = AngularAcceleration(16.0)
+        maxAcceleration = AngularAcceleration(10.0)
     )
     private var motionProfileSetpoint = AngularMotionProfileState(startingAngle)
     private val feedforward = AngularMotorFeedforward(0.0, 0.0, 0.0)
@@ -93,12 +92,10 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
 
     // note: forward is negative, so we do <= forward limit
     private fun willExceedSoftStop(movingForward: Boolean): Boolean =
-        (angle <= FORWARD_LIMIT && movingForward) || (angle >= REVERSE_LIMIT && !movingForward)
+        (angle <= forwardLimit && movingForward) || (angle >= reverseLimit && !movingForward)
 
     private fun resetMotionProfile(){
-        if (motionProfile != null){
-            motionProfileSetpoint.position = angle
-        }
+        if (motionProfile != null) motionProfileSetpoint.position = angle
     }
 
     fun setIdle(){
@@ -108,7 +105,7 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
 
     fun setVoltage(voltage: Voltage){
         resetMotionProfile()
-        if (willExceedSoftStop(movingForward = voltage > 0.volts)){
+        if (willExceedSoftStop(movingForward = voltage < 0.volts)){
             setIdle()
             atTarget = true
             return
@@ -119,7 +116,7 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
     fun setSpeed(speed: Double) = setVoltage(speed * 12.volts)
 
     fun setAngle(target: Angle) {
-        if (willExceedSoftStop(movingForward = this.angle > target)){
+        if (willExceedSoftStop(movingForward = this.angle < target)){
             setIdle()
             atTarget = true
             return
@@ -150,13 +147,12 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
     override fun periodic(){
         log("Pivot/StatorCurrent", motor.statorCurrent)
         log("Pivot/VoltageReading", motor.voltageOut)
-        // logs Mechanism 3d pose for simulation.
-        log(
-            "Pivot/Mechanism3dPose",
-            Pose3d(
-                PIVOT_SIM_STARTING_TRANSLATION,
-                Rotation3d(0.degrees, -angle, 0.degrees) // custom overload function that accepts kmeasure quantities
+        if (isSimulation()) {
+            log( // logs Mechanism 3d pose for simulation.
+                "Pivot/Mechanism3dPose",
+                // custom overload function that accepts kmeasure quantities
+                Pose3d(PIVOT_SIM_STARTING_TRANSLATION, Rotation3d(0.degrees, -angle, 0.degrees))
             )
-        )
+        }
     }
 }

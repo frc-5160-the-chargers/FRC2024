@@ -29,5 +29,4 @@ class LinearTrapezoidProfile(
             Velocity(profileState.velocity)
         )
     }
-
 }

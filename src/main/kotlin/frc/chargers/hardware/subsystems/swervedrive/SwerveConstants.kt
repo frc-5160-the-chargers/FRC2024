@@ -29,7 +29,7 @@ data class SwerveConstants(
     val trackWidth: Length,
     val wheelBase: Length,
     val moduleType: ModuleType,
-    val robotRotationPID: PIDConstants = PIDConstants(2.5,0.0,0.0), // rotation of the entire robot; for pathplanner
+    val robotRotationPID: PIDConstants = PIDConstants(6.0,0.0,0.0), // rotation of the entire robot; for pathplanner
     val robotTranslationPID: PIDConstants = PIDConstants(4.0,0.0,0.0), // translation of the entire robot; for pathplanner
     val pathReplanningConfig: ReplanningConfig = ReplanningConfig(),
     val odometryUpdateRate: Time = 0.02.seconds,

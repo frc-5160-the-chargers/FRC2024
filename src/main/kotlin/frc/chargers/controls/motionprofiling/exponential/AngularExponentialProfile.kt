@@ -54,5 +54,4 @@ class AngularExponentialProfile(
             AngularVelocity(profileState.velocity)
         )
     }
-
 }

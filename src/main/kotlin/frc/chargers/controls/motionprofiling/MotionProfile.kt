@@ -24,7 +24,7 @@ typealias LinearMotionProfileState = MotionProfileState<DistanceDimension, Veloc
  * This interface has an identical API to WPILib's TrapezoidProfile and ExponentialProfile;
  * however, the "t" argument is moved to the end of function calls(and is now optional).
  */
-interface MotionProfile<Pos: Dimension<*,*,*,*>, Vel: Dimension<*,*,*,*>> {
+interface MotionProfile<Pos: AnyDimension, Vel: AnyDimension> {
     fun calculate(
         setpoint: MotionProfileState<Pos, Vel>,
         goal: MotionProfileState<Pos, Vel>,
@@ -51,7 +51,7 @@ interface MotionProfile<Pos: Dimension<*,*,*,*>, Vel: Dimension<*,*,*,*>> {
 }
 
 
-data class MotionProfileState <Pos: Dimension<*,*,*,*>, Vel: Dimension<*,*,*,*>>(
+data class MotionProfileState <Pos: AnyDimension, Vel: AnyDimension>(
     var position: Quantity<Pos> = Quantity(0.0),
     var velocity: Quantity<Vel> = Quantity(0.0)
 ){

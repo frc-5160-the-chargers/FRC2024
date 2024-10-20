@@ -21,7 +21,7 @@ fun tunable(default: Boolean, key: String? = null) =
     Tunable(key, default, SmartDashboard::getBoolean, SmartDashboard::putBoolean)
 
 /** A property delegate for a [Quantity] that can be tuned from advantagescope. */
-fun <D: AnyDimension> tunable(default: Quantity<D>, key: String? = null, unit: Quantity<D>) =
+fun <D: AnyDimension> tunable(default: Quantity<D>, key: String? = null, unit: Quantity<D> = Quantity(1.0)) =
     Tunable(key, default,
         { k, currDefault -> SmartDashboard.getNumber(k, currDefault.inUnit(unit)).ofUnit(unit) },
         { k, v -> SmartDashboard.putNumber(k, v.inUnit(unit)) }
@@ -64,13 +64,14 @@ class Tunable<T>(
 
     // called once on init
     operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): Tunable<T> {
+        val propertyName = property.name.replaceFirstChar { it.titlecase() }
         val path = when {
             key != null -> key!!
-            thisRef != null -> "${thisRef::class.simpleName}/${property.name}"
-            else -> "OtherTunables/${property.name}"
+            thisRef != null -> "${thisRef::class.simpleName}/$propertyName"
+            else -> "OtherTunables/$propertyName"
         }
         // waits to put the value to the dashboard so that SmartDashboard can initialize
-        WaitCommand(0.1)
+        WaitCommand(1.0)
             .andThen(InstantCommand { put(path, current) })
             .ignoringDisable(true)
             .schedule()

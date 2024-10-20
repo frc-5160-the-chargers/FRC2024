@@ -19,9 +19,7 @@ class LinearExponentialProfile(
             maxInput: Voltage,
             a: Double,
             b: Double
-        ) = LinearExponentialProfile(
-            ExponentialProfile.Constraints.fromStateSpace(maxInput.siValue, a, b)
-        )
+        ) = LinearExponentialProfile(ExponentialProfile.Constraints.fromStateSpace(maxInput.siValue, a, b))
 
         /**
          * @see ExponentialProfile.Constraints.fromCharacteristics
@@ -30,9 +28,7 @@ class LinearExponentialProfile(
             maxInput: Voltage,
             kV: Double,
             kA: Double
-        ) = LinearExponentialProfile(
-            ExponentialProfile.Constraints.fromCharacteristics(maxInput.siValue, kV, kA)
-        )
+        ) = LinearExponentialProfile(ExponentialProfile.Constraints.fromCharacteristics(maxInput.siValue, kV, kA))
     }
 
     private val profile = ExponentialProfile(constraints)
@@ -53,5 +49,4 @@ class LinearExponentialProfile(
             Velocity(profileState.velocity)
         )
     }
-
 }

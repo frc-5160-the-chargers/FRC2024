@@ -29,5 +29,4 @@ class AngularTrapezoidProfile(
             AngularVelocity(profileState.velocity)
         )
     }
-
 }

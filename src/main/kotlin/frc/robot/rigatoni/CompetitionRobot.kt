@@ -8,7 +8,6 @@ import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.math.MathUtil.applyDeadband
 import edu.wpi.first.math.geometry.Pose2d
-import edu.wpi.first.net.PortForwarder
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.PowerDistribution
 import edu.wpi.first.wpilibj.RobotBase
@@ -56,9 +55,13 @@ class CompetitionRobot: ChargerRobot() {
     private val autoChooser = SendableChooser<Command>()
 
     init {
+        // ---------- Generic Setup ----------
         DriverStation.silenceJoystickConnectionWarning(true)
-        PortForwarder.add(5800, "photonvision.local", 5800)
+        //PortForwarder.add(5800, "photonvision.local", 5800)
         gyro.simHeadingSource = { drivetrain.calculatedHeading }
+        Tunable.tuningMode = true
+
+        // ---------- Logging Config ----------
         HorseLog.setOptions(
             HorseLog.getOptions()
                 .withNtPublish(true)
@@ -67,13 +70,12 @@ class CompetitionRobot: ChargerRobot() {
                 .withLogEntryQueueCapacity(3000)
         )
         HorseLog.setPdh(PowerDistribution(1, PowerDistribution.ModuleType.kRev))
-        Trigger(DriverStation::isFMSAttached).onTrue(
-            InstantCommand { HorseLog.setOptions(HorseLog.getOptions().withNtPublish(false)) }
-        )
 
         setDefaultCommands()
         setButtonBindings()
+        setEventListeners()
 
+        // ---------- Auto Config ----------
         autoChooser.setDefaultOption(
             "Taxi",
             RunCommand(drivetrain){ drivetrain.swerveDrive(0.2, 0.0, 0.0, fieldRelative = false) }
@@ -84,7 +86,6 @@ class CompetitionRobot: ChargerRobot() {
             autoChooser.addOption(autoCommand.name, autoCommand)
         }
         SmartDashboard.putData("AutoChoices", autoChooser)
-        Tunable.tuningMode = true
     }
 
     override fun autonomousInit() {
@@ -93,6 +94,22 @@ class CompetitionRobot: ChargerRobot() {
 
     override fun autonomousExit() {
         autoChooser.selected?.cancel()
+    }
+
+    private fun setEventListeners() {
+        Trigger(DriverStation::isFMSAttached).onTrue(
+            InstantCommand { HorseLog.setOptions(HorseLog.getOptions().withNtPublish(false)) }
+        )
+
+        Trigger{ !DriverStation.isJoystickConnected(DRIVER_CONTROLLER_PORT) }
+            .onTrue(
+                InstantCommand { HorseLog.logWarning("Driver controller not connected", "") }
+            )
+
+        Trigger { !DriverStation.isJoystickConnected(OPERATOR_CONTROLLER_PORT) }
+            .onTrue(
+                InstantCommand { HorseLog.logWarning("Operator controller not connected", "") }
+            )
     }
 
     private fun setButtonBindings() {
@@ -190,15 +207,16 @@ class CompetitionRobot: ChargerRobot() {
             speed *= SHOOTER_SPEED_MULTIPLIER
             HorseLog.log("OperatorController/ShooterSpeed", speed)
             shooter.setSpeed(speed)
-
         }
 
+        val pivotSpeedInvert = if (RobotBase.isReal()) -1.0 else 1.0
         pivot.defaultCommand = RunCommand(pivot){
-            val invert = if (RobotBase.isReal()) -1.0 else 1.0
-            var speed = applyDeadband(operatorController.rightY * invert, PIVOT_DEADBAND).squareMagnitude()
+            var speed = applyDeadband(operatorController.rightY, PIVOT_DEADBAND)
+            speed = (speed * pivotSpeedInvert).squareMagnitude()
             speed *= PIVOT_SPEED_MULTIPLIER
-            HorseLog.log("OperatorController/PivotSpeed", speed)
+
             pivot.setSpeed(speed)
+            HorseLog.log("OperatorController/PivotSpeed", speed)
         }.finallyDo(pivot::setIdle)
 
         climber.setDefaultRunCommand{ climber.setIdle() }
@@ -383,6 +401,17 @@ class CompetitionRobot: ChargerRobot() {
                     noteIntakeTime = 0.5.seconds
                 )
                 +driveThenScoreAmp(PathPlannerPath.fromPathFile("AmpScoreG2"))
+            },
+
+            buildCommand("2 piece amp non-close", log = true){
+                +ampAutoStartup()
+                +pivotAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF)
+                +driveAndIntake(
+                    PathPlannerPath.fromChoreoTrajectory("AmpAutoFar.1"),
+                    noteIntakeTime = 0.5.seconds
+                )
+                +driveThenScoreAmp(PathPlannerPath.fromChoreoTrajectory("AmpAutoFar.2"))
+                +pivotAngleCommand(PivotAngle.STOWED)
             },
 
             speakerAutoStartup(AutoStartingPose::getSpeakerLeft).withName("1 Piece Speaker"),

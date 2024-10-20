@@ -4,10 +4,10 @@ package frc.chargers.framework
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
-import com.pathplanner.lib.pathfinding.LocalADStar
-import com.pathplanner.lib.pathfinding.Pathfinding
 import edu.wpi.first.hal.FRCNetComm
 import edu.wpi.first.hal.HAL
+import edu.wpi.first.wpilibj.DataLogManager
+import edu.wpi.first.wpilibj.RuntimeType
 import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
@@ -114,7 +114,12 @@ abstract class ChargerRobot: TimedRobot(0.02) {
             logCommandRunning = HorseLog::log,
             logExecutionTime = HorseLog::log
         )
-        Pathfinding.setPathfinder(LocalADStar())
         HAL.report(FRCNetComm.tResourceType.kResourceType_Language, FRCNetComm.tInstances.kLanguage_Kotlin)
+        if (getRuntimeType() == RuntimeType.kRoboRIO && DataLogManager.getLogDir() == "/home/lvuser/logs") {
+            HorseLog.logError(
+                "Logging to disk on RoboRIO 1",
+                "This is going to cause us to run out of storage. pls don't."
+            )
+        }
     }
 }
