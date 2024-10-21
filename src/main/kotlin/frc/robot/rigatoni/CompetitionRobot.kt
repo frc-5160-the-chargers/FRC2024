@@ -69,7 +69,12 @@ class CompetitionRobot: ChargerRobot() {
                 .withLogExtras(true)
                 .withLogEntryQueueCapacity(3000)
         )
-        HorseLog.setPdh(PowerDistribution(1, PowerDistribution.ModuleType.kRev))
+        try {
+            HorseLog.setPdh(PowerDistribution(1, PowerDistribution.ModuleType.kRev))
+        }catch (_: Exception){
+            HorseLog.logError("PDH is not connected!", "Check your can wiring")
+        }
+
 
         setDefaultCommands()
         setButtonBindings()
@@ -78,7 +83,7 @@ class CompetitionRobot: ChargerRobot() {
         // ---------- Auto Config ----------
         autoChooser.setDefaultOption(
             "Taxi",
-            RunCommand(drivetrain){ drivetrain.swerveDrive(0.2, 0.0, 0.0, fieldRelative = false) }
+            RunCommand(drivetrain){ drivetrain.swerveDrive(0.2, 0.0, 0.0, fieldRelative = true) }
                 .withTimeout(5.0)
         )
         // getAutoCommands is implemented below
@@ -98,7 +103,10 @@ class CompetitionRobot: ChargerRobot() {
 
     private fun setEventListeners() {
         Trigger(DriverStation::isFMSAttached).onTrue(
-            InstantCommand { HorseLog.setOptions(HorseLog.getOptions().withNtPublish(false)) }
+            InstantCommand {
+                HorseLog.setOptions(HorseLog.getOptions().withNtPublish(false))
+                HorseLog.logInfo("NetworkTables logging disabled", "FMS is attached(NT logging adds bandwidth; this is purposeful)")
+            }
         )
 
         Trigger{ !DriverStation.isJoystickConnected(DRIVER_CONTROLLER_PORT) }

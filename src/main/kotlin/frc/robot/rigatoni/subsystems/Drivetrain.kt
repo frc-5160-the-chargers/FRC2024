@@ -67,19 +67,19 @@ private val TURN_MOTORS = listOf(
 }
 private val TURN_ENCODERS = listOf(
     // encoder - angleOffset = encoder with angle offset
-    ChargerCANcoder(DrivetrainID.TL_ENCODER) - 0.621.radians,
-    ChargerCANcoder(DrivetrainID.TR_ENCODER) - 1.37.radians,
-    ChargerCANcoder(DrivetrainID.BL_ENCODER) - 4.971.radians,
-    ChargerCANcoder(DrivetrainID.BR_ENCODER) - 6.243.radians
+    ChargerCANcoder(DrivetrainID.TL_ENCODER) + 2.447.radians,
+    ChargerCANcoder(DrivetrainID.TR_ENCODER) - 1.379.radians,
+    ChargerCANcoder(DrivetrainID.BL_ENCODER) + 1.312.radians,
+    ChargerCANcoder(DrivetrainID.BR_ENCODER) - 3.116.radians
 )
 private val DRIVE_MOTORS = listOf(
     ChargerTalonFX(DrivetrainID.TL_DRIVE),
-    ChargerTalonFX(DrivetrainID.TR_DRIVE).configure(inverted = true),
+    ChargerTalonFX(DrivetrainID.TR_DRIVE),
     ChargerTalonFX(DrivetrainID.BL_DRIVE),
     ChargerTalonFX(DrivetrainID.BR_DRIVE).configure(inverted = true),
 ).map {
     it.configure(
-        statorCurrentLimit = 80.amps,
+        statorCurrentLimit = 60.amps,
         brakeWhenIdle = true,
         optimizeUpdateRate = true
     ).limitSupplyCurrent(

@@ -291,6 +291,24 @@
         "Shooter": {
           "open": true
         },
+        "SwerveDrive": {
+          "Modules": {
+            "BottomLeft": {
+              "open": true
+            },
+            "BottomRight": {
+              "open": true
+            },
+            "TopLeft": {
+              "open": true
+            },
+            "TopRight": {
+              "open": true
+            },
+            "open": true
+          },
+          "open": true
+        },
         "open": true
       },
       "RobotGeneral": {

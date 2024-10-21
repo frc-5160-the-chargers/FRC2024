@@ -2,6 +2,7 @@ package frc.robot.rigatoni.subsystems
 
 import com.batterystaple.kmeasure.quantities.Voltage
 import com.batterystaple.kmeasure.units.amps
+import com.batterystaple.kmeasure.units.seconds
 import com.batterystaple.kmeasure.units.volts
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
@@ -28,15 +29,17 @@ class GroundIntakeSerializer(disable: Boolean = false): SubsystemBase() {
             serializerMotor = MotorSim(DCMotor.getNEO(1))
         } else {
             groundIntakeMotor = ChargerTalonFX(GROUND_INTAKE_ID, faultLogName = "GroundIntakeMotor")
+                .limitSupplyCurrent(30.amps, highLimit = 60.amps, highLimitAllowedFor = 1.seconds)
             serializerMotor = ChargerSparkMax(SERIALIZER_ID, faultLogName = "SerializerMotor")
                 .configure(inverted = true)
         }
         groundIntakeMotor.configure(
-            optimizeUpdateRate = true,
-            gearRatio = 15.0 / 12.0
+            //optimizeUpdateRate = true,
+            gearRatio = 15.0 / 12.0,
+            statorCurrentLimit = 60.amps
         )
         serializerMotor.configure(
-            optimizeUpdateRate = true,
+            //optimizeUpdateRate = true,
             statorCurrentLimit = 45.amps,
             gearRatio = 7.5 / 1.0
         )
