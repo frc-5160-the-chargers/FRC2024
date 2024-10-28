@@ -14,10 +14,10 @@ import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.HorseLog.log
 import frc.chargers.wpilibextensions.Rotation2d
 import frc6995.NomadAprilTagUtil
 import limelight.LimelightHelpers
+import monologue.Logged
 import org.photonvision.PhotonCamera
 import org.photonvision.PhotonPoseEstimator
 import org.photonvision.PhotonPoseEstimator.PoseStrategy
@@ -28,7 +28,7 @@ import kotlin.jvm.optionals.getOrNull
  * and fuse pose measurements from one or more vision cameras.
  */
 @Suppress("unused")
-abstract class PoseEstimatingDrivetrain: SubsystemBase() {
+abstract class PoseEstimatingDrivetrain: SubsystemBase(), Logged {
     abstract val robotPose: Pose2d
 
     abstract fun resetPose(pose: Pose2d = Pose2d())

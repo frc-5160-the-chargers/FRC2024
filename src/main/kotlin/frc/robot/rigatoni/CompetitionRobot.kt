@@ -8,6 +8,8 @@ import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.math.MathUtil.applyDeadband
 import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Alert.AlertType
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.PowerDistribution
 import edu.wpi.first.wpilibj.RobotBase
@@ -17,21 +19,19 @@ import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.controls.PIDController
-import kcommand.InstantCommand
-import kcommand.RunCommand
 import kcommand.commandbuilder.buildCommand
-import kcommand.setDefaultRunCommand
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.HorseLog
 import frc.chargers.framework.Tunable
 import frc.chargers.hardware.sensors.imu.ChargerNavX
+import frc.chargers.wpilibextensions.Cmd
 import frc.chargers.utils.squareMagnitude
 import frc.chargers.wpilibextensions.distanceTo
 import frc.chargers.wpilibextensions.flipWhenRedAlliance
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
-import frc.chargers.wpilibextensions.onDoubleClick
+import frc.chargers.utils.onDoubleClick
 import frc.robot.rigatoni.subsystems.*
-import frc.robot.rigatoni.subsystems.shooter.Shooter
+import frc.robot.rigatoni.subsystems.Shooter
+import monologue.Monologue
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -48,7 +48,7 @@ class CompetitionRobot: ChargerRobot() {
     private val climber = Climber()
     private val noteObserver = NoteObserver()
     
-    private val driverController = DriverController(DRIVER_CONTROLLER_PORT, "DriverController")
+    private val driverController = DriverController(DRIVER_CONTROLLER_PORT)
     private val driverTouchpad = driverController.touchpad()
     private val operatorController = CommandXboxController(OPERATOR_CONTROLLER_PORT)
 
@@ -62,20 +62,20 @@ class CompetitionRobot: ChargerRobot() {
         Tunable.tuningMode = true
 
         // ---------- Logging Config ----------
-        HorseLog.setOptions(
-            HorseLog.getOptions()
-                .withNtPublish(true)
-                .withCaptureDs(true)
-                .withLogExtras(true)
-                .withLogEntryQueueCapacity(3000)
+        Monologue.setupMonologue(
+            this,
+            "",
+            Monologue.MonologueConfig()
+                .withFileOnly { DriverStation.isFMSAttached() }
         )
+        runPeriodic { Monologue.updateAll() }
         try {
-            HorseLog.setPdh(PowerDistribution(1, PowerDistribution.ModuleType.kRev))
+            SmartDashboard.putData("PDHData", PowerDistribution(1, PowerDistribution.ModuleType.kRev))
         }catch (_: Exception){
-            HorseLog.logError("PDH is not connected!", "Check your can wiring")
+            Alert("PDH Not Found", AlertType.kError).set(true)
         }
 
-
+        // -------- Generic Config -----------
         setDefaultCommands()
         setButtonBindings()
         setEventListeners()
@@ -83,7 +83,7 @@ class CompetitionRobot: ChargerRobot() {
         // ---------- Auto Config ----------
         autoChooser.setDefaultOption(
             "Taxi",
-            RunCommand(drivetrain){ drivetrain.swerveDrive(0.2, 0.0, 0.0, fieldRelative = true) }
+            Cmd.run(drivetrain){ drivetrain.swerveDrive(0.2, 0.0, 0.0, fieldRelative = true) }
                 .withTimeout(5.0)
         )
         // getAutoCommands is implemented below
@@ -102,22 +102,15 @@ class CompetitionRobot: ChargerRobot() {
     }
 
     private fun setEventListeners() {
-        Trigger(DriverStation::isFMSAttached).onTrue(
-            InstantCommand {
-                HorseLog.setOptions(HorseLog.getOptions().withNtPublish(false))
-                HorseLog.logInfo("NetworkTables logging disabled", "FMS is attached(NT logging adds bandwidth; this is purposeful)")
-            }
-        )
-
+        val driverControllerAlert = Alert("Driver Controller not connected!", AlertType.kWarning)
+        val operatorControllerAlert = Alert("Operator Controller not connected!", AlertType.kWarning)
         Trigger{ !DriverStation.isJoystickConnected(DRIVER_CONTROLLER_PORT) }
-            .onTrue(
-                InstantCommand { HorseLog.logWarning("Driver controller not connected", "") }
-            )
+            .whileTrue(Cmd.run{ driverControllerAlert.set(true) }.ignoringDisable(true))
+            .onFalse(Cmd.runOnce { driverControllerAlert.set(false) })
 
         Trigger { !DriverStation.isJoystickConnected(OPERATOR_CONTROLLER_PORT) }
-            .onTrue(
-                InstantCommand { HorseLog.logWarning("Operator controller not connected", "") }
-            )
+            .whileTrue(Cmd.run{ operatorControllerAlert.set(true) }.ignoringDisable(true))
+            .onFalse(Cmd.runOnce { operatorControllerAlert.set(false) })
     }
 
     private fun setButtonBindings() {
@@ -138,7 +131,7 @@ class CompetitionRobot: ChargerRobot() {
                 climbDownTrigger = povDown()
             }
 
-            touchpad().onDoubleClick(InstantCommand{ gyro.zeroHeading(180.degrees) })
+            touchpad().onDoubleClick(Cmd.runOnce { gyro.zeroHeading(180.degrees) })
 
             var current = 0.degrees
             for (trigger in aimTriggers){
@@ -147,19 +140,26 @@ class CompetitionRobot: ChargerRobot() {
             }
 
             noteIntakeTrigger.whileTrue(
+                Cmd.run(groundIntake) { groundIntake.intake() }
+            )
+
+            noteIntakeTrigger.and { noteObserver.shouldStartPursuit }
+                .whileTrue(noteIntakeDriverAssist())
+
+            noteIntakeTrigger.whileTrue(
                 noteIntakeDriverAssist()
-                    .alongWith(RunCommand(groundIntake){ groundIntake.intake() })
+                    .alongWith(Cmd.run(groundIntake){ groundIntake.intake() })
             )
 
             climbUpTrigger.whileTrue(
-                RunCommand(climber){
+                Cmd.run(climber){
                     climber.moveLeftHook(1.0)
                     climber.moveRightHook(1.0)
                 }
             )
 
             climbDownTrigger.whileTrue(
-                RunCommand(climber){
+                Cmd.run(climber){
                     climber.moveLeftHook(-1.0)
                     climber.moveRightHook(-1.0)
                 }
@@ -179,10 +179,10 @@ class CompetitionRobot: ChargerRobot() {
             )
 
             rightTrigger().whileTrue(
-                RunCommand(groundIntake){ groundIntake.intake() }
+                Cmd.run(groundIntake){ groundIntake.intake() }
             )
             leftTrigger().whileTrue(
-                RunCommand(groundIntake, shooter){ // ground outtake command
+                Cmd.run(groundIntake, shooter){ // ground outtake command
                     groundIntake.outtake()
                     shooter.setVoltage((-6).volts)
                 }
@@ -190,7 +190,7 @@ class CompetitionRobot: ChargerRobot() {
 
             rightBumper().and(leftBumper().negate()).whileTrue(passNoteToShooter())
             leftBumper().and(rightBumper().negate()).whileTrue(
-                RunCommand(shooter, pivot){ // spinup shooter command
+                Cmd.run(shooter, pivot){ // spinup shooter command
                     shooter.outtakeAtSpeakerSpeed()
                     pivot.setAngle(PivotAngle.SPEAKER)
                 }
@@ -200,36 +200,35 @@ class CompetitionRobot: ChargerRobot() {
             )
 
             start().onDoubleClick(
-                InstantCommand { drivetrain.reSyncRelativeEncoders() }
+                Cmd.runOnce { drivetrain.reSyncRelativeEncoders() }
             )
         }
     }
 
     private fun setDefaultCommands(){
-        drivetrain.setDefaultRunCommand{
+        drivetrain.defaultCommand = Cmd.run(drivetrain) {
             drivetrain.swerveDrive(driverController.swerveOutput, fieldRelative = !driverTouchpad.asBoolean)
         }
 
-        shooter.setDefaultRunCommand{
+        shooter.defaultCommand = Cmd.run(shooter) {
             var speed = operatorController.leftY// applyDeadband(operatorController.leftY, SHOOTER_DEADBAND)
             speed *= SHOOTER_SPEED_MULTIPLIER
-            HorseLog.log("OperatorController/ShooterSpeed", speed)
+            log("OperatorController/ShooterSpeed", speed)
             shooter.setSpeed(speed)
         }
 
         val pivotSpeedInvert = if (RobotBase.isReal()) -1.0 else 1.0
-        pivot.defaultCommand = RunCommand(pivot){
+        pivot.defaultCommand = Cmd.run(pivot) {
             var speed = applyDeadband(operatorController.rightY, PIVOT_DEADBAND)
             speed = (speed * pivotSpeedInvert).squareMagnitude()
             speed *= PIVOT_SPEED_MULTIPLIER
 
             pivot.setSpeed(speed)
-            HorseLog.log("OperatorController/PivotSpeed", speed)
+            log("OperatorController/PivotSpeed", speed)
         }.finallyDo(pivot::setIdle)
 
-        climber.setDefaultRunCommand{ climber.setIdle() }
-
-        groundIntake.setDefaultRunCommand { groundIntake.setIdle() }
+        climber.defaultCommand = Cmd.run(climber) { climber.setIdle() }
+        groundIntake.defaultCommand = Cmd.run(groundIntake) { groundIntake.setIdle() }
     }
 
     private fun shouldPathFind(path: PathPlannerPath): Boolean {
@@ -241,34 +240,19 @@ class CompetitionRobot: ChargerRobot() {
                 drivetrainPose.distanceTo(pathEndPose) > drivetrainPose.distanceTo(pathStartPose)
     }
 
-    private fun shouldStartNotePursuit(): Boolean {
-        val currentState = noteObserver.state
-        return currentState is NoteState.Detected &&
-                currentState.distanceToNote <= ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
-    }
-
     /* Commands */
 
     private fun noteIntakeDriverAssist(
-        getChassisPowers: () -> ChassisPowers = { driverController.swerveOutput }
-    ) = buildCommand("NoteIntakeDriverAssist") {
-        require(drivetrain)
-
+        requestedSpeedSupplier: () -> ChassisPowers = { driverController.swerveOutput }
+    ): Command {
         fun getNotePursuitSpeed(txValue: Double): Double {
-            val swerveOutput = getChassisPowers()
+            val swerveOutput = requestedSpeedSupplier()
             return max(abs(swerveOutput.xPower), abs(swerveOutput.yPower)) * (1.0 - txValue / 50.0) // scales based off of the vision target error
         }
 
-        // custom PID controller constructor that accepts pid constants
-        val aimController by getOnceDuringRun { PIDController(AIM_TO_NOTE_PID) }
+        val aimController = PIDController(AIM_TO_NOTE_PID)
 
-        // regular drive occurs until suitable target found
-        loopUntil(::shouldStartNotePursuit){
-            drivetrain.swerveDrive(driverController.swerveOutput, fieldRelative = !driverTouchpad.asBoolean)
-        }
-
-        // drives back to grab note
-        loop {
+        return Cmd.run(drivetrain) {
             val forwardPower: Double
             val rotationPower: Double
             val state = noteObserver.state
@@ -280,119 +264,91 @@ class CompetitionRobot: ChargerRobot() {
                 rotationPower = 0.0
             }
             drivetrain.swerveDrive(forwardPower, 0.0, rotationPower, fieldRelative = false)
-        }
-
-        onEnd {
-            drivetrain.stop()
-        }
+        }.withName("NoteIntakeDriverAssist")
     }
 
-    // Note: pivot.setAngle() is the method call,
-    // while pivotAngleCommand() is a command that ends by itself.
     private fun pivotAngleCommand(target: Angle) =
-        buildCommand("PivotAngleCommand") {
-            require(pivot)
+        Cmd.sequence(
+            Cmd.runOnce(pivot) { pivot.setAngle(target) },
+            Cmd.run { pivot.setAngle(target) }.until { pivot.atTarget },
+            Cmd.runOnce { pivot.setIdle() }
+        ).withName("PivotAngleCommand")
 
-            runOnce{ pivot.setAngle(target) }
+    private fun waitForNoteToPass(additionalDelaySecs: Double) =
+        Cmd.sequence(
+            Cmd.waitUntil { isSimulation() || noteObserver.state == NoteState.InShooter },
+            Cmd.waitUntil { isSimulation() || noteObserver.state == NoteState.None },
+            Cmd.waitSeconds(additionalDelaySecs)
+        ).withName("WaitForNoteToPass")
 
-            loopUntil({ pivot.atTarget }){ pivot.setAngle(target) }
-
-            onEnd{ pivot.setIdle() }
-        }
-
-    private fun passNoteToShooter() = buildCommand("PassNoteToShooter") {
-        require(groundIntake, shooter)
-
-        realRobotOnly {
-            loopUntil({noteObserver.state == NoteState.InShooter}){
+    private fun passNoteToShooter() =
+        Cmd.sequence(
+            Cmd.runOnce(shooter, groundIntake) {
+                // motors will continue running until we stop them
                 shooter.receiveFromGroundIntake()
                 groundIntake.passToShooterSlow()
+            },
+            Cmd.waitUntil { isSimulation() || noteObserver.state == NoteState.InShooter },
+            Cmd.waitSeconds(0.4),
+            Cmd.runOnce {
+                shooter.setIdle()
+                groundIntake.setIdle()
             }
-        }
+        ).withName("PassNoteToShooter")
 
-        loopForDuration(0.4){
-            shooter.receiveFromGroundIntake()
-            groundIntake.passToShooterSlow()
-        }
-
-        onEnd{
-            groundIntake.setIdle()
-            shooter.setIdle()
-        }
-    }
-
-    private fun shootInAmp() = buildCommand("ShootInAmp") {
-        require(noteObserver, shooter, pivot)
-
-        +pivotAngleCommand(PivotAngle.AMP)
-
-        realRobotOnly {
-            loopUntil({noteObserver.state == NoteState.InShooter}){
-                shooter.outtakeAtAmpSpeed()
-            }
-
-            loopUntil({noteObserver.state == NoteState.None}){
-                shooter.outtakeAtAmpSpeed()
-            }
-        }
-
-        loopForDuration(0.3){
-            shooter.outtakeAtAmpSpeed()
-        }
-    }.withTimeout(4.0)
+    private fun shootInAmp() =
+        Cmd.sequence(
+            pivotAngleCommand(PivotAngle.AMP),
+            Cmd.runOnce(shooter) { shooter.outtakeAtAmpSpeed() },
+            waitForNoteToPass(0.25),
+            Cmd.runOnce { shooter.setIdle() }
+        ).withTimeout(4.0).withName("ShootInAmp")
 
     /**
      * Accelerates a note out of the serializer and through the shooter.
      * Presumes that the shooter is already spinning.
      */
-    private fun runNoteThroughShooter() = buildCommand {
-        require(groundIntake)
+    private fun runNoteThroughShooter() =
+        Cmd.sequence(
+            Cmd.runOnce(groundIntake) { groundIntake.passToShooterFast() },
+            waitForNoteToPass(0.4),
+            Cmd.runOnce { groundIntake.setIdle() }
+        ).withTimeout(1.5)
 
-        realRobotOnly {
-            loopUntil({noteObserver.state == NoteState.InShooter}) { groundIntake.passToShooterFast() }
 
-            loopUntil({noteObserver.state == NoteState.None}) { groundIntake.passToShooterFast() }
-        }
-
-        loopForDuration(0.4){ groundIntake.passToShooterFast() }
-
-        onEnd { groundIntake.setIdle() }
-    }.withTimeout(1.5)
+    // Note: pivot.setAngle() is the method call,
+    // while pivotAngleCommand() is a command that ends by itself.
 
     /**
      * Runs the full shooting sequence.
      */
     private fun shootInSpeaker(shooterSpinUpTime: Time = 1.seconds, movePivot: Boolean = true) =
-        buildCommand("ShootInSpeaker") {
-            require(shooter, groundIntake, pivot)
-
-            parallel { // since there are 2 deadlines, the parallel block will stop when both deadlines end
-                wait(shooterSpinUpTime.inUnit(seconds)).asDeadline()
-                waitUntil { !movePivot || pivot.atTarget }.asDeadline()
-                loop{
-                    shooter.outtakeAtSpeakerSpeed()
-                    if (movePivot) pivot.setAngle(PivotAngle.SPEAKER)
-                }
-            }
-
-            +runNoteThroughShooter() // shooter is still running at this point
-
-            onEnd {
+        Cmd.sequence(
+            Cmd.runOnce(shooter) {
+                shooter.outtakeAtSpeakerSpeed()
+            },
+            Cmd.parallel( // finishes when all are done
+                Cmd.wait(shooterSpinUpTime),
+                Cmd.waitUntil { !movePivot || pivot.atTarget },
+                if (movePivot) pivotAngleCommand(PivotAngle.SPEAKER) else Cmd.none()
+            ),
+            runNoteThroughShooter(),
+            Cmd.runOnce {
                 shooter.setIdle()
-                groundIntake.setIdle()
                 pivot.setIdle()
+                groundIntake.setIdle()
             }
-        }
+        )
 
     /* Auto Components */
 
     private fun getAutoCommands() =
         listOf(
-            buildCommand("1 Piece Amp + Taxi", log = true){
-                +ampAutoStartup()
-                +pivotAngleCommand(PivotAngle.STOWED)
-                +AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
-            },
+            Cmd.sequence(
+                ampAutoStartup(),
+                pivotAngleCommand(PivotAngle.STOWED),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile("AmpSideTaxiShort"))
+            ).withName("1 Piece Amp"),
 
             buildCommand("2-3 Piece Amp", log = true){
                 +ampAutoStartup()
@@ -503,10 +459,11 @@ class CompetitionRobot: ChargerRobot() {
 
         parallelRace {
             runSequence {
-                +(AutoBuilder.followPath(path).until(::shouldStartNotePursuit))
+                +(AutoBuilder.followPath(path).until { noteObserver.shouldStartPursuit })
 
-                +(noteIntakeDriverAssist{ ChassisPowers(0.3, 0.0, 0.0) }
-                    .onlyWhile{ noteObserver.hasCamera && !noteObserver.noteFound })
+                +(noteIntakeDriverAssist { ChassisPowers(0.3, 0.0, 0.0) }
+                    .withTimeout(3.0)
+                    .onlyWhile { noteObserver.hasCamera && !noteObserver.noteInRobot })
 
                 runOnce { drivetrain.stop() }
 
@@ -532,37 +489,25 @@ class CompetitionRobot: ChargerRobot() {
         }
     }
 
-    private fun driveThenScoreAmp(path: PathPlannerPath) = buildCommand("DriveThenScoreAmp") {
-        require(drivetrain, pivot, shooter, groundIntake)
+    private fun driveThenScoreAmp(path: PathPlannerPath) =
+        Cmd.parallel(
+            Cmd.sequence(
+                pivotAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF),
+                passNoteToShooter()
+            ),
+            AutoBuilder.followPath(path)
+        ).andThen(shootInAmp()).withName("DriveThenScore(Amp)")
 
-        parallel {
-            +AutoBuilder.followPath(path)
-
-            runSequence {
-                +pivotAngleCommand(PivotAngle.GROUND_INTAKE_HANDOFF) // insurance in case the pivot isn't already in the right position
-                +passNoteToShooter()
-            }
-        }
-
-        +shootInAmp()
-    }
-
-    private fun driveThenShoot(
-        path: PathPlannerPath,
-        shooterSpinUpTime: Time = 0.seconds
-    ) = buildCommand("DriveThenShoot(Speaker)") {
-        require(drivetrain, pivot, shooter, groundIntake)
-
-        parallel {
-            +AutoBuilder.followPath(path).asDeadline()
-
-            loop{
-                shooter.outtakeAtSpeakerSpeed()
-                groundIntake.setIdle()
-                pivot.setAngle(PivotAngle.SPEAKER)
-            }
-        }
-
-        +shootInSpeaker(shooterSpinUpTime)
-    }
+    private fun driveThenShoot(path: PathPlannerPath, shooterSpinUpTime: Time = 0.seconds) =
+        Cmd.sequence(
+            Cmd.parallel(
+                Cmd.run(shooter, groundIntake, pivot) {
+                    shooter.outtakeAtSpeakerSpeed()
+                    groundIntake.setIdle()
+                    pivot.setAngle(PivotAngle.SPEAKER)
+                },
+                deadlineCommand = AutoBuilder.followPath(path)
+            ),
+            shootInSpeaker(shooterSpinUpTime)
+        ).withName("DriveThenShoot(Speaker)")
 }

@@ -5,12 +5,16 @@ import com.batterystaple.kmeasure.units.*
 import com.pathplanner.lib.util.PIDConstants
 import com.revrobotics.*
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame
+import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Alert.AlertType
+import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.utils.units.frequencyToPeriod
 import kotlin.math.PI
 import kotlin.math.roundToInt
+import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
 
 
 /**
@@ -74,10 +78,14 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
         base.enableVoltageCompensation(12.0)
         base.burnFlash()
 
+        val faultAlert = Alert("Spark Max Error", "", AlertType.kError)
         if (faultLogName != null) {
             ChargerRobot.runPeriodicAtPeriod(0.5.seconds) {
                 val err = base.lastError
-                if (err != REVLibError.kOk) HorseLog.logError(faultLogName, err)
+                if (err != REVLibError.kOk) {
+                    faultAlert.setText(err.toString())
+                    faultAlert.set(true)
+                }
             }
         }
     }
@@ -241,10 +249,14 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
             base.burnFlash().bind()
             if (errors.isEmpty()) return this
         }
-        HorseLog.logError(
-            "${faultLogName ?: "ChargerSpark($deviceID)"} could not configure.",
-            "Errors: $errors"
-        )
+        Alert(
+            "${faultLogName ?: "ChargerSpark($deviceID)"} could not configure. Errors: $errors",
+            AlertType.kError
+        ).set(true)
         return this
     }
 }
+
+
+operator fun Command.provideDelegate(thisRef: Any?, property: KProperty<*>) =
+    ReadOnlyProperty<Any?, Command> {_, _ -> this@provideDelegate }

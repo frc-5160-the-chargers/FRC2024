@@ -8,7 +8,8 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue
 import com.ctre.phoenix6.signals.SensorDirectionValue
-import frc.chargers.framework.HorseLog
+import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Alert.AlertType
 
 /**
  * A wrapper around the [CANcoder] class that implements the [Encoder] interface.
@@ -35,7 +36,7 @@ class ChargerCANcoder(
         for (i in 1..4) {
             val status = base.configurator.apply(config, 0.1)
             if (status == StatusCode.OK) break
-            if (i == 4) HorseLog.logError("CANcoder($deviceID) failed to configure", status)
+            if (i == 4) Alert("CANcoder($deviceID) failed to configure", AlertType.kError).set(true)
         }
     }
 
@@ -48,11 +49,11 @@ class ChargerCANcoder(
      * otherwise, it is measured from the CANcoder's absolute encoder.
      */
     override val angularPosition: Angle
-        get() = posSignal.refresh(true).value.ofUnit(rotations)
+        get() = posSignal.refresh(true).valueAsDouble.ofUnit(rotations)
 
     /**
      * Obtains the velocity of the CANcoder.
      */
     override val angularVelocity: AngularVelocity
-        get() = velSignal.refresh(true).value.ofUnit(rotations / seconds)
+        get() = velSignal.refresh(true).valueAsDouble.ofUnit(rotations / seconds)
 }

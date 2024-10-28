@@ -3,13 +3,14 @@ package frc.robot.rigatoni
 import edu.wpi.first.math.MathUtil.applyDeadband
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller
-import frc.chargers.framework.logged
 import frc.chargers.framework.tunable
 import frc.chargers.utils.squareMagnitude
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
+import monologue.Annotations.Log
+import monologue.Logged
 import kotlin.math.pow
 
-class DriverController(port: Int, name: String): CommandPS5Controller(port) {
+class DriverController(port: Int): CommandPS5Controller(port), Logged {
     private fun filterNan(input: Double): Double =
         if (input.isInfinite() || input.isNaN()) 0.0 else input
 
@@ -17,16 +18,17 @@ class DriverController(port: Int, name: String): CommandPS5Controller(port) {
         return 0.2 * x.pow(3) + 0.5 * x
     }
 
-    private val deadband by tunable(DEFAULT_DEADBAND, "$name/deadband")
-    private val invertForward by tunable(false, "$name/invertForward")
-    private val invertStrafe by tunable(false, "$name/invertStrafe")
-    private val invertRotation by tunable(true, "$name/invertRotation")
+    private val deadband by tunable(DEFAULT_DEADBAND)
+    private val invertForward by tunable(false)
+    private val invertStrafe by tunable(false)
+    private val invertRotation by tunable(true)
 
     private var forward = 0.0
     private var strafe = 0.0
     private var rotation = 0.0
-    private var scalar by logged(0.0, "$name/scalar")
-    private var chassisPowers by logged(ChassisPowers(), "$name/chassisPowers")
+
+    @Log private var scalar = 0.0
+    @Log private var chassisPowers = ChassisPowers()
 
     val swerveOutput: ChassisPowers get() {
         forward = filterNan(if (DRIVER_RIGHT_HANDED) rightY else leftY)

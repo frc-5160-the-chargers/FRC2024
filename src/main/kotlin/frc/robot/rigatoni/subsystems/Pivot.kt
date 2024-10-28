@@ -12,14 +12,14 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.chargers.controls.feedforward.AngularMotorFeedforward
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
-import frc.chargers.framework.HorseLog.log
-import frc.chargers.framework.logged
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 import frc.chargers.hardware.sensors.encoders.ChargerDutyCycleEncoder
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.wpilibextensions.Rotation3d
+import monologue.Annotations.Log
+import monologue.Logged
 
 // Angle values: - is outward, + is inward
 private const val PIVOT_MOTOR_ID = 9
@@ -41,7 +41,7 @@ object PivotAngle {
     val STARTING = 1.15.radians // used to zero the encoder if there is no absolute encoder(we have one)
 }
 
-class Pivot(disable: Boolean = false): SubsystemBase() {
+class Pivot(disable: Boolean = false): SubsystemBase(), Logged {
     private val motor: Motor
     private val absoluteEncoder: PositionEncoder?
 
@@ -80,20 +80,18 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
          */
     }
 
-    private val motionProfile: AngularMotionProfile? = null /*AngularTrapezoidProfile(
-        maxVelocity = AngularVelocity(8.0),
-        maxAcceleration = AngularAcceleration(10.0)
-    )*/
+    private val motionProfile: AngularMotionProfile? = null
     private var motionProfileSetpoint = AngularMotionProfileState(startingAngle)
     private val feedforward = AngularMotorFeedforward(0.0, 0.0, 0.0)
 
-    val angle: Angle by logged { MathUtil.angleModulus(motor.encoder.angularPosition.inUnit(radians)).ofUnit(radians) }
+    @get:Log(key = "angle(Rad)")
+    val angle get() = MathUtil.angleModulus(motor.encoder.angularPosition.inUnit(radians)).ofUnit(radians)
 
-    var atTarget: Boolean by logged(true)
+    @Log var atTarget = true
         private set
 
     // note: forward is negative, so we do <= forward limit
-    private fun willExceedSoftStop(movingForward: Boolean): Boolean =
+    @Log private fun willExceedSoftStop(movingForward: Boolean): Boolean =
         (angle <= FORWARD_LIMIT && movingForward) || (angle >= REVERSE_LIMIT && !movingForward)
 
     private fun resetMotionProfile(){
@@ -136,24 +134,24 @@ class Pivot(disable: Boolean = false): SubsystemBase() {
             )
             pidTarget = motionProfileSetpoint.position
             ffVoltage = feedforward(motionProfileSetpoint.velocity)
-            log("Pivot/Control/MotionProfileGoal", target)
+            log("Control/MotionProfileGoal(Rad)", target.inUnit(radians))
         }else{
             pidTarget = target
             ffVoltage = 0.volts
         }
         motor.setPositionSetpoint(pidTarget, ffVoltage)
 
-        log("Pivot/Control/Setpoint", pidTarget)
-        log("Pivot/Control/FeedForward", ffVoltage)
+        log("Control/Setpoint(Rad)", pidTarget.inUnit(radians))
+        log("Control/FeedForward(Volts)", ffVoltage.inUnit(volts))
         atTarget = abs(target - this.angle) < PID_TOLERANCE
     }
 
     override fun periodic(){
-        log("Pivot/StatorCurrent", motor.statorCurrent)
-        log("Pivot/VoltageReading", motor.voltageOut)
+        log("StatorCurrent", motor.statorCurrent.inUnit(amps))
+        log("VoltageReading", motor.voltageOut.inUnit(volts))
         // logs Mechanism 3d pose for simulation.
         log(
-            "Pivot/Mechanism3dPose",
+            "Mechanism3dPose",
             Pose3d(
                 PIVOT_SIM_STARTING_TRANSLATION,
                 Rotation3d(0.degrees, -angle, 0.degrees) // custom overload function that accepts kmeasure quantities

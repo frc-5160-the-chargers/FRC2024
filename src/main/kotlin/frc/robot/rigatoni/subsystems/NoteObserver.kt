@@ -11,8 +11,9 @@ import edu.wpi.first.wpilibj.DigitalInput
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotBase.isSimulation
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import frc.chargers.framework.HorseLog.log
-import frc.chargers.framework.logged
+import frc.robot.rigatoni.ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
+import monologue.Annotations.Log
+import monologue.Logged
 import org.photonvision.PhotonCamera
 import org.photonvision.PhotonUtils
 
@@ -29,7 +30,7 @@ sealed interface NoteState {
     data object InShooter: NoteState
 }
 
-class NoteObserver: SubsystemBase() {
+class NoteObserver: SubsystemBase(), Logged {
     private val groundIntakeSensor: DigitalInput? = null
     private val shooterSensor = DigitalInput(SHOOTER_SENSOR_ID)
     private val noteDetectorCamera: PhotonCamera? = if (isSimulation()) null else PhotonCamera("MLWebcam")
@@ -49,13 +50,18 @@ class NoteObserver: SubsystemBase() {
             log("NoteObserver/State", value.toString())
         }
 
-    val noteInRobot: Boolean by logged{ state == NoteState.InSerializer || state == NoteState.InShooter }
+    @get:Log val noteInRobot get() = state == NoteState.InSerializer || state == NoteState.InShooter
+    @get:Log val noteFound get() = state is NoteState.Detected
 
-    val noteFound: Boolean by logged{ state is NoteState.Detected }
+    @Log.Once val hasGroundIntakeSensor = groundIntakeSensor != null && RobotBase.isReal()
+    @Log.Once val hasCamera = noteDetectorCamera != null && RobotBase.isReal()
 
-    val hasGroundIntakeSensor: Boolean by logged(groundIntakeSensor != null && RobotBase.isReal())
-
-    val hasCamera: Boolean by logged(noteDetectorCamera != null && RobotBase.isReal())
+    /** Whether note pursuit(via vision targeting) should start or not. */
+    val shouldStartPursuit: Boolean get() {
+        val currentState = this.state
+        return currentState is NoteState.Detected &&
+                currentState.distanceToNote <= ACCEPTABLE_DISTANCE_BEFORE_NOTE_INTAKE
+    }
 
     override fun periodic() {
         if (isSimulation()){

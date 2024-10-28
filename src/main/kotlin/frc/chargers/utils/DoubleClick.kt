@@ -1,5 +1,5 @@
 @file:Suppress("unused")
-package frc.chargers.wpilibextensions
+package frc.chargers.utils
 
 import com.batterystaple.kmeasure.quantities.Time
 import com.batterystaple.kmeasure.quantities.inUnit

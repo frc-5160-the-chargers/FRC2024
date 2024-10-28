@@ -5,13 +5,15 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs
+import com.ctre.phoenix6.configs.MotorOutputConfigs
 import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.controls.*
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.*
 import com.pathplanner.lib.util.PIDConstants
+import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Alert.AlertType
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.HorseLog
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
 import frc.chargers.hardware.sensors.encoders.Encoder
 import kotlin.math.PI
@@ -76,23 +78,27 @@ class ChargerTalonFX(
     override val encoder: Encoder = TalonFXEncoderAdapter()
     private inner class TalonFXEncoderAdapter: Encoder {
         override val angularPosition: Angle
-            get() = positionSignal.refresh(true).value.ofUnit(rotations)
+            get() = positionSignal.refresh(true).valueAsDouble.ofUnit(rotations)
 
         override val angularVelocity: AngularVelocity
-            get() = velocitySignal.refresh(true).value.ofUnit(rotations/seconds)
+            get() = velocitySignal.refresh(true).valueAsDouble.ofUnit(rotations/seconds)
     }
 
     override var voltageOut: Voltage
-        get() = voltageSignal.refresh(true).value.ofUnit(volts)
+        get() = voltageSignal.refresh(true).valueAsDouble.ofUnit(volts)
         set(value){
             voltOutRequest.Output = value.siValue
             base.setControl(voltOutRequest)
             nonTalonFXFollowers.forEach{ it.voltageOut = value }
         }
 
-    override val statorCurrent get() = currentSignal.refresh(true).value.ofUnit(amps)
+    override val statorCurrent get() = currentSignal.refresh(true).valueAsDouble.ofUnit(amps)
 
-    override val inverted get() = base.inverted
+    override val inverted: Boolean get() {
+        val motorOutputConfig = MotorOutputConfigs()
+        base.configurator.refresh(motorOutputConfig)
+        return motorOutputConfig.Inverted == InvertedValue.Clockwise_Positive
+    }
 
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
         if (!positionPIDConfigured) {
@@ -222,25 +228,25 @@ class ChargerTalonFX(
             }
             if (errors.isEmpty()) return this
         }
-        HorseLog.logError(
-            "${faultLogName ?: "ChargerTalonFX($deviceID)"} failed to configure.",
-            "Errors: $errors"
-        )
+        Alert(
+            "${faultLogName ?: "ChargerTalonFX($deviceID)"} could not configure. Errors: $errors",
+            AlertType.kError
+        ).set(true)
         return this
     }
 
     fun limitSupplyCurrent(
         limit: Current,
-        highLimit: Current? = null,
-        highLimitAllowedFor: Time? = null
+        lowLimit: Current? = null,
+        lowLimitActivationTime: Time? = null
     ): ChargerTalonFX {
         val configs = CurrentLimitsConfigs()
         base.configurator.refresh(configs, 0.05)
         configs.apply {
             SupplyCurrentLimitEnable = true
             SupplyCurrentLimit = limit.inUnit(amps)
-            if (highLimit != null) SupplyCurrentThreshold = highLimit.inUnit(amps)
-            if (highLimitAllowedFor != null) SupplyTimeThreshold = highLimitAllowedFor.inUnit(seconds)
+            if (lowLimit != null) SupplyCurrentLowerLimit = lowLimit.inUnit(amps)
+            if (lowLimitActivationTime != null) SupplyCurrentLowerTime = lowLimitActivationTime.inUnit(seconds)
         }
         base.configurator.apply(configs, 0.1)
         return this
@@ -259,13 +265,18 @@ class ChargerTalonFX(
 
     init {
         if (faultLogName != null) {
+            val faultAlert = Alert("(Motor Fault) $faultLogName", "", AlertType.kError)
             ChargerRobot.runPeriodicAtPeriod(1.seconds){
                 for ((faultSignal, faultMsg) in faultSignalToMsg){
                     // != false prevents null
-                    if (faultSignal.refresh().value != false) HorseLog.logError("(Motor Fault) $faultLogName", faultMsg)
+                    if (faultSignal.refresh().value != false) {
+                        faultAlert.setText(faultMsg)
+                        faultAlert.set(true)
+                    }
                 }
                 if (voltageSignal.refresh().status != StatusCode.OK) {
-                    HorseLog.logError("(Motor Fault) $faultLogName", "Device is Unreachable")
+                    faultAlert.setText("Device is Unreachable")
+                    faultAlert.set(true)
                 }
             }
         }

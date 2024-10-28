@@ -4,29 +4,30 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
+import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Alert.AlertType
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.RobotController
 import frc.chargers.controls.motionprofiling.AngularMotionProfile
 import frc.chargers.controls.motionprofiling.AngularMotionProfileState
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.HorseLog.log
-import frc.chargers.framework.HorseLog.logError
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.sensors.encoders.PositionEncoder
 import frc.chargers.utils.units.periodToFrequency
 import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.angle
+import monologue.Logged
 import kotlin.math.abs
 import kotlin.math.cos
 
+
 class SwerveModule(
-    private val name: String,
     private val turnMotor: Motor,
     // turn encoders are optional in sim
     private val turnEncoder: PositionEncoder? = null,
     private val driveMotor: Motor,
     private val constants: SwerveConstants
-) {
+): Logged {
     private val startingDirection: Angle? = if (turnEncoder != null) turnEncoder.angularPosition % 360.degrees else null
     private val wheelRadius = constants.moduleType.wheelDiameter / 2
     private var couplingOffset = 0.degrees
@@ -59,20 +60,20 @@ class SwerveModule(
             positionUpdateRate = periodToFrequency(constants.odometryUpdateRate)
         )
 
-        log("$name/UsingCouplingRatio", constants.couplingRatio != null)
+        log("UsingCouplingRatio", constants.couplingRatio != null)
 
         ChargerRobot.runPeriodic {
             if (constants.couplingRatio != null){
                 couplingOffset -= constants.couplingRatio * (direction - 180.degrees)
-                log("CouplingOffset", couplingOffset)
+                log("CouplingOffset(Deg)", couplingOffset.inUnit(degrees))
             }
-            if (turnEncoder != null) log("$name/AbsoluteEncoderReading", turnEncoder.angularPosition)
-            log("$name/Direction", direction)
-            log("$name/DriveLinearVelocity", driveLinearVelocity)
-            log("$name/WheelTravel", wheelTravel)
-            log("$name/TurnMotorCurrent", turnMotor.statorCurrent)
-            log("$name/DriveMotorCurrent", driveMotor.statorCurrent)
-            log("$name/TurnAngularVelocity", turnMotor.encoder.angularVelocity)
+            if (turnEncoder != null) log("AbsoluteEncoderReading(Deg)", turnEncoder.angularPosition.inUnit(degrees))
+            log("Direction(Deg)", direction.inUnit(degrees))
+            log("DriveVel(MPS)", driveLinearVelocity.inUnit(meters / seconds))
+            log("WheelTravel(M)", wheelTravel.inUnit(meters))
+            log("TurnMotorCurrent", turnMotor.statorCurrent.inUnit(amps))
+            log("DriveMotorCurrent", driveMotor.statorCurrent.inUnit(amps))
+            log("TurnVel(DegPerSec)", turnMotor.encoder.angularVelocity.inUnit(degrees / seconds))
         }
     }
 
@@ -92,13 +93,13 @@ class SwerveModule(
 
     fun setDriveVoltage(target: Voltage) {
         driveMotor.voltageOut = target
-        log("$name/DriveVoltage", target)
+        log("DriveVoltage", target.inUnit(volts))
     }
 
     fun setTurnVoltage(target: Voltage) {
         val trueVoltage = if (abs(target) < 0.01.volts) 0.volts else target
         turnMotor.voltageOut = trueVoltage
-        log("$name/TurnVoltage", trueVoltage)
+        log("TurnVoltage", trueVoltage.inUnit(volts))
     }
 
     private fun calculateSetpoint(motionProfile: AngularMotionProfile, goalState: AngularMotionProfileState) =
@@ -164,14 +165,10 @@ class SwerveModule(
         driveMotor.setVelocitySetpoint(velocitySetpoint, feedforwardV)
     }
 
-    private val defaultVRange = -12.0..12.0
+    private val batteryVoltageAlert = Alert("RobotController battery voltage is extremely low(<1volts).", AlertType.kWarning)
     private fun getVoltageRange(): ClosedRange<Double>{
         val upperLimit = RobotController.getBatteryVoltage()
-        return if (upperLimit < 1.0){
-            logError("Battery Voltage Issue", "RobotController battery voltage is extremely low(<1volts).")
-            defaultVRange
-        }else{
-            -upperLimit..upperLimit
-        }
+        batteryVoltageAlert.set(upperLimit < 1.0)
+        return -upperLimit..upperLimit
     }
 }

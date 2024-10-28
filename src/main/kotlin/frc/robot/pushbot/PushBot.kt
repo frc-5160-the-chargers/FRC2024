@@ -1,23 +1,19 @@
 package frc.robot.pushbot
 
 import com.batterystaple.kmeasure.units.meters
-import dev.doglog.DogLogOptions
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.math.system.plant.DCMotor
-import edu.wpi.first.wpilibj2.command.InstantCommand
+import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
-import edu.wpi.first.wpilibj2.command.button.Trigger
 import frc.chargers.framework.*
 import kcommand.commandbuilder.buildCommand
 import kcommand.setDefaultRunCommand
-import frc.chargers.framework.HorseLog.log
 import frc.chargers.hardware.motorcontrol.ChargerSparkMax
 import frc.chargers.hardware.subsystems.differentialdrive.DifferentialDriveConstants
 import frc.chargers.hardware.subsystems.differentialdrive.EncoderDifferentialDrivetrain
-import frc.chargers.utils.mapControllerInput
-import frc.chargers.wpilibextensions.fpgaTimestamp
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
+import monologue.Monologue
 import kotlin.math.abs
 
 /**
@@ -53,16 +49,11 @@ class PushBot: ChargerRobot() {
 
     private val shakePower by tunable(0.4)
 
-    private var cond = false
-
     init{
-
-        Trigger{ cond }.onTrue(InstantCommand({println("hi!!!!")}))
-
-        HorseLog.setOptions(DogLogOptions().withNtPublish(true))
+        Monologue.setupMonologue(this, "", Monologue.MonologueConfig())
         Tunable.tuningMode = true
         drivetrain.setDefaultRunCommand {
-            val precisionModePower = abs(xboxController.leftTriggerAxis).mapControllerInput(1.0..6.0)
+            val precisionModePower = abs(xboxController.leftTriggerAxis) * 5.0 + 1.0
             drivetrain.arcadeDrive(
                 ChassisPowers(
                     MathUtil.applyDeadband(xboxController.leftY, .2) * precisionModePower,
@@ -77,7 +68,7 @@ class PushBot: ChargerRobot() {
                 require(drivetrain)
 
                 runOnce {
-                    log("USAYPT-testing/time", fpgaTimestamp())
+                    log("USAYPT-testing/time", Timer.getFPGATimestamp())
                 }
 
                 loopUntil({drivetrain.distanceTraveled > 0.1.meters}){
@@ -91,9 +82,5 @@ class PushBot: ChargerRobot() {
                 }
             }.repeatedly()
         )
-    }
-
-    override fun autonomousInit() {
-        cond = true
     }
 }

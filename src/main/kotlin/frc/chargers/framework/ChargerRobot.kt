@@ -6,6 +6,8 @@ import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.units.seconds
 import edu.wpi.first.hal.FRCNetComm
 import edu.wpi.first.hal.HAL
+import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Alert.AlertType
 import edu.wpi.first.wpilibj.DataLogManager
 import edu.wpi.first.wpilibj.RuntimeType
 import edu.wpi.first.wpilibj.TimedRobot
@@ -13,6 +15,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import kcommand.LoggedCommand
+import monologue.Logged
 import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
 
@@ -23,7 +26,7 @@ import java.lang.management.ManagementFactory
  *
  * This is used by the rest of ChargerLib; making it the only required class.
  */
-abstract class ChargerRobot: TimedRobot(0.02) {
+abstract class ChargerRobot: TimedRobot(0.02), Logged {
     companion object {
         private class HighFrequencyPeriodicRunnable(val period: Time, val toRun: () -> Unit)
         private val periodicRunnables = mutableListOf<() -> Unit>()
@@ -84,8 +87,8 @@ abstract class ChargerRobot: TimedRobot(0.02) {
             lastCounts[i] = gcCount
         }
 
-        HorseLog.log("General/GCTimeMS", accumTime.toDouble())
-        HorseLog.log("General/GCCounts", accumCounts.toDouble())
+        log("General/GCTimeMS", accumTime.toDouble())
+        log("General/GCCounts", accumCounts.toDouble())
     }
     
     private val commandScheduler = CommandScheduler.getInstance()
@@ -99,7 +102,7 @@ abstract class ChargerRobot: TimedRobot(0.02) {
             )
         }
         highFrequencyPeriodicRunnables.clear()
-        HorseLog.logLatency("General/CommandScheduler + periodic callbacks loop time(MS)") {
+        logLatency("General/CommandScheduler + periodic callbacks loop time(MS)") {
             periodicRunnables.forEach{ it() }
             // Runs the Command Scheduler; polling buttons and scheduling commands.
             commandScheduler.run()
@@ -111,15 +114,12 @@ abstract class ChargerRobot: TimedRobot(0.02) {
     init {
         addPeriodic(::periodicCallback, 0.02)
         LoggedCommand.configure(
-            logCommandRunning = HorseLog::log,
-            logExecutionTime = HorseLog::log
+            logCommandRunning = ::log,
+            logExecutionTime = ::log
         )
         HAL.report(FRCNetComm.tResourceType.kResourceType_Language, FRCNetComm.tInstances.kLanguage_Kotlin)
         if (getRuntimeType() == RuntimeType.kRoboRIO && DataLogManager.getLogDir() == "/home/lvuser/logs") {
-            HorseLog.logError(
-                "Logging to disk on RoboRIO 1",
-                "pls don't. (If we have a USB stick, make sure its working lmao)"
-            )
+            Alert("Logging To disk on RoboRio 1; pls dont", AlertType.kError).set(true)
         }
     }
 }

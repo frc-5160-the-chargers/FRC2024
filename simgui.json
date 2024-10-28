@@ -229,12 +229,6 @@
         },
         "open": true
       },
-      "FMSInfo": {
-        "open": true
-      },
-      "LiveWindow": {
-        "open": true
-      },
       "Logs": {
         "Drivetrain(Swerve)": {
           "BottomLeftModule": {
@@ -262,8 +256,7 @@
         "DriverController": {
           "ChassisPowers##v_/Robot/DriverController/chassisPowers": {
             "open": true
-          },
-          "open": true
+          }
         },
         "Drivetrain(Differential)": {
           "open": true
@@ -285,11 +278,7 @@
         "Pivot": {
           "Control": {
             "open": true
-          },
-          "open": true
-        },
-        "Shooter": {
-          "open": true
+          }
         },
         "SwerveDrive": {
           "Modules": {
@@ -306,8 +295,7 @@
               "open": true
             },
             "open": true
-          },
-          "open": true
+          }
         },
         "open": true
       },
@@ -348,6 +336,17 @@
         },
         "TunableValues": {
           "open": true
+        }
+      },
+      "gyro": {
+        "NavX": {
+          "open": true
+        },
+        "accel(m": {
+          "open": true,
+          "s^2)": {
+            "open": true
+          }
         },
         "open": true
       },

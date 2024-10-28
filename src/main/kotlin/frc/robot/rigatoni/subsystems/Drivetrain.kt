@@ -16,14 +16,14 @@ import frc.chargers.hardware.subsystems.swervedrive.*
 fun getDrivetrain(gyro: HeadingProvider): EncoderHolonomicDrivetrain =
     if (isSimulation()) {
         EncoderHolonomicDrivetrain(
-            name = "SwerveDrive",
             turnMotors = List(4){ MotorSim(DCMotor.getNEO(1), moi = TURN_MOTOR_MOI) },
             driveMotors = List(4){ MotorSim(DCMotor.getKrakenX60(1), moi = DRIVE_MOTOR_MOI) },
             constants = SWERVE_CONSTANTS
         )
     } else {
+        //TODO: Change back to TURN_MOTORS REVLib is bumped to 2025
         EncoderHolonomicDrivetrain(
-            name = "SwerveDrive", turnMotors = TURN_MOTORS, turnEncoders = TURN_ENCODERS,
+            turnMotors = List(4){ MotorSim(DCMotor.getNEO(1), moi = TURN_MOTOR_MOI) }, turnEncoders = TURN_ENCODERS,
             driveMotors = DRIVE_MOTORS, constants = SWERVE_CONSTANTS, gyro = gyro
         )
     }
@@ -53,6 +53,7 @@ private val SWERVE_CONSTANTS = SwerveConstants(
     velocityPID = PIDConstants(0.05,0.0,0.0),
     velocityFF = AngularMotorFeedforward(0.0,0.13),
 )
+/*
 private val TURN_MOTORS = listOf(
     ChargerSparkMax(DrivetrainID.TL_TURN),
     ChargerSparkMax(DrivetrainID.TR_TURN).configure(inverted = true),
@@ -65,6 +66,7 @@ private val TURN_MOTORS = listOf(
         optimizeUpdateRate = true
     )
 }
+ */
 private val TURN_ENCODERS = listOf(
     // encoder - angleOffset = encoder with angle offset
     ChargerCANcoder(DrivetrainID.TL_ENCODER) + 2.447.radians,
@@ -83,9 +85,9 @@ private val DRIVE_MOTORS = listOf(
         brakeWhenIdle = true,
         optimizeUpdateRate = true
     ).limitSupplyCurrent(
-        45.amps,
-        highLimit = 70.amps,
-        highLimitAllowedFor = 0.2.seconds
+        80.amps,
+        lowLimit = 50.amps,
+        lowLimitActivationTime = 0.7.seconds
     )
 }
 private val TURN_MOTOR_MOI = 0.004.kilo.grams * (meters * meters)

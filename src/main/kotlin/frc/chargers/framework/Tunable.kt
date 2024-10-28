@@ -5,11 +5,12 @@ import com.batterystaple.kmeasure.dimensions.AnyDimension
 import com.batterystaple.kmeasure.quantities.Quantity
 import com.batterystaple.kmeasure.quantities.inUnit
 import com.batterystaple.kmeasure.quantities.ofUnit
+import com.batterystaple.kmeasure.units.seconds
 import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
-import kcommand.InstantCommand
-import edu.wpi.first.wpilibj2.command.WaitCommand
 import edu.wpi.first.wpilibj2.command.button.Trigger
+import frc.chargers.utils.waitThenRun
+import frc.chargers.wpilibextensions.Cmd
 import kotlin.reflect.KProperty
 
 /** A property delegate for a [Double] that can be tuned from advantagescope. */
@@ -69,19 +70,15 @@ class Tunable<T>(
 
     // called once on init
     operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): Tunable<T> {
-        val propertyName = property.name.replaceFirstChar { it.titlecase() }
-        this.path = when {
-            key != null -> key!!
-            thisRef != null -> "${thisRef::class.simpleName}/$propertyName"
-            else -> "OtherTunables/$propertyName"
-        }
+        val propertyName = if (key == null) property.name else key!!
+        val group = if (thisRef == null) "OtherTunables" else thisRef::class.simpleName
+        this.path = "$group/$propertyName"
         // waits to put the value to the dashboard so that SmartDashboard can initialize
-        WaitCommand(1.0)
-            .andThen(InstantCommand { put(path, current) })
-            .ignoringDisable(true)
-            .schedule()
+        waitThenRun(1.seconds) {
+            put(path, current)
+        }
         Trigger(::hasChanged)
-            .onTrue(InstantCommand {
+            .onTrue(Cmd.runOnce {
                 current = get(path, current)
                 onChangeRunnables.forEach{ it(current) }
             }.ignoringDisable(true))

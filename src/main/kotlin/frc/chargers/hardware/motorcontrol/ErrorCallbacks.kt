@@ -1,17 +1,15 @@
 package frc.chargers.hardware.motorcontrol
 
-import frc.chargers.framework.HorseLog.logError
+import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Alert.AlertType
+
+private val positionPIDAlert = Alert("Position PID must be configured via motor.configure(positionPID = PIDConstants(p,i,d))", AlertType.kError)
+private val velocityPIDAlert = Alert("Velocity PID must be configured via motor.configure(velocityPID = PIDConstants(p,i,d))", AlertType.kError)
 
 fun alertPositionPIDErr() {
-    logError(
-        "Position PID not configured",
-        "You must specify position PID constants via motor.configure(positionPID = PIDConstants(p,i,d))."
-    )
+    positionPIDAlert.set(true)
 }
 
 fun alertVelocityPIDErr() {
-    logError(
-        "Velocity PID not configured",
-        "You must specify velocity PID constants via motor.configure(velocityPID = PIDConstants(p,i,d))."
-    )
+    velocityPIDAlert.set(true)
 }

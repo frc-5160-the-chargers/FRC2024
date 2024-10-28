@@ -5,7 +5,8 @@ import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.rotations
 import com.batterystaple.kmeasure.units.seconds
 import com.reduxrobotics.sensors.canandmag.Canandmag
-import frc.chargers.framework.HorseLog
+import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Alert.AlertType
 
 
 /**
@@ -21,7 +22,7 @@ class ChargerCanandmag(
     init {
         for (i in 1..4) {
             if (base.setSettings(settings)) break
-            if (i == 4) HorseLog.logError("Canandmag($deviceID) failed to configure", "")
+            if (i == 4) Alert("Canandmag($deviceID) failed to configure", AlertType.kError).set(true)
         }
     }
 

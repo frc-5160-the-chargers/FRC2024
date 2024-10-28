@@ -10,7 +10,8 @@ import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.Pigeon2Configuration
 import com.ctre.phoenix6.hardware.Pigeon2
 import edu.wpi.first.wpilibj.RobotBase.isReal
-import frc.chargers.framework.logged
+import frc.chargers.utils.waitThenRun
+import monologue.Annotations.Log
 
 
 /**
@@ -46,9 +47,9 @@ class ChargerPigeon2(
     private var simPreviousYaw = Angle(0.0)
 
     init {
+        waitThenRun(1.seconds) { zeroHeading() }
         if (factoryDefault) base.configurator.apply(Pigeon2Configuration())
         if (headingUpdateFrequency != null) yawSignal.setUpdateFrequency(headingUpdateFrequency.inUnit(hertz))
-        zeroHeading()
     }
 
     /**
@@ -63,53 +64,48 @@ class ChargerPigeon2(
         base.setYaw(angle.inUnit(degrees))
     }
 
-    val yaw: Angle by logged {
-        if (isReal()) yawSignal.refresh().value.ofUnit(degrees) else simHeadingSource()
-    }
+    @get:Log(key = "yaw(Rad)")
+    val yaw: Angle get() = if (isReal()) yawSignal.refresh().valueAsDouble.ofUnit(degrees) else simHeadingSource()
 
-    val pitch: Angle by logged {
-        if (isReal()) pitchSignal.refresh().value.ofUnit(degrees) else Angle(0.0)
-    }
+    @get:Log(key = "pitch(Rad)")
+    val pitch: Angle get() = pitchSignal.refresh().valueAsDouble.ofUnit(degrees)
 
-    val roll: Angle by logged {
-        if (isReal()) rollSignal.refresh().value.ofUnit(degrees) else Angle(0.0)
-    }
+    @get:Log(key = "roll(Rad)")
+    val roll: Angle get() = rollSignal.refresh().valueAsDouble.ofUnit(degrees)
 
-    val yawRate: AngularVelocity by logged {
-        if (isReal()) {
-            yawRateSignal.refresh().value.ofUnit(degrees / seconds)
-        } else {
-            val currH = simHeadingSource()
-            ((currH - simPreviousYaw) / 0.02.seconds).also {
-                simPreviousYaw = currH
-            }
+    @get:Log(key = "yawRate(Rad/S)")
+    val yawRate: AngularVelocity get() = if (isReal()) {
+        yawRateSignal.refresh().valueAsDouble.ofUnit(degrees / seconds)
+    } else {
+        val currH = simHeadingSource()
+        ((currH - simPreviousYaw) / 0.02.seconds).also {
+            simPreviousYaw = currH
         }
     }
 
-    val pitchRate: AngularVelocity by logged {
-        if (isReal()) pitchRateSignal.refresh().value.ofUnit(degrees / seconds) else AngularVelocity(0.0)
-    }
+    @get:Log(key = "pitchRate(Rad/S)")
+    val pitchRate: AngularVelocity
+        get() = pitchRateSignal.refresh().valueAsDouble.ofUnit(degrees / seconds)
 
-    val rollRate: AngularVelocity by logged {
-        if (isReal()) rollRateSignal.refresh().value.ofUnit(degrees / seconds) else AngularVelocity(0.0)
-    }
+    @get:Log(key = "rollRate(Rad/S)")
+    val rollRate: AngularVelocity
+        get() = rollRateSignal.refresh().valueAsDouble.ofUnit(degrees / seconds)
 
-    val xAcceleration: Acceleration by logged {
-        if (isReal()) xAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
-    }
+    @get:Log(key = "Accel(MPS^2)/x")
+    val xAcceleration: Acceleration
+        get() = xAccelSignal.refresh().valueAsDouble.ofUnit(standardGravities)
 
-    val yAcceleration: Acceleration by logged {
-        if (isReal()) yAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
-    }
+    @get:Log(key = "Accel(MPS^2)/x")
+    val yAcceleration: Acceleration
+        get() = yAccelSignal.refresh().valueAsDouble.ofUnit(standardGravities)
 
-    val zAcceleration: Acceleration by logged {
-        if (isReal()) zAccelSignal.refresh().value.ofUnit(standardGravities) else Acceleration(0.0)
-    }
+    @get:Log(key = "Accel(MPS^2)/x")
+    val zAcceleration: Acceleration
+        get() = zAccelSignal.refresh().valueAsDouble.ofUnit(standardGravities)
 
     /**
      * Determines if the gyro is connected or not.
      */
-    val isConnected: Boolean by logged {
-        allSignals.all { it.status == StatusCode.OK }
-    }
+    @get:Log
+    val isConnected get() = allSignals.all { it.status == StatusCode.OK }
 }

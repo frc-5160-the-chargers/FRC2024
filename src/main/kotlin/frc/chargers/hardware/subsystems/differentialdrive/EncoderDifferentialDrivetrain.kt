@@ -21,7 +21,6 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.drive.DifferentialDrive
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.chargers.framework.ChargerRobot
-import frc.chargers.framework.HorseLog.log
 import frc.chargers.hardware.motorcontrol.Motor
 import frc.chargers.hardware.motorcontrol.simulation.MotorSim
 import frc.chargers.hardware.sensors.imu.HeadingProvider
@@ -34,6 +33,7 @@ import frc.chargers.wpilibextensions.Rotation2d
 import frc.chargers.wpilibextensions.angle
 import frc.chargers.wpilibextensions.kinematics.ChassisPowers
 import frc.chargers.wpilibextensions.kinematics.ChassisSpeeds
+import monologue.Logged
 import kotlin.jvm.optionals.getOrNull
 
 /**
@@ -285,7 +285,7 @@ open class EncoderDifferentialDrivetrain(
 
 
     override fun periodic(){
-        log("$name/DistanceTraveledMeters", distanceTraveled.inUnit(meters))
+        log("$name/DistanceTraveled(Meters)", distanceTraveled.inUnit(meters))
         log("$name/Pose2d", robotPose)
         log("$name/ChassisSpeeds", currentSpeeds)
 
