@@ -1,10 +1,13 @@
 package frc.robot.pushbot
 
+import com.batterystaple.kmeasure.units.degrees
 import com.batterystaple.kmeasure.units.meters
 import dev.doglog.DogLogOptions
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.math.system.plant.DCMotor
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.InstantCommand
+import kcommand.InstantCommand
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous
 import edu.wpi.first.wpilibj2.command.button.Trigger
@@ -26,7 +29,7 @@ import kotlin.math.abs
 class PushBot: ChargerRobot() {
     private val leftMotors = listOf(
         ChargerSparkMax(15, faultLogName = "L1").configure(inverted = false),
-        //ChargerSparkMax(11, faultLogName = "L2").configure(inverted = true)
+        //ChargerSparkMax(11, faultLogName = "L2").configure(inverted = false)
     )
 
     private val rightMotors = listOf(
@@ -52,10 +55,17 @@ class PushBot: ChargerRobot() {
     private val xboxController = CommandXboxController(1)
 
     private val shakePower by tunable(0.4)
+    private val shakeDistance by tunable(0.1.meters)
 
     private var cond = false
 
     init{
+        SmartDashboard.putData(
+            "ZeroEncoders",
+            InstantCommand {
+                (leftMotors + rightMotors).forEach{ it.configure(currentPosition = 0.degrees) }
+            }
+        )
 
         Trigger{ cond }.onTrue(InstantCommand({println("hi!!!!")}))
 
@@ -80,12 +90,11 @@ class PushBot: ChargerRobot() {
                     log("USAYPT-testing/time", fpgaTimestamp())
                 }
 
-                loopUntil({drivetrain.distanceTraveled > 0.1.meters}){
+                loopUntil({drivetrain.distanceTraveled > shakeDistance}){
                     drivetrain.arcadeDrive(shakePower, 0.0, squareInputs = false)
-                    println(shakePower)
                 }
 
-                loopUntil({drivetrain.distanceTraveled < -0.1.meters}){
+                loopUntil({drivetrain.distanceTraveled < -shakeDistance}){
                     drivetrain.arcadeDrive(-shakePower, 0.0, squareInputs = false)
                     println(shakePower)
                 }
