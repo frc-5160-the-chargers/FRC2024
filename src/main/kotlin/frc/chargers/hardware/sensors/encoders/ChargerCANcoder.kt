@@ -10,6 +10,7 @@ import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue
 import com.ctre.phoenix6.signals.SensorDirectionValue
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Alert.AlertType
+import frc.chargers.framework.UnitTesting
 
 /**
  * A wrapper around the [CANcoder] class that implements the [Encoder] interface.
@@ -28,6 +29,7 @@ class ChargerCANcoder(
     val base: CANcoder = CANcoder(deviceID)
 
     init {
+        UnitTesting.addGlobalCloseable(base)
         val config = CANcoderConfiguration()
         if (!factoryDefault) base.configurator.refresh(config)
         if (sensorDirection != null) config.MagnetSensor.SensorDirection = sensorDirection

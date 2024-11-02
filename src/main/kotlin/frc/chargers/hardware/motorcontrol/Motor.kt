@@ -4,6 +4,8 @@ package frc.chargers.hardware.motorcontrol
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.volts
 import com.pathplanner.lib.util.PIDConstants
+import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Alert.AlertType
 import frc.chargers.hardware.sensors.encoders.Encoder
 
 /**
@@ -15,6 +17,14 @@ import frc.chargers.hardware.sensors.encoders.Encoder
  * and more.
  */
 interface Motor {
+    companion object {
+        private val positionPIDAlert = Alert("Position PID must be configured via motor.configure(positionPID = PIDConstants(p,i,d))", AlertType.kError)
+        private val velocityPIDAlert = Alert("Velocity PID must be configured via motor.configure(velocityPID = PIDConstants(p,i,d))", AlertType.kError)
+
+        fun alertPositionPIDErr() { positionPIDAlert.set(true) }
+        fun alertVelocityPIDErr() { velocityPIDAlert.set(true) }
+    }
+
     /**
      * The encoder of the motor.
      */

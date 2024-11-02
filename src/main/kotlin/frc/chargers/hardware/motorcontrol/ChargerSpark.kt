@@ -7,14 +7,12 @@ import com.revrobotics.*
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Alert.AlertType
-import edu.wpi.first.wpilibj2.command.Command
 import frc.chargers.framework.ChargerRobot
+import frc.chargers.framework.UnitTesting
 import frc.chargers.hardware.sensors.encoders.Encoder
 import frc.chargers.utils.units.frequencyToPeriod
 import kotlin.math.PI
 import kotlin.math.roundToInt
-import kotlin.properties.ReadOnlyProperty
-import kotlin.reflect.KProperty
 
 
 /**
@@ -71,6 +69,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
     private var velocityPIDConfigured = false
 
     init {
+        UnitTesting.addGlobalCloseable(base)
         base.pidController.setFeedbackDevice(
             if (useAbsoluteEncoder) absoluteEncoder else relativeEncoder
         )
@@ -118,7 +117,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
 
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
         if (!positionPIDConfigured) {
-            alertVelocityPIDErr()
+            Motor.alertVelocityPIDErr()
             return
         } else if (abs(position - this.encoder.angularPosition) < 1.degrees) {
             base.setVoltage(0.0)
@@ -134,7 +133,7 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
 
     override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
         if (!velocityPIDConfigured) {
-            alertPositionPIDErr()
+            Motor.alertVelocityPIDErr()
             return
         }
         base.pidController.setReference(
@@ -256,7 +255,3 @@ open class ChargerSpark<BaseMotorType: CANSparkBase>(
         return this
     }
 }
-
-
-operator fun Command.provideDelegate(thisRef: Any?, property: KProperty<*>) =
-    ReadOnlyProperty<Any?, Command> {_, _ -> this@provideDelegate }

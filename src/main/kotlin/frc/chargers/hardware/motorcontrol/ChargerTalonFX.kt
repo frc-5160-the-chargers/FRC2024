@@ -14,6 +14,7 @@ import com.pathplanner.lib.util.PIDConstants
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Alert.AlertType
 import frc.chargers.framework.ChargerRobot
+import frc.chargers.framework.UnitTesting
 import frc.chargers.hardware.sensors.encoders.ChargerCANcoder
 import frc.chargers.hardware.sensors.encoders.Encoder
 import kotlin.math.PI
@@ -62,6 +63,7 @@ class ChargerTalonFX(
     private var velocityPIDConfigured = false
 
     init {
+        UnitTesting.addGlobalCloseable(base)
         if (factoryDefault || fusedCANCoder != null) {
             if (!factoryDefault) base.configurator.refresh(config)
             if (fusedCANCoder != null) {
@@ -102,7 +104,7 @@ class ChargerTalonFX(
 
     override fun setPositionSetpoint(position: Angle, feedforward: Voltage) {
         if (!positionPIDConfigured) {
-            alertPositionPIDErr()
+            Motor.alertPositionPIDErr()
             return
         } else if (abs(position - this.encoder.angularPosition) < 0.5.degrees) {
             base.setVoltage(0.0)
@@ -116,7 +118,7 @@ class ChargerTalonFX(
 
     override fun setVelocitySetpoint(velocity: AngularVelocity, feedforward: Voltage) {
         if (!velocityPIDConfigured) {
-            alertVelocityPIDErr()
+            Motor.alertVelocityPIDErr()
             return
         }
         setVelRequest.Velocity = velocity.inUnit(rotations / seconds)

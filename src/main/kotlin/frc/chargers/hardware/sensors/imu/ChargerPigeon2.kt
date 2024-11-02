@@ -10,8 +10,10 @@ import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.Pigeon2Configuration
 import com.ctre.phoenix6.hardware.Pigeon2
 import edu.wpi.first.wpilibj.RobotBase.isReal
+import frc.chargers.framework.UnitTesting
 import frc.chargers.utils.waitThenRun
 import monologue.Annotations.Log
+import monologue.Logged
 
 
 /**
@@ -24,7 +26,7 @@ class ChargerPigeon2(
     factoryDefault: Boolean = true,
     headingUpdateFrequency: Frequency? = null,
     var simHeadingSource: () -> Angle = { Angle(0.0) }
-): ZeroableHeadingProvider {
+): ZeroableHeadingProvider, Logged {
     val base: Pigeon2 = if (canBus == null) Pigeon2(deviceID) else Pigeon2(deviceID, canBus)
 
     private val yawSignal = base.yaw
@@ -47,6 +49,7 @@ class ChargerPigeon2(
     private var simPreviousYaw = Angle(0.0)
 
     init {
+        UnitTesting.addGlobalCloseable(base)
         waitThenRun(1.seconds) { zeroHeading() }
         if (factoryDefault) base.configurator.apply(Pigeon2Configuration())
         if (headingUpdateFrequency != null) yawSignal.setUpdateFrequency(headingUpdateFrequency.inUnit(hertz))

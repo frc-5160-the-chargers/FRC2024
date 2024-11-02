@@ -1,13 +1,13 @@
-@file:Suppress("unused", "MemberVisibilityCanBePrivate", "LeakingThis")
+@file:Suppress("unused", "MemberVisibilityCanBePrivate")
 package frc.chargers.hardware.subsystems.swervedrive
 
 import choreo.Choreo
 import choreo.auto.AutoFactory
+import choreo.auto.AutoTrajectory
 import choreo.trajectory.SwerveSample
 import choreo.trajectory.Trajectory
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
-import com.pathplanner.lib.commands.PathfindingCommand
 import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
 import edu.wpi.first.math.geometry.Pose2d
@@ -18,6 +18,8 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
+import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Alert.AlertType
 import edu.wpi.first.wpilibj.DriverStation.*
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.Command
@@ -65,7 +67,7 @@ open class EncoderHolonomicDrivetrain(
         ensureFour("turn encoder", turnEncoders)
         ensureFour("drive motor", driveMotors)
     }
-    // note: dont change this to list, as monologue can't traverse through lists
+    // note: don't change this to list, as monologue can't traverse through lists
     private val swerveModules = Array(4){ index ->
         SwerveModule(
             turnMotors[index],
@@ -161,7 +163,7 @@ open class EncoderHolonomicDrivetrain(
      * The [AutoFactory] of the drive subsystem.
      * Used to follow paths, run autos, etc.
      */
-    val choreoApi = Choreo.createAutoFactory(
+    val choreoApi: AutoFactory = Choreo.createAutoFactory(
         this,
         { robotPose },
         ::followPath,
@@ -170,32 +172,35 @@ open class EncoderHolonomicDrivetrain(
         ::logTrajectory
     )
 
-    fun pathCommand(pathName: String, splitIndex: Int? = null) =
+    private fun getTraj(trajName: String, splitIndex: Int? = null) =
         if (splitIndex == null) {
-            choreoApi.trajectoryCommand(pathName)
+            choreoApi.trajectory(trajName, choreoApi.voidLoop())
         } else {
-            choreoApi.trajectoryCommand(pathName, splitIndex)
+            choreoApi.trajectory(trajName, splitIndex, choreoApi.voidLoop())
         }
 
-    fun resetPoseThenPathCommand(pathName: String, splitIndex: Int? = null): Command {
-        val traj = if (splitIndex != null) {
-            choreoApi.trajectory(pathName, splitIndex, choreoApi.voidLoop())
-        } else {
-            choreoApi.trajectory(pathName, choreoApi.voidLoop())
-        }
-        val startingPose = traj.initialPose.getOrNull() ?: return Cmd.print("")
+    /**
+     * A command that follows a choreo trajectory.
+     */
+    fun trajectoryCmd(trajectoryName: String, splitIndex: Int? = null): Command =
+        getTraj(trajectoryName, splitIndex).cmd()
 
-        return Cmd.runOnce {  }
-    }
+    /**
+     * A command that resets the robot pose before following a trajectory.
+     * This should always be the first command of a pathplanner auto.
+     */
+    fun resetPoseThenTrajectoryCmd(trajectoryName: String, splitIndex: Int? = null) =
+        resetPoseThenTrajectoryCmd(getTraj(trajectoryName, splitIndex))
 
-    fun pathfindCommand(targetPose: Pose2d, distanceBeforeAlign: Distance = 0.5.meters) =
-        PathfindingCommand(
-            targetPose,
-            PathConstraints(5.0, 25.0, 20.0, 40.0)
-        )
-
-    fun test() {
-        subsystemsAvailable
+    /**
+     * A command that resets the robot pose before following a trajectory.
+     * This should always be the first command of a pathplanner auto.
+     */
+    fun resetPoseThenTrajectoryCmd(trajectory: AutoTrajectory): Command {
+        val noStartingPoseAlert = Alert("No starting pose for auto; nothing will be run.", AlertType.kError)
+        val startingPose = trajectory.initialPose
+        if (startingPose.isEmpty) return Cmd.run(this) { noStartingPoseAlert.set(true) }
+        return Cmd.runOnce { resetPose(startingPose.get()) }.andThen(trajectory.cmd())
     }
 
     /**
@@ -207,7 +212,7 @@ open class EncoderHolonomicDrivetrain(
     /**
      * Resets the drivetrain's pose.
      */
-    final override fun resetPose(pose: Pose2d) {
+    override fun resetPose(pose: Pose2d) {
         calculatedHeading = pose.rotation.angle
         if (gyro is ZeroableHeadingProvider){
             gyro.zeroHeading(pose.rotation.angle)
