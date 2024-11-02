@@ -1,10 +1,13 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate", "LeakingThis")
 package frc.chargers.hardware.subsystems.swervedrive
 
+import choreo.Choreo
+import choreo.auto.AutoFactory
+import choreo.trajectory.SwerveSample
+import choreo.trajectory.Trajectory
 import com.batterystaple.kmeasure.quantities.*
 import com.batterystaple.kmeasure.units.*
-import com.pathplanner.lib.auto.AutoBuilder
-import com.pathplanner.lib.util.HolonomicPathFollowerConfig
+import com.pathplanner.lib.commands.PathfindingCommand
 import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
 import edu.wpi.first.math.geometry.Pose2d
@@ -15,9 +18,11 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
-import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.DriverStation.*
 import edu.wpi.first.wpilibj.RobotBase
+import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
+import frc.chargers.controls.PIDController
 import frc.chargers.framework.ChargerRobot
 import frc.chargers.framework.tunable
 import frc.chargers.hardware.motorcontrol.Motor
@@ -29,14 +34,11 @@ import frc.chargers.utils.epsilonEquals
 import frc.chargers.utils.units.VoltageRate
 import frc.chargers.utils.units.toKmeasure
 import frc.chargers.utils.units.toWPI
-import frc.chargers.wpilibextensions.Rotation2d
-import frc.chargers.wpilibextensions.Translation2d
-import frc.chargers.wpilibextensions.angle
+import frc.chargers.wpilibextensions.*
 import frc.chargers.wpilibextensions.kinematics.*
-import monologue.Logged
+import monologue.Annotations.Log
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.abs
-import kotlin.math.pow
 
 private fun ensureFour(type: String, list: List<*>) {
     require(list.size == 4){ "You must have four ${type}s." }
@@ -104,11 +106,7 @@ open class EncoderHolonomicDrivetrain(
     private val velocityPID by tunable(constants.velocityPID)
         .onChange{ pid -> driveMotors.forEach{ it.configure(velocityPID = pid) } }
 
-    private val allianceFieldRelativeOffset get() =
-        when (DriverStation.getAlliance().getOrNull()){
-            DriverStation.Alliance.Red -> 180.degrees
-            else -> 0.degrees
-        }
+    private val isRedAlliance get() = getAlliance().getOrNull() == Alliance.Red
     private val defaultFieldRelative = RobotBase.isSimulation() || gyro != null
 
     private fun updatePoseEstimation() {
@@ -128,35 +126,78 @@ open class EncoderHolonomicDrivetrain(
         }
     }
 
+    private fun logTrajectory(trajectory: Trajectory<SwerveSample>, isStart: Boolean) {
+        if (isStart) {
+            val traj = if (isRedAlliance) trajectory.flipped() else trajectory
+            log("Choreo/AutoTrajectory", traj.poses)
+        } else {
+            log("Choreo/AutoTrajectory", emptyArray<Pose2d>())
+        }
+    }
+
+    private fun followPath(currentPose: Pose2d, sample: SwerveSample) {
+        velocityDrive(
+            pathXController.calculate(currentPose.x, sample.x).ofUnit(meters / seconds),
+            pathYController.calculate(currentPose.y, sample.y).ofUnit(meters / seconds),
+            pathRotationController.calculate(currentPose.rotation.radians, sample.heading)
+                .ofUnit(radians / seconds),
+            fieldRelative = true
+        )
+    }
+
+    @Log private val pathXController = PIDController(constants.robotTranslationPID)
+    @Log private val pathYController = PIDController(constants.robotTranslationPID)
+    @Log private val pathRotationController = PIDController(constants.robotRotationPID)
+
     init{
         ChargerRobot.runPeriodicAtPeriod(
             constants.odometryUpdateRate,
             ::updatePoseEstimation
         )
-        if (!autoBuilderConfigured) {
-            AutoBuilder.configureHolonomic(
-                { robotPose },
-                { resetPose(it) },
-                { currentSpeeds },
-                { speeds ->
-                    velocityDrive(speeds, fieldRelative = false)
-                    log("PathPlanner/ChassisSpeeds", speeds)
-                },
-                HolonomicPathFollowerConfig(
-                    constants.robotTranslationPID,
-                    constants.robotRotationPID,
-                    constants.driveMotorMaxSpeed.siValue,
-                    kotlin.math.sqrt(constants.trackWidth.inUnit(meters).pow(2) + constants.wheelBase.inUnit(meters).pow(2)),
-                    constants.pathReplanningConfig
-                ),
-                { DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red }, // determines if alliance flip for paths is necessary
-                this // subsystem requirement
-            )
-            autoBuilderConfigured = true
-        }
     }
 
     /* PUBLIC API */
+    /**
+     * The [AutoFactory] of the drive subsystem.
+     * Used to follow paths, run autos, etc.
+     */
+    val choreoApi = Choreo.createAutoFactory(
+        this,
+        { robotPose },
+        ::followPath,
+        { isRedAlliance },
+        AutoFactory.AutoBindings(),
+        ::logTrajectory
+    )
+
+    fun pathCommand(pathName: String, splitIndex: Int? = null) =
+        if (splitIndex == null) {
+            choreoApi.trajectoryCommand(pathName)
+        } else {
+            choreoApi.trajectoryCommand(pathName, splitIndex)
+        }
+
+    fun resetPoseThenPathCommand(pathName: String, splitIndex: Int? = null): Command {
+        val traj = if (splitIndex != null) {
+            choreoApi.trajectory(pathName, splitIndex, choreoApi.voidLoop())
+        } else {
+            choreoApi.trajectory(pathName, choreoApi.voidLoop())
+        }
+        val startingPose = traj.initialPose.getOrNull() ?: return Cmd.print("")
+
+        return Cmd.runOnce {  }
+    }
+
+    fun pathfindCommand(targetPose: Pose2d, distanceBeforeAlign: Distance = 0.5.meters) =
+        PathfindingCommand(
+            targetPose,
+            PathConstraints(5.0, 25.0, 20.0, 40.0)
+        )
+
+    fun test() {
+        subsystemsAvailable
+    }
+
     /**
      * The current robot pose of the drivetrain.
      */
@@ -287,7 +328,10 @@ open class EncoderHolonomicDrivetrain(
         goal = if (fieldRelative) {
             ChassisSpeeds.fromFieldRelativeSpeeds(
                 xVel, yVel, rotVel,
-                Rotation2d((gyro?.heading ?: calculatedHeading) + allianceFieldRelativeOffset)
+                Rotation2d(
+                    (gyro?.heading ?: calculatedHeading) +
+                    if (isRedAlliance) 180.degrees else 0.degrees
+                )
             )
         }else{
             ChassisSpeeds(xVel, yVel, rotVel)
@@ -436,7 +480,7 @@ open class EncoderHolonomicDrivetrain(
         log("Pose2d", poseEstimator.estimatedPosition)
         robotWidget.pose = poseEstimator.estimatedPosition
 
-        if (DriverStation.isDisabled()) {
+        if (isDisabled()) {
             stop()
             return
         }else if (currentControlMode == ControlMode.NONE){
